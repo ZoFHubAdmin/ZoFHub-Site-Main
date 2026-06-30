@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="Play {{TITLE}} on ZoFHub — free, instant, no signup." />
+  <!-- Send only the origin as document.referrer for the embedded game; many
+       publisher SDKs accept that but reject the full /play/:slug URL. -->
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <!-- Proof-of-play token: required to submit a leaderboard score for this game. -->
+  <meta name="score-token" content="{{SCORE_TOKEN}}" />
+  <title>{{TITLE}} · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <!-- Open TCP+TLS to the publisher CDN in parallel with the rest of this page
+       so the iframe's first byte arrives faster (shaves 200-600 ms typically). -->
+  <link rel="preconnect" href="{{PRECONNECT_ORIGIN}}" crossorigin />
+  <link rel="dns-prefetch" href="{{PRECONNECT_ORIGIN}}" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/game-page.css?v=20260706" />
+
+  <!-- ============================================================ -->
+  <!-- INSERT AD PROVIDER HEAD SCRIPT HERE                           -->
+  <!-- (Google AdSense Auto-Ads, Playwire RAMP, Ezoic, Snigel etc.)  -->
+  <!--                                                                -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+  <!-- ============================================================ -->
+</head>
+<body class="page-game">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <form class="header-search" action="/" method="get">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input name="q" type="search" placeholder="Search games" aria-label="Search games" />
+      </form>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="play-layout">
+
+    <!-- ====== LEFT RAIL — reserved sponsor space (blank until an ad loads) ====== -->
+    <aside class="ad-rail ad-rail-left">
+      <div class="ad-slot ad-160x600" data-ad-type="skyscraper" data-slot="left-skyscraper"></div>
+      <div class="ad-slot ad-300x250" data-ad-type="box" data-slot="left-box"></div>
+    </aside>
+
+    <!-- ====== CENTER: GAME ====== -->
+    <section class="play-stage">
+
+      <!-- ====== TOP LEADERBOARD AD ====== -->
+      <div class="ad-leaderboard ad-top">
+        <div class="ad-slot ad-728x90" data-ad-type="leaderboard" data-slot="above-game-leaderboard"></div>
+      </div>
+
+      <header class="play-head">
+        <div class="play-meta">
+          <h1 class="play-title">{{TITLE}}</h1>
+          <span class="play-cat">{{CATEGORY}}</span>
+        </div>
+        <div class="play-actions">
+          <button class="ai-help-btn" id="aiHelpBtn" title="Ask the AI for help with this game">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2.4l1.8 4.8 4.8 1.8-4.8 1.8L12 15.6l-1.8-4.8L5.4 9l4.8-1.8z"/><path d="M18.3 13.4l.85 2.25 2.25.85-2.25.85-.85 2.25-.85-2.25-2.25-.85 2.25-.85z"/></svg>
+            <span>AI Help</span>
+          </button>
+          <button class="btn-ghost btn-sm" id="favBtn" title="Favorite">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.4-7 11-7 11z"/></svg>
+            <span>Favorite</span>
+          </button>
+          <button class="btn-ghost btn-sm" id="shareBtn" title="Share">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8h16v-8M16 6l-4-4-4 4M12 2v14"/></svg>
+            <span>Share</span>
+          </button>
+          <button class="btn-ghost btn-sm" id="reloadBtn" title="Reload game (R)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+            <span>Reload</span>
+          </button>
+          <button class="btn-ghost btn-sm" id="scoreBtn" title="Leaderboard">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>
+            <span>Leaderboard</span>
+          </button>
+          <button class="btn-ghost btn-sm" id="proxyBtn" title="Game not loading? Load it through the ZoFHub proxy">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 12l4-4M4 12l4 4M14 6l4 4-4 4"/></svg>
+            <span>Proxy</span>
+          </button>
+          <button class="btn-primary btn-sm" id="fullscreenBtn" title="Fullscreen">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+            <span>Fullscreen</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="frame-box" id="frameBox" data-orientation="{{ORIENTATION}}">
+        <!-- Blurred game art behind the iframe so there's never a flat black
+             screen while the game boots; covered the moment the game paints. -->
+        <div class="frame-thumb-bg" id="frameThumbBg" aria-hidden="true"></div>
+        <div class="game-loader" id="gameLoader">
+          <div class="loader-bar"><span></span></div>
+          <p>Loading {{TITLE}}…</p>
+        </div>
+        <!-- SECURITY: the game runs in a restricted sandbox.
+             - allow-scripts + allow-same-origin: games need JS + their own
+               (cross-origin) localStorage/IndexedDB to run and save progress.
+             - allow-popups + allow-popups-to-escape-sandbox: legit "more games"
+               / share links open as NORMAL new tabs (not sandboxed shells).
+             - allow-forms / pointer-lock / orientation / presentation / modals /
+               downloads: gameplay features (FPS mouse-lock, fullscreen, exports).
+             - DELIBERATELY OMITTED: allow-top-navigation(-by-user-activation).
+               This is the anti-hijack guarantee — a malicious game CANNOT redirect
+               or replace YOUR ZoFHub tab to push ads/scam/malware. It can only
+               affect its own frame or open a separate tab. -->
+        <!-- NB: no `src` here ON PURPOSE. game-page.js sets it AFTER wiring the
+             load/error listeners, so a fast game can't fire `load` before we're
+             listening (which left the loader stuck and bounced working games to
+             the proxy). The src value lives in window.ZOFHUB_GAME.iframeSrc. -->
+        <iframe
+          id="gameFrame"
+          class="game-iframe"
+          data-src="{{IFRAME_SRC}}"
+          title="{{TITLE}}"
+          width="100%"
+          height="100%"
+          frameborder="0"
+          scrolling="no"
+          allowfullscreen
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-pointer-lock allow-orientation-lock allow-presentation allow-modals allow-downloads"
+          allow="autoplay; fullscreen; gamepad; pointer-lock; clipboard-write; encrypted-media; accelerometer; gyroscope; xr-spatial-tracking"
+          referrerpolicy="strict-origin-when-cross-origin"
+          loading="eager"></iframe>
+      </div>
+
+      <p class="play-fallback">
+        Games may not load on the very first try — if you see a black screen it will retry on its own,
+        or just hit <strong>Reload</strong> (or press <kbd>R</kbd>) and it'll open. Still stuck?
+        <a href="?direct=1" id="openDirectLink">Open directly (skip proxy)</a>
+      </p>
+
+      <!-- ====== LEADERBOARD ====== -->
+      <section class="score-panel" id="scorePanel" hidden>
+        <h3 class="row-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg>
+          Leaderboard — {{TITLE}}
+        </h3>
+        <ol class="score-list" id="scoreList"><li class="score-empty">No scores yet — be the first!</li></ol>
+        <form class="score-form" id="scoreForm">
+          <input id="scoreValue" type="number" min="0" max="2000000000" placeholder="Your score" required />
+          <button class="btn-primary btn-sm" type="submit">Submit score</button>
+        </form>
+        <p class="score-note">Submitting as <b id="scoreAs">…</b> · best score per player is kept — it's just for fun. 🏆</p>
+      </section>
+
+      <!-- ====== 728×90 LEADERBOARD AD (below game) ====== -->
+      <div class="ad-leaderboard">
+        <div class="ad-slot ad-728x90" data-ad-type="leaderboard" data-slot="below-game-leaderboard"></div>
+      </div>
+
+      <section class="play-related">
+        <h3 class="row-title">You might also like</h3>
+        <div class="related-grid" id="relatedGrid"></div>
+      </section>
+
+      <!-- ====== IN-CONTENT AD (below related) ====== -->
+      <div class="ad-leaderboard">
+        <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="below-related"></div>
+      </div>
+    </section>
+
+    <!-- ====== RIGHT RAIL — reserved sponsor space (blank until an ad loads) ====== -->
+    <aside class="ad-rail ad-rail-right">
+      <div class="ad-slot ad-160x600" data-ad-type="skyscraper" data-slot="right-skyscraper"></div>
+      <div class="ad-slot ad-300x250" data-ad-type="box" data-slot="right-box"></div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span>© ZoFHub · Free browser arcade</span>
+      <span class="footer-sep">·</span>
+      <a href="/">All games</a>
+      <span class="footer-sep">·</span>
+      <a href="/ai">AI</a>
+    </div>
+  </footer>
+
+  <script>window.ZOFHUB_GAME = { slug: "{{SLUG}}", title: "{{TITLE}}", category: "{{CATEGORY}}", upstream: "{{UPSTREAM_URL}}", iframeSrc: "{{IFRAME_SRC}}", proxyUrl: "{{PROXY_URL}}", thumbnail: "{{THUMBNAIL}}" };</script>
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+  <script type="module" src="/js/game-page.js?v=20260706"></script>
+  <script type="module" src="/js/search-suggest.js?v=20260706"></script>
+</body>
+</html>

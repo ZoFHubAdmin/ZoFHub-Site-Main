@@ -1,0 +1,72 @@
+# ZoFHub — Render deploy blueprint (https://render.com).
+# ─────────────────────────────────────────────────────────────────────────────
+# WHY NOT VERCEL: ZoFHub is a PERSISTENT Express server — it runs node-cron jobs
+# 24/7, holds the catalog + live-presence in memory, and serves the /wisp
+# WebSocket tunnel for the proxy. Vercel's serverless functions can't do any of
+# those. Use a persistent host: Render (this file), Railway, Fly.io, or a VPS.
+#
+# The "Both, separated" strategy = deploy this repo TWICE:
+#   1) HUB domain   → service "zofhub-hub"   (SITE_MODE=hub,  ADSENSE_CLIENT set)
+#   2) PROXY domain → service "zofhub-proxy" (SITE_MODE=full, no ADSENSE_CLIENT)
+# Both share the same code; only env vars differ.
+#
+# NOTE: the FREE plan SLEEPS when idle, which stops the cron jobs + live presence.
+# Use the cheapest always-on paid plan ("starter") for real use. Render injects
+# PORT automatically; server.js reads process.env.PORT.
+services:
+  # ── 1) Monetizable games hub (apply to AdSense / Ezoic with THIS one) ────────
+  - type: web
+    name: zofhub-hub
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: SITE_MODE
+        value: hub                 # web proxy OFF → ad-network-approvable
+      - key: SCORE_SECRET
+        generateValue: true        # stable HMAC secret for score tokens
+      # --- set these as SECRETS in the Render dashboard (never commit them) ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADSENSE_CLIENT
+        sync: false                # ca-pub-XXXXXXXXXXXXXXXX (lights up ads + ads.txt)
+      - key: POLLINATIONS_REFERRER
+        sync: false                # your hub domain, for AI attribution
+
+  # ── 2) Proxy domain (in-game ads only; rotate the domain when filtered) ──────
+  - type: web
+    name: zofhub-proxy
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: SITE_MODE
+        value: full                # web proxy ON; do NOT set ADSENSE_CLIENT here
+      - key: SCORE_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: POLLINATIONS_REFERRER
+        sync: false

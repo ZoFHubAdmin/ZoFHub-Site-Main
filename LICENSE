@@ -1,0 +1,71 @@
+ZoFHub License — Personal, Non-Commercial Use Only
+Copyright (c) 2026 ZoFHub. All rights reserved.
+
+This is a proprietary, source-available license. It is NOT an open-source
+license. Read it before using anything in this repository.
+
+DEFINITIONS
+"Software" means the original ZoFHub source code, assets, text, and design in
+this repository, EXCEPT the third-party components identified in CREDITS.md,
+which are licensed separately under their own terms (see Section 5).
+"You" means the individual or entity exercising permissions under this license.
+"Licensor" means the copyright holder named above.
+
+1. LIMITED PERMISSION
+   Subject to your full compliance with this license, the Licensor grants You a
+   personal, non-exclusive, non-transferable, non-sublicensable, revocable
+   permission to download, view, and run the Software solely for PRIVATE,
+   PERSONAL, NON-COMMERCIAL purposes — for example, personal study or running
+   your own private, non-public copy.
+
+2. RESTRICTIONS
+   Except as expressly permitted in Section 1, You may NOT, in whole or in part:
+   (a) copy, reproduce, or republish the Software, other than the incidental
+       copying strictly necessary to run it privately under Section 1;
+   (b) modify, adapt, translate, reverse engineer beyond what law allows, or
+       create derivative works based on the Software;
+   (c) distribute, publish, host publicly, sell, rent, lease, lend, sublicense,
+       or otherwise make the Software (modified or unmodified) available to any
+       third party;
+   (d) use the Software, or any portion of it, for any commercial purpose or for
+       any direct or indirect monetary gain;
+   (e) present, submit, or pass off the Software or any portion of it as your own
+       work, or use it as the basis of another product or project; or
+   (f) remove, obscure, or alter any copyright, trademark, license, or other
+       proprietary notice.
+
+3. RESERVATION OF RIGHTS
+   All rights not expressly granted in Section 1 are reserved by the Licensor.
+   No title or ownership is transferred. The Licensor alone may grant commercial
+   licenses or any rights beyond Section 1. For commercial use, public hosting,
+   redistribution, or any other permission, you must obtain prior written
+   permission from the Licensor.
+
+4. TRADEMARKS
+   "ZoFHub", the ZoFHub logo, and related names and branding are trademarks of
+   the Licensor and are NOT licensed by this document. You may not use them in
+   any copy, fork, derivative, or promotional material without prior written
+   permission.
+
+5. THIRD-PARTY COMPONENTS
+   The Software is built with third-party software provided under separate
+   licenses (see CREDITS.md), including MIT-licensed proxy engines. Those
+   components remain governed by their own licenses; this license does not apply
+   to them and does not enlarge or restrict your rights under them.
+
+6. TERMINATION
+   Any breach of this license automatically and immediately terminates the
+   permission granted in Section 1. Upon termination you must stop using and
+   delete all copies of the Software.
+
+7. NO WARRANTY; LIMITATION OF LIABILITY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For permissions beyond this license (commercial use, public hosting, or
+redistribution), contact the Licensor through the official project repository:
+https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site

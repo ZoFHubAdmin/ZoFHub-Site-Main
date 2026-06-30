@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="ZoFHub global leaderboard — the top player-reported high scores across every game." />
+  <title>Leaderboard · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/leaderboard.css?v=20260706" />
+</head>
+<body class="page-leaderboard">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard" class="active">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="lb-shell">
+    <div class="lb-hero">
+      <h1>🏆 Global Leaderboard</h1>
+      <p>The top player-reported high scores across every ZoFHub game. Set a great run? Open any
+         game, tap <strong>Leaderboard</strong>, and submit your score — it shows up here instantly.</p>
+    </div>
+
+    <div class="lb-toolbar">
+      <div class="lb-search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="lbSearch" type="search" placeholder="Filter by game or player…" autocomplete="off" aria-label="Filter leaderboard" />
+      </div>
+      <span class="lb-you" id="lbYou"></span>
+      <span class="lb-meta" id="lbMeta"></span>
+    </div>
+
+    <ol class="lb-board" id="lbBoard">
+      <li class="lb-state" id="lbState">Loading scores…</li>
+    </ol>
+
+    <p class="lb-foot-note">Scores are player-reported and on the honor system — they're just for fun. 🎮</p>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/leaderboard.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+/* ============================================================
+   ZoFHub · catalog.css
+   ============================================================ */
+
+.catalog-main {
+  padding: 18px clamp(12px, 2vw, 24px) 30px;
+  min-width: 0;
+}
+
+/* ============ Compact icon sidebar (the category RAIL) ============ */
+.cat-sidebar {
+  padding: 12px 7px 16px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 42%);
+}
+.cat-list {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+
+/* Desktop: the PAGE scrolls freely (like CrazyGames / Poki) — the gallery flows
+   naturally with the page, while the category rail is pinned in view and scrolls
+   on its OWN only when it's taller than the screen, so it can never overrun the
+   page or get cut off. */
+@media (min-width: 881px) {
+  .cat-sidebar {
+    align-self: start;                          /* required so the rail can detach + stick */
+    position: sticky;
+    top: calc(var(--header-h) + 12px);
+    max-height: calc(100vh - var(--header-h) - 24px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;               /* rail scroll won't chain to the page */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125,170,255,.22) transparent;
+  }
+  .cat-sidebar::-webkit-scrollbar { width: 8px; }
+  .cat-sidebar::-webkit-scrollbar-track { background: transparent; }
+  .cat-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(125,170,255,.16);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .cat-sidebar:hover::-webkit-scrollbar-thumb {
+    background: rgba(125,170,255,.34);
+    background-clip: content-box;
+  }
+}
+.cat-item {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 10px 4px;
+  border-radius: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-align: center;
+  transition: background .14s, color .14s;
+}
+.cat-item svg { width: 22px; height: 22px; flex: 0 0 22px; }
+.cat-item .cat-label {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: -.005em;
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  max-width: 76px;
+}
+.cat-item .cat-count {
+  font-size: 9px;
+  color: var(--text-mute);
+  font-weight: 600;
+  margin-top: -1px;
+  letter-spacing: .04em;
+}
+.cat-item:hover {
+  background: rgba(125,170,255,.10);
+  border-color: var(--line);
+  color: var(--text);
+}
+.cat-item:hover .cat-count { color: var(--text-dim); }
+.cat-item.active {
+  background: var(--brand);
+  color: var(--brand-ink);
+  box-shadow: 0 4px 14px rgba(255,224,0,.28);
+}
+.cat-item.active svg { color: var(--brand-ink); }
+.cat-item.active .cat-count { color: rgba(26,11,61,.7); }
+
+/* ============ Top / bottom ad slots ============ */
+.catalog-ad-top, .catalog-ad-bottom {
+  min-height: 90px;
+  margin: 4px 0 18px;
+  border: 1px dashed var(--line-2);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  display: grid; place-items: center;
+  color: var(--text-mute);
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  /* Ad viewability (#4): keep the reserved height and isolate from reflow so an
+     in-flight AI request can't cause layout shift around the ad. */
+  contain: layout;
+}
+.catalog-ad-bottom { margin: 26px 0 4px; }
+
+/* ============ Rows ============ */
+.row { margin: 24px 0 18px; }
+.row-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.row-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 0 12px;
+  font-family: 'Lilita One', 'Inter', sans-serif;
+  font-size: 22px; letter-spacing: -.005em;
+  color: var(--text);
+}
+.row-title svg { color: var(--brand); }
+.row-sub { color: var(--text-mute); font-size: 12.5px; font-weight: 600; }
+
+/* ============ Search spotlight ============ */
+/* A non-empty query focuses the whole page on results: the browse rows and the
+   in-feed ads between them collapse, and the results section gets a highlighted
+   "spotlight" frame so the matches read as the main event. */
+body.is-searching #featuredRow,
+body.is-searching #trendingRow,
+body.is-searching #runnersRow,
+body.is-searching #newRow,
+body.is-searching #recentRow,
+body.is-searching #favoritesRow,
+body.is-searching .catalog-ad-top,
+body.is-searching .ad-inline { display: none !important; }
+
+body.is-searching #allRow {
+  margin-top: 8px;
+  padding: 16px clamp(12px, 2vw, 20px) 20px;
+  border: 1px solid rgba(255, 224, 0, .18);
+  border-radius: 18px;
+  background:
+    radial-gradient(130% 160% at 0% 0%, rgba(124, 58, 237, .14), transparent 55%),
+    rgba(255, 255, 255, .02);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+  animation: spotlightIn .22s ease both;
+}
+@keyframes spotlightIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Search icon before the "Results for …" title */
+:root {
+  --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
+}
+body.is-searching #allRowTitle::before {
+  content: ""; width: 18px; height: 18px; flex: 0 0 auto;
+  background: currentColor;
+  -webkit-mask: var(--search-icon) center / contain no-repeat;
+          mask: var(--search-icon) center / contain no-repeat;
+}
+
+/* Matched text highlighted inside each tile label */
+.search-hl {
+  background: linear-gradient(180deg, rgba(255, 224, 0, .20), rgba(255, 224, 0, .34));
+  color: #fff; border-radius: 3px; padding: 0 1px;
+  font-weight: 800; box-shadow: inset 0 -1px 0 rgba(255, 224, 0, .55);
+}
+
+/* ============ Hero: horizontal scroll carousel ============ */
+.hero-grid {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 2px 2px 14px;
+  margin: 0 -2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+.hero-grid::-webkit-scrollbar { height: 8px; }
+.hero-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 4px; }
+.hero-grid::-webkit-scrollbar-track { background: transparent; }
+
+.hero-tile {
+  position: relative;
+  flex: 0 0 320px;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  scroll-snap-align: start;
+  transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease;
+  animation: fadeUp .35s ease both;
+  isolation: isolate;
+}
+.hero-tile::before {
+  /* Soft single-tone glow on hover — sits below the image (no rainbow). */
+  content: ""; position: absolute; inset: -3px;
+  background: radial-gradient(60% 80% at 50% 20%, rgba(255,224,0,.5), transparent 72%);
+  border-radius: 20px;
+  opacity: 0;
+  filter: blur(16px);
+  z-index: -1;
+  transition: opacity .25s;
+}
+.hero-tile:first-child { flex: 0 0 480px; }
+.hero-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 26px 56px rgba(0,0,0,.6), 0 0 0 2px rgba(255,224,0,.5);
+}
+.hero-tile:hover::before { opacity: .75; }
+.hero-tile img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .35s ease;
+}
+.hero-tile:hover img { transform: scale(1.05); }
+.hero-tile::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.78) 100%);
+}
+.hero-tile-label {
+  position: absolute; left: 16px; bottom: 14px;
+  z-index: 2;
+  color: #fff;
+  font-family: 'Lilita One', 'Inter', sans-serif;
+  font-size: 22px;
+  letter-spacing: -.005em;
+  text-shadow: 0 4px 14px rgba(0,0,0,.55);
+  padding-right: 60px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hero-tile-badge {
+  position: absolute; left: 14px; top: 12px;
+  z-index: 2;
+  padding: 4px 9px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 10.5px;
+  font-weight: 900;
+  border-radius: 6px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.hero-tile-play {
+  position: absolute; right: 16px; bottom: 14px;
+  z-index: 2;
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  box-shadow: 0 6px 16px rgba(255,224,0,.4);
+}
+.hero-tile:hover .hero-tile-play { transform: scale(1.1); box-shadow: 0 8px 22px rgba(255,224,0,.55); }
+
+/* ============ Standard game grid ============ */
+.game-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+}
+/* Stagger the entrance of the first row of tiles so the page doesn't pop in
+   all at once.  After ~24 tiles we stop the staggering (no per-tile cost). */
+.game-grid > * { animation-delay: 0ms; }
+.game-grid > *:nth-child(1)  { animation-delay: 0ms; }
+.game-grid > *:nth-child(2)  { animation-delay: 30ms; }
+.game-grid > *:nth-child(3)  { animation-delay: 60ms; }
+.game-grid > *:nth-child(4)  { animation-delay: 90ms; }
+.game-grid > *:nth-child(5)  { animation-delay: 120ms; }
+.game-grid > *:nth-child(6)  { animation-delay: 150ms; }
+.game-grid > *:nth-child(7)  { animation-delay: 180ms; }
+.game-grid > *:nth-child(8)  { animation-delay: 210ms; }
+.game-grid > *:nth-child(9)  { animation-delay: 240ms; }
+.game-grid > *:nth-child(10) { animation-delay: 270ms; }
+.game-grid > *:nth-child(11) { animation-delay: 300ms; }
+.game-grid > *:nth-child(12) { animation-delay: 330ms; }
+
+.game-tile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .22s ease;
+  animation: fadeUp .3s ease both;
+  isolation: isolate;
+}
+.game-tile::before {
+  /* Soft single-tone brand glow on hover — replaces the old rainbow halo for a
+     cleaner, more deliberate look. */
+  content: ""; position: absolute; inset: -3px;
+  border-radius: 16px;
+  background: radial-gradient(70% 70% at 50% 28%, rgba(255,224,0,.55), transparent 72%);
+  opacity: 0;
+  z-index: -1;
+  filter: blur(12px);
+  transition: opacity .25s;
+}
+.game-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px rgba(0,0,0,.55), 0 0 0 2px rgba(255,224,0,.55);
+}
+.game-tile:hover::before { opacity: .7; }
+.game-tile img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), filter .25s, opacity .45s ease;
+}
+/* Lazy images start transparent and fade in once decoded — no hard "pop".
+   JS adds .img-in on load (with a 2s safety fallback) so an image can never
+   stay invisible. Scoped to .game-tile so eager hero images are unaffected. */
+.game-tile img.lz { opacity: 0; }
+.game-tile img.lz.img-in { opacity: 1; }
+.game-tile:hover img { transform: scale(1.06); filter: saturate(1.06); }
+.game-tile::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 48%, rgba(0,0,0,.82) 100%);
+  pointer-events: none;
+}
+
+.game-tile-label {
+  position: absolute; left: 9px; bottom: 7px; right: 9px;
+  z-index: 2;
+  color: #fff;
+  font-family: 'Lilita One', 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: -.005em;
+  text-shadow: 0 2px 8px rgba(0,0,0,.7);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.game-tile-play {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(.65);
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: 0 8px 20px rgba(0,0,0,.55);
+  transition: opacity .12s, transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.game-tile:hover .game-tile-play {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.game-tile-fav {
+  position: absolute; top: 6px; right: 6px;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity .12s, color .12s, background .12s, transform .12s;
+  z-index: 4;
+}
+.game-tile:hover .game-tile-fav { opacity: 1; }
+.game-tile-fav:hover { transform: scale(1.1); }
+.game-tile-fav.on {
+  opacity: 1;
+  color: var(--accent);
+  background: rgba(255,59,107,.22);
+  border-color: rgba(255,59,107,.55);
+}
+.game-tile-badge {
+  position: absolute; top: 6px; left: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 9.5px; font-weight: 900;
+  letter-spacing: .06em; text-transform: uppercase;
+  background: var(--brand); color: var(--brand-ink);
+}
+.game-tile-badge.new { background: var(--accent); color: #fff; box-shadow: 0 0 12px rgba(255,59,107,.6); }
+.game-tile-badge.hot { background: linear-gradient(135deg, #ff6b35, #ff2a7f); color: #fff; box-shadow: 0 0 12px rgba(255,107,53,.5); }
+.game-tile-badge.ai  { background: linear-gradient(135deg, #29d3ff, #2f7bff); color: #06122b; box-shadow: 0 0 12px rgba(41,211,255,.5); }
+
+/* When a tile has a live-pill visible (positioned bottom-left), bump the
+   label so they don't collide. */
+.game-tile .live-pill.on ~ .game-tile-label { padding-left: 0; }
+.game-tile .live-pill.on { /* keep the pill above the label gradient */ }
+
+/* Fallback when thumbnail fails — bright gradient + game initials */
+.game-tile-fallback {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: #fff;
+  font-family: 'Lilita One', 'Inter', sans-serif;
+  font-size: 28px;
+  text-shadow: 0 4px 16px rgba(0,0,0,.5);
+  background: linear-gradient(135deg, var(--c1,#ff4d8d) 0%, var(--c2,#7c3aed) 100%);
+}
+
+/* ============ Skeleton ============ */
+.skel-tile {
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.10), rgba(255,255,255,.04));
+  background-size: 280% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skel-hero {
+  flex: 0 0 320px;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.10), rgba(255,255,255,.04));
+  background-size: 280% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skel-hero:first-child { flex: 0 0 480px; }
+@keyframes shimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: -280% 0%; }
+}
+
+/* ============ Grid empty + load more ============ */
+.grid-empty {
+  padding: 36px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.02);
+  color: var(--text-mute);
+  text-align: center; font-size: 13.5px;
+}
+.load-more {
+  display: block;
+  margin: 24px auto 4px;
+  padding: 12px 24px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 800;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 0 6px 20px rgba(255,224,0,.25);
+  transition: transform .14s, filter .14s;
+}
+.load-more:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.load-more:active { transform: translateY(0) scale(.98); }
+.load-more[hidden] { display: none; }
+.load-more-hint {
+  margin: 20px auto 6px;
+  max-width: 560px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-mute);
+  padding: 12px 16px;
+  border: 1px dashed var(--line-2);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+}
+.load-more-hint[hidden] { display: none; }
+
+/* ============ Responsive ============ */
+@media (max-width: 880px) {
+  .cat-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .cat-list {
+    flex-direction: row;
+    gap: 6px;
+    position: static;
+  }
+  .cat-item {
+    flex-direction: row;
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+  .cat-item .cat-label { max-width: none; }
+  .cat-item .cat-count { margin-top: 0; margin-left: 6px; }
+  .game-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .hero-tile { flex: 0 0 240px; }
+  .hero-tile:first-child { flex: 0 0 280px; }
+  .skel-hero { flex: 0 0 240px; }
+  .skel-hero:first-child { flex: 0 0 280px; }
+}
+@media (max-width: 480px) {
+  .game-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-tile { flex: 0 0 220px; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   Premium polish layer — appended last so it refines the base.
+   A diagonal light "shine" sweeps across each card on hover, the
+   lift is springier, and the artwork pops in saturation. This is
+   the high-end micro-interaction that makes browsing feel alive.
+   ============================================================ */
+.game-tile { transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease; }
+.game-tile::after {
+  background:
+    linear-gradient(115deg, transparent 32%, rgba(255,255,255,.22) 46%, transparent 60%),
+    linear-gradient(180deg, transparent 46%, rgba(0,0,0,.84) 100%);
+  background-size: 240% 100%, 100% 100%;
+  background-position: 165% 0, 0 0;
+  background-repeat: no-repeat;
+  transition: background-position .65s cubic-bezier(.2,.7,.2,1);
+}
+.game-tile:hover::after { background-position: -65% 0, 0 0; }
+.game-tile:hover { transform: translateY(-5px) scale(1.012); }
+.game-tile:hover img { transform: scale(1.08); filter: saturate(1.12) brightness(1.04); }
+
+.hero-tile::after {
+  background:
+    linear-gradient(115deg, transparent 34%, rgba(255,255,255,.18) 48%, transparent 62%),
+    linear-gradient(180deg, transparent 35%, rgba(0,0,0,.8) 100%);
+  background-size: 240% 100%, 100% 100%;
+  background-position: 165% 0, 0 0;
+  background-repeat: no-repeat;
+  transition: background-position .72s cubic-bezier(.2,.7,.2,1);
+}
+.hero-tile:hover::after { background-position: -65% 0, 0 0; }
+
+/* Section titles get a subtle brand tick before the icon for rhythm. */
+.row-title { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-tile::after, .hero-tile::after { transition: none; }
+  .game-tile:hover { transform: translateY(-4px); }
+  .game-tile:hover img { transform: none; }
+}

@@ -1,0 +1,63 @@
+{
+  "name": "zofhub",
+  "version": "2.0.0",
+  "description": "ZoFHub — modern arcade-style portal: embedded HTML5 games, free AI, smart proxy browser.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --use-system-ca server.js",
+    "dev": "node --use-system-ca --watch server.js",
+    "restart": "node tools/kill-port.mjs 8080 && node --use-system-ca server.js",
+    "kill-port": "node tools/kill-port.mjs 8080",
+    "proxies": "node tools/proxies.mjs",
+    "build-mvp": "node --use-system-ca tools/build-mvp.mjs",
+    "check": "node tools/check-js.mjs",
+    "migrate": "node --use-system-ca tools/migrate-to-supabase.mjs",
+    "migrate:dry": "node --use-system-ca tools/migrate-to-supabase.mjs --dry-run",
+    "migrate:curated": "node --use-system-ca tools/migrate-to-supabase.mjs --curated",
+    "migrate:curated:dry": "node --use-system-ca tools/migrate-to-supabase.mjs --curated --dry-run",
+    "grow": "node --use-system-ca tools/grow-catalog.mjs",
+    "clean-fakes": "node tools/clean-fake-gd-hashes.mjs",
+    "link-check": "node --use-system-ca tools/link-checker.mjs",
+    "export-games": "node --use-system-ca tools/export-games.mjs",
+    "fix-thumbnails": "node --use-system-ca tools/fetch-y8-thumbs.mjs",
+    "audit": "node --use-system-ca tools/audit-catalog.mjs",
+    "add-slope": "node --use-system-ca tools/add-slope.mjs",
+    "y8-scrape": "node --use-system-ca scrape-y8.js",
+    "y8-harvest": "node --use-system-ca y8-harvest.js",
+    "y8-sync": "node --use-system-ca lib/y8-ingest.mjs",
+    "audit-thumbnails": "node --use-system-ca tools/audit-thumbnails.mjs",
+    "audit-licensing": "node --use-system-ca tools/audit-licensing.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@mercuryworkshop/bare-mux": "^2.1.7",
+    "@mercuryworkshop/epoxy-transport": "^2.1.20",
+    "@mercuryworkshop/libcurl-transport": "^2.0.5",
+    "@mercuryworkshop/scramjet": "^1.1.0",
+    "@mercuryworkshop/wisp-js": "^0.4.1",
+    "@supabase/supabase-js": "^2.108.1",
+    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.11.1",
+    "node-cron": "^4.2.1",
+    "stream-chain": "^4.2.5",
+    "stream-json": "^1.9.1"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "author": "<YOUR NAME>",
+  "homepage": "https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site/issues"
+  }
+}

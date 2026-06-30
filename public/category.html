@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="Play {{CAT_LABEL}} games on ZoFHub — free, instant, no signup." />
+  <title>{{CAT_LABEL}} Games · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/catalog.css?v=20260706" />
+  <link rel="stylesheet" href="/css/category-page.css?v=20260706" />
+</head>
+<body class="page-catalog page-category">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <form class="header-search" action="/" method="get" role="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input name="q" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games" />
+      </form>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="frame-inner">
+
+      <aside class="cat-sidebar">
+        <nav class="cat-list" id="categoryList" aria-label="Categories"></nav>
+      </aside>
+
+      <main class="catalog-main">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">{{CAT_LABEL}}</span>
+        </nav>
+
+        <header class="category-head">
+          <h1 class="category-title">{{CAT_LABEL}} <span class="category-count">{{CAT_COUNT}}</span></h1>
+        </header>
+
+        <!-- ===== TOP LEADERBOARD AD ===== -->
+        <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="cat-top"></div>
+
+        <div class="game-grid" id="categoryGrid"></div>
+
+        <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+
+        <!-- ===== BOTTOM LEADERBOARD AD ===== -->
+        <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="cat-bottom"></div>
+      </main>
+
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span>© ZoFHub · Free browser arcade</span>
+      <span class="footer-sep">·</span><a href="/">All games</a>
+      <span class="footer-sep">·</span><a href="/ai">AI</a>
+        <a href="/leaderboard">Leaderboard</a>
+    </div>
+  </footer>
+
+  <script>window.ZOFHUB_CATEGORY = { slug: "{{CAT_SLUG}}", label: "{{CAT_LABEL}}", total: {{CAT_COUNT}} };</script>
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+  <script type="module" src="/js/category-page.js?v=20260706"></script>
+  <script type="module" src="/js/search-suggest.js?v=20260706"></script>
+</body>
+</html>

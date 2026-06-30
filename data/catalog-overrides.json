@@ -1,0 +1,322 @@
+{
+  "_comment": "Serve-time catalog fixes (lib/catalog-overrides.mjs). No DB write needed; takes effect on server restart. Includes the Slope cleanup AND self-hosted thumbnails for the 28 y8.com games.",
+  "patch": [
+    {
+      "_note": "The GameDistribution classic Slope (slug slope-rolling). Rename to 'Slope' + use the self-hosted green-ball thumbnail.",
+      "match": {
+        "slug": "slope-rolling"
+      },
+      "set": {
+        "title": "Slope",
+        "thumbnail_url": "/thumbs/slope.png",
+        "category": "arcade"
+      }
+    },
+    {
+      "_note": "Same game matched by GD hash, in case the slug differs in the live DB.",
+      "match": {
+        "urlIncludes": "0022998ce3c54962be6ffe178229b168"
+      },
+      "set": {
+        "title": "Slope",
+        "thumbnail_url": "/thumbs/slope.png",
+        "category": "arcade"
+      }
+    },
+    {
+      "match": {
+        "slug": "roll-master-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/roll-master-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "slice-it-up-webgl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/slice-it-up-webgl.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "run-clash"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/run-clash.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "zombie-fps-survival-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zombie-fps-survival-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "arrow-out"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/arrow-out.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "cube-run"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/cube-run.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "gun-jet-runner"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/gun-jet-runner.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "criminal-escape-the-cops-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/criminal-escape-the-cops-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "wick-runner"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/wick-runner.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "color-rush-runner"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/color-rush-runner.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "grass-cutter-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/grass-cutter-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "interstellar-legends"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/interstellar-legends.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "color-jump-webgl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/color-jump-webgl.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "chrono-x-adventure-of-cyber"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/chrono-x-adventure-of-cyber.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "police-escape-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/police-escape-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "neon-rush-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/neon-rush-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "car-racing-drift-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/car-racing-drift-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "ball-rush-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ball-rush-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "happy-farm-webgl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/happy-farm-webgl.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "connect-4"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/connect-4.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "street-rally-2015"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/street-rally-2015.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "death-run-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/death-run-3d.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "razor-run"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/razor-run.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "furious-ride-webgl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/furious-ride-webgl.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "happy-farm-y8"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/happy-farm-y8.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "ninja-shadow-kunai-y8"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ninja-shadow-kunai-y8.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "turbo-racer-3d-y8"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/turbo-racer-3d-y8.webp"
+      }
+    },
+    {
+      "_note": "y8.com Slope kept as the UNBLOCKED variant, same green thumbnail.",
+      "match": {
+        "slug": "slope-y8"
+      },
+      "set": {
+        "title": "Slope Unblocked Version",
+        "thumbnail_url": "/thumbs/slope.png",
+        "category": "arcade"
+      }
+    }
+  ],
+  "add": [
+    {
+      "_note": "User-requested y8.com Slope embed — featured at the top of the homepage. Sized responsively by the /play page (.frame-box), not the y8 default 960x641.",
+      "slug": "slope-unblocked",
+      "title": "Slope Unblocked",
+      "game_url": "https://www.y8.com/embed/slope",
+      "thumbnail_url": "/thumbs/slope.png",
+      "category": "arcade",
+      "orientation": "landscape"
+    },
+    { "_note": "GameDistribution — SAFE + monetizable (ad revenue share). gd_sdk_referrer_url is rewritten to the live origin per request by injectGdReferrer(); the stored value is only a placeholder.",
+      "slug": "soccer-random", "title": "Soccer Random", "game_url": "https://html5.gamedistribution.com/308d826f20034d7b972f25258c8d0a44/?gd_sdk_referrer_url=https://zofhub.app/", "thumbnail_url": "https://img.gamedistribution.com/308d826f20034d7b972f25258c8d0a44-512x384.jpeg", "category": "sports", "orientation": "landscape" }
+  ],
+  "remove": [
+    {
+      "_note": "Older y8 'slope-y8' row, if present — superseded by the slope-unblocked add above so there is exactly one y8 Slope.",
+      "slug": "slope-y8"
+    },
+    {
+      "_note": "Famobi 'Slope' duplicate (play.famobi.com) — keep only the GD one",
+      "slug": "slope"
+    },
+    {
+      "titleAllOf": [
+        "elon",
+        "money"
+      ]
+    },
+    {
+      "titleAllOf": [
+        "bill",
+        "gates",
+        "money"
+      ]
+    },
+    {
+      "_note": "Unauthorized copies on a random S3 bucket — no licensing chain.",
+      "hostIncludes": "unblocked-games.s3.amazonaws.com"
+    },
+    {
+      "_note": "Playhop link with a THIRD PARTYs affiliate/clid params (not yours) + Fortnite-soundalike name.",
+      "slug": "fortzone-battle-royale"
+    },
+    {
+      "_note": "Embeds the games own site root (footballbros.io) — no embed license.",
+      "slug": "football-bros-io"
+    },
+    {
+      "_note": "licensing: removed Gamezop",
+      "hostIncludes": "play.gamezop.com"
+    },
+    {
+      "_note": "licensing: removed OnlineGames.io",
+      "hostIncludes": "onlinegames.io"
+    },
+    {
+      "_note": "licensing: removed HTMLGames",
+      "hostIncludes": "htmlgames.com"
+    },
+    {
+      "_note": "licensing: removed Famobi",
+      "hostIncludes": "play.famobi.com"
+    },
+    {
+      "_note": "licensing: removed GameFlare",
+      "hostIncludes": "gameflare.com"
+    }
+  ]
+}

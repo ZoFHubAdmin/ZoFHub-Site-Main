@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0f1a" />
+  <title>Browser · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/browser.css?v=20260706" />
+  <script src="/baremux/index.js" defer></script>
+  <script src="/uv/uv.bundle.js" defer></script>
+  <script src="/uv/uv.config.js" defer></script>
+  <script src="/scram/scramjet.all.js" defer></script>
+</head>
+<body class="page-browser">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser" class="active">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="browser-shell">
+    <div class="browser-tabs" id="tabs">
+      <button class="tab tab-active" data-tab="0"><span class="tab-title">New tab</span><span class="tab-x" aria-label="Close">×</span></button>
+      <button class="tab-add" id="tabAdd" aria-label="New tab">+</button>
+    </div>
+
+    <div class="browser-bar bar-hidden">
+      <button class="iconbtn" id="bBack" title="Back"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="iconbtn" id="bFwd" title="Forward"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="iconbtn" id="bReload" title="Reload"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+      <button class="iconbtn" id="bHome" title="Home"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></button>
+      <form class="urlbar" id="urlForm">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <input id="urlInput" type="text" placeholder="Search the web or enter URL" autocomplete="off"/>
+      </form>
+      <span class="gust-note">Browsing with <strong>GUST</strong> — type the site you want in the address bar inside the page below ↓</span>
+      <span id="activeEngine" class="active-engine" hidden></span>
+      <select id="engineSelect" class="engine-select" aria-label="Proxy engine">
+        <optgroup label="Built-in engines">
+          <option value="gust" selected>GUST — most reliable (default)</option>
+          <option value="auto">Auto — smart failover</option>
+          <option value="uv">Ultraviolet</option>
+          <option value="scramjet">Scramjet</option>
+          <option value="direct">Direct (no proxy)</option>
+        </optgroup>
+        <optgroup label="Standalone browsers" id="engCompanions" hidden></optgroup>
+      </select>
+      <button class="iconbtn" id="bFullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg></button>
+    </div>
+
+    <div class="browser-stage">
+      <div class="start-page" id="startPage">
+
+        <!-- Screen 1 — pick an engine FIRST (nothing auto-loads, so no hang) -->
+        <div class="engine-chooser" id="engineChooser">
+          <div class="start-hero">
+            <h1>Choose a proxy browser</h1>
+            <p>Pick an engine to begin — each opens right here on this page. <strong>GUST</strong> is the most reliable, so start there if you're not sure.</p>
+          </div>
+          <div class="engine-cards" id="engineCards">
+            <button class="engine-card is-rec" type="button" data-engine="gust">
+              <span class="ec-badge">★ Recommended</span>
+              <span class="ec-name">GUST</span>
+              <span class="ec-desc">Most reliable. Keeps working on locked-down school/work networks. Has its own address bar built in.</span>
+              <span class="ec-status" data-engine-status="gust">Checking…</span>
+            </button>
+            <button class="engine-card" type="button" data-engine="auto">
+              <span class="ec-name">Auto</span>
+              <span class="ec-desc">Smart failover — automatically tries each engine until one loads your site.</span>
+              <span class="ec-status ok">Always available</span>
+            </button>
+            <button class="engine-card" type="button" data-engine="uv">
+              <span class="ec-name">Ultraviolet</span>
+              <span class="ec-desc">Fast service-worker proxy. Works well for most sites.</span>
+              <span class="ec-status" data-engine-status="ultraviolet">Checking…</span>
+            </button>
+            <button class="engine-card" type="button" data-engine="scramjet">
+              <span class="ec-name">Scramjet</span>
+              <span class="ec-desc">Newest engine, with strong site compatibility.</span>
+              <span class="ec-status" data-engine-status="scramjet">Checking…</span>
+            </button>
+            <button class="engine-card" type="button" data-engine="direct">
+              <span class="ec-name">Direct</span>
+              <span class="ec-desc">No proxy — shows the raw site. Only works if the site allows embedding.</span>
+              <span class="ec-status ok">Always available</span>
+            </button>
+          </div>
+          <div class="start-status" id="proxyStatus">Checking proxy engines…</div>
+        </div>
+
+        <!-- Screen 2 — enter a URL (shown after choosing a non-GUST engine) -->
+        <div class="engine-go" id="engineGo" hidden>
+          <button class="engine-back" id="engineBack" type="button">← Choose a different engine</button>
+          <div class="start-hero">
+            <h1>Browsing with <span id="goEngineName">Ultraviolet</span></h1>
+            <p>Type a website in the address bar above ↑, or pick one below to get started.</p>
+          </div>
+          <div class="start-quicklinks">
+            <button data-url="https://duckduckgo.com">DuckDuckGo</button>
+            <button data-url="https://www.wikipedia.org">Wikipedia</button>
+            <button data-url="https://www.khanacademy.org">Khan Academy</button>
+            <button data-url="https://archive.org">Archive.org</button>
+            <button data-url="https://github.com">GitHub</button>
+            <button data-url="https://news.ycombinator.com">Hacker News</button>
+            <button data-url="https://en.wiktionary.org">Wiktionary</button>
+            <button data-url="https://web.dev">web.dev</button>
+          </div>
+          <p class="start-note">If a site won't load, press Reload — or go back and try <strong>GUST</strong>.</p>
+        </div>
+
+      </div>
+      <iframe id="browserFrame" class="browser-frame" hidden referrerpolicy="no-referrer"></iframe>
+      <div class="browser-loader" id="browserLoader" hidden><div class="spinner"></div><p class="loader-caption" id="loaderCaption">Loading…</p></div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+  <script type="module" src="/js/browser.js?v=20260706"></script>
+</body>
+</html>

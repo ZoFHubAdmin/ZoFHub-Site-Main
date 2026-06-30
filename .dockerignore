@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+npm-debug.log
+.git
+**/.git
+.gitignore
+.env
+*.md
+!README.md
+
+# Reference-only proxy sites cloned for study — Eduame uses the npm
+# @mercuryworkshop/scramjet + @titaniumnetwork-dev/ultraviolet packages,
+# not these source trees, so keep them out of the deployed image.
+Nebula
+scramjet
+Interstellar

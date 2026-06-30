@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Self-heal: nuke any stale ROOT-scoped service worker from an old build
+       that could hijack /api/games or serve old assets. Runs first, before any
+       module loads. Proxy workers (/uv/, /scram/) are not affected. -->
+  <script>
+  (function(){try{if(!('serviceWorker'in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){if(r.scope===location.origin+'/'){r.unregister();if(window.caches&&caches.keys)caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});}});}).catch(function(){});}catch(e){}})();
+  </script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="Play free browser games — instant, no signup. Curated arcade hits across racing, shooting, puzzle, sports, and more." />
+  <title>ZoFHub — Free browser games</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/catalog.css?v=20260706" />
+  <link rel="stylesheet" href="/css/category-page.css?v=20260706" />
+</head>
+<body class="page-catalog">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <form class="header-search" id="searchForm" action="/" method="get" role="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="searchInput" name="q" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games" />
+      </form>
+      <nav class="top-nav">
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="frame-inner">
+
+      <aside class="cat-sidebar" id="categorySidebar">
+        <nav class="cat-list" id="categoryList" aria-label="Categories"></nav>
+      </aside>
+
+      <main class="catalog-main">
+
+        <!-- ========== TOP LEADERBOARD AD ========== -->
+        <div class="catalog-ad-top ad-slot" data-ad-type="leaderboard" data-slot="catalog-top"></div>
+
+        <section class="row" id="featuredRow">
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="12 2 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9 12 2"/></svg>
+            Top picks for you
+          </h2>
+          <div class="hero-grid" id="heroGrid"></div>
+        </section>
+
+        <section class="row" id="trendingRow">
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 17l6-6 4 4 8-9"/><path d="M14 6h7v7"/></svg>
+            Popular now
+          </h2>
+          <div class="game-grid" id="trendingGrid"></div>
+        </section>
+
+        <section class="row" id="runnersRow" hidden>
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5.5a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/><path d="M5 21l3-5 3 2 1-5-3-2 4-1 2 3 3 1"/></svg>
+            Endless Runners
+          </h2>
+          <div class="game-grid" id="runnersGrid"></div>
+        </section>
+
+        <!-- ===== IN-FEED AD ===== -->
+        <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="home-mid-1"></div>
+
+        <section class="row" id="newRow">
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>
+            Fresh drops
+          </h2>
+          <div class="game-grid" id="newGrid"></div>
+        </section>
+
+        <!-- ===== IN-FEED AD ===== -->
+        <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="home-mid-2"></div>
+
+        <section class="row" id="recentRow" hidden>
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            Recently played
+          </h2>
+          <div class="game-grid" id="recentGrid"></div>
+        </section>
+
+        <section class="row" id="favoritesRow" hidden>
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 21s-7-4.6-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.4-7 11-7 11z"/></svg>
+            Favorites
+          </h2>
+          <div class="game-grid" id="favoritesGrid"></div>
+        </section>
+
+        <section class="row" id="allRow">
+          <div class="row-head">
+            <h2 class="row-title" id="allRowTitle">All games</h2>
+            <div class="row-sub" id="allRowCount">—</div>
+          </div>
+          <div class="game-grid" id="allGrid"></div>
+          <div class="grid-empty" id="allEmpty" hidden>No games match.</div>
+          <button class="load-more" id="loadMore" hidden>Load more</button>
+        </section>
+
+        <!-- ========== BOTTOM AD ========== -->
+        <div class="catalog-ad-bottom ad-slot" data-ad-type="leaderboard" data-slot="catalog-bottom"></div>
+
+      </main>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span>© ZoFHub · Free browser arcade</span>
+      <span class="footer-sep">·</span><a href="/ai">AI</a>
+      <span class="footer-sep">·</span><a href="/browser">Browser</a>
+      <span class="footer-sep">·</span><a href="/api/health" target="_blank" rel="noopener">Status</a>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+  <script type="module" src="/js/catalog.js?v=20260706"></script>
+  <script type="module" src="/js/search-suggest.js?v=20260706"></script>
+  <script type="module" src="/js/vibe-finder.js?v=20260706"></script>
+</body>
+</html>

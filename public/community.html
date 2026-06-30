@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="ZoFHub Community — recommend games, see what other players love, and climb the global leaderboard." />
+  <title>Community · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260706" />
+  <link rel="stylesheet" href="/css/community.css?v=20260706" />
+</head>
+<body class="page-community">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community" class="active">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="community-shell">
+    <div class="community-hero">
+      <h1>Community Arcade</h1>
+      <p>Recommend a game you love, discover what other players are hyped about, and climb the global leaderboard.</p>
+      <button class="btn-primary" id="openRecBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+        Recommend a game
+      </button>
+    </div>
+
+    <div class="community-grid">
+      <!-- ===== Recommendations feed ===== -->
+      <section class="community-col">
+        <h2 class="community-h">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 21s-7-4.6-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.4-7 11-7 11z"/></svg>
+          Community picks
+        </h2>
+        <div class="rec-list" id="recList">
+          <div class="community-empty" id="recEmpty">Loading recommendations…</div>
+        </div>
+      </section>
+
+      <!-- ===== Leaderboard ===== -->
+      <aside class="community-col community-col-side">
+        <h2 class="community-h">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>
+          Global leaderboard
+        </h2>
+        <ol class="lb-list" id="lbList">
+          <li class="community-empty" id="lbEmpty">Loading scores…</li>
+        </ol>
+        <a class="lb-viewall" href="/leaderboard">View full leaderboard →</a>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ===== Recommend modal ===== -->
+  <div class="modal-backdrop" id="recModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="recModalTitle">
+      <button class="modal-close" id="recClose" aria-label="Close">×</button>
+      <h3 id="recModalTitle">Recommend a game</h3>
+      <p class="modal-sub">Paste an embed link from a supported host: GameDistribution, OnlineGames.io, GameMonetize, HTMLGames, or a <code>y8.com/embed/…</code> link.</p>
+      <form id="recForm" class="modal-form">
+        <label>Game name <input name="title" maxlength="120" required placeholder="e.g. Slope" /></label>
+        <label>Embed link <input name="embed_url" type="url" required placeholder="https://y8.com/embed/slope" /></label>
+        <label>Category
+          <select name="category">
+            <option value="arcade">Arcade</option>
+            <option value="racing">Racing</option>
+            <option value="shooting">Shooting</option>
+            <option value="action">Action</option>
+            <option value="puzzle">Puzzle</option>
+            <option value="sports">Sports</option>
+            <option value="adventure">Adventure</option>
+            <option value="casual">Casual</option>
+            <option value="board">Board</option>
+            <option value="simulator">Simulator</option>
+          </select>
+        </label>
+        <label>Why do you love it? <textarea name="note" maxlength="280" rows="2" placeholder="One line on why it's great (optional)"></textarea></label>
+        <label>Your name <input name="author" maxlength="40" placeholder="Anonymous" /></label>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="recCancel">Cancel</button>
+          <button type="submit" class="btn-primary" id="recSubmit">Post recommendation</button>
+        </div>
+        <div class="modal-msg" id="recMsg"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== Play modal (sandboxed) ===== -->
+  <div class="modal-backdrop" id="playModal" hidden>
+    <div class="play-modal-card" role="dialog" aria-modal="true">
+      <div class="play-modal-head">
+        <span id="playModalTitle">Game</span>
+        <div class="play-modal-actions">
+          <button class="modal-close" id="playClose" aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="play-modal-frame" id="playModalFrame"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span>© ZoFHub · Free browser arcade</span>
+      <span class="footer-sep">·</span><a href="/">Games</a>
+      <span class="footer-sep">·</span><a href="/ai">AI</a>
+      <span class="footer-sep">·</span><a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/layout.js?v=20260706"></script>
+  <script type="module" src="/js/community.js?v=20260706"></script>
+  <script type="module" src="/js/panic.js?v=20260706"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+/* ZoFHub · category-page.css */
+
+.crumbs {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0 10px;
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.crumbs a { color: var(--text-dim); text-decoration: none; }
+.crumbs a:hover { color: var(--brand); }
+.crumb-sep { opacity: .5; }
+.crumb-current { color: var(--brand); font-weight: 600; }
+
+.category-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 18px;
+}
+.category-title {
+  margin: 0;
+  font-family: 'Lilita One', 'Inter', sans-serif;
+  font-size: clamp(26px, 3.4vw, 38px);
+  letter-spacing: -.01em;
+  color: var(--text);
+}
+.category-count {
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,224,0,.15);
+  color: var(--brand);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Pagination */
+.pagination {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px;
+  margin: 24px 0 14px;
+  font-size: 14px;
+}
+.page-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px; height: 36px;
+  padding: 0 12px;
+  border-radius: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.page-btn:hover { background: var(--surface-2); border-color: var(--line-2); }
+.page-btn.active {
+  background: var(--brand);
+  color: #1a0b3d;
+  border-color: var(--brand);
+  cursor: default;
+}
+.page-btn.disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.page-gap {
+  display: inline-block;
+  padding: 0 6px;
+  color: var(--text-mute);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.page-info {
+  margin-left: auto;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+@media (max-width: 540px) {
+  .page-info { width: 100%; margin-left: 0; text-align: center; }
+}

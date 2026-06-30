@@ -1,0 +1,194 @@
+{
+  "project": {
+    "name": "Eduame · AI Gaming Hub source",
+    "version": "2026.6.2",
+    "description": "Curated source list for the Eduame catalog. Games are restricted to publishers that explicitly license iframe embedding (GameDistribution, OnlineGames.io, GameMonetize, HTMLGames). This is the safe-to-embed subset; do not add URLs from CrazyGames / Poki / CoolMath / now.gg / easyfun.gg / cloud.maddox.games or community mirrors (*.github.io, *.gitlab.io, bitbucket.io, *unblocked.org) — those either block framing or violate trademark."
+  },
+  "ai_models": {
+    "text": [
+      {
+        "name": "AI Horde (Text)",
+        "provider": "Crowdsourced GPU Cluster",
+        "api_url": "https://aihorde.net/api/v2/generate/text/async",
+        "api_key": "0000000000",
+        "limits": "Unlimited",
+        "best_for": "Complex prompts, roleplay, and creative writing."
+      },
+      {
+        "name": "Pollinations.ai (Text)",
+        "provider": "Pollinations.ai",
+        "api_url": "https://text.pollinations.ai/",
+        "limits": "Unlimited",
+        "best_for": "Fast, direct integration without API keys."
+      }
+    ],
+    "image": [
+      {
+        "name": "AI Horde (Image)",
+        "provider": "Crowdsourced GPU Cluster",
+        "api_url": "https://aihorde.net/api/v2/generate/async",
+        "api_key": "0000000000",
+        "limits": "Unlimited",
+        "best_for": "High-quality Stable Diffusion XL and Flux generations."
+      },
+      {
+        "name": "Pollinations.ai (Image)",
+        "provider": "Pollinations.ai",
+        "api_url": "https://image.pollinations.ai/prompt/{prompt}",
+        "limits": "Unlimited",
+        "best_for": "Instant image generation via simple URL requests."
+      }
+    ],
+    "web_search": [
+      {
+        "name": "Brave Search API",
+        "provider": "Brave",
+        "api_url": "https://api.search.brave.com/res/v1/web/search",
+        "signup": "https://brave.com/search/api/",
+        "free_tier": "2,000 queries/month, 1 q/s",
+        "requires_key": true,
+        "best_for": "Privacy-first grounding for LLMs; independent index."
+      },
+      {
+        "name": "Tavily",
+        "provider": "Tavily",
+        "api_url": "https://api.tavily.com/search",
+        "signup": "https://app.tavily.com/",
+        "free_tier": "1,000 credits/month",
+        "requires_key": true,
+        "best_for": "LLM-ready results: scored, deduped, summarized."
+      },
+      {
+        "name": "Exa",
+        "provider": "Exa.ai",
+        "api_url": "https://api.exa.ai/search",
+        "signup": "https://dashboard.exa.ai/",
+        "free_tier": "1,000 searches/month",
+        "requires_key": true,
+        "best_for": "Neural / semantic exploratory search."
+      },
+      {
+        "name": "Firecrawl",
+        "provider": "Firecrawl",
+        "api_url": "https://api.firecrawl.dev/v1/search",
+        "signup": "https://www.firecrawl.dev/",
+        "free_tier": "500 credits/month",
+        "requires_key": true,
+        "best_for": "Search + scrape (markdown/HTML/screenshots) in one call."
+      }
+    ]
+  },
+  "games": [
+    {
+      "slug": "snow-rider-3d",
+      "name": "Snow Rider 3D",
+      "category": "racing",
+      "embed_url": "https://html5.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8-512x512.jpg",
+      "developer": "Ashima Prabhakar",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "drift-king",
+      "name": "Drift King",
+      "category": "racing",
+      "embed_url": "https://www.onlinegames.io/games/2024/unity/drift-king/index.html",
+      "thumbnail": "https://www.onlinegames.io/media/posts/931/responsive/drift-king-2.webp",
+      "source": "OnlineGames.io",
+      "license": "free embed"
+    },
+    {
+      "slug": "moto-x3m-bike-race",
+      "name": "Moto X3M Bike Race",
+      "category": "racing",
+      "embed_url": "https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/20473956346b412497645161048f020c-512x384.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "cube-surfer",
+      "name": "Cube Surfer",
+      "category": "arcade",
+      "embed_url": "https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c-512x512.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "tunnel-rush",
+      "name": "Tunnel Rush",
+      "category": "arcade",
+      "embed_url": "https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/001f3e30922b40658421a71f0081e891-512x384.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "basket-random",
+      "name": "Basket Random",
+      "category": "sports",
+      "embed_url": "https://html5.gamedistribution.com/13e9441113544116801912f71694f9e0/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/13e9441113544116801912f71694f9e0-512x384.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "soccer-random",
+      "name": "Soccer Random",
+      "category": "sports",
+      "embed_url": "https://html5.gamedistribution.com/567f4078864a4750949a888806a66699/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/567f4078864a4750949a888806a66699-512x384.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    },
+    {
+      "slug": "penalty-shooters-2",
+      "name": "Penalty Shooters 2",
+      "category": "sports",
+      "embed_url": "https://html5.gamedistribution.com/264789f8167746358044702008e92582/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "thumbnail": "https://img.gamedistribution.com/264789f8167746358044702008e92582-512x384.jpg",
+      "source": "GameDistribution",
+      "license": "free embed"
+    }
+  ],
+  "removed_with_reason": {
+    "_comment": "Why entries from prior versions were dropped. Read before re-adding anything that looks similar.",
+    "_rule_1_trademark": "Any game whose title names a registered IP (Minecraft, Roblox, Brawl Stars, Clash Royale, Among Us, Fortnite, Tetris, Pac-Man, Sonic, Mario, Zelda, Pokémon, Geometry Dash, Subway Surfers, Cookie Clicker, Cuphead, Stumble Guys, Stardew, Genshin, etc.) is excluded — even from 'cloud' / 'fan-made' / 'classic' hosts. Trademark holders sue regardless of host.",
+    "_rule_2_host_blocked": "Any game on poki.com, crazygames.com, coolmathgames.com, y8.com, totaljerkface.com (*.tjf), now.gg, easyfun.gg, cloud.maddox.games, google.com/logos, 1v1.lol, shellshock.io is excluded — these block framing via X-Frame-Options.",
+    "_rule_3_mirror": "Any *.github.io, *.gitlab.io, bitbucket.io, *unblocked.org, *unblocked.github.io, *unbanned.github.io, snowrider-3d.io, snowrider3d.io is excluded — community mirrors of paid IP, DMCA risk.",
+    "_rule_4_wrong_format": "Any URL ending in .git, .tjf, or pointing at a code-hosting page (gitflic.ru, github.com/.../tree/main) is excluded — those aren't iframe-able.",
+    "_rule_5_partial_url": "Any embed_url that doesn't start with https:// is excluded — the migrator drops anything that doesn't match /^https?:\\/\\//.",
+    "minecraft": "Mojang trademark — covers all 'classic', 'cloud', 'eaglercraft' variants. No legal free embed exists.",
+    "roblox": "Roblox Corp trademark + now.gg framing block + Roblox terms forbid third-party hosting.",
+    "brawl_stars": "Supercell trademark — no legal embed; Supercell Fan Content Policy doesn't cover commercial use.",
+    "clash_royale": "Supercell trademark.",
+    "among_us": "Innersloth trademark; *.gitlab.io ports are unauthorized.",
+    "geometry_dash": "RobTop Games trademark; geodash.org / *unbanned.github.io / cloud.maddox.games all unauthorized.",
+    "subway_surfers": "SYBO Games trademark.",
+    "tetris": "Tetris LLC heavily enforces; HTMLGames lists 'Tetrix XL' but it's a clone.",
+    "pac_man": "Bandai Namco trademark; the Google Doodle URL doesn't iframe and Google blocks framing.",
+    "cookie_clicker": "Orteil trademark; cookieclickerplay.github.io unauthorized.",
+    "happy_wheels": ".tjf is Total Jerkface's proprietary format, not HTML.",
+    "moto_x3m_poki": "MadPuffers' Moto X3M on poki.com blocks framing; motox3m.org is a mirror. (The 'Moto X3M Bike Race' entry above is the legit GameDistribution version — different URL hash.)",
+    "snow_rider_3d_io": "snowrider3d.io AND snowrider-3d.io are unauthorized domains; the legit URL is the GameDistribution one (3b79a8537e...).",
+    "shell_shockers": "Blue Wizard Digital game; shellshock.io blocks framing.",
+    "1v1_lol": "Lior Alterman game; 1v1.lol blocks framing.",
+    "retro_bowl": "New Star Games trademark; amhooman.github.io is unauthorized.",
+    "bitlife": "Candywriter trademark; bitlifeonline.com is not the official site.",
+    "basketball_stars": "Madpuffers / Miniclip; basketball-stars.github.io is unauthorized.",
+    "paper_io": "Voodoo Games; paper-io.com unofficial.",
+    "slope": "Y8 publisher game; *.github.io mirrors are unauthorized.",
+    "friday_night_funkin": "Funkin Crew trademark; no free embed license exists.",
+    "stack_jump_2": "onlinegames.io/games/2025/unity/stack-jump-2/ returns HTTP 403 Forbidden on both HEAD and GET with full browser headers — confirmed dead as of 2026-06-14.",
+    "tower_blast": "onlinegames.io/games/2024/unity3/tower-blast/ returns HTTP 403 Forbidden — confirmed dead as of 2026-06-14."
+  },
+  "declined_with_reason": {
+    "_comment": "Sections from earlier versions of this file that I will not integrate, with reason.",
+    "full_web_proxy": "The Scramjet / Interstellar / Nebula / Ultraviolet 'Web OS' suite is built to defeat school / parental network filters. Your Ultraviolet stack already handles publisher iframe restrictions (the legitimate use case). I won't add features whose stated purpose is evading network filters set by parents or schools.",
+    "stealth_code": "`about_blank_cloak` and `tab_masquerade` are explicitly for hiding what the user is doing from parents or teachers. Same line as above.",
+    "monetization_premium_proxy": "Selling 'Faster Proxy Servers' premium = monetizing unblocking-as-a-service. That's the business model that gets domains shut down.",
+    "monetization_vpn_affiliate": "VPN affiliate links in a kid-facing arcade is a regulatory headache. Skipped."
+  }
+}

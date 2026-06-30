@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-06-24T23:34:14.121Z",
+  "total": 11873,
+  "badUrl": [],
+  "dead": [],
+  "blocked": [],
+  "inconclusive": [],
+  "needsProxy": [],
+  "revivable": [],
+  "ok": 0,
+  "missingThumb": [],
+  "brokenThumb": [],
+  "flaggedNotWorking": [
+    {
+      "id": 391,
+      "slug": "hex-burst",
+      "title": "Hex Burst",
+      "game_url": "https://zv1y2i8p.play.gamezop.com/g/H1abja2M_eb",
+      "thumbnail_url": "https://static.gamezop.com/H1abja2M_eb/thumb.png"
+    }
+  ],
+  "duplicateSlugs": [],
+  "duplicateUrls": [
+    {
+      "game_url": "https://y8.com/embed/happy_farm_webgl",
+      "count": 2
+    },
+    {
+      "game_url": "https://html5.gamemonetize.co/c4jmppg52m3t4g8z8rd7h0587ivf6qka/",
+      "count": 2
+    },
+    {
+      "game_url": "https://html5.gamemonetize.co/oylhmja8edugu708hhwbycfcjtofga6a/",
+      "count": 2
+    }
+  ],
+  "hostHistogram": {
+    "www.onlinegames.io": 179,
+    "zv1y2i8p.play.gamezop.com": 129,
+    "html5.gamemonetize.co": 9486,
+    "y8.com": 28,
+    "cloud.onlinegames.io": 83,
+    "html5.gamedistribution.com": 58,
+    "cdn.htmlgames.com": 1179,
+    "4665.play.gamezop.com": 107,
+    "play.famobi.com": 619,
+    "playhop.com": 1,
+    "unblocked-games.s3.amazonaws.com": 4
+  },
+  "dedupeRemovable": [
+    {
+      "id": 24892,
+      "slug": "happy-farm-y8",
+      "title": "Happy Farm (Y8)",
+      "game_url": "https://y8.com/embed/happy_farm_webgl",
+      "thumbnail_url": "/thumbs/happy-farm-y8.webp"
+    },
+    {
+      "id": 9433,
+      "slug": "go-monkey-amp-amp-banana",
+      "title": "Go monkey &amp;amp; Banana",
+      "game_url": "https://html5.gamemonetize.co/c4jmppg52m3t4g8z8rd7h0587ivf6qka/",
+      "thumbnail_url": "https://img.gamemonetize.com/c4jmppg52m3t4g8z8rd7h0587ivf6qka/512x384.jpg"
+    },
+    {
+      "id": 6948,
+      "slug": "asmr-makeover-amp-amp-makeup-studio",
+      "title": "ASMR Makeover &amp;amp; Makeup Studio",
+      "game_url": "https://html5.gamemonetize.co/oylhmja8edugu708hhwbycfcjtofga6a/",
+      "thumbnail_url": "https://img.gamemonetize.com/oylhmja8edugu708hhwbycfcjtofga6a/512x384.jpg"
+    }
+  ]
+}

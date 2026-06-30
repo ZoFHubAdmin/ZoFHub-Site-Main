@@ -1,0 +1,286 @@
+/* ============================================================
+   ZoFHub · browser.css — proxy browser
+   ============================================================ */
+
+.browser-shell {
+  max-width: 1640px;
+  margin: 0 auto;
+  padding: 12px clamp(12px, 2vw, 24px) 24px;
+  height: calc(100vh - var(--header-h));
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+
+.browser-tabs {
+  display: flex; gap: 4px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.browser-tabs .tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  max-width: 220px;
+  transition: background .12s, color .12s;
+}
+.browser-tabs .tab.tab-active {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: rgba(255,77,141,.36);
+}
+.browser-tabs .tab .tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+.browser-tabs .tab .tab-x {
+  width: 16px; height: 16px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-mute);
+}
+.browser-tabs .tab .tab-x:hover { background: rgba(239,68,68,.32); color: #fff; }
+.browser-tabs .tab-add {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+.browser-tabs .tab-add:hover { background: var(--surface-2); color: var(--text); }
+
+.browser-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.urlbar {
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.urlbar:focus-within { border-color: rgba(255,77,141,.5); box-shadow: 0 0 0 3px rgba(255,77,141,.12); }
+.urlbar svg { color: var(--text-mute); flex: 0 0 14px; }
+.urlbar input {
+  flex: 1; background: transparent;
+  border: 0; outline: 0; font-size: 13px;
+}
+.engine-select {
+  padding: 6px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+/* Force readable dropdown options (otherwise Windows renders them white-on-white). */
+.engine-select option, .engine-select optgroup { background: #122a52; color: #eaf1ff; }
+.active-engine {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: #6ee7b7;
+  background: rgba(16,185,129,.10);
+  border: 1px solid rgba(16,185,129,.34);
+  white-space: nowrap;
+}
+.active-engine::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* GUST mode — GUST has its own omnibox inside the iframe, so hide ZoFHub's
+   address bar + nav buttons (they don't drive GUST) and show a hint instead. */
+.gust-note { display: none; flex: 1; font-size: 12.5px; color: var(--text-mute); padding-left: 6px; }
+.browser-bar.gust-mode .urlbar,
+.browser-bar.gust-mode #bBack,
+.browser-bar.gust-mode #bFwd,
+.browser-bar.gust-mode #bHome { display: none; }
+.browser-bar.gust-mode .gust-note { display: inline; }
+
+.browser-stage {
+  flex: 1;
+  position: relative;
+  background: #02030a;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.start-page {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  text-align: center; padding: 40px 24px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ============ Engine chooser ============ */
+.browser-bar.bar-hidden { display: none; }       /* no toolbar until an engine is picked */
+
+.engine-chooser, .engine-go {
+  width: 100%; max-width: 940px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+.engine-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 14px; width: 100%;
+}
+.engine-card {
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  text-align: left; padding: 18px 16px 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--line-2);
+  cursor: pointer; font-family: inherit;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.engine-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,224,0,.55);
+  box-shadow: 0 14px 32px rgba(0,0,0,.4);
+}
+.engine-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.engine-card.is-rec {
+  border-color: rgba(124,77,255,.6);
+  background: linear-gradient(160deg, rgba(124,77,255,.20), rgba(255,77,141,.12));
+}
+.engine-card.is-rec:hover { border-color: rgba(255,224,0,.7); }
+.ec-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: #07142b; background: var(--brand);
+  padding: 3px 8px; border-radius: 999px;
+}
+.ec-name {
+  font-size: 17px; font-weight: 800; color: var(--text);
+  font-family: 'Lilita One','Inter',sans-serif; letter-spacing: .01em;
+}
+.ec-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; flex: 1; }
+.ec-status {
+  font-size: 11px; font-weight: 700; color: var(--text-mute); margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ec-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .9; }
+.ec-status.ok   { color: #6ee7b7; }
+.ec-status.warn { color: #fbd38d; }
+
+.engine-back {
+  align-self: flex-start;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--text-dim); border-radius: 10px; padding: 7px 12px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s ease;
+}
+.engine-back:hover { color: var(--text); border-color: var(--line-2); background: var(--surface-2); }
+.start-hero h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  letter-spacing: -.01em;
+}
+.start-hero p {
+  color: var(--text-mute);
+  max-width: 540px;
+  margin: 0;
+  font-size: 13.5px;
+}
+.gust-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, #7c4dff 0%, #ff4d8d 100%);
+  box-shadow: 0 8px 24px rgba(124,77,255,.35), 0 2px 8px rgba(255,77,141,.25);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.gust-launch-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 12px 30px rgba(124,77,255,.45), 0 3px 10px rgba(255,77,141,.32);
+}
+.start-quicklinks {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center;
+  max-width: 720px;
+  margin-top: 8px;
+}
+.start-quicklinks button {
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all .15s ease;
+}
+.start-quicklinks button:hover {
+  color: var(--text);
+  border-color: rgba(255,77,141,.42);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.start-status {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--text-mute);
+  max-width: 560px;
+}
+.start-status.ok { border-color: rgba(16,185,129,.4); color: #6ee7b7; background: rgba(16,185,129,.06); }
+.start-status.warn { border-color: rgba(245,158,11,.4); color: #fbd38d; background: rgba(245,158,11,.06); }
+.start-note { max-width: 540px; margin: 4px auto 0; font-size: 12px; color: var(--text-mute); line-height: 1.5; }
+
+.browser-frame {
+  width: 100%; height: 100%;
+  border: 0;
+  background: #fff;
+}
+.browser-loader {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: rgba(2,3,10,.7);
+  backdrop-filter: blur(4px);
+}
+.loader-caption { font-size: 12.5px; color: var(--text-dim); max-width: 300px; text-align: center; margin: 0; }
+.spinner {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.1);
+  border-top-color: var(--brand);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
