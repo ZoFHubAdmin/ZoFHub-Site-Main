@@ -15,6 +15,7 @@
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { isTrademarkTitle } from '../lib/cron-jobs.mjs';   // same trademark blocklist the cron/ingest use — no drift
 
 const DRY = process.argv.includes('--dry-run');
 
@@ -34,6 +35,7 @@ function norm(g, src) {
   title = (title || '').toString().trim().slice(0, 255);
   slug  = (slug  || '').toString().trim();
   if (!slug || !title || !isUrl(game_url)) return null;
+  if (isTrademarkTitle(title)) return null;   // copyright: never restore trademark/IP clones (Mario, FNAF, Squid Game, …)
   return { slug, title, game_url, thumbnail_url: thumb || '', category: category || 'arcade', is_working };
 }
 
