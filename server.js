@@ -2161,9 +2161,6 @@ app.get('/play/:gameSlug', async (req, res) => {
   let game = bySlug.get(req.params.gameSlug);
   if (!game) game = await fetchGameBySlug(req.params.gameSlug);   // live DB fallback
   if (!game) return res.status(404).send('Game not found. <a href="/">Back to lobby</a>');
-  // Proxy is the default; ?direct=1 forces the raw publisher URL.
-  const forceDirect = req.query.direct === '1';
-
   // Live origin from the actual request — handles localhost dev, custom
   // domains, and proxied production (Render/Railway/Fly set
   // x-forwarded-proto + x-forwarded-host that Express respects when
@@ -2173,16 +2170,26 @@ app.get('/play/:gameSlug', async (req, res) => {
   const liveOrigin = `${proto}://${host}`;
 
   const dynamicEmbedUrl = injectGdReferrer(game.embed_url, liveOrigin, game.slug);
-  // Default load path = the proxy. For GameDistribution games we carry
-  // gd_sdk_referrer_url on the proxy URL too (the GD SDK reads it from the
-  // iframe's own window.location), so attribution still works when proxied.
-  let proxySrc = `/embed/${game.slug}`;
-  try {
-    if (new URL(game.embed_url).host.toLowerCase() === 'html5.gamedistribution.com') {
-      proxySrc += `?gd_sdk_referrer_url=${encodeURIComponent(`${liveOrigin}/play/${game.slug}`)}`;
-    }
-  } catch {}
-  const iframeSrc = forceDirect ? dynamicEmbedUrl : proxySrc;
+  const proxySrc = `/embed/${game.slug}`;
+
+  // ── Load-path routing — THE fix for black-screen games ───────────────────
+  // • Y8 → PROXY: Y8's embed page renders fine proxied AND needs the injected
+  //   fit-to-frame CSS (see Y8_FIT_CSS).
+  // • everything else → DIRECT: GameDistribution / GameMonetize games are built
+  //   to be iframed straight from the publisher. Their SDK does origin/referrer
+  //   checks that FAIL when the page is re-served through our proxy → black
+  //   screen (this is what broke snow-rider-3d & co). Direct is also their
+  //   intended, ad-supported method. The page JS still auto-falls back to the
+  //   proxy for any game that actually blocks framing (via /api/frame-check).
+  // • ?direct=1 / ?proxy=1 force a path (debugging).
+  let embedHost = '';
+  try { embedHost = new URL(game.embed_url).host.toLowerCase(); } catch {}
+  const isY8 = /(^|\.)y8\.com$/.test(embedHost);
+  let iframeSrc;
+  if (req.query.direct === '1')      iframeSrc = dynamicEmbedUrl;
+  else if (req.query.proxy === '1')  iframeSrc = proxySrc;
+  else if (isY8)                     iframeSrc = proxySrc;
+  else                               iframeSrc = dynamicEmbedUrl;
 
   // Preconnect to the publisher origin so the browser opens TCP+TLS in parallel
   // with the rest of the page HTML — shaves 200-600ms off iframe first byte.
