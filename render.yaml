@@ -60,6 +60,11 @@ services:
         value: production
       - key: SITE_MODE
         value: full                # web proxy ON; do NOT set ADSENSE_CLIENT here
+      - key: CRON_DISABLED
+        value: "1"                 # cron (link-check/grow/y8-sync) runs on the HUB only.
+                                   # Both services share ONE database, so running the
+                                   # crons here too would just duplicate every write.
+                                   # Set this on EVERY scaled replica except one.
       - key: SCORE_SECRET
         generateValue: true
       - key: SUPABASE_URL
