@@ -2,10 +2,18 @@
 // Ultra-fast iframe loading with retry logic, timeout handling, and performance optimization
 import { $, el, toast } from './utils.js';
 
-const MAX_RETRIES = 3;
-const FAST_TIMEOUT = 4000; // 4 seconds as requested
-const PREFLIGHT_TIMEOUT = 2000; // 2 seconds for preflight check
-const NET_TIMEOUT = 15000; // 15 seconds absolute maximum
+// Timeouts tuned so a slow-but-HEALTHY game is never restarted mid-load. A
+// game's iframe `load` event can take 5–12s for heavy WebGL titles; the old 4s
+// timeout gave up early and reloaded the frame from zero, so slow games cycled
+// forever and never appeared (the "keeps trying / won't load" bug). Since the
+// proxy strips X-Frame-Options, there is no "blocked" case to fail fast for —
+// so we can afford to wait. These are last-resort fallbacks, not the happy path:
+// the iframe `load` event reveals the game the instant it's actually ready.
+const MAX_RETRIES = 2;              // full-chain restarts before showing the error card
+const PROXY_TIMEOUT = 15000;        // default /embed path — generous (games load their own assets)
+const DIRECT_TIMEOUT = 12000;       // direct-publisher fallback
+const PREFLIGHT_TIMEOUT = 3000;     // /api/frame-check HEAD budget
+const NET_TIMEOUT = 30000;          // overlay safety net — must exceed any single stage timeout
 
 class OptimizedIframeLoader {
   constructor(options = {}) {
@@ -32,12 +40,12 @@ class OptimizedIframeLoader {
   buildStages() {
     const stages = [];
     if (this.proxyUrl) {
-      stages.push({ src: this.proxyUrl, timeout: FAST_TIMEOUT, name: 'proxy' });
-      stages.push({ src: this.proxyUrl + '?ua=1', timeout: FAST_TIMEOUT, name: 'proxy-ua1' });
-      stages.push({ src: this.proxyUrl + '?ua=2', timeout: FAST_TIMEOUT, name: 'proxy-ua2' });
+      stages.push({ src: this.proxyUrl, timeout: PROXY_TIMEOUT, name: 'proxy' });
+      stages.push({ src: this.proxyUrl + '?ua=1', timeout: PROXY_TIMEOUT, name: 'proxy-ua1' });
+      stages.push({ src: this.proxyUrl + '?ua=2', timeout: PROXY_TIMEOUT, name: 'proxy-ua2' });
     }
     if (this.upstream && this.upstream !== this.proxyUrl) {
-      stages.push({ src: this.upstream, timeout: FAST_TIMEOUT, name: 'direct' });
+      stages.push({ src: this.upstream, timeout: DIRECT_TIMEOUT, name: 'direct' });
     }
     return stages;
   }
@@ -227,12 +235,12 @@ class OptimizedIframeLoader {
     if (this.iframeSrc?.startsWith('/embed/')) {
       this.currentStage = 0;
       this.frame.src = this.iframeSrc;
-      this.armTimeout(FAST_TIMEOUT, () => this.advanceStage());
+      this.armTimeout(PROXY_TIMEOUT, () => this.advanceStage());
     } else {
       this.currentStage = -1;
       const startSrc = this.iframeSrc || this.upstream || '';
       this.frame.src = startSrc;
-      this.armTimeout(FAST_TIMEOUT, () => {
+      this.armTimeout(DIRECT_TIMEOUT, () => {
         if (this.stages.length) this.advanceStage();
         else this.showError('This game is taking too long to load.');
       });
