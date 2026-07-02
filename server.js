@@ -1805,6 +1805,18 @@ async function fetchAsBrowser(targetUrl, { ua, timeoutMs = 20_000, accept } = {}
   }
 }
 
+// Y8 fit-to-frame CSS. Y8's /embed/ pages hard-code the game into a nested
+// <iframe> fixed at 900x600 inside `.container`, so on our (differently sized)
+// frame the game sits small/centered and doesn't fill the rectangle. Since we
+// serve the Y8 page through this proxy (same-origin), we can inject CSS that
+// forces the wrapper + its game iframe to fill 100% of our frame. `!important`
+// beats the inline width/height. Injected ONLY for y8.com pages.
+const Y8_FIT_CSS = `<style id="zofhub-y8-fit">
+html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#000!important;}
+body>.container,.container{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;}
+.container>iframe,iframe[src*="storage.y8.com"],iframe[src*="cdn.y8.com"]{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;border:0!important;margin:0!important;display:block!important;}
+</style>`;
+
 // ---------- Embed HTML cache ----------
 // Publisher game-loader pages change rarely, so caching the rewritten HTML makes
 // proxy-by-default fast: the FIRST open of a game fetches + rewrites it; every
@@ -1838,6 +1850,9 @@ app.get('/embed/:slug', async (req, res) => {
   try { upstream = new URL(upstreamUrl); } catch { return res.status(400).send('Invalid embed URL'); }
 
   const baseHref = upstream.pathname.endsWith('/') ? upstream.toString() : upstream.toString() + '/';
+
+  // Y8 embed pages need fit-to-frame CSS (fixed 900x600 nested iframe) — see Y8_FIT_CSS.
+  const isY8 = /(^|\.)y8\.com$/i.test(upstream.host);
 
   // ?ua=N lets game-page.js force a different UA on retry (when first attempt 403/5xx'd).
   const uaPick = Math.max(0, Math.min(UA_POOL.length - 1, parseInt(req.query.ua) || 0));
@@ -1881,7 +1896,7 @@ app.get('/embed/:slug', async (req, res) => {
         html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?x-frame-options["']?[^>]*>/gi, '');
         html = html.replace(/<base[^>]*>/gi, '');
 
-        const inject = `<base href="${baseHref}">${EMBED_GUARD}`;
+        const inject = `<base href="${baseHref}">${isY8 ? Y8_FIT_CSS : ''}${EMBED_GUARD}`;
         if (/<head[^>]*>/i.test(html))      html = html.replace(/(<head[^>]*>)/i,  `$1${inject}`);
         else if (/<html[^>]*>/i.test(html)) html = html.replace(/(<html[^>]*>)/i, `$1<head>${inject}</head>`);
         else                                html = `<!doctype html><html><head>${inject}</head><body>${html}</body></html>`;
