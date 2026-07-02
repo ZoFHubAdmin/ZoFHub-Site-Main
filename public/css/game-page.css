@@ -65,11 +65,18 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 }
 .play-cat {
   display: inline-flex; flex: 0 0 auto;
-  padding: 3px 9px;
+  padding: 4px 11px;
   border-radius: 999px;
-  background: rgba(255,224,0,.18);
+  background: linear-gradient(135deg, rgba(255,224,0,.2), rgba(255,224,0,.1));
   color: var(--brand);
   font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700;
+  box-shadow: 0 0 12px rgba(255,224,0,.2);
+  transition: all .3s ease;
+}
+.play-cat:hover {
+  background: linear-gradient(135deg, rgba(255,224,0,.3), rgba(255,224,0,.15));
+  box-shadow: 0 0 20px rgba(255,224,0,.35);
+  transform: translateY(-1px);
 }
 /* Action bar — NEVER wraps to a second row (that's the "Fullscreen on the next
    line" bug). Buttons keep their size; when the stage is too narrow to fit the
@@ -86,19 +93,28 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .frame-box {
   position: relative;
   width: 100%;
-  /* Branded backdrop instead of pure black, so any moment before the game
-     paints reads as intentional, not a "broken" black screen. */
+  aspect-ratio: 16 / 9;
+  /* Enhanced branded backdrop with more vibrant gradients */
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(124,58,237,.22), transparent 60%),
+    radial-gradient(140% 100% at 50% 0%, rgba(124,58,237,.35), rgba(41,211,255,.15) 50%, transparent 70%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255,224,0,.12), transparent 60%),
     linear-gradient(160deg, #160a33 0%, #0b0620 60%, #07040f 100%);
   border-radius: 16px;
   overflow: hidden;
-  /* Clean, premium stage: a thin neutral edge + soft elevation instead of the
-     old chunky gold ring. */
+  /* Enhanced premium stage with animated glow */
   box-shadow:
     0 0 0 1px var(--line-2),
-    0 24px 64px rgba(0,0,0,.55);
-  aspect-ratio: 16 / 9;
+    0 0 0 2px rgba(255,224,0,.08),
+    0 24px 64px rgba(0,0,0,.55),
+    0 0 40px rgba(124,58,237,.15);
+  transition: box-shadow .3s ease;
+}
+.frame-box:hover {
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    0 0 0 2px rgba(255,224,0,.15),
+    0 32px 80px rgba(0,0,0,.65),
+    0 0 60px rgba(124,58,237,.25);
 }
 .frame-box[data-orientation="portrait"] {
   aspect-ratio: 9 / 16;
@@ -109,10 +125,20 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   border: 0;
+  border-radius: 12px;
   /* Transparent (not #000) so the branded gradient / blurred thumbnail shows
      through until the game itself paints — no pure-black flash. */
   background: transparent;
   z-index: 1;
+  transition: opacity .4s ease, transform .4s ease;
+}
+.game-iframe.loading {
+  opacity: 0;
+  transform: scale(.98);
+}
+.game-iframe.loaded {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* Blurred game-art backdrop behind the iframe during load. Set per-game from
@@ -120,10 +146,16 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .frame-thumb-bg {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
-  filter: blur(24px) brightness(.5) saturate(1.2);
-  transform: scale(1.18);
-  opacity: .55;
+  filter: blur(32px) brightness(.6) saturate(1.4);
+  transform: scale(1.15);
+  opacity: .6;
   pointer-events: none;
+  transition: filter .5s ease, transform .5s ease, opacity .5s ease;
+}
+.frame-box:hover .frame-thumb-bg {
+  filter: blur(40px) brightness(.7) saturate(1.5);
+  transform: scale(1.18);
+  opacity: .7;
 }
 
 /* Fullscreen: fill the real screen and center the game on any screen size,

@@ -1,0 +1,93 @@
+=== Deep Game Verification Report ===
+Mode: FIX  Probes/URL: 3
+Total games: 1576  Broken: 42  Rewrites: 0  Removed: 18
+
+[API Games (LIVE CATALOG)]  api/games.json  total=784  broken=18  rewrote=0  removed=18
+  BROKEN  spend-bill-gates-money  (Spend Bill Gates Money)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2024/html/spend-bill-gates-money/index-og.html
+  BROKEN  spend-elon-musk-money  (Spend Elon Musk Money)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/spend-elon-musk-money/index-og.html
+  BROKEN  murder  (Murder)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2024/construct/247/murder/index-og.html
+  BROKEN  spacebar-clicker  (Spacebar Clicker)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/spacebar-clicker/index-og.html
+  BROKEN  ragdoll-duel  (Ragdoll Duel)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/290/ragdoll-duel/index-og.html
+  BROKEN  house-of-hazards  (House Of Hazards)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/300/house-of-hazards/index-og.html
+  BROKEN  gold-miner  (Gold Miner)  reason=http-403  status=403
+         https://www.onlinegames.io/games/2024/more/gold-miner/index.html
+  BROKEN  planet-clicker-2  (Planet Clicker 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/planet-clicker-2/index-og.html
+  BROKEN  burger-clicker  (Burger Clicker)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/burger-clicker/index-og.html
+  BROKEN  car-drawing-games  (Car Drawing Games)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/280/car-drawing/index-og.html
+  BROKEN  gun-mayhem-2  (Gun Mayhem 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/gun-mayhem-2/index-og.html
+  BROKEN  ragdoll-football-2-players  (Ragdoll Football 2 Players)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/288/ragdoll-football-2-players/index-og.html
+  BROKEN  sniper-traffic-hunter  (Sniper Traffic Hunter)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/2c8c8e8f8d0e4b5a9c1d2e3f4a5b6c7d/?gd_sdk_referrer_url=https://www.onlinegames.io/sniper-traffic-hunter/
+  BROKEN  pizza-pronto  (Pizza Pronto)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/unity2/pizza-pronto/index-og.html
+  BROKEN  dinosaur-game  (Dinosaur Game)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/dinosaur-game/index-og.html
+  BROKEN  among-as-match3-running-game  (Among As Match3 Running Game)  reason=empty-body  status=301
+         https://html5.gamemonetize.co/8t66k6mhgw6jupa0h5r3v2b8gfrv9s26/
+  BROKEN  stickman-parkour-2  (Stickman Parkour 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/250/stickman-parkour-2/index-og.html
+  BROKEN  stickman-parkour-3  (Stickman Parkour 3)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/260/stickman-parkour-3/index-og.html
+
+[AI Gaming Hub]  ai_gaming_hub_final.json  total=8  broken=6  rewrote=0  removed=0
+  BROKEN  moto-x3m-bike-race  (Moto X3M Bike Race)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+  BROKEN  cube-surfer  (Cube Surfer)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+  BROKEN  tunnel-rush  (Tunnel Rush)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+  BROKEN  basket-random  (Basket Random)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/13e9441113544116801912f71694f9e0/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+  BROKEN  soccer-random  (Soccer Random)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/567f4078864a4750949a888806a66699/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+  BROKEN  penalty-shooters-2  (Penalty Shooters 2)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/264789f8167746358044702008e92582/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F
+
+[Top Games]  data/top_games.json  total=784  broken=18  rewrote=0  removed=0
+  BROKEN  spend-bill-gates-money  (Spend Bill Gates Money)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2024/html/spend-bill-gates-money/index-og.html
+  BROKEN  spend-elon-musk-money  (Spend Elon Musk Money)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/spend-elon-musk-money/index-og.html
+  BROKEN  murder  (Murder)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2024/construct/247/murder/index-og.html
+  BROKEN  spacebar-clicker  (Spacebar Clicker)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/spacebar-clicker/index-og.html
+  BROKEN  ragdoll-duel  (Ragdoll Duel)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/290/ragdoll-duel/index-og.html
+  BROKEN  house-of-hazards  (House Of Hazards)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/300/house-of-hazards/index-og.html
+  BROKEN  gold-miner  (Gold Miner)  reason=http-403  status=403
+         https://www.onlinegames.io/games/2024/more/gold-miner/index.html
+  BROKEN  planet-clicker-2  (Planet Clicker 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/planet-clicker-2/index-og.html
+  BROKEN  burger-clicker  (Burger Clicker)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/burger-clicker/index-og.html
+  BROKEN  car-drawing-games  (Car Drawing Games)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/280/car-drawing/index-og.html
+  BROKEN  gun-mayhem-2  (Gun Mayhem 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/gun-mayhem-2/index-og.html
+  BROKEN  ragdoll-football-2-players  (Ragdoll Football 2 Players)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/288/ragdoll-football-2-players/index-og.html
+  BROKEN  sniper-traffic-hunter  (Sniper Traffic Hunter)  reason=empty-body  status=200
+         https://html5.gamedistribution.com/2c8c8e8f8d0e4b5a9c1d2e3f4a5b6c7d/?gd_sdk_referrer_url=https://www.onlinegames.io/sniper-traffic-hunter/
+  BROKEN  pizza-pronto  (Pizza Pronto)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/unity2/pizza-pronto/index-og.html
+  BROKEN  dinosaur-game  (Dinosaur Game)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/html/dinosaur-game/index-og.html
+  BROKEN  among-as-match3-running-game  (Among As Match3 Running Game)  reason=empty-body  status=301
+         https://html5.gamemonetize.co/8t66k6mhgw6jupa0h5r3v2b8gfrv9s26/
+  BROKEN  stickman-parkour-2  (Stickman Parkour 2)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/250/stickman-parkour-2/index-og.html
+  BROKEN  stickman-parkour-3  (Stickman Parkour 3)  reason=http-403  status=403
+         https://cloud.onlinegames.io/games/2025/construct/260/stickman-parkour-3/index-og.html

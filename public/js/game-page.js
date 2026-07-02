@@ -3,6 +3,7 @@ import { $, el, fetchJson, toast, wireThumbFallback } from './utils.js';
 import { store } from './storage.js';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { getPlayerName } from './identity.js';
+import { OptimizedIframeLoader } from './iframe-loader-optimized.js';
 
 const slug = window.ZOFHUB_GAME?.slug || (location.pathname.match(/\/play\/([^/?#]+)/) || [])[1];
 
@@ -37,7 +38,7 @@ if (slug) {
   presence.setSlug(slug);
   recordPlay();
   bindActions();
-  bindFrame();
+  bindFrameOptimized();
   bindLiveCount();
   bindScores();
   loadRelated();
@@ -50,10 +51,14 @@ function loadViaProxy() {
   const f = $('#gameFrame');
   if (!f) return;
   toast('Loading via ZoFHub proxy…', 'ok');
-  // Preferred path: hand off to the frame controller (full state reset + the
-  // same auto-retry the normal load gets). Falls back to a manual swap only if
-  // bindFrame hasn't run yet.
-  if (typeof f._loadProxy === 'function') { f._loadProxy(); return; }
+  
+  // Use the optimized loader's proxy method
+  if (typeof f._loadProxy === 'function') {
+    f._loadProxy();
+    return;
+  }
+  
+  // Fallback for older code
   const purl = window.ZOFHUB_GAME?.proxyUrl || `/embed/${encodeURIComponent(window.ZOFHUB_GAME?.slug || slug || '')}`;
   $('#frameBox')?.querySelector('.frame-error')?.remove();
   const loader = $('#gameLoader');
@@ -198,183 +203,46 @@ function bindActions() {
 
 function reloadGame() {
   const frame = $('#gameFrame');
-  const loader = $('#gameLoader');
   if (!frame) return;
   toast('Reloading game…', 'ok');
-  // Preferred path: re-run the FULL load cycle (resets the `loaded` flag so the
-  // loader can hide again, re-arms auto-retry). The old code only swapped src
-  // without resetting state, so after a manual reload the overlay stayed stuck
-  // on top of a working game — which is exactly why a hard page-refresh was
-  // needed. _restart fixes that.
-  if (typeof frame._restart === 'function') { frame._restart(); return; }
-  // Fallback only if bindFrame hasn't run yet.
+  
+  // Use the optimized loader's restart method
+  if (typeof frame._restart === 'function') {
+    frame._restart();
+    return;
+  }
+  
+  // Fallback for older code
+  const loader = $('#gameLoader');
   const src = frame.dataset.originalSrc || frame.getAttribute('src') || frame.src;
   loader?.classList.remove('hide', 'waiting');
   frame.src = 'about:blank';
   requestAnimationFrame(() => { frame.src = src; });
 }
 
-function bindFrame() {
+function bindFrameOptimized() {
   const frame  = $('#gameFrame');
   const loader = $('#gameLoader');
   const box    = $('#frameBox');
   if (!frame || !box) return;
 
-  const proxyUrl  = window.ZOFHUB_GAME?.proxyUrl  || '';
-  const upstream  = window.ZOFHUB_GAME?.upstream   || '';
-
-  // The iframe ships WITHOUT a src (see game.html) so we attach the load/error
-  // listeners FIRST, then start the load ourselves.
-  const startSrc  = (window.ZOFHUB_GAME?.iframeSrc || frame.getAttribute('src')
-                     || frame.dataset.src || proxyUrl || upstream || '').trim();
-  const startedOnProxy = startSrc.startsWith('/embed/');
-
-  // Load chain: proxy (default) → proxy(ua=1) → proxy(ua=2) → direct → error card.
-  const stages = [];
-  if (proxyUrl) {
-    stages.push({ src: proxyUrl,           timeoutMs: 16_000 });
-    stages.push({ src: proxyUrl + '?ua=1', timeoutMs: 16_000 });
-    stages.push({ src: proxyUrl + '?ua=2', timeoutMs: 16_000 });
-  }
-  // Last-ditch: if the proxy can't fetch the game at all, try the publisher
-  // directly before showing the error card (covers the rare game the proxy
-  // can't reach — TLS/DNS/geo issues server-side).
-  if (upstream && upstream !== proxyUrl) {
-    stages.push({ src: upstream, timeoutMs: 12_000 });
-  }
-
-  // Generous per-attempt budgets. We deliberately do NOT blank/restart a load
-  // that may still be in flight. The OLD code reset the iframe to about:blank
-  // every ~5s, which threw away an 80%-loaded game and bounced perfectly-good
-  // games to the proxy — that was the "keeps saying loading through a proxy even
-  // when the game works" bug. Now we trust the iframe's own `load` event to
-  // reveal the game the instant its document is up, and use these timeouts ONLY
-  // as a last-resort fallback to the proxy.
-  const DIRECT_TIMEOUT = 12_000;   // direct publisher load (preflight fast-fails blocked games first)
-  const PROXY_TIMEOUT  = 16_000;   // server-side /embed (adds one round-trip)
-
-  let loaded        = false;
-  let stageIdx      = -1;     // -1 = direct mode, 0+ = into the proxy chain
-  let currentTimer  = null;
-  let netTimer      = null;
-  let preflightDone = false;
-
-  // Status line lives in the loader's <p>. Kept neutral ("Loading…") so a slow
-  // load never spams the user with scary "switching to proxy / retrying" text.
-  const setStatus = (msg) => { const p = loader?.querySelector('p'); if (p && msg) p.textContent = msg; };
-
-  // ── finish() — reveal the game the instant a real document loads ──────────
-  // `.hide` fades the overlay out and sets pointer-events:none (CSS), so the
-  // game is immediately playable with NO lingering dark layer on top of it.
-  function finish() {
-    if (loaded) return;
-    loaded = true;
-    clearTimeout(currentTimer);
-    clearTimeout(netTimer);
-    loader?.classList.remove('waiting');
-    loader?.classList.add('hide');
-  }
-
-  // Arm a SINGLE fallback timer for the current attempt. On expiry we move on to
-  // the next stage (or show the error card) — we never blank a load that might
-  // still be progressing, so a slow-but-healthy game gets to finish on its own.
-  function armTimeout(timeoutMs, onGiveUp) {
-    clearTimeout(currentTimer);
-    currentTimer = setTimeout(() => { if (!loaded) onGiveUp(); }, timeoutMs);
-  }
-
-  // ── advanceStage() — move to the next proxy engine in the chain ───────────
-  function advanceStage() {
-    if (loaded) return;
-    clearTimeout(currentTimer);
-    loader?.classList.remove('waiting', 'hide');
-    stageIdx += 1;
-    if (stageIdx >= stages.length) {
-      showError('Game failed to load — try opening it in a new tab.');
-      return;
-    }
-    const stage = stages[stageIdx];
-    setStatus(stageIdx === 0 ? 'Loading…' : 'Still working on it…');
-    frame.src = stage.src;
-    armTimeout(stage.timeoutMs, advanceStage);
-  }
-
-  // ── load event ───────────────────────────────────────────────────────────
-  // Ignore the empty about:blank flash from the initial src-less iframe. Any
-  // REAL document arriving — a cross-origin game (location.href throws) or our
-  // same-origin /embed page — means the game is up, so reveal it immediately.
-  // Genuinely framing-blocked games are caught up-front by the /api/frame-check
-  // preflight (which fast-fails to the proxy), so we can safely trust this.
-  frame.addEventListener('load', () => {
-    let href = '__cross__';
-    try { href = frame.contentWindow?.location?.href || ''; } catch { href = '__cross__'; }
-    if (href === 'about:blank' || href === 'about:srcdoc' || href === '') return;
-    if (loaded) return;
-    finish();
+  // Use the optimized iframe loader
+  const iframeLoader = new OptimizedIframeLoader({
+    frame,
+    loader,
+    box,
+    slug,
+    proxyUrl: window.ZOFHUB_GAME?.proxyUrl,
+    upstream: window.ZOFHUB_GAME?.upstream,
+    iframeSrc: window.ZOFHUB_GAME?.iframeSrc
   });
-  frame.addEventListener('error', () => { if (!loaded) advanceStage(); });
 
-  // ── Parallel preflight: /api/frame-check ─────────────────────────────────
-  // Runs alongside the direct timer. If the server confirms the game is dead or
-  // framing-blocked, jump to the proxy immediately instead of waiting out the
-  // timer — cuts the dark-screen wait for broken/blocked games to <1 s.
-  function runPreflight() {
-    if (preflightDone) return;
-    if (!(proxyUrl && !startedOnProxy && slug)) return;
-    preflightDone = true;
-    fetch(`/api/frame-check?slug=${encodeURIComponent(slug)}`)
-      .then(r => r.json())
-      .then(d => {
-        if (loaded || stageIdx !== -1) return;
-        if (d.embeddable === false) { clearTimeout(currentTimer); advanceStage(); }
-      })
-      .catch(() => {}); // ignore preflight errors — proceed with direct mode
-  }
-
-  // ── startLoad() — a FULL, re-armable load cycle ──────────────────────────
-  // Called once on page load AND every time the user (or the error card) hits
-  // Reload/Proxy. Resetting `loaded` here is the fix for the stuck overlay that
-  // used to force a whole-page refresh.
-  function startLoad(opts = {}) {
-    loaded = false;
-    clearTimeout(currentTimer);
-    clearTimeout(netTimer);
-    box.querySelector('.frame-error')?.remove();
-    loader?.classList.remove('hide', 'waiting');
-    setStatus('Loading…');
-
-    // Last-resort net: never let the overlay intercept taps forever. If we're
-    // still loading after this window, stop it blocking input (the game beneath
-    // stays usable). Re-armed every cycle so manual reloads get a fresh net.
-    netTimer = setTimeout(() => {
-      if (!loaded && loader && !loader.classList.contains('hide')) loader.classList.add('hide');
-    }, 30_000);
-
-    if (opts.forceProxy && stages.length) {
-      stageIdx = -1;
-      advanceStage();           // jumps to stages[0] (the proxy)
-      return;
-    }
-    if (startedOnProxy) {
-      stageIdx = 0;
-      frame.src = startSrc;
-      armTimeout(PROXY_TIMEOUT, advanceStage);
-    } else {
-      stageIdx = -1;
-      frame.src = startSrc;
-      armTimeout(DIRECT_TIMEOUT, () => {
-        if (stages.length) advanceStage();
-        else showError('This game is taking too long to start.');
-      });
-      runPreflight();
-    }
-  }
-
-  // Expose hooks for the Reload / Proxy buttons + the R shortcut.
-  frame._restart   = () => startLoad();
-  frame._loadProxy = () => startLoad({ forceProxy: true });
-
-  startLoad();
+  // Expose hooks for the Reload / Proxy buttons + the R shortcut
+  frame._restart   = () => iframeLoader.restart();
+  frame._loadProxy = () => iframeLoader.loadProxy();
+  
+  // Store loader instance for cleanup
+  frame._loader = iframeLoader;
 }
 
 function showError(msg) {

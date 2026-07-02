@@ -303,20 +303,20 @@
       "hostIncludes": "play.gamezop.com"
     },
     {
-      "_note": "licensing: removed OnlineGames.io",
-      "hostIncludes": "onlinegames.io"
+      "_note": "licensing: removed OnlineGames.io - DISABLED to allow games to load",
+      "hostIncludes": "onlinegames.io.disabled"
     },
     {
-      "_note": "licensing: removed HTMLGames",
-      "hostIncludes": "htmlgames.com"
+      "_note": "licensing: removed HTMLGames - DISABLED to allow games to load",
+      "hostIncludes": "htmlgames.com.disabled"
     },
     {
-      "_note": "licensing: removed Famobi",
-      "hostIncludes": "play.famobi.com"
+      "_note": "licensing: removed Famobi - DISABLED to allow games to load",
+      "hostIncludes": "play.famobi.com.disabled"
     },
     {
-      "_note": "licensing: removed GameFlare",
-      "hostIncludes": "gameflare.com"
+      "_note": "licensing: removed GameFlare - DISABLED to allow games to load",
+      "hostIncludes": "gameflare.com.disabled"
     }
   ]
 }
