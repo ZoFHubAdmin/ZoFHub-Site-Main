@@ -3,9 +3,9 @@ import { $ } from './utils.js';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { getPlayerName } from './identity.js';
 // Floating AI game-helper orb (auto-skips on the /ai page).
-import './ai-helper.js?v=20260707';
+import './ai-helper.js?v=20260708';
 // Cookie-consent notice (shows once, site-wide; complements Google's CMP).
-import './consent.js?v=20260707';
+import './consent.js?v=20260708';
 // NB: ads.js is loaded LATER (bottom of this file) — after /api/site-config so the
 // AdSense publisher id can come from the environment per-deployment, and so the
 // proxy domain (no AdSense) and the hub domain (AdSense on) share ONE codebase.
@@ -74,17 +74,16 @@ function mountLiveTotal() {
 mountLiveTotal();
 
 // ════════════════════════════════════════════════════════════════════════
-// Footer social links — GitHub + Instagram + YouTube + TikTok.
-// Icons are the official brand logos served from /assets/social/ (dark-mode
-// tuned: GitHub + TikTok glyphs are white so they read on the dark footer).
-// 👉 GitHub link is live. EDIT the three social URLs below with your real
-//    Instagram / YouTube / TikTok handles (keep the leading @ on YT + TikTok).
+// Social links — Discord + GitHub only.
+// Icons served from /assets/social/. Discord uses discord_icon.png (with
+// discord.svg as an automatic fallback if the PNG isn't added yet); github.svg
+// is white so it reads on the dark bar.
+// 👉 TODO: paste your Discord invite URL into the Discord `href` below once the
+//    server exists (replace the YOUR-INVITE placeholder).
 // ════════════════════════════════════════════════════════════════════════
 const SOCIALS = [
-  { name: 'GitHub',    href: 'https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site', icon: '/assets/social/github.svg' },
-  { name: 'Instagram', href: 'https://instagram.com/YOUR-HANDLE',  icon: '/assets/social/instagram.svg' },
-  { name: 'YouTube',   href: 'https://youtube.com/@YOUR-HANDLE',   icon: '/assets/social/youtube.svg' },
-  { name: 'TikTok',    href: 'https://tiktok.com/@YOUR-HANDLE',    icon: '/assets/social/tiktok.svg' },
+  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord_icon.png', fallback: '/assets/social/discord.svg' },
+  { name: 'GitHub',  href: 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub', icon: '/assets/social/github.svg' },
 ];
 // Shared builder for a row of social icon links (reused by header + footer).
 function buildSocialCluster(className, size = 20) {
@@ -97,6 +96,8 @@ function buildSocialCluster(className, size = 20) {
     const img = document.createElement('img');
     img.src = s.icon; img.alt = s.name;
     img.width = size; img.height = size; img.loading = 'lazy'; img.decoding = 'async';
+    // If the primary icon (e.g. discord_icon.png before it's added) 404s, swap to the bundled fallback once.
+    if (s.fallback) img.onerror = () => { img.onerror = null; img.src = s.fallback; };
     a.appendChild(img);
     wrap.appendChild(a);
   }
@@ -113,7 +114,7 @@ function mountFooter() {
   if (!footer || footer.dataset.enhanced) return;
   footer.dataset.enhanced = '1';
   const year = new Date().getFullYear();
-  const REPO = 'https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site';
+  const REPO = 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub';
   footer.innerHTML = `
     <div class="footer-main">
       <div class="footer-brand">
@@ -277,4 +278,4 @@ fetch('/api/site-config')
     if (!window.ZOFHUB_PROXY) removeProxyLinks();
   })
   .catch(() => { /* config unavailable → fall back to built-in defaults */ })
-  .finally(() => { import('./ads.js?v=20260707'); });   // load ads AFTER the client id is set (versioned so the fix isn't cached)
+  .finally(() => { import('./ads.js?v=20260708'); });   // load ads AFTER the client id is set (versioned so the fix isn't cached)

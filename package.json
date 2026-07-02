@@ -53,12 +53,12 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "author": "<YOUR NAME>",
-  "homepage": "https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site#readme",
+  "homepage": "https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site.git"
+    "url": "git+https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git"
   },
   "bugs": {
-    "url": "https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site/issues"
+    "url": "https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub/issues"
   }
 }

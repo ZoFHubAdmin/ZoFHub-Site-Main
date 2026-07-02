@@ -2282,7 +2282,7 @@ app.get('/leaderboard',(req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.
 // Available on BOTH the hub and proxy deployments (AdSense requires these).
 // ========================================================================
 const LEGAL_DIR = join(__dirname, 'legal');
-const REPO_URL  = 'https://github.com/zofhubgamingofficialdev-100/ZoFHub-Gaming-Site';
+const REPO_URL  = 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub';
 const contactEmail = (process.env.CONTACT_EMAIL || '').trim();
 const CONTACT_HTML = contactEmail
   ? `<a href="mailto:${htmlEscape(contactEmail)}">${htmlEscape(contactEmail)}</a>`
