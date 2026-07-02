@@ -1,12 +1,36 @@
 // tools/generate-sql-from-json.mjs
-// Generates SQL INSERT statements from JSON game files for Supabase
-// Handles multiple JSON structures with different field names
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+// Generates Supabase INSERT scripts from the JSON game sources.
+//
+// IMPORTANT: output is CHUNKED into `load-<source>-partNN.sql` files, each a
+// single self-contained idempotent upsert kept well under the Supabase SQL
+// editor's ~1000-line "save snippet" limit. (The old version emitted one giant
+// file per source with 1000-ROW batches = ~1012-line statements that the editor
+// refused to save.) Keep tools/split-sql-for-supabase.mjs in sync with the
+// MAX_ROWS / MAX_BYTES / header / footer below.
+import { readFileSync, writeFileSync, readdirSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
+const DB = join(ROOT, 'db');
+
+// Per-part budget (both inside the known-good size: the y8-games-*.sql files are
+// ~566 lines / ~108 KB and save fine).
+const MAX_ROWS = 700;
+const MAX_BYTES = 130 * 1024;
+
+const INSERT_HEADER = 'insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)';
+const CONFLICT_FOOTER = [
+  'on conflict (slug) do update set',
+  '  title = excluded.title,',
+  '  game_url = excluded.game_url,',
+  '  thumbnail_url = excluded.thumbnail_url,',
+  '  category = excluded.category,',
+  '  is_working = excluded.is_working,',
+  '  last_checked = excluded.last_checked,',
+  '  updated_at = now();',
+].join('\n');
 
 function escapeSql(str) {
   if (!str) return '';
@@ -25,147 +49,96 @@ function generateSlug(title) {
 }
 
 function normalizeGame(game) {
-  // Handle different JSON structures
   const title = game.title || game.name || '';
   if (!title) return null;
-  
-  // Extract game URL from various field names
   const game_url = game.embed_url || game.embedUrl || game.embed || game.link || game.game_url || game.url || '';
   if (!game_url) return null;
-  
-  // Extract thumbnail from various field names
   const thumbnail_url = game.thumbnail || game.thumbnail_url || game.thumbnailUrl || game.image || game.imageUrl || '';
-  
-  // Extract category from various field names
   const category = (game.category || game.type || game.genre || 'arcade').toString().toLowerCase();
-  
-  // Generate slug if not present
   const slug = game.slug || generateSlug(title);
-  
+  if (!slug) return null;
   return { slug, title, game_url, thumbnail_url, category };
 }
 
-function generateSqlFromJson(jsonPath, tableName = 'public.games') {
-  const raw = readFileSync(jsonPath, 'utf8');
-  const data = JSON.parse(raw);
-  
-  // Handle different JSON structures
+function normalizeAll(jsonPath) {
+  const data = JSON.parse(readFileSync(jsonPath, 'utf8'));
   let games = [];
-  if (Array.isArray(data)) {
-    games = data;
-  } else if (data.games && Array.isArray(data.games)) {
-    games = data.games;
-  } else if (data.gamesFlat && Array.isArray(data.gamesFlat)) {
-    games = data.gamesFlat;
-  } else if (data._meta && data.gamesFlat) {
-    games = data.gamesFlat;
-  }
-  
-  // Normalize games and filter out invalid ones
-  const normalizedGames = games.map(normalizeGame).filter(g => g !== null);
-  
-  let sql = `-- Generated from ${jsonPath}\n`;
-  sql += `-- ${normalizedGames.length} games (from ${games.length} total entries)\n`;
-  sql += `set statement_timeout = '600s';\n\n`; // Increased timeout for very large datasets
-  
-  sql += `insert into ${tableName} (slug, title, game_url, thumbnail_url, category, is_working, last_checked)\n`;
-  sql += `values\n`;
-  
-  const values = normalizedGames.map(g => {
-    const slug = escapeSql(g.slug);
-    const title = escapeSql(g.title);
-    const game_url = escapeSql(g.game_url);
-    const thumbnail_url = escapeSql(g.thumbnail_url);
-    const category = escapeSql(g.category);
-    return `  ('${slug}', '${title}', '${game_url}', '${thumbnail_url}', '${category}', true, now())`;
-  });
-  
-  // Split into batches of 1000 to avoid SQL size limits
-  const batchSize = 1000;
-  const batches = [];
-  for (let i = 0; i < values.length; i += batchSize) {
-    batches.push(values.slice(i, i + batchSize));
-  }
-  
-  let batchSql = '';
-  batches.forEach((batch, index) => {
-    batchSql += `-- Batch ${index + 1} of ${batches.length}\n`;
-    batchSql += `insert into ${tableName} (slug, title, game_url, thumbnail_url, category, is_working, last_checked)\n`;
-    batchSql += `values\n`;
-    batchSql += batch.join(',\n');
-    batchSql += `\non conflict (slug) do update set\n`;
-    batchSql += `  title = excluded.title,\n`;
-    batchSql += `  game_url = excluded.game_url,\n`;
-    batchSql += `  thumbnail_url = excluded.thumbnail_url,\n`;
-    batchSql += `  category = excluded.category,\n`;
-    batchSql += `  is_working = excluded.is_working,\n`;
-    batchSql += `  last_checked = excluded.last_checked,\n`;
-    batchSql += `  updated_at = now();\n\n`;
-  });
-  
-  batchSql += `select count(*) as total_games from ${tableName};\n`;
-  
-  return batchSql;
+  if (Array.isArray(data)) games = data;
+  else if (data.games && Array.isArray(data.games)) games = data.games;
+  else if (data.gamesFlat && Array.isArray(data.gamesFlat)) games = data.gamesFlat;
+  return games.map(normalizeGame).filter(Boolean);
 }
 
-// Generate SQL for api/games.json
-const apiGamesPath = join(ROOT, 'api', 'games.json');
-const apiGamesSql = generateSqlFromJson(apiGamesPath);
-writeFileSync(join(ROOT, 'db', 'load-api-games.sql'), apiGamesSql);
-console.log(`✓ Generated db/load-api-games.sql from api/games.json`);
-
-// Generate SQL for ai_gaming_hub_final.json
-const aiGamesPath = join(ROOT, 'ai_gaming_hub_final.json');
-try {
-  const aiGamesSql = generateSqlFromJson(aiGamesPath);
-  writeFileSync(join(ROOT, 'db', 'load-ai-games.sql'), aiGamesSql);
-  console.log(`✓ Generated db/load-ai-games.sql from ai_gaming_hub_final.json`);
-} catch (e) {
-  console.log(`⚠ Skipped ai_gaming_hub_final.json (may not be a game list):`, e.message);
+function rowSql(g) {
+  return `  ('${escapeSql(g.slug)}', '${escapeSql(g.title)}', '${escapeSql(g.game_url)}', '${escapeSql(g.thumbnail_url)}', '${escapeSql(g.category)}', true, now())`;
 }
 
-// Generate SQL for all root-level game JSON files
-const rootGameFiles = ['somethingrandom.json', 'master_games.json', 'everygame.json', 'y8-games.json'];
-for (const file of rootGameFiles) {
-  try {
-    const filePath = join(ROOT, file);
-    const sql = generateSqlFromJson(filePath);
-    const outputName = `load-${file.replace('.json', '')}.sql`;
-    writeFileSync(join(ROOT, 'db', outputName), sql);
-    console.log(`✓ Generated db/${outputName} from ${file}`);
-  } catch (e) {
-    console.log(`⚠ Skipped ${file}:`, e.message);
+function chunkRows(rows) {
+  const parts = [];
+  let cur = [], bytes = 0;
+  for (const r of rows) {
+    const rb = Buffer.byteLength(r, 'utf8') + 2;
+    if (cur.length && (cur.length >= MAX_ROWS || bytes + rb > MAX_BYTES)) { parts.push(cur); cur = []; bytes = 0; }
+    cur.push(r); bytes += rb;
   }
+  if (cur.length) parts.push(cur);
+  return parts;
 }
 
-// Check for additional JSON files in data/ directory
-const dataDir = join(ROOT, 'data');
-try {
-  const files = readdirSync(dataDir).filter(f => f.endsWith('.json') && f !== 'catalog-overrides.json');
-  for (const file of files) {
-    try {
-      const filePath = join(dataDir, file);
-      const sql = generateSqlFromJson(filePath);
-      const outputName = `load-${file.replace('.json', '')}.sql`;
-      writeFileSync(join(ROOT, 'db', outputName), sql);
-      console.log(`✓ Generated db/${outputName} from data/${file}`);
-    } catch (e) {
-      console.log(`⚠ Skipped data/${file}:`, e.message);
+function renderPart(base, idx, total, rows) {
+  return `-- ${base}  (part ${idx} of ${total})
+-- Auto-generated; kept well under the Supabase SQL-editor ~1000-line save limit.
+-- Idempotent upsert on slug - safe to run in any order and to re-run.
+${INSERT_HEADER}
+values
+${rows.join(',\n')}
+${CONFLICT_FOOTER}
+`;
+}
+
+// Delete any stale outputs for this base, then write the fresh chunked set.
+function writeChunked(baseName, games) {
+  for (const f of readdirSync(DB)) {
+    if (f === `${baseName}.sql` || new RegExp(`^${baseName}-part\\d+\\.sql$`).test(f)) {
+      try { unlinkSync(join(DB, f)); } catch {}
     }
   }
-} catch (e) {
-  console.log(`⚠ No additional JSON files in data/ directory`);
+  const parts = chunkRows(games.map(rowSql));
+  parts.forEach((rows, i) => {
+    const name = parts.length === 1 ? `${baseName}.sql` : `${baseName}-part${String(i + 1).padStart(2, '0')}.sql`;
+    writeFileSync(join(DB, name), renderPart(baseName, i + 1, parts.length, rows));
+  });
+  return parts.length;
 }
 
-console.log('\n=== COMPLETE SETUP SEQUENCE ===');
-console.log('1. Run db/schema.sql in Supabase (creates tables)');
-console.log('2. Run db/load-api-games.sql in Supabase (loads games from api/games.json)');
-console.log('3. Run db/load-ai-games.sql in Supabase (loads games from ai_gaming_hub_final.json)');
-console.log('4. Run db/load-somethingrandom.sql in Supabase (loads Famobi games)');
-console.log('5. Run db/load-master_games.sql in Supabase (loads GameMonetize games)');
-console.log('6. Run db/load-everygame.sql in Supabase (loads OnlineGames.io games)');
-console.log('7. Run db/load-y8-games.sql in Supabase (loads 2,415 Y8 games)');
-console.log('8. Run db/community.sql (creates scores/recommendations tables)');
-console.log('9. Run db/stats.sql (optional, for persistent play counts)');
-console.log('10. Run db/y8-games-check.sql to verify totals');
-console.log('\nExpected total: 14,000+ games from all sources');
+function generateFor(jsonPath, baseName) {
+  const games = normalizeAll(jsonPath);
+  const parts = writeChunked(baseName, games);
+  console.log(`✓ ${baseName}: ${games.length} games -> ${parts} file(s)`);
+}
+
+// api/games.json
+generateFor(join(ROOT, 'api', 'games.json'), 'load-api-games');
+
+// ai_gaming_hub_final.json (may not be a game list)
+try { generateFor(join(ROOT, 'ai_gaming_hub_final.json'), 'load-ai-games'); }
+catch (e) { console.log(`⚠ ai_gaming_hub_final.json skipped: ${e.message}`); }
+
+// root-level game JSON sources
+for (const file of ['somethingrandom.json', 'master_games.json', 'everygame.json', 'y8-games.json']) {
+  try { generateFor(join(ROOT, file), `load-${file.replace('.json', '')}`); }
+  catch (e) { console.log(`⚠ ${file} skipped: ${e.message}`); }
+}
+
+// any other JSON lists under data/
+try {
+  for (const file of readdirSync(join(ROOT, 'data')).filter(f => f.endsWith('.json') && f !== 'catalog-overrides.json')) {
+    try { generateFor(join(ROOT, 'data', file), `load-${file.replace('.json', '')}`); }
+    catch (e) { console.log(`⚠ data/${file} skipped: ${e.message}`); }
+  }
+} catch { console.log('⚠ no data/ directory'); }
+
+console.log('\n=== HOW TO LOAD ===');
+console.log('Fastest (recommended): `npm run restore-games` loads every source into Supabase in one command.');
+console.log('Manual (Supabase SQL editor): run db/schema.sql, then each db/load-*.sql (part files in numeric order),');
+console.log('then db/community.sql and db/stats.sql. Every file now stays under the editor save limit.');

@@ -36,14 +36,17 @@ The enhanced SQL generator now handles all game sources with different JSON stru
 node tools/generate-sql-from-json.mjs
 ```
 
-This will generate SQL files for all sources:
-- `db/load-api-games.sql` (784 games)
+This generates chunked SQL files. Large sources are split into numbered parts
+(`load-<source>-partNN.sql`) so **every file stays under the Supabase SQL-editor
+save limit** (~1000 lines):
+- `db/load-api-games.sql` (784 games → 2 parts)
 - `db/load-ai-games.sql` (AI games)
-- `db/load-somethingrandom.sql` (Famobi games)
-- `db/load-master_games.sql` (~12,000 GameMonetize games)
-- `db/load-everygame.sql` (OnlineGames.io games)
-- `db/load-y8-games.sql` (2,415 Y8 games)
-- Plus 11 additional SQL files from `data/` directory
+- `db/load-somethingrandom.sql` (Famobi games → 3 parts)
+- `db/load-master_games.sql` (~11,400 GameMonetize games → 19 parts)
+- `db/load-everygame.sql` (OnlineGames.io games → 4 parts)
+- `db/load-y8-games.sql` (2,415 Y8 games → 4 parts)
+- `db/load-games-export.sql` (12,052-game snapshot → 20 parts)
+- Plus additional SQL files from the `data/` directory
 
 ## Step 2: Run SQL Files in Supabase
 
@@ -59,29 +62,18 @@ Run these SQL files in **exact order** in Supabase SQL Editor:
 ```
 
 #### 2. Load Game Data (All Sources)
-Run these in order:
 
-```sql
--- 2. Load API games (784 games)
-db/load-api-games.sql
+**Easiest — one command (recommended):** `npm run restore-games` loads every
+source into Supabase at once (this is how the live database was populated — no
+copy-pasting).
 
--- 3. Load AI games
-db/load-ai-games.sql
+**Manual (Supabase SQL Editor):** run every `db/load-*.sql` game file. Loaders
+that were too big are now split into numbered parts — run each `-partNN.sql` in
+**numeric order** (part01, part02, …). Every part is an idempotent upsert, so
+re-running or running slightly out of order is safe.
 
--- 4. Load Famobi games
-db/load-somethingrandom.sql
-
--- 5. Load GameMonetize games (~12,000 games - largest file)
-db/load-master_games.sql
-
--- 6. Load OnlineGames.io games
-db/load-everygame.sql
-
--- 7. Load Y8 games (2,415 games)
-db/load-y8-games.sql
-```
-
-**Note**: The SQL generator uses batching (1000 games per batch) to avoid size limits. Each file may contain multiple batches.
+**Why parts?** Supabase's SQL editor won't *save* a snippet past ~1000 lines.
+Each file is now ~700 rows (well under that), so every one saves and runs cleanly.
 
 #### 3. Create Community Features
 **File**: `db/community.sql`
