@@ -20,6 +20,7 @@
     "clean-fakes": "node tools/clean-fake-gd-hashes.mjs",
     "link-check": "node --use-system-ca tools/link-checker.mjs",
     "export-games": "node --use-system-ca tools/export-games.mjs",
+    "restore-games": "node --use-system-ca tools/restore-games.mjs",
     "fix-thumbnails": "node --use-system-ca tools/fetch-y8-thumbs.mjs",
     "audit": "node --use-system-ca tools/audit-catalog.mjs",
     "add-slope": "node --use-system-ca tools/add-slope.mjs",
