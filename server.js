@@ -55,7 +55,7 @@ for (const f of ['.env', '.env.example']) {
 
 // These modules read process.env at import time, so they must be imported
 // AFTER the env-file load above.
-const { getSupabase, isSupabaseConfigured } = await import('./lib/supabase.mjs');
+const { getSupabase, isSupabaseConfigured, supabaseKeepAlive } = await import('./lib/supabase.mjs');
 const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs');
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
@@ -670,6 +670,60 @@ app.get('/api/health', (req, res) => res.json({
   catalog: { source: CATALOG.source, games: CATALOG.games.length },
   proxy: proxyStatus
 }));
+
+// ── Keep-alive endpoint (free-tier uptime) ───────────────────────────────────
+// Point an external uptime monitor (cron-job.org, UptimeRobot, …) at
+// GET /healthz every ~10 min so Render's free tier never spins the service down.
+// Each AUTHORIZED hit also pokes Supabase (throttled to ~once/12h) so the
+// free-tier database never reaches its 7-day inactivity pause — one monitor
+// keeps BOTH platforms awake.
+//
+// Auth: set CRON_SECRET in the environment, then have the monitor send it as
+// `Authorization: Bearer <secret>`, header `x-cron-secret: <secret>`, or
+// `?key=<secret>`. If CRON_SECRET is unset the route stays open (so it works
+// before you configure it) but logs a one-time warning.
+const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
+const KEEPALIVE_THROTTLE_MS = 12 * 60 * 60 * 1000; // at most ~2 Supabase pokes/day
+let lastSupabaseKeepAliveAt = 0;
+let warnedNoCronSecret = false;
+
+function keepAliveAuthorized(req) {
+  if (!CRON_SECRET) {
+    if (!warnedNoCronSecret) {
+      warnedNoCronSecret = true;
+      console.warn('[keepalive] CRON_SECRET is not set — /healthz is UNPROTECTED. Set CRON_SECRET in your env.');
+    }
+    return true; // fail open until you configure it
+  }
+  const bearer   = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const provided = bearer || req.get('x-cron-secret') || req.query.key || '';
+  const a = Buffer.from(String(provided));
+  const b = Buffer.from(CRON_SECRET);
+  return a.length === b.length && timingSafeEqual(a, b); // constant-time compare
+}
+
+// Fire-and-forget — NEVER awaited in the request path, so it can't block the
+// event loop. Throttled so 10-min pings don't hammer the DB.
+function pokeSupabaseThrottled() {
+  const now = Date.now();
+  if (now - lastSupabaseKeepAliveAt < KEEPALIVE_THROTTLE_MS) return;
+  lastSupabaseKeepAliveAt = now;
+  supabaseKeepAlive()
+    .then(r => { if (!r.ok) console.warn('[keepalive] supabase poke:', r.error || r.reason); })
+    .catch(() => {});
+}
+
+app.get(['/healthz', '/ping'], (req, res) => {
+  if (!keepAliveAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  pokeSupabaseThrottled();
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, uptime: Math.round(process.uptime()), ts: new Date().toISOString() });
+});
+app.head(['/healthz', '/ping'], (req, res) => {
+  if (!keepAliveAuthorized(req)) return res.sendStatus(401);
+  pokeSupabaseThrottled();
+  res.set('Cache-Control', 'no-store').sendStatus(200);
+});
 
 // Companion standalone-browser reachability.  The browser page calls this to
 // learn which of the external proxy browsers (NautilusOS, Interstellar, …) are

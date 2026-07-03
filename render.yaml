@@ -43,6 +43,8 @@ services:
         sync: false                # ca-pub-XXXXXXXXXXXXXXXX (lights up ads + ads.txt)
       - key: POLLINATIONS_REFERRER
         sync: false                # your hub domain, for AI attribution
+      - key: CRON_SECRET
+        sync: false                # protects /healthz; set the SAME value in your uptime monitor
 
   # ── 2) Proxy domain (in-game ads only; rotate the domain when filtered) ──────
   - type: web
@@ -75,3 +77,5 @@ services:
         sync: false
       - key: POLLINATIONS_REFERRER
         sync: false
+      - key: CRON_SECRET
+        sync: false                # protects /healthz; set the SAME value in your uptime monitor
