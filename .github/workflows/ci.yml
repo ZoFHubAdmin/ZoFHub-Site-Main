@@ -1,0 +1,48 @@
+name: CI
+
+# Runs on every push to main and on pull requests. No secrets required — the
+# server boots on its bundled catalog when Supabase env vars are absent, so this
+# just answers one question fast: "does the code still start?"
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  startup-check:
+    runs-on: ubuntu-latest
+    env:
+      SITE_MODE: hub
+      CRON_DISABLED: "1"     # don't run the background cron jobs during the check
+      PORT: "8099"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax-check all JavaScript
+        run: |
+          node --check server.js
+          for f in lib/*.mjs tools/*.mjs; do node --check "$f"; done
+
+      - name: Boot the server and check /api/health
+        run: |
+          node server.js &
+          pid=$!
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8099/api/health > /dev/null 2>&1; then ok=1; break; fi
+            sleep 1
+          done
+          kill $pid 2>/dev/null || true
+          if [ "$ok" = "1" ]; then
+            echo "✅ server booted and /api/health responded"
+          else
+            echo "::error::server failed to start or /api/health never responded"
+            exit 1
+          fi
