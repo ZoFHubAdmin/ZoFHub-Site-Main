@@ -3,15 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('taovip', 'TaoVip', 'https://html5.gamemonetize.co/amc8uo038ahpvzu3pfm6a5ad9cfib2ja/', 'https://img.gamemonetize.com/amc8uo038ahpvzu3pfm6a5ad9cfib2ja/512x384.jpg', 'clicker', true, now()),
-  ('tap-ninja', 'Tap Ninja', 'https://html5.gamemonetize.co/86gpkv8yek6ea3wz5gpnkw3elk7zbpob/', 'https://img.gamemonetize.com/86gpkv8yek6ea3wz5gpnkw3elk7zbpob/512x384.jpg', 'clicker', true, now()),
-  ('tap-tanks', 'Tap Tanks', 'https://html5.gamemonetize.co/yvc2io5f0c0ds1gs48aljw05fmni0nbz/', 'https://img.gamemonetize.com/yvc2io5f0c0ds1gs48aljw05fmni0nbz/512x384.jpg', 'clicker', true, now()),
-  ('tap-tap-monsters', 'Tap Tap Monsters', 'https://html5.gamemonetize.co/oajiiqnejs794rq1wvv1s87lgy26umoi/', 'https://img.gamemonetize.com/oajiiqnejs794rq1wvv1s87lgy26umoi/512x384.jpg', 'clicker', true, now()),
-  ('tap-tap-music', 'TAP TAP Music', 'https://html5.gamemonetize.co/p00umx80e1k8tzhpogviiu0zsi2s46b1/', 'https://img.gamemonetize.com/p00umx80e1k8tzhpogviiu0zsi2s46b1/512x384.jpg', 'clicker', true, now()),
-  ('tappy-ball', 'Tappy Ball', 'https://html5.gamemonetize.co/efyd8knjfxiccisa38ojr1qdvdiwfitu/', 'https://img.gamemonetize.com/efyd8knjfxiccisa38ojr1qdvdiwfitu/512x384.jpg', 'clicker', true, now()),
-  ('tappy-driver', 'Tappy Driver', 'https://html5.gamemonetize.co/qli1hc3ba8oezz2m9hmyk87qcjuo6zbn/', 'https://img.gamemonetize.com/qli1hc3ba8oezz2m9hmyk87qcjuo6zbn/512x384.jpg', 'clicker', true, now()),
-  ('taptap-robot', 'Taptap Robot', 'https://html5.gamemonetize.co/pme4b0bw4lfvmju2zqxxb1kadorz02sq/', 'https://img.gamemonetize.com/pme4b0bw4lfvmju2zqxxb1kadorz02sq/512x384.jpg', 'clicker', true, now()),
-  ('the-best-warrior', 'The Best Warrior', 'https://html5.gamemonetize.co/yoxy6vzt9nu1h0uqzgngm8a9vht6fgjk/', 'https://img.gamemonetize.com/yoxy6vzt9nu1h0uqzgngm8a9vht6fgjk/512x384.jpg', 'clicker', true, now()),
   ('the-chaser', 'The Chaser', 'https://html5.gamemonetize.co/2xpzbpb3t1sk1qoe67sdytdviulo5b48/', 'https://img.gamemonetize.com/2xpzbpb3t1sk1qoe67sdytdviulo5b48/512x384.jpg', 'clicker', true, now()),
   ('the-golden-ball', 'THE GOLDEN BALL', 'https://html5.gamemonetize.co/rg1rigpnqz03wdf2dz5uscw5veecs90k/', 'https://img.gamemonetize.com/rg1rigpnqz03wdf2dz5uscw5veecs90k/512x384.jpg', 'clicker', true, now()),
   ('the-hunter-zombie', 'The Hunter Zombie', 'https://html5.gamemonetize.co/wnwa5sfs4fddxtfzjrjs1ozxxj7v11h6/', 'https://img.gamemonetize.com/wnwa5sfs4fddxtfzjrjs1ozxxj7v11h6/512x384.jpg', 'clicker', true, now()),
@@ -82,7 +73,6 @@ values
   ('wild-girls-slot-win-big-playing-online-casino', 'Wild Girls Slot - Win Big Playing Online Casino', 'https://html5.gamemonetize.co/ms0e0s83wl5cd6rk5ofc7p0rdzbiltt7/', 'https://img.gamemonetize.com/ms0e0s83wl5cd6rk5ofc7p0rdzbiltt7/512x384.jpg', 'clicker', true, now()),
   ('wild-life-hunting', 'wild life hunting', 'https://html5.gamemonetize.co/eciyb2o2rd7hdgn47r3pt6zk76ixemng/', 'https://img.gamemonetize.com/eciyb2o2rd7hdgn47r3pt6zk76ixemng/512x384.jpg', 'clicker', true, now()),
   ('wind-rider', 'Wind Rider', 'https://html5.gamemonetize.co/mp8so6kgnbgbx8x1q1ntp9hwczyht1lf/', 'https://img.gamemonetize.com/mp8so6kgnbgbx8x1q1ntp9hwczyht1lf/512x384.jpg', 'clicker', true, now()),
-  ('witch-flight', 'Witch Flight', 'https://html5.gamemonetize.co/1lqb8cy3igt7tr90697yktgk7di6oa5v/', 'https://img.gamemonetize.com/1lqb8cy3igt7tr90697yktgk7di6oa5v/512x384.jpg', 'clicker', true, now()),
   ('word-slide-game', 'Word Slide Game', 'https://html5.gamemonetize.co/qkl6lf58rhhh0a1xoavjz9sj56t4ynbc/', 'https://img.gamemonetize.com/qkl6lf58rhhh0a1xoavjz9sj56t4ynbc/512x384.jpg', 'clicker', true, now()),
   ('word-tangle', 'Word Tangle', 'https://html5.gamemonetize.co/lbcm83t4ztup4jztu6ur7h2o8dqoa30k/', 'https://img.gamemonetize.com/lbcm83t4ztup4jztu6ur7h2o8dqoa30k/512x384.jpg', 'clicker', true, now()),
   ('world-of-alice-farm-animals', 'World of Alice   Farm Animals', 'https://html5.gamemonetize.co/85ensryy753w4gprkwwl4h4rpz6yvjz1/', 'https://img.gamemonetize.com/85ensryy753w4gprkwwl4h4rpz6yvjz1/512x384.jpg', 'clicker', true, now()),
@@ -256,7 +246,6 @@ values
   ('beauty-salon-girl-hairstyles', 'Beauty Salon Girl Hairstyles', 'https://html5.gamemonetize.co/qoa1g7l2tvtv680icb1h5tbrlxflfh7x/', 'https://img.gamemonetize.com/qoa1g7l2tvtv680icb1h5tbrlxflfh7x/512x384.jpg', 'girls', true, now()),
   ('besties-fishing-and-cooking', 'Besties Fishing and Cooking', 'https://html5.gamemonetize.co/bai2lwl0w0d7xxe5n7d2h393n54w5f4b/', 'https://img.gamemonetize.com/bai2lwl0w0d7xxe5n7d2h393n54w5f4b/512x384.jpg', 'girls', true, now()),
   ('bff-art-hoe-fashion', 'BFF Art Hoe Fashion', 'https://html5.gamemonetize.co/x8wpgsqn3woibvl2l5q2egezbq98foce/', 'https://img.gamemonetize.com/x8wpgsqn3woibvl2l5q2egezbq98foce/512x384.jpg', 'girls', true, now()),
-  ('bff-easter-photobooth-party', 'BFF Easter Photobooth Party', 'https://html5.gamemonetize.co/5oht975pi8fpjao2n4yyljj2rmdnpst3/', 'https://img.gamemonetize.com/5oht975pi8fpjao2n4yyljj2rmdnpst3/512x384.jpg', 'girls', true, now()),
   ('bff-lovely-kawaii-outfits', 'BFF Lovely Kawaii Outfits', 'https://html5.gamemonetize.co/nytwd37eqj4v1lwknwhdrqs8q5rmjqrk/', 'https://img.gamemonetize.com/nytwd37eqj4v1lwknwhdrqs8q5rmjqrk/512x384.jpg', 'girls', true, now()),
   ('bff-shopping-spree', 'BFF Shopping Spree', 'https://html5.gamemonetize.co/2c0ogpc206xi647rrky0dioaijyv8dra/', 'https://img.gamemonetize.com/2c0ogpc206xi647rrky0dioaijyv8dra/512x384.jpg', 'girls', true, now()),
   ('bff-skating-practice', 'BFF Skating Practice', 'https://html5.gamemonetize.co/vkbx72cd2mlem7n17ldoxf2xe0lswq1h/', 'https://img.gamemonetize.com/vkbx72cd2mlem7n17ldoxf2xe0lswq1h/512x384.jpg', 'girls', true, now()),
@@ -604,7 +593,17 @@ values
   ('happyness-mommy-baby-caring', 'Happyness Mommy Baby Caring', 'https://html5.gamemonetize.co/vg7f5s6tdkokaw250xt59et9hia96mad/', 'https://img.gamemonetize.com/vg7f5s6tdkokaw250xt59et9hia96mad/512x384.jpg', 'girls', true, now()),
   ('harvest-glam', 'Harvest Glam', 'https://html5.gamemonetize.co/dzrrj6ge0x1m20bc5bo0iqx4g1pklmsr/', 'https://img.gamemonetize.com/dzrrj6ge0x1m20bc5bo0iqx4g1pklmsr/512x384.jpg', 'girls', true, now()),
   ('hasbulla-puzzle-quest', 'Hasbulla Puzzle Quest', 'https://html5.gamemonetize.co/yl0j6tdw3amam9o85ncgxi7ww0xsj5og/', 'https://img.gamemonetize.com/yl0j6tdw3amam9o85ncgxi7ww0xsj5og/512x384.jpg', 'girls', true, now()),
-  ('hatch-cute-bunnies', 'Hatch Cute Bunnies', 'https://html5.gamemonetize.co/p6e4m2c541ihvbpcxu0dw11gkk7eq2p0/', 'https://img.gamemonetize.com/p6e4m2c541ihvbpcxu0dw11gkk7eq2p0/512x384.jpg', 'girls', true, now())
+  ('hatch-cute-bunnies', 'Hatch Cute Bunnies', 'https://html5.gamemonetize.co/p6e4m2c541ihvbpcxu0dw11gkk7eq2p0/', 'https://img.gamemonetize.com/p6e4m2c541ihvbpcxu0dw11gkk7eq2p0/512x384.jpg', 'girls', true, now()),
+  ('hexa-block-puzzle-merge', 'Hexa Block Puzzle   Merge', 'https://html5.gamemonetize.co/c27bz66kd5f592jpsvwo2vr08j59dms1/', 'https://img.gamemonetize.com/c27bz66kd5f592jpsvwo2vr08j59dms1/512x384.jpg', 'girls', true, now()),
+  ('highschool-mean-girls-2', 'Highschool Mean Girls 2', 'https://html5.gamemonetize.co/1qluass32ki9daii7fdbu9f3q16or2ff/', 'https://img.gamemonetize.com/1qluass32ki9daii7fdbu9f3q16or2ff/512x384.jpg', 'girls', true, now()),
+  ('highschool-mean-girls-3', 'Highschool Mean Girls 3', 'https://html5.gamemonetize.co/3dhz08yhvxhnz1synbnfqbiymz85v73l/', 'https://img.gamemonetize.com/3dhz08yhvxhnz1synbnfqbiymz85v73l/512x384.jpg', 'girls', true, now()),
+  ('hippo-beach-adventures', 'Hippo Beach Adventures', 'https://html5.gamemonetize.co/ix4c36zrvzn493qzs4lyd1pnwmedna1t/', 'https://img.gamemonetize.com/ix4c36zrvzn493qzs4lyd1pnwmedna1t/512x384.jpg', 'girls', true, now()),
+  ('hippo-christmas-calendar', 'Hippo Christmas Calendar', 'https://html5.gamemonetize.co/ynmofh5983zdu3lvu1pu2l9kvbd5i81u/', 'https://img.gamemonetize.com/ynmofh5983zdu3lvu1pu2l9kvbd5i81u/512x384.jpg', 'girls', true, now()),
+  ('hippo-cooking-school-game-for-girls', 'Hippo Cooking School: Game for Girls', 'https://html5.gamemonetize.co/30ft13az6pmctfar40vo5836kl1anegu/', 'https://img.gamemonetize.com/30ft13az6pmctfar40vo5836kl1anegu/512x384.jpg', 'girls', true, now()),
+  ('hippo-detective', 'Hippo Detective', 'https://html5.gamemonetize.co/nkx50tj6xcd04m4vta0ds8st9bqk8xqx/', 'https://img.gamemonetize.com/nkx50tj6xcd04m4vta0ds8st9bqk8xqx/512x384.jpg', 'girls', true, now()),
+  ('hippo-hair-salon', 'Hippo Hair Salon', 'https://html5.gamemonetize.co/u5aeq4wc4mxwpm6jg2g0bjba0j89xx17/', 'https://img.gamemonetize.com/u5aeq4wc4mxwpm6jg2g0bjba0j89xx17/512x384.jpg', 'girls', true, now()),
+  ('hippo-pizza-maker', 'Hippo Pizza Maker', 'https://html5.gamemonetize.co/dcsna3b86jp213z9855538x1b3bsp9eo/', 'https://img.gamemonetize.com/dcsna3b86jp213z9855538x1b3bsp9eo/512x384.jpg', 'girls', true, now()),
+  ('hipster-dolly-dress-up', 'Hipster Dolly Dress Up', 'https://html5.gamemonetize.co/ul0hct81ve7syrgvanwlbxi3klixx70w/', 'https://img.gamemonetize.com/ul0hct81ve7syrgvanwlbxi3klixx70w/512x384.jpg', 'girls', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

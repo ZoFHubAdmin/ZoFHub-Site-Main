@@ -3,8 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('oil-tanker-truck-parking-game', 'Oil Tanker Truck Parking Game', 'https://html5.gamemonetize.co/40i95l7qrakoextsh18h4bi0s3uq3vcy/', 'https://img.gamemonetize.com/40i95l7qrakoextsh18h4bi0s3uq3vcy/512x384.jpg', 'action', true, now()),
-  ('old-car-stunt', 'Old Car Stunt', 'https://html5.gamemonetize.co/nivfrc2g7thgq6bifgnysgca54iob5oy/', 'https://img.gamemonetize.com/nivfrc2g7thgq6bifgnysgca54iob5oy/512x384.jpg', 'action', true, now()),
   ('one-punch-man-the-wall', 'One Punch  Man the Wall', 'https://html5.gamemonetize.co/uhc73cwy0sv7qcwpnl0kvr5qgxppnk7h/', 'https://img.gamemonetize.com/uhc73cwy0sv7qcwpnl0kvr5qgxppnk7h/512x384.jpg', 'action', true, now()),
   ('one-punch-man-3d-game', 'One Punch Man 3D Game', 'https://html5.gamemonetize.co/y4q5o7rsu7yeiju73ubukcs8dvsbcqy8/', 'https://img.gamemonetize.com/y4q5o7rsu7yeiju73ubukcs8dvsbcqy8/512x384.jpg', 'action', true, now()),
   ('only-up-forward', 'Only Up! Forward', 'https://html5.gamemonetize.co/v7qy34ruk7kvsikgs57dmo5m78c5tvuy/', 'https://img.gamemonetize.com/v7qy34ruk7kvsikgs57dmo5m78c5tvuy/512x384.jpg', 'action', true, now()),
@@ -618,7 +616,9 @@ values
   ('coin-hunters-odyssey', 'Coin Hunters Odyssey', 'https://html5.gamemonetize.co/m1yhzv5gw929hmf29f4xtuk1xusof4rz/', 'https://img.gamemonetize.com/m1yhzv5gw929hmf29f4xtuk1xusof4rz/512x384.jpg', 'adventure', true, now()),
   ('coin-running', 'Coin Running', 'https://html5.gamemonetize.co/k9fvf36zkdqije2b0nl7673xou2mxesb/', 'https://img.gamemonetize.com/k9fvf36zkdqije2b0nl7673xou2mxesb/512x384.jpg', 'adventure', true, now()),
   ('collect-balloons', 'Collect Balloons', 'https://html5.gamemonetize.co/ta36mfw10y4h8k6z149q60gnuk4ijqvw/', 'https://img.gamemonetize.com/ta36mfw10y4h8k6z149q60gnuk4ijqvw/512x384.jpg', 'adventure', true, now()),
-  ('colour-chase', 'Colour Chase', 'https://4665.play.gamezop.com/g/B1JBaM1D9y7', 'https://static.gamezop.com/B1JBaM1D9y7/thumb.png', 'adventure', true, now())
+  ('colour-chase', 'Colour Chase', 'https://4665.play.gamezop.com/g/B1JBaM1D9y7', 'https://static.gamezop.com/B1JBaM1D9y7/thumb.png', 'adventure', true, now()),
+  ('coma', 'Coma', 'https://html5.gamemonetize.co/ydjh88gydz93l7f3mk4irbn88isjdai5/', 'https://img.gamemonetize.com/ydjh88gydz93l7f3mk4irbn88isjdai5/512x384.jpg', 'adventure', true, now()),
+  ('commando-shooting', 'Commando Shooting', 'https://html5.gamemonetize.co/6swn5eu9v8yqe8eo68fhnnmh09ag8g0g/', 'https://img.gamemonetize.com/6swn5eu9v8yqe8eo68fhnnmh09ag8g0g/512x384.jpg', 'adventure', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

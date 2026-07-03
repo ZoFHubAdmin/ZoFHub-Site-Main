@@ -112,13 +112,23 @@ const orderCache   = new Map();  // `${cat}|${seed}` -> { games, exp }
 const ORDER_TTL_MS = 10 * 60 * 1000;
 const ORDER_CACHE_MAX = 120;
 
+// Some htmlgames.com entries are stored as their raw EMBED SNIPPET, e.g.
+//   <div><script src="https://cdn.htmlgames.com/embed.js?game=TetrisDimensions&width=800&height=480"></script></div>
+// That is NOT a valid iframe src (the game shows a blank frame). Convert it to
+// the direct, framable game page. Any non-snippet URL is returned untouched.
+function coerceEmbedUrl(url) {
+  if (typeof url !== 'string' || url.length === 0 || url.trimStart()[0] !== '<') return url;
+  const m = url.match(/embed\.js\?game=([A-Za-z0-9_]+)/i);
+  return m ? `https://cdn.htmlgames.com/${m[1]}/index.html` : url;
+}
+
 // Normalize a raw entry from any source file into the bundled-catalog shape.
 // Accepts both snake_case (embed_url) and camelCase (embedUrl) fields, and
 // auto-generates a slug if one isn't provided. Returns null if unusable.
 function normalizeRuntimeEntry(g) {
   if (!g || typeof g !== 'object') return null;
   const title    = g.title || g.name;
-  const game_url = g.embed_url || g.embedUrl || g.embed || g.url || g.link || g.game_url;
+  const game_url = coerceEmbedUrl(g.embed_url || g.embedUrl || g.embed || g.url || g.link || g.game_url);
   if (!title || !game_url) return null;
   if (typeof game_url !== 'string' || !/^https?:\/\//i.test(game_url)) return null;
   const slug = g.slug || String(title).toLowerCase()
@@ -381,7 +391,7 @@ async function refreshCatalogFromSupabase() {
     const games = rows.map((g, i) => ({
       slug: g.slug,
       title: g.title,
-      embed_url: g.game_url,
+      embed_url: coerceEmbedUrl(g.game_url),
       thumbnail: g.thumbnail_url || '',
       category: (g.category || 'arcade').toString().toLowerCase(),
       orientation: 'landscape',

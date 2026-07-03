@@ -3,9 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('stickman-maverick-bad-boys-killer', 'Stickman maverick : bad boys killer', 'https://html5.gamemonetize.co/1s6ejh811l78xxzu5d07j7emd0lolxib/', 'https://img.gamemonetize.com/1s6ejh811l78xxzu5d07j7emd0lolxib/512x384.jpg', 'adventure', true, now()),
-  ('stickman-party-electric', 'Stickman Party Electric', 'https://html5.gamemonetize.co/2cpbu0o0soird3h63fmbmpvmmtysb8ic/', 'https://img.gamemonetize.com/2cpbu0o0soird3h63fmbmpvmmtysb8ic/512x384.jpg', 'adventure', true, now()),
-  ('stickman-party-parkour', 'Stickman Party Parkour', 'https://html5.gamemonetize.co/km9sxicxd2rz9nn4a2eirlcnofugtjdd/', 'https://img.gamemonetize.com/km9sxicxd2rz9nn4a2eirlcnofugtjdd/512x384.jpg', 'adventure', true, now()),
   ('stickman-steve-vs-alex-nether', 'Stickman Steve vs Alex - Nether', 'https://html5.gamemonetize.co/ngdi416fraxurooxqzswgbk4brg5puzz/', 'https://img.gamemonetize.com/ngdi416fraxurooxqzswgbk4brg5puzz/512x384.jpg', 'adventure', true, now()),
   ('stickman-stunt-race-3d', 'StickMan Stunt Race 3D', 'https://html5.gamemonetize.co/s6zckm939j3keajynqdlhlt86x3zr5h0/', 'https://img.gamemonetize.com/s6zckm939j3keajynqdlhlt86x3zr5h0/512x384.jpg', 'adventure', true, now()),
   ('stickman-vs-zombies-wars', 'Stickman vs Zombies Wars', 'https://html5.gamemonetize.co/99yaycc36np5ve6eto9pr9qfrwgy5xqx/', 'https://img.gamemonetize.com/99yaycc36np5ve6eto9pr9qfrwgy5xqx/512x384.jpg', 'adventure', true, now()),
@@ -492,7 +489,6 @@ values
   ('garden-brain-learn-grow', 'Garden Brain  Learn Grow!', 'https://html5.gamemonetize.co/ykm6g0757erd8wmd9q668df8nu0slxzg/', 'https://img.gamemonetize.com/ykm6g0757erd8wmd9q668df8nu0slxzg/512x384.jpg', 'arcade', true, now()),
   ('geometry-escape', 'Geometry Escape', 'https://cloud.onlinegames.io/games/2024/construct/299/geometry-escape/index-og.html', 'https://www.onlinegames.io/media/posts/905/responsive/Geometry-Escape-xs.jpg', 'arcade', true, now()),
   ('geometry-flap', 'Geometry Flap', 'https://html5.gamemonetize.co/sqtd73obyk4vtf5adgekw8frm3lqqkas/', 'https://img.gamemonetize.com/sqtd73obyk4vtf5adgekw8frm3lqqkas/512x384.jpg', 'arcade', true, now()),
-  ('geometry-rash', 'Geometry Rash', 'https://www.onlinegames.io/games/2023/construct/279/geometry-rash/index.html', 'https://www.onlinegames.io/media/posts/616/responsive/Geometry-Rash-xs.jpg', 'arcade', true, now()),
   ('geometry-stack-2048-run', 'Geometry Stack 2048 Run', 'https://html5.gamemonetize.co/rjqphfn4bxgjze4lnto0i6a70fzk2r5x/', 'https://img.gamemonetize.com/rjqphfn4bxgjze4lnto0i6a70fzk2r5x/512x384.jpg', 'arcade', true, now()),
   ('geometry-vector', 'Geometry Vector', 'https://cloud.onlinegames.io/games/2026/construct/329/geometry-vector/game.html', 'https://www.onlinegames.io/media/posts/1246/responsive/geometry-vector-xs.webp', 'arcade', true, now()),
   ('get-on-top', 'Get On Top', 'https://www.onlinegames.io/games/2024/code/6/get-on-top/index.html', 'https://www.onlinegames.io/media/posts/697/responsive/Get-on-Top-xs.jpg', 'arcade', true, now()),
@@ -626,7 +622,11 @@ values
   ('last-train-escape', 'Last Train Escape', 'https://html5.gamemonetize.co/394l69zq5i3mhgqbzul176beyfx4lx5a/', 'https://img.gamemonetize.com/394l69zq5i3mhgqbzul176beyfx4lx5a/512x384.jpg', 'arcade', true, now()),
   ('last-war-survival', 'Last War Survival', 'https://html5.gamemonetize.co/lm5valmd3l3mloh1r56z3o7bdguxyn7l/', 'https://img.gamemonetize.com/lm5valmd3l3mloh1r56z3o7bdguxyn7l/512x384.jpg', 'arcade', true, now()),
   ('lemonade-seller-simulator', 'Lemonade Seller Simulator', 'https://html5.gamemonetize.co/yzi34wrxigxe14vvla4byk6s9jo2ixo1/', 'https://img.gamemonetize.com/yzi34wrxigxe14vvla4byk6s9jo2ixo1/512x384.jpg', 'arcade', true, now()),
-  ('lemonade-war', 'Lemonade War', 'https://html5.gamemonetize.co/mye2knyk61i3shu27yol5yajcvlk1n60/', 'https://img.gamemonetize.com/mye2knyk61i3shu27yol5yajcvlk1n60/512x384.jpg', 'arcade', true, now())
+  ('lemonade-war', 'Lemonade War', 'https://html5.gamemonetize.co/mye2knyk61i3shu27yol5yajcvlk1n60/', 'https://img.gamemonetize.com/mye2knyk61i3shu27yol5yajcvlk1n60/512x384.jpg', 'arcade', true, now()),
+  ('letter-layout-coloring', 'Letter Layout Coloring', 'https://html5.gamemonetize.co/6e19nblmuagla3dbso7k0uko43jlmqxu/', 'https://img.gamemonetize.com/6e19nblmuagla3dbso7k0uko43jlmqxu/512x384.jpg', 'arcade', true, now()),
+  ('level-rotator', 'Level Rotator', 'https://html5.gamemonetize.co/2ruoa47wae2lqe8yfax8p1wcm72zz2s3/', 'https://img.gamemonetize.com/2ruoa47wae2lqe8yfax8p1wcm72zz2s3/512x384.jpg', 'arcade', true, now()),
+  ('lift-brake-simulator', 'Lift Brake Simulator', 'https://html5.gamemonetize.co/9ztbepa9p5v61akvt935e78cj3iszy72/', 'https://img.gamemonetize.com/9ztbepa9p5v61akvt935e78cj3iszy72/512x384.jpg', 'arcade', true, now()),
+  ('lion-family-sim-online', 'Lion Family Sim Online', 'https://html5.gamemonetize.co/3rpjxnxcc6482ltv1hbfbhsc68ezkg2c/', 'https://img.gamemonetize.com/3rpjxnxcc6482ltv1hbfbhsc68ezkg2c/512x384.jpg', 'arcade', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

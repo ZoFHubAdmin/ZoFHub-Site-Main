@@ -98,12 +98,16 @@ ${CONFLICT_FOOTER}
 
 // Delete any stale outputs for this base, then write the fresh chunked set.
 function writeChunked(baseName, games) {
+  // Dedupe by slug: two rows with the same slug in one upsert make Postgres throw
+  // "ON CONFLICT DO UPDATE command cannot affect row a second time".
+  const seen = new Set(); const uniq = [];
+  for (const g of games) { if (g.slug && seen.has(g.slug)) continue; if (g.slug) seen.add(g.slug); uniq.push(g); }
   for (const f of readdirSync(DB)) {
     if (f === `${baseName}.sql` || new RegExp(`^${baseName}-part\\d+\\.sql$`).test(f)) {
       try { unlinkSync(join(DB, f)); } catch {}
     }
   }
-  const parts = chunkRows(games.map(rowSql));
+  const parts = chunkRows(uniq.map(rowSql));
   parts.forEach((rows, i) => {
     const name = parts.length === 1 ? `${baseName}.sql` : `${baseName}-part${String(i + 1).padStart(2, '0')}.sql`;
     writeFileSync(join(DB, name), renderPart(baseName, i + 1, parts.length, rows));

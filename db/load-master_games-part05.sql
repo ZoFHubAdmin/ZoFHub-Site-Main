@@ -3,10 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('letter-layout-coloring', 'Letter Layout Coloring', 'https://html5.gamemonetize.co/6e19nblmuagla3dbso7k0uko43jlmqxu/', 'https://img.gamemonetize.com/6e19nblmuagla3dbso7k0uko43jlmqxu/512x384.jpg', 'arcade', true, now()),
-  ('level-rotator', 'Level Rotator', 'https://html5.gamemonetize.co/2ruoa47wae2lqe8yfax8p1wcm72zz2s3/', 'https://img.gamemonetize.com/2ruoa47wae2lqe8yfax8p1wcm72zz2s3/512x384.jpg', 'arcade', true, now()),
-  ('lift-brake-simulator', 'Lift Brake Simulator', 'https://html5.gamemonetize.co/9ztbepa9p5v61akvt935e78cj3iszy72/', 'https://img.gamemonetize.com/9ztbepa9p5v61akvt935e78cj3iszy72/512x384.jpg', 'arcade', true, now()),
-  ('lion-family-sim-online', 'Lion Family Sim Online', 'https://html5.gamemonetize.co/3rpjxnxcc6482ltv1hbfbhsc68ezkg2c/', 'https://img.gamemonetize.com/3rpjxnxcc6482ltv1hbfbhsc68ezkg2c/512x384.jpg', 'arcade', true, now()),
   ('lipstick-collector-run', 'Lipstick Collector Run', 'https://html5.gamemonetize.co/ewai7lf13zkf5606qntpdhz41zopf6hx/', 'https://img.gamemonetize.com/ewai7lf13zkf5606qntpdhz41zopf6hx/512x384.jpg', 'arcade', true, now()),
   ('little-hero-knight', 'Little Hero Knight', 'https://html5.gamemonetize.co/ieq59ij69onmbvdfjlh16mkupxsfg3ct/', 'https://img.gamemonetize.com/ieq59ij69onmbvdfjlh16mkupxsfg3ct/512x384.jpg', 'arcade', true, now()),
   ('little-yellowmen-jumping', 'Little Yellowmen Jumping', 'https://html5.gamemonetize.co/eqsi0bmmxv2rtb3qm06v2u8yrihzqbfw/', 'https://img.gamemonetize.com/eqsi0bmmxv2rtb3qm06v2u8yrihzqbfw/512x384.jpg', 'arcade', true, now()),
@@ -261,7 +257,6 @@ values
   ('snake-cube', 'Snake Cube', 'https://html5.gamemonetize.co/mpb6v987p8nqycfa49nlzk2ikqitzhxf/', 'https://img.gamemonetize.com/mpb6v987p8nqycfa49nlzk2ikqitzhxf/512x384.jpg', 'arcade', true, now()),
   ('snake-fusion-arena', 'Snake Fusion Arena', 'https://html5.gamemonetize.co/orj7l5d1ddgyh8oqkzqqzu7q6pan4kqo/', 'https://img.gamemonetize.com/orj7l5d1ddgyh8oqkzqqzu7q6pan4kqo/512x384.jpg', 'arcade', true, now()),
   ('snake-king', 'Snake King', 'https://4665.play.gamezop.com/g/ryTknTX5AS', 'https://static.gamezop.com/ryTknTX5AS/thumb.png', 'arcade', true, now()),
-  ('snake-wars', 'Snake Wars', 'https://www.onlinegames.io/games/2024/unity/snake-wars/index.html', 'https://www.onlinegames.io/media/posts/638/responsive/Snake-Wars-Free-Game-xs.jpg', 'arcade', true, now()),
   ('snaker-io', 'Snaker io', 'https://cloud.onlinegames.io/games/2026/more/snaker-io/game.html', 'https://www.onlinegames.io/media/posts/1261/responsive/snaker-io-xs.webp', 'arcade', true, now()),
   ('snakes-eating-blocks', 'Snakes Eating Blocks', 'https://html5.gamemonetize.co/9eu1kt65229y2gvj3f0t8kdi7ror9vda/', 'https://img.gamemonetize.com/9eu1kt65229y2gvj3f0t8kdi7ror9vda/512x384.jpg', 'arcade', true, now()),
   ('sniper-hitboy', 'Sniper Hitboy', 'https://html5.gamemonetize.co/mrb847grs3cymlsbq48xwo20qstq6t4d/', 'https://img.gamemonetize.com/mrb847grs3cymlsbq48xwo20qstq6t4d/512x384.jpg', 'arcade', true, now()),
@@ -627,7 +622,12 @@ values
   ('climb-rocks', 'Climb Rocks', 'https://html5.gamemonetize.co/s3kabvly3y3p7cew4cxqywzojgmb5vvu/', 'https://img.gamemonetize.com/s3kabvly3y3p7cew4cxqywzojgmb5vvu/512x384.jpg', 'clicker', true, now()),
   ('coin-clicker', 'Coin Clicker', 'https://html5.gamemonetize.co/d16d3wa6w9mqw7b3fygi4sqw7azhra1o/', 'https://img.gamemonetize.com/d16d3wa6w9mqw7b3fygi4sqw7azhra1o/512x384.jpg', 'clicker', true, now()),
   ('coin-tap', 'Coin Tap', 'https://html5.gamemonetize.co/5lnok95onaqxqsbdlvumk4t0zm82he2n/', 'https://img.gamemonetize.com/5lnok95onaqxqsbdlvumk4t0zm82he2n/512x384.jpg', 'clicker', true, now()),
-  ('collect-eggs', 'Collect Eggs', 'https://html5.gamemonetize.co/1purb1eld4yoh424sqyx72o9szzpjjcu/', 'https://img.gamemonetize.com/1purb1eld4yoh424sqyx72o9szzpjjcu/512x384.jpg', 'clicker', true, now())
+  ('collect-eggs', 'Collect Eggs', 'https://html5.gamemonetize.co/1purb1eld4yoh424sqyx72o9szzpjjcu/', 'https://img.gamemonetize.com/1purb1eld4yoh424sqyx72o9szzpjjcu/512x384.jpg', 'clicker', true, now()),
+  ('collestar', 'Collestar', 'https://html5.gamemonetize.co/5rli3o92xfc7nsjoy2wp23wpuibdyec3/', 'https://img.gamemonetize.com/5rli3o92xfc7nsjoy2wp23wpuibdyec3/512x384.jpg', 'clicker', true, now()),
+  ('color-matching', 'Color Matching', 'https://html5.gamemonetize.co/halqljkxsbm0bnjpf8syb4r4dz8dn9hx/', 'https://img.gamemonetize.com/halqljkxsbm0bnjpf8syb4r4dz8dn9hx/512x384.jpg', 'clicker', true, now()),
+  ('color-objects-halloween', 'Color Objects Halloween', 'https://html5.gamemonetize.co/uo77y9jjfnzkp7bo4i9h3ovjnuf6ddh1/', 'https://img.gamemonetize.com/uo77y9jjfnzkp7bo4i9h3ovjnuf6ddh1/512x384.jpg', 'clicker', true, now()),
+  ('color-shot', 'Color Shot', 'https://html5.gamemonetize.co/p2on75uhj9ne4o92seb2mjyy2x50rj7q/', 'https://img.gamemonetize.com/p2on75uhj9ne4o92seb2mjyy2x50rj7q/512x384.jpg', 'clicker', true, now()),
+  ('color-spin-puzzle', 'Color Spin Puzzle', 'https://html5.gamemonetize.co/fbrietx7ygdrsxdmu6nxsxphwnhq6vc7/', 'https://img.gamemonetize.com/fbrietx7ygdrsxdmu6nxsxphwnhq6vc7/512x384.jpg', 'clicker', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

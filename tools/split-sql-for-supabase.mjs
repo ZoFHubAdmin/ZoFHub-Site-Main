@@ -55,6 +55,15 @@ function extractRows(sql) {
   return rows;
 }
 
+const slugOf = (row) => { const m = row.match(/^\('((?:[^']|'')*)'/); return m ? m[1] : null; };
+// Two rows with the same slug in ONE upsert make Postgres throw "ON CONFLICT DO
+// UPDATE command cannot affect row a second time". Keep the first of each slug.
+function dedupeBySlug(rows) {
+  const seen = new Set(), out = [];
+  for (const r of rows) { const s = slugOf(r); if (s !== null && seen.has(s)) continue; if (s !== null) seen.add(s); out.push(r); }
+  return out;
+}
+
 function chunk(rows) {
   const parts = [];
   let cur = [], bytes = 0;
@@ -102,8 +111,10 @@ for (const f of files) {
     continue;
   }
 
-  const rows = extractRows(sql);
-  if (!rows.length) { report.push(`  SKIP   ${f} — no rows found`); continue; }
+  const rawRows = extractRows(sql);
+  if (!rawRows.length) { report.push(`  SKIP   ${f} — no rows found`); continue; }
+  const rows = dedupeBySlug(rawRows);
+  const dropped = rawRows.length - rows.length;
 
   const base = f.replace(/\.sql$/, '');
   const parts = chunk(rows);
@@ -119,7 +130,7 @@ for (const f of files) {
     unlinkSync(p); // remove the oversized original
   }
   splitCount++; newFiles += parts.length;
-  report.push(`  SPLIT  ${f.padEnd(30)} ${lineCount} lines → ${parts.length} parts, ${rows.length} rows kept, biggest part ${maxLines} lines`);
+  report.push(`  SPLIT  ${f.padEnd(30)} ${lineCount} lines → ${parts.length} parts, ${rows.length} rows${dropped ? ` (deduped ${dropped})` : ''}, biggest ${maxLines} lines`);
 }
 
 console.log(`\n${DRY ? '[DRY RUN] ' : ''}SQL split report (MAX_ROWS=${MAX_ROWS}, MAX_BYTES=${Math.round(MAX_BYTES / 1024)}KB):\n`);

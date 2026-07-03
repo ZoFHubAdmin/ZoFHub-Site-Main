@@ -137,7 +137,6 @@ values
   ('boom-duello', 'Boom Duello', 'https://html5.gamemonetize.co/e95xsaozqcbnadabaokflgrw9l9vzdz6/', 'https://img.gamemonetize.com/e95xsaozqcbnadabaokflgrw9l9vzdz6/512x384.jpg', 'action', true, now()),
   ('boosted-jetpack-hero', 'Boosted Jetpack Hero', 'https://html5.gamemonetize.co/q8d4p04erp1q08bw96u9tajwh4fr126r/', 'https://img.gamemonetize.com/q8d4p04erp1q08bw96u9tajwh4fr126r/512x384.jpg', 'action', true, now()),
   ('bottle-shoot', 'Bottle Shoot', 'https://4665.play.gamezop.com/g/B1fSpMkP51m', 'https://static.gamezop.com/B1fSpMkP51m/thumb.png', 'action', true, now()),
-  ('bottle-shoot', 'Bottle Shoot', 'https://html5.gamemonetize.co/4fphl4hmyjxgw32zf6skgbxuopftr8yw/', 'https://img.gamemonetize.com/4fphl4hmyjxgw32zf6skgbxuopftr8yw/512x384.jpg', 'action', true, now()),
   ('boulder-blast', 'Boulder Blast', 'https://4665.play.gamezop.com/g/HkTQJhTXqRS', 'https://static.gamezop.com/HkTQJhTXqRS/thumb.png', 'action', true, now()),
   ('box-journey', 'Box Journey', 'https://html5.gamemonetize.co/ishxj3g645r21row09pmg5pz88qhgcc7/', 'https://img.gamemonetize.com/ishxj3g645r21row09pmg5pz88qhgcc7/512x384.jpg', 'action', true, now()),
   ('boxing-gang-stars', 'Boxing Gang Stars', 'https://html5.gamemonetize.co/e0wtz9mesz8tuebf28ykoggtieokpc74/', 'https://img.gamemonetize.com/e0wtz9mesz8tuebf28ykoggtieokpc74/512x384.jpg', 'action', true, now()),
@@ -457,7 +456,6 @@ values
   ('home-rush-the-fish-fight', 'Home Rush The Fish Fight', 'https://html5.gamemonetize.co/ap5dut3zw93jv7d9lobil3vzb9qivuw6/', 'https://img.gamemonetize.com/ap5dut3zw93jv7d9lobil3vzb9qivuw6/512x384.jpg', 'action', true, now()),
   ('honey-pickers', 'Honey pickers', 'https://html5.gamemonetize.co/xs0epltbfh9px8wwkpt5dgh3mk9u0dgv/', 'https://img.gamemonetize.com/xs0epltbfh9px8wwkpt5dgh3mk9u0dgv/512x384.jpg', 'action', true, now()),
   ('hook-wars', 'Hook Wars', 'https://html5.gamemonetize.co/8j0k7hnlow6b6ygjrlrre3wp55isblgt/', 'https://img.gamemonetize.com/8j0k7hnlow6b6ygjrlrre3wp55isblgt/512x384.jpg', 'action', true, now()),
-  ('hook-wars', 'Hook Wars', 'https://www.onlinegames.io/games/2023/unity3/hook-wars/index.html', 'https://www.onlinegames.io/media/posts/610/responsive/Hook-Wars-xs.jpg', 'action', true, now()),
   ('hospital-doctor-emergency', 'Hospital Doctor Emergency', 'https://html5.gamemonetize.co/wax5v41r9xmhxliyw1pnlwafhjg9upl4/', 'https://img.gamemonetize.com/wax5v41r9xmhxliyw1pnlwafhjg9upl4/512x384.jpg', 'action', true, now()),
   ('huggy-defense-shoot-survive-upgrade', 'Huggy Defense Shoot - Survive Upgrade', 'https://html5.gamemonetize.co/o3tlt913pfxa62gpaabdvmuk8ycgz6kt/', 'https://img.gamemonetize.com/o3tlt913pfxa62gpaabdvmuk8ycgz6kt/512x384.jpg', 'action', true, now()),
   ('huggy-in-squid-game', 'Huggy In Squid Game', 'https://html5.gamemonetize.co/5d4g0gislktmqrsdnezw9xz324jh7jjr/', 'https://img.gamemonetize.com/5d4g0gislktmqrsdnezw9xz324jh7jjr/512x384.jpg', 'action', true, now()),
@@ -619,7 +617,9 @@ values
   ('offroad-mountain-driving-2024', 'Offroad Mountain Driving 2024', 'https://html5.gamemonetize.co/grnjvd7zlbj5ns8v2y3gx724h8bpsqyt/', 'https://img.gamemonetize.com/grnjvd7zlbj5ns8v2y3gx724h8bpsqyt/512x384.jpg', 'action', true, now()),
   ('offroad-truck-animal-transporter', 'Offroad Truck Animal Transporter', 'https://html5.gamemonetize.co/y940rp3v2c2v61r3ulne6q4897xrunfc/', 'https://img.gamemonetize.com/y940rp3v2c2v61r3ulne6q4897xrunfc/512x384.jpg', 'action', true, now()),
   ('offroad-truck-army-driving', 'Offroad Truck Army Driving', 'https://html5.gamemonetize.co/43fe8rc64mstpvw5zf24lct45nptj2mn/', 'https://img.gamemonetize.com/43fe8rc64mstpvw5zf24lct45nptj2mn/512x384.jpg', 'action', true, now()),
-  ('oil-tank-truck-driving-sim', 'Oil Tank Truck Driving Sim', 'https://html5.gamemonetize.co/9u4hs7eoy90iuifdvh89k5l5h60x0tab/', 'https://img.gamemonetize.com/9u4hs7eoy90iuifdvh89k5l5h60x0tab/512x384.jpg', 'action', true, now())
+  ('oil-tank-truck-driving-sim', 'Oil Tank Truck Driving Sim', 'https://html5.gamemonetize.co/9u4hs7eoy90iuifdvh89k5l5h60x0tab/', 'https://img.gamemonetize.com/9u4hs7eoy90iuifdvh89k5l5h60x0tab/512x384.jpg', 'action', true, now()),
+  ('oil-tanker-truck-parking-game', 'Oil Tanker Truck Parking Game', 'https://html5.gamemonetize.co/40i95l7qrakoextsh18h4bi0s3uq3vcy/', 'https://img.gamemonetize.com/40i95l7qrakoextsh18h4bi0s3uq3vcy/512x384.jpg', 'action', true, now()),
+  ('old-car-stunt', 'Old Car Stunt', 'https://html5.gamemonetize.co/nivfrc2g7thgq6bifgnysgca54iob5oy/', 'https://img.gamemonetize.com/nivfrc2g7thgq6bifgnysgca54iob5oy/512x384.jpg', 'action', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

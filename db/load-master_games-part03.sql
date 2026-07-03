@@ -3,8 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('coma', 'Coma', 'https://html5.gamemonetize.co/ydjh88gydz93l7f3mk4irbn88isjdai5/', 'https://img.gamemonetize.com/ydjh88gydz93l7f3mk4irbn88isjdai5/512x384.jpg', 'adventure', true, now()),
-  ('commando-shooting', 'Commando Shooting', 'https://html5.gamemonetize.co/6swn5eu9v8yqe8eo68fhnnmh09ag8g0g/', 'https://img.gamemonetize.com/6swn5eu9v8yqe8eo68fhnnmh09ag8g0g/512x384.jpg', 'adventure', true, now()),
   ('conquer-the-galaxy', 'Conquer the galaxy', 'https://html5.gamemonetize.co/z8wsumd3ttmiazs4m2kva4iiifj3jl8o/', 'https://img.gamemonetize.com/z8wsumd3ttmiazs4m2kva4iiifj3jl8o/512x384.jpg', 'adventure', true, now()),
   ('cool-man-adventure', 'Cool Man Adventure', 'https://html5.gamemonetize.co/l97eqobidhids1gdhpa2tnc2qr49azof/', 'https://img.gamemonetize.com/l97eqobidhids1gdhpa2tnc2qr49azof/512x384.jpg', 'adventure', true, now()),
   ('cosmic-strike-2-0', 'Cosmic Strike 2.0', 'https://html5.gamemonetize.co/fukc1o594u4o3turx87lvd2tqk1shhmm/', 'https://img.gamemonetize.com/fukc1o594u4o3turx87lvd2tqk1shhmm/512x384.jpg', 'adventure', true, now()),
@@ -578,7 +576,6 @@ values
   ('sonic-jigsaw-2023', 'sonic jigsaw 2023', 'https://html5.gamemonetize.co/tvgly45zh0fyxzfz77mlz7zznrnoxxrn/', 'https://img.gamemonetize.com/tvgly45zh0fyxzfz77mlz7zznrnoxxrn/512x384.jpg', 'adventure', true, now()),
   ('sonic-revert', 'Sonic Revert', 'https://html5.gamemonetize.co/silv0tl93coq4swcluihq06j4d4v6d3d/', 'https://img.gamemonetize.com/silv0tl93coq4swcluihq06j4d4v6d3d/512x384.jpg', 'adventure', true, now()),
   ('soul-essence-adventure', 'Soul Essence Adventure', 'https://html5.gamemonetize.co/65u0znncr7wqx33o0pd63dxdlu48ch4a/', 'https://img.gamemonetize.com/65u0znncr7wqx33o0pd63dxdlu48ch4a/512x384.jpg', 'adventure', true, now()),
-  ('soul-essence-adventure', 'Soul Essence Adventure', 'https://www.onlinegames.io/games/2022/unity2/soul-essence-adventure/index.html', 'https://www.onlinegames.io/media/posts/549/responsive/Soul-Essence-Adventure-xs.jpg', 'adventure', true, now()),
   ('space-attracts', 'Space Attracts', 'https://html5.gamemonetize.co/wd1jeshmqrsgizan5j1s7wv5hqz4oqbc/', 'https://img.gamemonetize.com/wd1jeshmqrsgizan5j1s7wv5hqz4oqbc/512x384.jpg', 'adventure', true, now()),
   ('space-destroyer', 'Space Destroyer', 'https://html5.gamemonetize.co/f0ss8d5zkmddjjrgz0xrci27ko15kd6h/', 'https://img.gamemonetize.com/f0ss8d5zkmddjjrgz0xrci27ko15kd6h/512x384.jpg', 'adventure', true, now()),
   ('space-escape-run', 'Space Escape Run', 'https://html5.gamemonetize.co/3kinlftqot78wgdfuku3gckahhxdvd5p/', 'https://img.gamemonetize.com/3kinlftqot78wgdfuku3gckahhxdvd5p/512x384.jpg', 'adventure', true, now()),
@@ -617,7 +614,10 @@ values
   ('stickman-hero-fight', 'Stickman Hero Fight', 'https://html5.gamemonetize.co/pe82jt7oy4dok6p12c5n8xbtc3yqrfqp/', 'https://img.gamemonetize.com/pe82jt7oy4dok6p12c5n8xbtc3yqrfqp/512x384.jpg', 'adventure', true, now()),
   ('stickman-huggy-escape', 'Stickman Huggy Escape', 'https://html5.gamemonetize.co/xwtl3vj4tr9h3v70up8xhp7f7jyqhxzk/', 'https://img.gamemonetize.com/xwtl3vj4tr9h3v70up8xhp7f7jyqhxzk/512x384.jpg', 'adventure', true, now()),
   ('stickman-huggy-party-duo', 'Stickman Huggy Party Duo', 'https://html5.gamemonetize.co/us299ne1hbpos1ahpnu22jzl6rmr9xz0/', 'https://img.gamemonetize.com/us299ne1hbpos1ahpnu22jzl6rmr9xz0/512x384.jpg', 'adventure', true, now()),
-  ('stickman-huggy-spooky-holiday', 'Stickman Huggy Spooky Holiday', 'https://html5.gamemonetize.co/isy8l1rme2azm1g2n2hirk8v3hf12s79/', 'https://img.gamemonetize.com/isy8l1rme2azm1g2n2hirk8v3hf12s79/512x384.jpg', 'adventure', true, now())
+  ('stickman-huggy-spooky-holiday', 'Stickman Huggy Spooky Holiday', 'https://html5.gamemonetize.co/isy8l1rme2azm1g2n2hirk8v3hf12s79/', 'https://img.gamemonetize.com/isy8l1rme2azm1g2n2hirk8v3hf12s79/512x384.jpg', 'adventure', true, now()),
+  ('stickman-maverick-bad-boys-killer', 'Stickman maverick : bad boys killer', 'https://html5.gamemonetize.co/1s6ejh811l78xxzu5d07j7emd0lolxib/', 'https://img.gamemonetize.com/1s6ejh811l78xxzu5d07j7emd0lolxib/512x384.jpg', 'adventure', true, now()),
+  ('stickman-party-electric', 'Stickman Party Electric', 'https://html5.gamemonetize.co/2cpbu0o0soird3h63fmbmpvmmtysb8ic/', 'https://img.gamemonetize.com/2cpbu0o0soird3h63fmbmpvmmtysb8ic/512x384.jpg', 'adventure', true, now()),
+  ('stickman-party-parkour', 'Stickman Party Parkour', 'https://html5.gamemonetize.co/km9sxicxd2rz9nn4a2eirlcnofugtjdd/', 'https://img.gamemonetize.com/km9sxicxd2rz9nn4a2eirlcnofugtjdd/512x384.jpg', 'adventure', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

@@ -3,11 +3,6 @@
 -- Idempotent upsert on slug - safe to run in any order and to re-run.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('collestar', 'Collestar', 'https://html5.gamemonetize.co/5rli3o92xfc7nsjoy2wp23wpuibdyec3/', 'https://img.gamemonetize.com/5rli3o92xfc7nsjoy2wp23wpuibdyec3/512x384.jpg', 'clicker', true, now()),
-  ('color-matching', 'Color Matching', 'https://html5.gamemonetize.co/halqljkxsbm0bnjpf8syb4r4dz8dn9hx/', 'https://img.gamemonetize.com/halqljkxsbm0bnjpf8syb4r4dz8dn9hx/512x384.jpg', 'clicker', true, now()),
-  ('color-objects-halloween', 'Color Objects Halloween', 'https://html5.gamemonetize.co/uo77y9jjfnzkp7bo4i9h3ovjnuf6ddh1/', 'https://img.gamemonetize.com/uo77y9jjfnzkp7bo4i9h3ovjnuf6ddh1/512x384.jpg', 'clicker', true, now()),
-  ('color-shot', 'Color Shot', 'https://html5.gamemonetize.co/p2on75uhj9ne4o92seb2mjyy2x50rj7q/', 'https://img.gamemonetize.com/p2on75uhj9ne4o92seb2mjyy2x50rj7q/512x384.jpg', 'clicker', true, now()),
-  ('color-spin-puzzle', 'Color Spin Puzzle', 'https://html5.gamemonetize.co/fbrietx7ygdrsxdmu6nxsxphwnhq6vc7/', 'https://img.gamemonetize.com/fbrietx7ygdrsxdmu6nxsxphwnhq6vc7/512x384.jpg', 'clicker', true, now()),
   ('color-switcher', 'Color Switcher', 'https://html5.gamemonetize.co/amvuopxtl3hbsuje42zix2ioso6lhspb/', 'https://img.gamemonetize.com/amvuopxtl3hbsuje42zix2ioso6lhspb/512x384.jpg', 'clicker', true, now()),
   ('colorful-greedy-snake', 'Colorful Greedy Snake', 'https://html5.gamemonetize.co/rqsp1o7za0rbl0b6xgprqgwqgehxt0b1/', 'https://img.gamemonetize.com/rqsp1o7za0rbl0b6xgprqgwqgehxt0b1/512x384.jpg', 'clicker', true, now()),
   ('coloring-dinos-for-kids', 'Coloring Dinos For Kids', 'https://html5.gamemonetize.co/sz17c7geutc94dvip2h3j6dbgi1lcdxf/', 'https://img.gamemonetize.com/sz17c7geutc94dvip2h3j6dbgi1lcdxf/512x384.jpg', 'clicker', true, now()),
@@ -96,7 +91,6 @@ values
   ('escape-room-1', 'Escape Room-1', 'https://html5.gamemonetize.co/5ferw5ojmhr36u6e0ici6mra84tdbajg/', 'https://img.gamemonetize.com/5ferw5ojmhr36u6e0ici6mra84tdbajg/512x384.jpg', 'clicker', true, now()),
   ('escape-the-scammer', 'Escape The Scammer', 'https://html5.gamemonetize.co/3m4jovt2wa9wsdaxevpqwye25b7xkd2g/', 'https://img.gamemonetize.com/3m4jovt2wa9wsdaxevpqwye25b7xkd2g/512x384.jpg', 'clicker', true, now()),
   ('eternal-fly', 'Eternal Fly', 'https://html5.gamemonetize.co/uy798mpibrtlfxb24zwf3pcf7p6c5d0m/', 'https://img.gamemonetize.com/uy798mpibrtlfxb24zwf3pcf7p6c5d0m/512x384.jpg', 'clicker', true, now()),
-  ('evil-santa', 'Evil Santa', 'https://html5.gamemonetize.co/w9dxspmfjj3cdm4wxiyhew975r4x7vv4/', 'https://img.gamemonetize.com/w9dxspmfjj3cdm4wxiyhew975r4x7vv4/512x384.jpg', 'clicker', true, now()),
   ('fairy-woods-hidden-objects', 'Fairy Woods Hidden Objects', 'https://html5.gamemonetize.co/pbbgyzdw4tw7tbn5bg0ip2w9ijcgb1t5/', 'https://img.gamemonetize.com/pbbgyzdw4tw7tbn5bg0ip2w9ijcgb1t5/512x384.jpg', 'clicker', true, now()),
   ('fall-cactus-season-1-teddy', 'Fall cactus Season 1 teddy', 'https://html5.gamemonetize.co/q2lummsb498xtv4g4a0zx1yxj54hbyj2/', 'https://img.gamemonetize.com/q2lummsb498xtv4g4a0zx1yxj54hbyj2/512x384.jpg', 'clicker', true, now()),
   ('falling-ball-3d', 'falling ball 3d', 'https://html5.gamemonetize.co/lvwgzhubfikb31wzt4857y7ilc3xsr6e/', 'https://img.gamemonetize.com/lvwgzhubfikb31wzt4857y7ilc3xsr6e/512x384.jpg', 'clicker', true, now()),
@@ -254,7 +248,6 @@ values
   ('humans-rescue', 'Humans Rescue', 'https://html5.gamemonetize.co/vtr67oxhjkyanc9h1frc8rqrhkzyzj3q/', 'https://img.gamemonetize.com/vtr67oxhjkyanc9h1frc8rqrhkzyzj3q/512x384.jpg', 'clicker', true, now()),
   ('hungry-jelly', 'Hungry Jelly', 'https://html5.gamemonetize.co/px0qcqwysx9eufc9ohh04e7t8sg987kc/', 'https://img.gamemonetize.com/px0qcqwysx9eufc9ohh04e7t8sg987kc/512x384.jpg', 'clicker', true, now()),
   ('hungry-red', 'Hungry Red', 'https://html5.gamemonetize.co/xby20wqgfosyrrv6qwv4zmpmrbd1n966/', 'https://img.gamemonetize.com/xby20wqgfosyrrv6qwv4zmpmrbd1n966/512x384.jpg', 'clicker', true, now()),
-  ('hungry-shark', 'Hungry Shark', 'https://html5.gamemonetize.co/76nfn2mbtbh7qnjcfeoerlc5rtsj1dns/', 'https://img.gamemonetize.com/76nfn2mbtbh7qnjcfeoerlc5rtsj1dns/512x384.jpg', 'clicker', true, now()),
   ('hungry-shark-vs-skibidi', 'Hungry Shark Vs Skibidi', 'https://html5.gamemonetize.co/kr1ychpm2es9yd93rq6tsxx7tusi8swk/', 'https://img.gamemonetize.com/kr1ychpm2es9yd93rq6tsxx7tusi8swk/512x384.jpg', 'clicker', true, now()),
   ('hungry-shark-world', 'Hungry Shark World', 'https://html5.gamemonetize.co/ox2ezmxizlaep74sxh19ejftnjsw6asu/', 'https://img.gamemonetize.com/ox2ezmxizlaep74sxh19ejftnjsw6asu/512x384.jpg', 'clicker', true, now()),
   ('hunt-feed-the-frog-3', 'Hunt feed the frog 3', 'https://html5.gamemonetize.co/lhqp4zovnlnruwetqc5jqto9h3ojmd4q/', 'https://img.gamemonetize.com/lhqp4zovnlnruwetqc5jqto9h3ojmd4q/512x384.jpg', 'clicker', true, now()),
@@ -306,11 +299,9 @@ values
   ('jungle-marble-pop-blast', 'Jungle Marble Pop Blast', 'https://html5.gamemonetize.co/qsagebnwvm0ei6uh1p876a4mi0yzj6l9/', 'https://img.gamemonetize.com/qsagebnwvm0ei6uh1p876a4mi0yzj6l9/512x384.jpg', 'clicker', true, now()),
   ('kart-stroop', 'Kart Stroop', 'https://html5.gamemonetize.co/l8b975u76w5g3eoqbsv1qqr9j7aueqha/', 'https://img.gamemonetize.com/l8b975u76w5g3eoqbsv1qqr9j7aueqha/512x384.jpg', 'clicker', true, now()),
   ('kart-strop-challenge', 'Kart Strop Challenge', 'https://html5.gamemonetize.co/2gqo2x7rbrrv8pw2oa5m09667265lzwq/', 'https://img.gamemonetize.com/2gqo2x7rbrrv8pw2oa5m09667265lzwq/512x384.jpg', 'clicker', true, now()),
-  ('kick-the-alien', 'Kick The Alien', 'https://html5.gamemonetize.co/wryqskfd5zt6wwmfyi0mmtldphc0quln/', 'https://img.gamemonetize.com/wryqskfd5zt6wwmfyi0mmtldphc0quln/512x384.jpg', 'clicker', true, now()),
   ('kick-the-buddy', 'Kick The Buddy', 'https://html5.gamemonetize.co/jzx5wvhngct734t40onyvlmbv76nowi7/', 'https://img.gamemonetize.com/jzx5wvhngct734t40onyvlmbv76nowi7/512x384.jpg', 'clicker', true, now()),
   ('kick-the-dracula', 'Kick The Dracula', 'https://html5.gamemonetize.co/yl4d0r8o2yspihjlgw1t3kt8pkr64t33/', 'https://img.gamemonetize.com/yl4d0r8o2yspihjlgw1t3kt8pkr64t33/512x384.jpg', 'clicker', true, now()),
   ('kick-the-general', 'Kick The General', 'https://html5.gamemonetize.co/yrxbq177w0egldqb6z7o06tqga7eoahm/', 'https://img.gamemonetize.com/yrxbq177w0egldqb6z7o06tqga7eoahm/512x384.jpg', 'clicker', true, now()),
-  ('kick-the-pirate', 'Kick The Pirate', 'https://html5.gamemonetize.co/jlfudk4jv9wuwg2welr0tyhb5fnhrsca/', 'https://img.gamemonetize.com/jlfudk4jv9wuwg2welr0tyhb5fnhrsca/512x384.jpg', 'clicker', true, now()),
   ('kick-the-snowman-xmas', 'Kick The Snowman Xmas', 'https://html5.gamemonetize.co/iucj3uqv8l5yi9s0ab35lnxw1pa41waj/', 'https://img.gamemonetize.com/iucj3uqv8l5yi9s0ab35lnxw1pa41waj/512x384.jpg', 'clicker', true, now()),
   ('kick-the-teddy-bear', 'Kick The Teddy Bear', 'https://html5.gamemonetize.co/h2htm0j9mjzlggavmsyt962dd4zjpmj6/', 'https://img.gamemonetize.com/h2htm0j9mjzlggavmsyt962dd4zjpmj6/512x384.jpg', 'clicker', true, now()),
   ('kick-the-walls', 'kick the walls', 'https://html5.gamemonetize.co/9fv7bzbio2jee4csj8ttmys66q0sbu47/', 'https://img.gamemonetize.com/9fv7bzbio2jee4csj8ttmys66q0sbu47/512x384.jpg', 'clicker', true, now()),
@@ -627,7 +618,16 @@ values
   ('swing-jelly', 'Swing Jelly', 'https://html5.gamemonetize.co/jysl1yeg8lcd948962ugollmbt17fwtc/', 'https://img.gamemonetize.com/jysl1yeg8lcd948962ugollmbt17fwtc/512x384.jpg', 'clicker', true, now()),
   ('swing-robber', 'Swing Robber', 'https://html5.gamemonetize.co/w5b6fd7wk3ths1zxwwhvjsgrvqq1klfv/', 'https://img.gamemonetize.com/w5b6fd7wk3ths1zxwwhvjsgrvqq1klfv/512x384.jpg', 'clicker', true, now()),
   ('swing-spider', 'Swing Spider', 'https://html5.gamemonetize.co/wbhe08mo7fux127xesdk0zb5q5b7kcbx/', 'https://img.gamemonetize.com/wbhe08mo7fux127xesdk0zb5q5b7kcbx/512x384.jpg', 'clicker', true, now()),
-  ('switch-dash', 'Switch Dash', 'https://html5.gamemonetize.co/yfb2ku7k7l3g7e1rdtt72v4irxr76tb4/', 'https://img.gamemonetize.com/yfb2ku7k7l3g7e1rdtt72v4irxr76tb4/512x384.jpg', 'clicker', true, now())
+  ('switch-dash', 'Switch Dash', 'https://html5.gamemonetize.co/yfb2ku7k7l3g7e1rdtt72v4irxr76tb4/', 'https://img.gamemonetize.com/yfb2ku7k7l3g7e1rdtt72v4irxr76tb4/512x384.jpg', 'clicker', true, now()),
+  ('taovip', 'TaoVip', 'https://html5.gamemonetize.co/amc8uo038ahpvzu3pfm6a5ad9cfib2ja/', 'https://img.gamemonetize.com/amc8uo038ahpvzu3pfm6a5ad9cfib2ja/512x384.jpg', 'clicker', true, now()),
+  ('tap-ninja', 'Tap Ninja', 'https://html5.gamemonetize.co/86gpkv8yek6ea3wz5gpnkw3elk7zbpob/', 'https://img.gamemonetize.com/86gpkv8yek6ea3wz5gpnkw3elk7zbpob/512x384.jpg', 'clicker', true, now()),
+  ('tap-tanks', 'Tap Tanks', 'https://html5.gamemonetize.co/yvc2io5f0c0ds1gs48aljw05fmni0nbz/', 'https://img.gamemonetize.com/yvc2io5f0c0ds1gs48aljw05fmni0nbz/512x384.jpg', 'clicker', true, now()),
+  ('tap-tap-monsters', 'Tap Tap Monsters', 'https://html5.gamemonetize.co/oajiiqnejs794rq1wvv1s87lgy26umoi/', 'https://img.gamemonetize.com/oajiiqnejs794rq1wvv1s87lgy26umoi/512x384.jpg', 'clicker', true, now()),
+  ('tap-tap-music', 'TAP TAP Music', 'https://html5.gamemonetize.co/p00umx80e1k8tzhpogviiu0zsi2s46b1/', 'https://img.gamemonetize.com/p00umx80e1k8tzhpogviiu0zsi2s46b1/512x384.jpg', 'clicker', true, now()),
+  ('tappy-ball', 'Tappy Ball', 'https://html5.gamemonetize.co/efyd8knjfxiccisa38ojr1qdvdiwfitu/', 'https://img.gamemonetize.com/efyd8knjfxiccisa38ojr1qdvdiwfitu/512x384.jpg', 'clicker', true, now()),
+  ('tappy-driver', 'Tappy Driver', 'https://html5.gamemonetize.co/qli1hc3ba8oezz2m9hmyk87qcjuo6zbn/', 'https://img.gamemonetize.com/qli1hc3ba8oezz2m9hmyk87qcjuo6zbn/512x384.jpg', 'clicker', true, now()),
+  ('taptap-robot', 'Taptap Robot', 'https://html5.gamemonetize.co/pme4b0bw4lfvmju2zqxxb1kadorz02sq/', 'https://img.gamemonetize.com/pme4b0bw4lfvmju2zqxxb1kadorz02sq/512x384.jpg', 'clicker', true, now()),
+  ('the-best-warrior', 'The Best Warrior', 'https://html5.gamemonetize.co/yoxy6vzt9nu1h0uqzgngm8a9vht6fgjk/', 'https://img.gamemonetize.com/yoxy6vzt9nu1h0uqzgngm8a9vht6fgjk/512x384.jpg', 'clicker', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,
