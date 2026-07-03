@@ -2336,8 +2336,14 @@ app.get('/ads.txt', (req, res) => {
 // Web-proxy pages indexed alongside ad pages muddy AdSense site review and can
 // get the domain classified as a proxy/anonymizer; internal API/embed/asset
 // routes shouldn't be crawled either. Content pages stay fully crawlable.
+function requestOrigin(req) {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host  = req.headers['x-forwarded-host']  || req.get('host') || '';
+  return `${String(proto).split(',')[0]}://${host}`.replace(/\/+$/, '');
+}
+
 app.get('/robots.txt', (req, res) => {
-  const body = [
+  const lines = [
     'User-agent: *',
     'Allow: /',
     'Disallow: /api/',
@@ -2352,8 +2358,48 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /baremux/',
     'Disallow: /bare/',
     'Disallow: /wisp/',
-  ].join('\n') + '\n';
-  res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(body);
+  ];
+  // Advertise the sitemap ONLY on the monetizable hub — the proxy domain stays
+  // low-profile (it gets filtered/rotated; no reason to hand crawlers its map).
+  if (!PROXY_ENABLED) lines.push('', `Sitemap: ${requestOrigin(req)}/sitemap.xml`);
+  res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(lines.join('\n') + '\n');
+});
+
+// ---- /sitemap.xml — lists the home, hub sections, every category, and every
+// game page so search engines discover the whole catalog (SEO → organic traffic
+// → ad revenue). Built from the in-memory catalog, cached ~30 min per origin. ----
+let _sitemap = { xml: '', at: 0, origin: '', gen: null };
+app.get('/sitemap.xml', (req, res) => {
+  const origin = requestOrigin(req);
+  const now = Date.now();
+  // Cache is keyed on the catalog's generation stamp so it regenerates the moment
+  // the live Supabase set replaces the bundled fallback (otherwise the first hit
+  // right after a deploy would freeze a tiny bundled-catalog sitemap for 30 min).
+  if (_sitemap.xml && _sitemap.origin === origin && _sitemap.gen === CATALOG.generatedAt && now - _sitemap.at < 30 * 60 * 1000) {
+    return res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(_sitemap.xml);
+  }
+  const esc = s => String(s).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+  const rows = [];
+  const add = (path, priority, changefreq) =>
+    rows.push(`  <url><loc>${esc(origin + path)}</loc><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`);
+  add('/', '1.0', 'daily');
+  add('/leaderboard', '0.6', 'daily');
+  add('/community', '0.5', 'weekly');
+  add('/ai', '0.5', 'monthly');
+  const cats = new Set();
+  for (const g of CATALOG.games) { const c = (g.category || '').toLowerCase(); if (c) cats.add(c); }
+  for (const c of cats) add(`/category/${encodeURIComponent(c)}`, '0.7', 'weekly');
+  for (const g of CATALOG.games) if (g.slug) add(`/play/${encodeURIComponent(g.slug)}`, '0.8', 'weekly');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>\n`;
+  _sitemap = { xml, at: now, origin, gen: CATALOG.generatedAt };
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
+});
+
+// Browsers auto-request /favicon.ico; our icon is a PNG under /assets. Serve it
+// so the request isn't a 404 (some crawlers/ad reviewers flag missing favicons).
+app.get('/favicon.ico', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.sendFile(join(PUBLIC_DIR, 'assets', 'favicon.png'), err => { if (err) res.status(404).end(); });
 });
 
 // Per-deployment config the frontend reads at load — so ONE codebase serves both
