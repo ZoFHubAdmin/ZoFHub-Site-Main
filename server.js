@@ -2224,7 +2224,7 @@ async function fetchGameBySlug(slug) {
 app.get('/play/:gameSlug', async (req, res) => {
   let game = bySlug.get(req.params.gameSlug);
   if (!game) game = await fetchGameBySlug(req.params.gameSlug);   // live DB fallback
-  if (!game) return res.status(404).send('Game not found. <a href="/">Back to lobby</a>');
+  if (!game) return send404(req, res);
   // Live origin from the actual request — handles localhost dev, custom
   // domains, and proxied production (Render/Railway/Fly set
   // x-forwarded-proto + x-forwarded-host that Express respects when
@@ -2411,7 +2411,7 @@ const CATEGORY_TEMPLATE = readFileSync(join(PUBLIC_DIR, 'category.html'), 'utf8'
 app.get('/category/:catSlug', (req, res) => {
   const slug = String(req.params.catSlug).toLowerCase();
   const matching = CATALOG.games.filter(g => g.category === slug);
-  if (!matching.length) return res.status(404).send('Category not found. <a href="/">Back</a>');
+  if (!matching.length) return send404(req, res);
   const label = matching[0].category_label
               || (slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '));
   const html = CATEGORY_TEMPLATE
@@ -2420,6 +2420,23 @@ app.get('/category/:catSlug', (req, res) => {
     .replace(/\{\{CAT_COUNT\}\}/g, String(matching.length));
   res.set('Cache-Control', 'no-cache').send(html);
 });
+
+// Shared 404 responder: a styled full page for browser navigations, compact JSON
+// for API/asset/XHR requests. Declared here (hoisted) so the /play and /category
+// not-found branches above can reuse it for one consistent look site-wide.
+function send404(req, res) {
+  res.status(404);
+  const wantsHtml = (req.headers.accept || '').includes('text/html') && !req.path.startsWith('/api/');
+  if (wantsHtml) {
+    res.set('Cache-Control', 'no-store');
+    return res.sendFile(join(PUBLIC_DIR, '404.html'));
+  }
+  return res.json({ error: 'not found' });
+}
+
+// Catch-all 404 — any route that matched nothing above. MUST stay last, right
+// before the error handler, so real routes and express.static win first.
+app.use((req, res) => send404(req, res));
 
 app.use((err, req, res, _next) => {
   // Log the full error server-side; return a generic message so internal details

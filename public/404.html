@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#081427" />
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="Page not found — return to ZoFHub to play free browser games." />
+  <title>Page not found · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260709" />
+  <style>
+    .nf-wrap{min-height:calc(100vh - var(--header-h) - 60px);display:flex;align-items:center;justify-content:center;padding:48px 20px;}
+    .nf-card{max-width:560px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--line);
+      border-radius:var(--radius);padding:44px 32px;box-shadow:var(--shadow-card);}
+    .nf-code{font-family:'Lilita One',system-ui,sans-serif;font-size:clamp(72px,18vw,128px);line-height:.9;
+      color:var(--brand);text-shadow:var(--shadow-glow-brand);margin:0;}
+    .nf-title{font-size:clamp(20px,4vw,26px);font-weight:800;margin:14px 0 6px;color:var(--text);}
+    .nf-sub{color:var(--text-dim);font-size:15px;line-height:1.55;margin:0 auto 26px;max-width:42ch;}
+    .nf-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
+    .nf-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:var(--radius-sm);
+      font-weight:700;font-size:15px;text-decoration:none;transition:transform .12s ease,filter .12s ease;}
+    .nf-btn:hover{transform:translateY(-2px);}
+    .nf-btn--primary{background:var(--brand);color:var(--brand-ink);box-shadow:var(--shadow-glow-brand);}
+    .nf-btn--ghost{background:var(--surface-hi);color:var(--text);border:1px solid var(--line);}
+    .nf-links{margin-top:22px;font-size:14px;color:var(--text-mute);}
+    .nf-links a{color:var(--text-dim);text-decoration:none;}
+    .nf-links a:hover{color:var(--brand);}
+  </style>
+</head>
+<body class="page-catalog">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <form class="header-search" id="searchForm" action="/" method="get" role="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="searchInput" name="q" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games" />
+      </form>
+      <nav class="top-nav">
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="nf-wrap">
+    <div class="nf-card">
+      <p class="nf-code">404</p>
+      <h1 class="nf-title">This page took a wrong turn</h1>
+      <p class="nf-sub">The page you're looking for doesn't exist or moved. But there are thousands of free games waiting for you back home.</p>
+      <div class="nf-actions">
+        <a class="nf-btn nf-btn--primary" href="/">← Back to games</a>
+        <a class="nf-btn nf-btn--ghost" href="/leaderboard">Leaderboard</a>
+        <a class="nf-btn nf-btn--ghost" href="/ai">AI</a>
+      </div>
+      <p class="nf-links">
+        <a href="/community">Community</a> · <a href="/browser">Browser</a> · <a href="/api/health" target="_blank" rel="noopener">Status</a>
+      </p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span>© ZoFHub · Free browser arcade</span>
+      <span class="footer-sep">·</span><a href="/ai">AI</a>
+      <span class="footer-sep">·</span><a href="/browser">Browser</a>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/layout.js?v=20260709"></script>
+</body>
+</html>
