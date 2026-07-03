@@ -1913,7 +1913,25 @@ app.get('/embed/:slug', async (req, res) => {
   let upstream;
   try { upstream = new URL(upstreamUrl); } catch { return res.status(400).send('Invalid embed URL'); }
 
-  const baseHref = upstream.pathname.endsWith('/') ? upstream.toString() : upstream.toString() + '/';
+  // Base href must point at the DIRECTORY of the embed URL so the game's
+  // RELATIVE assets (e.g. Unity's Build/UnityLoader.js, TemplateData/…) resolve
+  // correctly. The old code blindly appended "/", turning ".../index.html" into
+  // ".../index.html/" — so every relative asset 404'd and the game never painted
+  // (you'd see only the blurred thumbnail backdrop through the empty iframe).
+  let baseHref;
+  const lastSeg = upstream.pathname.slice(upstream.pathname.lastIndexOf('/') + 1);
+  if (lastSeg.includes('.')) {
+    // URL ends in a filename (index.html, game.php, …) → base is its directory.
+    const dir = new URL(upstream.toString());
+    dir.search = '';
+    dir.hash = '';
+    dir.pathname = dir.pathname.slice(0, dir.pathname.lastIndexOf('/') + 1);
+    baseHref = dir.toString();
+  } else {
+    // Directory-style URL (Y8 /embed/slug, GD /HASH/…): keep the original
+    // append-a-slash behavior so those keep resolving exactly as before.
+    baseHref = upstream.pathname.endsWith('/') ? upstream.toString() : upstream.toString() + '/';
+  }
 
   // Y8 embed pages need fit-to-frame CSS (fixed 900x600 nested iframe) — see Y8_FIT_CSS.
   const isY8 = /(^|\.)y8\.com$/i.test(upstream.host);
