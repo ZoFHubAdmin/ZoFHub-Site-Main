@@ -184,22 +184,20 @@ Run the enhanced SQL generator:
 node tools/generate-sql-from-json.mjs
 ```
 
-This will generate:
-- `db/load-api-games.sql` (784 games)
-- `db/load-ai-games.sql` (additional games)
-- `db/load-*.sql` for all JSON files in data/
+This generates the `db/load-*.sql` loaders (large sources are split into numbered
+`-partNN.sql` files so each stays under Supabase's editor save limit).
 
 ### Step 2: Load Games into Supabase
 
-Run these SQL files in order in Supabase SQL Editor:
+Run the SQL in order — full details in [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md):
 
-1. `db/schema.sql` (creates tables)
-2. `db/load-api-games.sql` (loads 784 games)
-3. `db/load-ai-games.sql` (loads additional games)
-4. `db/y8-games-01.sql` through `db/y8-games-05.sql` (loads 2,410 Y8 games)
-5. `db/community.sql` (creates scores/recommendations)
-6. `db/stats.sql` (optional, for persistent play counts)
-7. `db/y8-games-check.sql` (verify totals)
+1. `db/schema.sql` (creates the `games` table)
+2. `db/community.sql` (creates scores/recommendations)
+3. *(optional)* `db/stats.sql`, `db/keepalive.sql`
+4. Every `db/load-*.sql` game loader — run `-partNN.sql` files in numeric order
+5. `db/y8-games-check.sql` (verify totals — aim for ~16,791 working games)
+
+Or skip the copy-pasting entirely: `npm run restore-games`.
 
 ### Step 3: Restart Server
 
@@ -278,7 +276,7 @@ npm start
 ## Expected Results
 
 ### Game Count
-- **Total games**: ~3,265+ (784 API + AI games + 2,410 Y8 games)
+- **Total games**: ~16,791 working (GameMonetize, Y8, Famobi, OnlineGames.io, GameDistribution, GameFlare, HTMLGames)
 - **All sources**: OnlineGames.io, GameDistribution, Y8.com, and more
 
 ### Loading Performance
@@ -336,6 +334,6 @@ The optimized iframe loading system provides:
 ✅ **Proper cleanup** to prevent memory leaks
 ✅ **User feedback** with clear status messages
 ✅ **Never stuck** with 15-second absolute maximum
-✅ **Complete game catalog** with all 3,265+ games loading
+✅ **Complete game catalog** with all 16,000+ games loading
 
 The system is production-ready, optimized, safe, and easy to use. No manual configuration required - it works automatically once deployed.

@@ -19,8 +19,14 @@ keeps the hub clean for revenue and lets the proxy domain rotate freely.
 ## 1. Host (NOT Vercel)
 ZoFHub is a persistent server (cron + in-memory catalog + `/wisp` WebSocket), so
 serverless won't work. Use **Render** (`render.yaml` included), Railway, Fly.io,
-or a VPS. Use a **paid always-on** plan — the free tier sleeps and kills the cron
-jobs + live presence.
+or a VPS.
+- **Paid always-on plan** — simplest; nothing ever sleeps.
+- **Free tier** — also works: it sleeps after ~15 min idle, but the built-in
+  secured `/healthz` endpoint + an external uptime monitor (e.g. cron-job.org)
+  pinging it every ~10 min keeps the service **and** Supabase awake. Set
+  `CRON_SECRET` (below), point the monitor at
+  `https://<your-service>.onrender.com/healthz` with that secret, and keep-alive
+  **one** service only so you stay under Render's 750 free hours/month.
 
 ## 2. Database (Supabase)
 - [ ] Run `db/schema.sql` (games).
@@ -38,6 +44,7 @@ jobs + live presence.
 | `SCORE_SECRET` | ✓ | ✓ | random 32+ chars; stable so score tokens survive restarts |
 | `ADSENSE_CLIENT` | ✓ `ca-pub-…` | — | lights up ad units **and** `/ads.txt` |
 | `POLLINATIONS_REFERRER` | your domain | your domain | AI attribution |
+| `CRON_SECRET` | ✓ | ✓ | protects `/healthz`; set the SAME value in your uptime monitor |
 | `NODE_ENV` | `production` | `production` | |
 
 ## 4. Ad networks (do this only for the HUB domain)

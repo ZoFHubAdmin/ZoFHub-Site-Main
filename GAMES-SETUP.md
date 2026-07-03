@@ -1,22 +1,22 @@
-# Complete 14,000+ Games Setup Guide
+# Complete 16,000+ Games Setup Guide
 
 ## Overview
-This guide provides step-by-step instructions to load all 14,000+ games from multiple sources into your ZoFHub gaming site with optimized iframe loading and enhanced visual design.
+This guide provides step-by-step instructions to load all 16,000+ games from multiple sources into your ZoFHub gaming site with optimized iframe loading and enhanced visual design. (The live catalog currently holds **~16,791 working games**.)
 
 ## Game Sources
 
-Your site now supports games from **6 major sources**:
+Your site pulls games from several major sources (some overlap; duplicates are collapsed by `slug` on load):
 
 | Source | File | Games | Platform |
 |--------|------|-------|----------|
 | API Games | `api/games.json` | 784 | OnlineGames.io, GameDistribution |
-| AI Gaming Hub | `ai_gaming_hub_final.json` | Variable | Multiple sources |
 | Famobi Games | `somethingrandom.json` | ~300 | Famobi |
-| GameMonetize | `master_games.json` | ~12,000 | GameMonetize |
+| GameMonetize | `master_games.json` | ~11,400 | GameMonetize |
 | OnlineGames.io | `everygame.json` | ~300 | OnlineGames.io |
-| Y8.com | `y8-games.json` | 2,415 | Y8.com |
+| Y8.com | `y8-games.json` | ~2,415 | Y8.com |
+| GameFlare / others | assorted `load-*.sql` | ~1,500 | GameFlare, misc |
 
-**Total Expected: ~15,800+ games**
+**Total after de-duplication: ~16,800 games (~16,791 working in the live catalog).**
 
 ## Prerequisites
 
@@ -93,8 +93,8 @@ Each file is now ~700 rows (well under that), so every one saves and runs cleanl
 **File**: `db/y8-games-check.sql`
 ```sql
 -- Should show:
--- total_games: ~15,800+
--- working_games: ~15,800+
+-- total_games: ~16,800+
+-- working_games: ~16,800+
 ```
 
 ## Step 3: Update Server Configuration
@@ -162,7 +162,7 @@ Run this query in Supabase:
 SELECT COUNT(*) as total_games FROM public.games;
 ```
 
-Should return: ~15,800+
+Should return: ~16,800+
 
 ### Test Game Loading
 1. Navigate to your site
@@ -251,9 +251,9 @@ The schema includes indexes on:
 ## Expected Results
 
 ### Game Count
-- **Total**: ~15,800+ games
+- **Total**: ~16,800+ games
 - **Y8.com**: 2,415 games
-- **GameMonetize**: ~12,000 games
+- **GameMonetize**: ~11,400 games
 - **Other sources**: ~1,385 games
 
 ### Loading Performance
@@ -300,7 +300,7 @@ npm run restart
 
 Your ZoFHub site now supports:
 
-✅ **15,800+ games** from 6 major sources
+✅ **16,000+ games** from multiple major sources
 ✅ **Optimized iframe loading** with 4-second timeout
 ✅ **Automatic retry** (3 attempts with exponential backoff)
 ✅ **Enhanced visual design** with vibrant gradients

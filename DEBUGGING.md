@@ -61,7 +61,8 @@ When you push to GitHub, Render auto-rebuilds and restarts your site.
   **succeed or fail**? A failed deploy means the live site is still on OLD code.
 - **→ "Logs"** → red lines = the server is crashing. Copy them to Claude.
 - ⚠️ **Free plan sleeps** when idle — the first visit takes 20–50s to wake up.
-  That's normal, not a bug.
+  That's normal, not a bug. (If you set up the `/healthz` keep-alive monitor from
+  [GO-LIVE.md](GO-LIVE.md), it stays awake.)
 
 ---
 
@@ -101,7 +102,7 @@ A screenshot of the screen with the Console open is the gold standard.
 ## 📌 Your project's quick facts
 - **Start locally:** `npm start`  → http://localhost:8080
 - **Live host:** Render (auto-deploys when you push to GitHub)
-- **Database:** Supabase (`games`, `scores`, `game_stats` tables)
+- **Database:** Supabase (`games`, `scores`, `recommendations`, `game_stats`, `keepalive`)
 - **GitHub repo:** https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub
 - **Cache trick:** every CSS/JS link ends in `?v=YYYYMMDD`. When a change won't
   show up even after a hard refresh, that number probably needs bumping — ask Claude.

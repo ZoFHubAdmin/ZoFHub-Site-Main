@@ -1,31 +1,63 @@
-# Loading the games into Supabase — run these IN THIS ORDER
+# Loading ZoFHub's database into Supabase — run these IN ORDER
 
 Each step: **Supabase → SQL Editor → New query → paste the whole file → Run.**
 
-You will see **"Success. No rows returned"** for the INSERTs — that is normal.
-The last line of each part runs a `count(*)` so you also see a **number**: that
-number is your real proof the data is saved. It should climb with each part.
+You'll see **"Success. No rows returned"** for the INSERTs — that's normal. The
+last line of each loader runs a `count(*)`, so you also get a **number** — that
+number is your real proof the data saved, and it should climb as you go.
 
-| Order | File | What it does |
-|------:|------|--------------|
-| 1 | `schema.sql` | Creates the `games` table + view (run once) |
-| 2 | `community.sql` | Creates `scores` + `recommendations` (run once) |
-| 3 | `y8-games-01.sql` | Loads games part 1 of 5 |
-| 4 | `y8-games-02.sql` | Loads games part 2 of 5 |
-| 5 | `y8-games-03.sql` | Loads games part 3 of 5 |
-| 6 | `y8-games-04.sql` | Loads games part 4 of 5 |
-| 7 | `y8-games-05.sql` | Loads games part 5 of 5 |
-| 8 | `stats.sql` | (Optional) makes play counts persist across restarts |
-| 9 | `y8-games-check.sql` | (Optional) verify the totals anytime |
+> 💡 **Shortcut (no copy-pasting):** with your Supabase keys in `.env`, run
+> `npm run restore-games` from the project root — it loads every game source in
+> one command. This is how the live database (~16,791 games) was populated.
 
-## Why it was "not saving" before
-The old single 500KB file was too big for one editor tab: the snippet text
-couldn't be saved (so it looked gone), and the transaction wrapper could roll
-the whole thing back if the giant paste hiccuped. These smaller files paste
-cleanly and every INSERT auto-commits the instant it succeeds, so nothing can
-be undone later. Re-running any file is harmless (ON CONFLICT upsert).
+## 1. Structure first (run each once)
 
-## Even easier alternative (no SQL at all)
-Supabase → **Table Editor → `games` → Insert → Import data from CSV** also works
-for a first load. SQL is better here because it can be re-run safely and skips
-duplicates automatically; CSV import does not.
+| Order | File | What it creates |
+|------:|------|-----------------|
+| 1 | `schema.sql` | The `games` table + `games_public` view (**required**) |
+| 2 | `community.sql` | `scores` + `recommendations` — leaderboard & community (**required**) |
+| 3 | `stats.sql` | `game_stats` — makes play counts persist (optional) |
+| 4 | `keepalive.sql` | `keepalive` — heartbeat row for free-tier uptime (optional) |
+
+## 2. Then the games — run every `load-*.sql`
+
+Paste each `db/load-*.sql` file and Run. The big sources are split into numbered
+parts (`load-<source>-partNN.sql`) so every file stays under Supabase's editor
+save limit (~1000 lines) — **run the parts in numeric order** (part01, part02, …).
+
+The largest loaders:
+
+| Loader | Parts | Roughly |
+|--------|:-----:|---------|
+| `load-master_games-partNN.sql` | 19 | ~11,400 GameMonetize games |
+| `load-games-export-partNN.sql` | 20 | a full catalog snapshot |
+| `load-y8-games-partNN.sql` | 4 | ~2,415 Y8 games |
+| `load-everygame-partNN.sql` | 4 | OnlineGames.io |
+| `load-somethingrandom-partNN.sql` | 3 | Famobi |
+| `load-api-games-partNN.sql` | 2 | OnlineGames.io / GameDistribution |
+
+Plus the single-file loaders (`load-ai-games.sql`, thumbnail/override/audit
+helpers, etc.). **Every loader is an idempotent `ON CONFLICT` upsert**, so
+re-running one — or running them slightly out of order — is completely safe and
+never creates duplicates.
+
+## 3. Verify anytime
+
+Run `db/y8-games-check.sql`, or just:
+
+```sql
+select count(*) from public.games;            -- total rows
+select count(*) from public.games_public;     -- working games shown on the site
+```
+
+You should land around **16,791 working games**.
+
+---
+
+### Notes
+
+- **Why parts?** Supabase's SQL editor won't *save* a snippet past ~1000 lines.
+  Keeping each file small means every one saves and runs cleanly.
+- **Legacy files:** the older `y8-games-01.sql … y8-games-05.sql` are a small,
+  superseded subset now covered by `load-y8-games-partNN.sql`. You can ignore
+  them — the `load-*.sql` set is the current, complete catalog.
