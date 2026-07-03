@@ -36,7 +36,7 @@ services:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
-        sync: false
+        sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: ADSENSE_CLIENT
@@ -72,7 +72,7 @@ services:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
-        sync: false
+        sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: POLLINATIONS_REFERRER
