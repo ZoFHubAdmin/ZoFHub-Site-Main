@@ -7829,32 +7829,6 @@
       "plays": 0
     },
     {
-      "slug": "dinosaur-game",
-      "title": "Dinosaur Game",
-      "description": null,
-      "embed_url": "https://cloud.onlinegames.io/games/2025/html/dinosaur-game/index-og.html",
-      "thumbnail": "https://www.onlinegames.io/media/posts/829/responsive/dinosaur-game-xs.jpg",
-      "category": "arcade",
-      "category_label": "Arcade",
-      "tags": [
-        "dinosaur",
-        "chrome",
-        "classic",
-        "running",
-        "offline"
-      ],
-      "platform": "OnlineGames.io",
-      "orientation": "landscape",
-      "width": 1280,
-      "height": 720,
-      "monetizable": true,
-      "is_featured": false,
-      "is_trending": false,
-      "is_new": false,
-      "is_curated": true,
-      "plays": 0
-    },
-    {
       "slug": "2048-parkour",
       "title": "2048 parkour",
       "description": null,

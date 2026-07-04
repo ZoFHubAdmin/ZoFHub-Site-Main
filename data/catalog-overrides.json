@@ -261,8 +261,15 @@
       "category": "arcade",
       "orientation": "landscape"
     },
-    { "_note": "GameDistribution — SAFE + monetizable (ad revenue share). gd_sdk_referrer_url is rewritten to the live origin per request by injectGdReferrer(); the stored value is only a placeholder.",
-      "slug": "soccer-random", "title": "Soccer Random", "game_url": "https://html5.gamedistribution.com/308d826f20034d7b972f25258c8d0a44/?gd_sdk_referrer_url=https://zofhub.app/", "thumbnail_url": "https://img.gamedistribution.com/308d826f20034d7b972f25258c8d0a44-512x384.jpeg", "category": "sports", "orientation": "landscape" }
+    {
+      "_note": "GameDistribution — SAFE + monetizable (ad revenue share). gd_sdk_referrer_url is rewritten to the live origin per request by injectGdReferrer(); the stored value is only a placeholder.",
+      "slug": "soccer-random",
+      "title": "Soccer Random",
+      "game_url": "https://html5.gamedistribution.com/308d826f20034d7b972f25258c8d0a44/?gd_sdk_referrer_url=https://zofhub.app/",
+      "thumbnail_url": "https://img.gamedistribution.com/308d826f20034d7b972f25258c8d0a44-512x384.jpeg",
+      "category": "sports",
+      "orientation": "landscape"
+    }
   ],
   "remove": [
     {
@@ -317,6 +324,72 @@
     {
       "_note": "licensing: removed GameFlare - DISABLED to allow games to load",
       "hostIncludes": "gameflare.com.disabled"
+    },
+    {
+      "_note": "DEAD GAMES removed 2026-07-04: verified in a real browser to NOT load at all (GameMonetize invalid IDs → placeholder page; GameDistribution → \"Not found at origin!\"; OnlineGames → S3 \"Access Denied\"). Also set is_working=false in the DB; these override rules keep them hidden even if a restore-games re-run flips is_working back to true."
+    },
+    {
+      "slug": "balap-liar"
+    },
+    {
+      "slug": "balap-maut"
+    },
+    {
+      "slug": "bebas-hambatan"
+    },
+    {
+      "slug": "macet"
+    },
+    {
+      "slug": "mecha-allstars-battle-royale"
+    },
+    {
+      "slug": "meteor"
+    },
+    {
+      "slug": "mobil-mania"
+    },
+    {
+      "slug": "perang-galaksi"
+    },
+    {
+      "slug": "tank-tempur"
+    },
+    {
+      "slug": "tembak"
+    },
+    {
+      "slug": "cube-surfer"
+    },
+    {
+      "slug": "moto-x3m-bike-race"
+    },
+    {
+      "slug": "penalty-shooters-2"
+    },
+    {
+      "slug": "tunnel-rush"
+    },
+    {
+      "slug": "dinosaur-game"
+    },
+    {
+      "slug": "murder"
+    },
+    {
+      "slug": "ragdoll-football-2-players"
+    },
+    {
+      "slug": "spacebar-clicker"
+    },
+    {
+      "slug": "sprunki"
+    },
+    {
+      "slug": "stickman-parkour-2"
+    },
+    {
+      "slug": "stickman-parkour-3"
     }
   ]
 }
