@@ -1881,6 +1881,13 @@ body>.container,.container{position:absolute!important;inset:0!important;width:1
 .container>iframe,iframe[src*="storage.y8.com"],iframe[src*="cdn.y8.com"]{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;border:0!important;margin:0!important;display:block!important;}
 </style>`;
 
+// HTMLGames titles ship as a full self-scaling page (GameLib transforms
+// #gameContainer to fit). We only guarantee the viewport fills our frame — no
+// scrollbars, black letterbox — WITHOUT touching the game's own transform.
+const HTMLGAMES_FIT_CSS = `<style id="zofhub-htmlgames-fit">
+html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#000!important;}
+</style>`;
+
 // ---------- Embed HTML cache ----------
 // Publisher game-loader pages change rarely, so caching the rewritten HTML makes
 // proxy-by-default fast: the FIRST open of a game fetches + rewrites it; every
@@ -1935,6 +1942,7 @@ app.get('/embed/:slug', async (req, res) => {
 
   // Y8 embed pages need fit-to-frame CSS (fixed 900x600 nested iframe) — see Y8_FIT_CSS.
   const isY8 = /(^|\.)y8\.com$/i.test(upstream.host);
+  const isHtmlGames = /(^|\.)htmlgames\.com$/i.test(upstream.host);
 
   // ?ua=N lets game-page.js force a different UA on retry (when first attempt 403/5xx'd).
   const uaPick = Math.max(0, Math.min(UA_POOL.length - 1, parseInt(req.query.ua) || 0));
@@ -1978,7 +1986,7 @@ app.get('/embed/:slug', async (req, res) => {
         html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?x-frame-options["']?[^>]*>/gi, '');
         html = html.replace(/<base[^>]*>/gi, '');
 
-        const inject = `<base href="${baseHref}">${isY8 ? Y8_FIT_CSS : ''}${EMBED_GUARD}`;
+        const inject = `<base href="${baseHref}">${isY8 ? Y8_FIT_CSS : ''}${isHtmlGames ? HTMLGAMES_FIT_CSS : ''}${EMBED_GUARD}`;
         if (/<head[^>]*>/i.test(html))      html = html.replace(/(<head[^>]*>)/i,  `$1${inject}`);
         else if (/<html[^>]*>/i.test(html)) html = html.replace(/(<html[^>]*>)/i, `$1<head>${inject}</head>`);
         else                                html = `<!doctype html><html><head>${inject}</head><body>${html}</body></html>`;
@@ -2274,12 +2282,18 @@ app.get('/play/:gameSlug', async (req, res) => {
   let embedHost = '';
   try { embedHost = new URL(game.embed_url).host.toLowerCase(); } catch {}
   const isY8 = /(^|\.)y8\.com$/.test(embedHost);
+  // HTMLGames ship as a full self-scaling page whose CSS/JS are RELATIVE — served
+  // through /embed they get a corrected <base href> (so styles actually load) +
+  // fit CSS + a same-origin context. Direct-embedding them worked on the hub but
+  // broke on the proxy build (relative assets 404'd → unstyled). Proxy on EVERY
+  // build so htmlgames renders identically and correctly everywhere.
+  const isHtmlGames = /(^|\.)htmlgames\.com$/.test(embedHost);
   // SDK-sensitive publishers that black-screen when proxied — always DIRECT.
   const isSdkDirectOnly = /(^|\.)(gamedistribution\.com|gamemonetize\.(com|co))$/.test(embedHost);
   let iframeSrc;
   if (req.query.direct === '1')                 iframeSrc = dynamicEmbedUrl;
   else if (req.query.proxy === '1')             iframeSrc = proxySrc;
-  else if (isY8)                                iframeSrc = proxySrc;      // needs fit CSS on every build
+  else if (isY8 || isHtmlGames)                 iframeSrc = proxySrc;      // need fit CSS + same-origin relative-asset resolution on every build
   else if (PROXY_ENABLED && !isSdkDirectOnly)   iframeSrc = proxySrc;      // unblock build → same-origin everything safe to proxy
   else                                          iframeSrc = dynamicEmbedUrl;
 
