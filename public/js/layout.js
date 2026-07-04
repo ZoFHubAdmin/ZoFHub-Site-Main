@@ -75,14 +75,14 @@ mountLiveTotal();
 
 // ════════════════════════════════════════════════════════════════════════
 // Social links — Discord + GitHub only.
-// Icons served from /assets/social/. Discord uses discord_icon.png (with
-// discord.svg as an automatic fallback if the PNG isn't added yet); github.svg
-// is white so it reads on the dark bar.
+// Icons served from /assets/social/ (discord.svg + github.svg, both white so they
+// read on the dark bar). If you later drop in a branded discord_icon.png, point
+// `icon` at it and set `fallback` to the SVG — the <img> onerror swaps once.
 // 👉 TODO: paste your Discord invite URL into the Discord `href` below once the
 //    server exists (replace the YOUR-INVITE placeholder).
 // ════════════════════════════════════════════════════════════════════════
 const SOCIALS = [
-  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord_icon.png?v=20260709', fallback: '/assets/social/discord.svg?v=20260709' },
+  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord.svg?v=20260710' },
   { name: 'GitHub',  href: 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub', icon: '/assets/social/github.svg' },
 ];
 // Shared builder for a row of social icon links (reused by header + footer).

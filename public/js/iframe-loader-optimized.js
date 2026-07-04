@@ -11,9 +11,17 @@ import { $, el, toast } from './utils.js';
 // the iframe `load` event reveals the game the instant it's actually ready.
 const MAX_RETRIES = 2;              // full-chain restarts before showing the error card
 const PROXY_TIMEOUT = 15000;        // default /embed path — generous (games load their own assets)
-const DIRECT_TIMEOUT = 12000;       // direct-publisher fallback
+// GameMonetize / GameDistribution splash pages routinely take 8–12s to fire their
+// outer `load` event (they preload the whole game engine first). The old 12s
+// budget was a coin-flip on a school/slow connection — when it lost, the loader
+// gave up and switched to PROXYING these publishers, which black-screens them
+// (their SDK can't pull assets through /embed → stuck at "LOADING 0%"). So the
+// direct budget is now a generous last-resort net: the `load` event still reveals
+// the game the instant it's genuinely ready, long before this fires.
+const DIRECT_TIMEOUT = 25000;       // direct-publisher safety net (was 12000 → caused false-fail → broken proxy fallback)
 const PREFLIGHT_TIMEOUT = 3000;     // /api/frame-check HEAD budget
-const NET_TIMEOUT = 30000;          // overlay safety net — must exceed any single stage timeout
+const OPTIMISTIC_REVEAL = 3500;     // direct-only: uncover the publisher's OWN loading UI this early
+const NET_TIMEOUT = 35000;          // overlay safety net — must exceed any single stage timeout
 
 class OptimizedIframeLoader {
   constructor(options = {}) {
@@ -24,11 +32,16 @@ class OptimizedIframeLoader {
     this.proxyUrl = options.proxyUrl || window.ZOFHUB_GAME?.proxyUrl;
     this.upstream = options.upstream || window.ZOFHUB_GAME?.upstream;
     this.iframeSrc = options.iframeSrc || window.ZOFHUB_GAME?.iframeSrc;
+    // directOnly = GameMonetize / GameDistribution. These MUST load direct — the
+    // server never proxies them (their SDK breaks behind /embed), so the loader
+    // must never fall back to the proxy for them either.
+    this.directOnly = options.directOnly ?? window.ZOFHUB_GAME?.directOnly ?? false;
     
     this.loaded = false;
     this.retryCount = 0;
     this.currentStage = -1;
     this.currentTimer = null;
+    this.revealTimer = null;
     this.netTimer = null;
     this.preflightDone = false;
     this.abortController = null;
@@ -39,7 +52,10 @@ class OptimizedIframeLoader {
 
   buildStages() {
     const stages = [];
-    if (this.proxyUrl) {
+    // Proxy stages are the fallback for publishers that block direct embedding
+    // (X-Frame-Options / referer). But GameMonetize + GameDistribution BLACK-SCREEN
+    // when proxied — for them the proxy is never a valid fallback, so skip it.
+    if (this.proxyUrl && !this.directOnly) {
       stages.push({ src: this.proxyUrl, timeout: PROXY_TIMEOUT, name: 'proxy' });
       stages.push({ src: this.proxyUrl + '?ua=1', timeout: PROXY_TIMEOUT, name: 'proxy-ua1' });
       stages.push({ src: this.proxyUrl + '?ua=2', timeout: PROXY_TIMEOUT, name: 'proxy-ua2' });
@@ -113,6 +129,10 @@ class OptimizedIframeLoader {
     if (this.currentTimer) {
       clearTimeout(this.currentTimer);
       this.currentTimer = null;
+    }
+    if (this.revealTimer) {
+      clearTimeout(this.revealTimer);
+      this.revealTimer = null;
     }
     if (this.netTimer) {
       clearTimeout(this.netTimer);
@@ -244,7 +264,18 @@ class OptimizedIframeLoader {
         if (this.stages.length) this.advanceStage();
         else this.showError('This game is taking too long to load.');
       });
-      this.runPreflight();
+      // GameMonetize/GD render their OWN progress bar within ~1s but only fire the
+      // outer `load` event ~9s later. Rather than hide their splash behind our
+      // spinner that whole time, uncover it early — the real `load` still fires
+      // finish(). We DON'T set loaded here, so a genuinely dead game still hits the
+      // safety-net timeout. Skip preflight (can't proxy these anyway).
+      if (this.directOnly) {
+        this.revealTimer = setTimeout(() => {
+          if (!this.loaded) this.loader?.classList.add('hide');
+        }, OPTIMISTIC_REVEAL);
+      } else {
+        this.runPreflight();
+      }
     }
   }
 

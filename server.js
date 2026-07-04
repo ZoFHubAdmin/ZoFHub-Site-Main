@@ -1920,6 +1920,24 @@ app.get('/embed/:slug', async (req, res) => {
   let upstream;
   try { upstream = new URL(upstreamUrl); } catch { return res.status(400).send('Invalid embed URL'); }
 
+  // ── CSP override for this proxy route ────────────────────────────────────
+  // This route serves THIRD-PARTY game HTML same-origin and injects a
+  // cross-origin `<base href>` so the game's RELATIVE assets resolve to the
+  // publisher CDN. The site-wide helmet CSP sets `base-uri 'self'`, which
+  // SILENTLY neutralizes that <base> — the browser keeps document.baseURI on our
+  // origin, so every relative `css/…`, `js/…`, `img/…` request hits OUR server,
+  // 404s, and the game renders as a black page with broken images (the recurring
+  // "chess is broken" bug). Games also legitimately pull code/assets from many
+  // CDNs. So for THIS route only, replace the strict CSP with one appropriate for
+  // a game sandbox: allow cross-origin base + resources, but keep
+  // `frame-ancestors 'self'` so only ZoFHub can embed it (the iframe that loads
+  // this is already sandboxed in game.html). Set it up-front so it covers every
+  // return path below (cache hit, HTML, binary, error).
+  res.setHeader('Content-Security-Policy',
+    "default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; " +
+    "img-src * data: blob:; media-src * data: blob:; " +
+    "base-uri *; frame-ancestors 'self';");
+
   // Base href must point at the DIRECTORY of the embed URL so the game's
   // RELATIVE assets (e.g. Unity's Build/UnityLoader.js, TemplateData/…) resolve
   // correctly. The old code blindly appended "/", turning ".../index.html" into
@@ -2313,6 +2331,10 @@ app.get('/play/:gameSlug', async (req, res) => {
     .replace(/\{\{PLATFORM\}\}/g,     htmlEscape(game.platform || ''))
     .replace(/\{\{ORIENTATION\}\}/g,  htmlEscape(game.orientation || 'landscape'))
     .replace(/\{\{THUMBNAIL\}\}/g,    htmlEscape(game.thumbnail || ''))
+    // directOnly = GameMonetize/GameDistribution — the client loader must NEVER
+    // fall back to the proxy for these (it black-screens them). Emitted as a bare
+    // JS boolean into window.ZOFHUB_GAME, so no htmlEscape.
+    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false')
     .replace(/\{\{SCORE_TOKEN\}\}/g,  htmlEscape(issueScoreToken(game.slug)));
   res.set('Cache-Control', 'no-cache').send(html);
 });
