@@ -2257,8 +2257,15 @@ async function fetchGameBySlug(slug) {
       .maybeSingle();
     if (error || !data) return null;
     const game = normalizeRuntimeEntry(data);
-    if (game?.slug) bySlug.set(game.slug, game);   // warm the cache for next time
-    return game;
+    if (!game) return null;
+    // Respect serve-layer overrides (licensing removals) on this direct-DB
+    // fallback too — otherwise a bookmarked or search-indexed /play/<slug> for a
+    // deliberately-hidden game (e.g. HTMLGames' license-blocked titles) would
+    // still load it, bypassing the catalog filter.
+    const [kept] = applyCatalogOverrides([game], { injectAdds: false });
+    if (!kept) return null;
+    if (kept.slug) bySlug.set(kept.slug, kept);    // warm the cache for next time
+    return kept;
   } catch (e) {
     console.warn('[zofhub] fetchGameBySlug failed:', e.message);
     return null;

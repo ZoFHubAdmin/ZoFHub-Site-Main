@@ -307,8 +307,8 @@
       "hostIncludes": "onlinegames.io.disabled"
     },
     {
-      "_note": "licensing: removed HTMLGames - DISABLED to allow games to load",
-      "hostIncludes": "htmlgames.com.disabled"
+      "_note": "HIDDEN 2026-07-04: HTMLGames' on-page GameLib/ThirdParty.js frame-busts to about:blank / shows 'Internet allowance is over' on any UNLICENSED domain, so the ~1,200 titles load broken. Hidden at serve time until a licensed HTMLGames publisher account + licensed embed URLs are wired in. To bring back: append '.disabled' to the host below again.",
+      "hostIncludes": "htmlgames.com"
     },
     {
       "_note": "licensing: removed Famobi - DISABLED to allow games to load",
