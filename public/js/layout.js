@@ -3,9 +3,9 @@ import { $ } from './utils.js';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { getPlayerName } from './identity.js';
 // Floating AI game-helper orb (auto-skips on the /ai page).
-import './ai-helper.js?v=20260715';
+import './ai-helper.js?v=20260716';
 // Cookie-consent notice (shows once, site-wide; complements Google's CMP).
-import './consent.js?v=20260715';
+import './consent.js?v=20260716';
 // NB: ads.js is loaded LATER (bottom of this file) — after /api/site-config so the
 // AdSense publisher id can come from the environment per-deployment, and so the
 // proxy domain (no AdSense) and the hub domain (AdSense on) share ONE codebase.
@@ -82,7 +82,7 @@ mountLiveTotal();
 //    server exists (replace the YOUR-INVITE placeholder).
 // ════════════════════════════════════════════════════════════════════════
 const SOCIALS = [
-  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord.svg?v=20260715' },
+  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord.svg?v=20260716' },
   { name: 'GitHub',  href: 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub', icon: '/assets/social/github.svg' },
 ];
 // Shared builder for a row of social icon links (reused by header + footer).
@@ -278,4 +278,4 @@ fetch('/api/site-config')
     if (!window.ZOFHUB_PROXY) removeProxyLinks();
   })
   .catch(() => { /* config unavailable → fall back to built-in defaults */ })
-  .finally(() => { import('./ads.js?v=20260715'); });   // load ads AFTER the client id is set (versioned so the fix isn't cached)
+  .finally(() => { import('./ads.js?v=20260716'); });   // load ads AFTER the client id is set (versioned so the fix isn't cached)

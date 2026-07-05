@@ -762,6 +762,18 @@ app.get('/api/ai/providers', (req, res) => {
   res.json(publicProviderList());
 });
 
+// Hands the browser the PUBLISHABLE Pollinations key (pk_) so the AI runs
+// browser-direct (gen.pollinations.ai) on the visitor's own IP — no AI ever
+// processed here. A pk_ key is designed to be public (scoped budget), so serving
+// it is safe; only ever expose POLLINATIONS_PUBLIC_KEY (never a secret sk_ key).
+// Get a free key at https://enter.pollinations.ai and set POLLINATIONS_PUBLIC_KEY
+// in .env. Empty when unset → the client falls back to anonymous/dev routes.
+app.get('/api/ai/key', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const key = (process.env.POLLINATIONS_PUBLIC_KEY || '').trim();
+  res.json({ key: key.startsWith('pk_') ? key : '' });
+});
+
 // ========================================================================
 // AI proxies — free generation that works on ANY device with no 250MB
 // in-browser model download. Text + image use Pollinations.ai. It's FREE but
