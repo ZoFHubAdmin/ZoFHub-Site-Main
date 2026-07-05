@@ -24,17 +24,21 @@ const REFERRER    = (typeof location !== 'undefined' && location.hostname) || 'z
 const TEXT_POST   = 'https://text.pollinations.ai/openai';   // OpenAI-compatible, streams
 const TEXT_GET    = 'https://text.pollinations.ai/';         // simple URL API: /<prompt>
 const IMG_DIRECT  = 'https://image.pollinations.ai/prompt/';
-const MODEL       = 'openai-fast';   // the keyless model that actually works free; others 429
-const SYSTEM      = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown.';
+const MODEL       = 'openai-fast';   // the ONLY anonymous model left = GPT-OSS 20B, a REASONING model
+const REASONING   = 'low';           // reasoning_effort: 'low' cuts time-to-first-token from ~20s → ~1.5s
+const SYSTEM      = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown. Keep answers focused and reasonably brief unless asked for more detail.';
 
-// Timeouts (ms). Pollinations' streaming POST is flaky (often stalls with no
-// first token), so we give it only a SHORT window before failing over to the
-// rock-solid GET URL route — which we then retry a few times, because individual
-// Pollinations requests randomly time out but a retry almost always lands.
-const CONNECT_MS    = 5000;    // no response headers by now → give up on streaming
-const FIRST_BYTE_MS = 7000;    // connected but no first token → fail over to GET
-const IDLE_MS       = 15000;   // stream stalled mid-answer
-const GET_MS        = 20000;   // the simple GET URL route (whole answer at once)
+// Timeouts (ms). The one keyless model left (gpt-oss-20b) is a REASONING model:
+// even with reasoning_effort=low it can pause before the first token, and its
+// latency is variable BECAUSE Pollinations now rate-limits the anonymous tier
+// HARD (HTTP 429) whenever requests arrive too fast or concurrently. So the
+// rules are: generous windows + NEVER burst — every attempt is sequential and
+// spaced with back-off (see pollTextStream / pollText). Firing rapid retries is
+// what caused the "that reply didn't come through" every-time failure.
+const CONNECT_MS    = 15000;   // no response headers by now → connection is dead
+const FIRST_BYTE_MS = 22000;   // connected but no first token yet (reasoning warm-up / load)
+const IDLE_MS       = 20000;   // stream stalled mid-answer
+const GET_MS        = 28000;   // the simple GET URL route (whole answer at once)
 
 const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -66,7 +70,7 @@ function flatten(messages) {
 }
 
 // ── Route 1 (streaming): direct browser → Pollinations, token by token ───────
-async function textDirectStream(messages, { onToken } = {}) {
+async function textDirectStream(messages, { onToken, onStatus } = {}) {
   const ctrl = new AbortController();
   let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
   const arm = (ms) => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), ms); };
@@ -75,7 +79,7 @@ async function textDirectStream(messages, { onToken } = {}) {
     const r = await fetch(TEXT_POST, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true }),
+      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING }),
       signal: ctrl.signal,
     });
     if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
@@ -101,8 +105,13 @@ async function textDirectStream(messages, { onToken } = {}) {
         if (pl === '[DONE]') continue;
         try {
           const j = JSON.parse(pl);
-          const delta = j?.choices?.[0]?.delta?.content ?? j?.choices?.[0]?.text ?? '';
+          const choice = j?.choices?.[0] || {};
+          const delta = choice.delta?.content ?? choice.text ?? '';
           if (delta) { full += delta; onToken?.(clean(full)); }
+          // gpt-oss-20b streams chain-of-thought `reasoning` tokens BEFORE the
+          // answer — we don't show them, but their arrival means it's working,
+          // so keep the "Thinking…" status alive until real content starts.
+          else if (!full && choice.delta?.reasoning) onStatus?.('Thinking…');
         } catch { /* JSON split across chunks — completes on the next read */ }
       }
     }
@@ -118,7 +127,7 @@ async function textDirectStream(messages, { onToken } = {}) {
 // Returns the whole answer as plain text. No streaming, but very reliable.
 async function textDirectGet(messages, { onToken } = {}) {
   const url = TEXT_GET + encodeURIComponent(flatten(messages))
-    + `?model=${encodeURIComponent(MODEL)}&referrer=${encodeURIComponent(REFERRER)}&private=true`;
+    + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`;
   const t = timed(GET_MS);
   try {
     const r = await fetch(url, { signal: t.signal });
@@ -135,12 +144,12 @@ async function textDirectGet(messages, { onToken } = {}) {
 }
 
 // Non-streaming direct POST (used by the small helper orb).
-async function textDirect(messages, ms = 15000) {
+async function textDirect(messages, ms = GET_MS) {
   const t = timed(ms);
   try {
     const r = await fetch(TEXT_POST, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true }),
+      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, reasoning_effort: REASONING }),
       signal: t.signal,
     });
     if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
@@ -154,46 +163,58 @@ async function textDirect(messages, ms = 15000) {
   } finally { t.clear(); }
 }
 
-// PUBLIC — streaming chat. onToken(partial) renders live; onStatus(label) for UI.
-// All BROWSER-DIRECT, ZERO server. Strategy: one quick streaming attempt for the
-// nice live-typing UX, then the reliable GET URL API retried several times
-// (Pollinations randomly times out individual requests, so retries land it).
-export async function pollTextStream(messages, { onToken, onStatus } = {}) {
-  // 1) Quick streaming attempt (short timeouts) — lovely UX when it works.
-  try {
-    onStatus?.('Thinking…');
-    const text = await textDirectStream(messages, { onToken });
-    if (text) return { text, route: 'direct-stream' };
-  } catch (e) { console.warn('[ai] stream attempt failed:', e?.message || e); }
+// Back-off before the NEXT attempt. The anon endpoint returns 429 on bursts, so
+// a rate-limited try waits noticeably longer to let the window clear; otherwise a
+// short spacer keeps us from ever hammering it. Never fire attempts concurrently.
+const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
 
-  // 2) The simple GET URL API — the reliable workhorse. Retry a few times.
-  for (let i = 0; i < 4; i++) {
+// PUBLIC — streaming chat. onToken(partial) renders live; onStatus(label) for UI.
+// All BROWSER-DIRECT, ZERO server. The only keyless model (gpt-oss-20b) rate-limits
+// bursts, so we go SLOW & STEADY: sequential attempts, spaced with back-off — a
+// streaming POST (live typing) → one GET URL → one more streaming POST. This is
+// the fix for the "that reply didn't come through" every-time failure, which was
+// caused by the old code firing a stream + FOUR rapid GETs → instant 429.
+export async function pollTextStream(messages, { onToken, onStatus } = {}) {
+  const attempts = [
+    { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
+    { route: 'direct-get',    run: () => textDirectGet(messages, { onToken }) },
+    { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
+  ];
+  let lastErr;
+  for (let i = 0; i < attempts.length; i++) {
     try {
-      onStatus?.(i ? 'Reconnecting…' : 'Almost there…');
-      const text = await textDirectGet(messages, { onToken });
-      if (text) return { text, route: 'direct-get' };
+      onStatus?.(i === 0 ? 'Thinking…' : 'Still working…');
+      const text = await attempts[i].run();
+      if (text) return { text, route: attempts[i].route };
     } catch (e) {
-      console.warn(`[ai] GET attempt ${i + 1} failed:`, e?.message || e);
-      await sleep(800);
+      lastErr = e;
+      console.warn(`[ai] attempt ${i + 1} (${attempts[i].route}) failed:`, e?.status || '', e?.message || e);
+      if (i < attempts.length - 1) await backoff(e);
     }
   }
-  throw new Error('all-ai-routes-failed');
+  throw new Error('all-ai-routes-failed: ' + (lastErr?.message || 'unknown'));
 }
 
-// PUBLIC — non-streaming chat (helper orb). Reliable GET URL retried, then POST.
+// PUBLIC — non-streaming chat (helper orb). Same slow-and-steady, no-burst policy.
 export async function pollText(messages, { onStatus } = {}) {
-  for (let i = 0; i < 4; i++) {
+  const attempts = [
+    () => textDirect(messages),
+    () => textDirectGet(messages),
+    () => textDirect(messages),
+  ];
+  let lastErr;
+  for (let i = 0; i < attempts.length; i++) {
     try {
-      onStatus?.(i ? 'Reconnecting…' : 'Thinking…');
-      return { text: await textDirectGet(messages), route: 'direct-get' };
+      onStatus?.(i ? 'Still working…' : 'Thinking…');
+      const text = await attempts[i]();
+      if (text) return { text, route: 'direct' };
     } catch (e) {
-      console.warn(`[ai] GET attempt ${i + 1} failed:`, e?.message || e);
-      await sleep(800);
+      lastErr = e;
+      console.warn(`[ai] orb attempt ${i + 1} failed:`, e?.status || '', e?.message || e);
+      if (i < attempts.length - 1) await backoff(e);
     }
   }
-  try { return { text: await textDirect(messages), route: 'direct-post' }; }
-  catch (e) { console.warn('[ai] POST failed:', e?.message || e); }
-  throw new Error('all-ai-routes-failed');
+  throw new Error('all-ai-routes-failed: ' + (lastErr?.message || 'unknown'));
 }
 
 // Convenience for a single prompt (used by the helper orb).
