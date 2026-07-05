@@ -819,9 +819,9 @@ async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS) {
     const r = await aiFetch('https://text.pollinations.ai/openai', {
       method: 'POST', timeoutMs,
       headers: pollinationsHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
-      // 'openai-fast' is much quicker to first token than 'openai' and avoids the
-      // cold-start stalls that pushed users onto the slow local fallback.
-      body: JSON.stringify({ model: 'openai-fast', messages, referrer: POLLINATIONS_REFERRER, private: true }),
+      // 'openai-fast' (= gpt-oss-20b, a reasoning model) is the only keyless model
+      // left; reasoning_effort:'low' cuts its time-to-first-token from ~20s to ~1.5s.
+      body: JSON.stringify({ model: 'openai-fast', messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
     });
     if (r.ok) {
       const j = await r.json().catch(() => null);

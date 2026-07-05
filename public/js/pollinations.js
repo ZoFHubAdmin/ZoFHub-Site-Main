@@ -21,6 +21,19 @@
 // ---------------------------------------------------------------------------
 
 const REFERRER    = (typeof location !== 'undefined' && location.hostname) || 'zofhub';
+
+// LOCAL-DEV DETECTION. Pollinations' TEXT API now rejects browser fetches from
+// http/localhost origins with 403 "Missing Turnstile token" (a Cloudflare
+// anti-bot check you can't satisfy from a dev machine). Real https domains are
+// allowed with no token. So when we're on localhost/http we route TEXT through
+// this app's OWN /api/ai/text (a server-side call — no Origin, no Turnstile).
+// In PRODUCTION (https) IS_LOCAL is false, browser-direct works, and the server
+// is never touched — honouring "no AI through the server in prod". (Images use
+// <img src> which sends no Origin, so they work everywhere and need no fallback.)
+const IS_LOCAL = typeof location !== 'undefined' && (
+  location.protocol !== 'https:' ||
+  /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(location.hostname || '')
+);
 const TEXT_POST   = 'https://text.pollinations.ai/openai';   // OpenAI-compatible, streams
 const TEXT_GET    = 'https://text.pollinations.ai/';         // simple URL API: /<prompt>
 const IMG_DIRECT  = 'https://image.pollinations.ai/prompt/';
@@ -165,6 +178,26 @@ async function textDirect(messages, ms = GET_MS) {
   } finally { t.clear(); }
 }
 
+// LOCAL-DEV ONLY — text through this app's own server (server-side Pollinations
+// call, so no Origin/Turnstile block). Never used in production (IS_LOCAL=false
+// on https). Returns the whole reply at once (the server route isn't streaming).
+async function textViaServer(messages, { onToken, onStatus } = {}) {
+  onStatus?.('Thinking… (local dev · via server)');
+  const t = timed(GET_MS);
+  try {
+    const r = await fetch('/api/ai/text', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }), signal: t.signal,
+    });
+    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+    const data = await r.json().catch(() => ({}));
+    const txt = clean(data?.reply || '');
+    if (!txt) throw new Error(data?.error || 'empty');
+    onToken?.(txt);   // not streamed → render once
+    return txt;
+  } finally { t.clear(); }
+}
+
 // Back-off before the NEXT attempt. The anon endpoint returns 429 on bursts, so
 // a rate-limited try waits noticeably longer to let the window clear; otherwise a
 // short spacer keeps us from ever hammering it. Never fire attempts concurrently.
@@ -183,11 +216,17 @@ const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
 // Attempts are SEQUENTIAL + SPACED with back-off (never concurrent) because the
 // anon tier 429s on bursts — that self-inflicted burst was the old every-time bug.
 export async function pollTextStream(messages, { onToken, onStatus } = {}) {
-  const attempts = [
+  const browser = [
     { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
     { route: 'direct-get',    run: () => textDirectGet(messages, { onToken, onStatus }) },
     { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
   ];
+  // On localhost/http the browser-direct routes are Turnstile-blocked (403), so
+  // try the server first; browser-direct stays as a harmless last-ditch. In prod
+  // (https) it's browser-direct only — the server route is never reached.
+  const attempts = IS_LOCAL
+    ? [{ route: 'server-dev', run: () => textViaServer(messages, { onToken, onStatus }) }, ...browser]
+    : browser;
   let lastErr;
   for (let i = 0; i < attempts.length; i++) {
     try {
@@ -205,11 +244,15 @@ export async function pollTextStream(messages, { onToken, onStatus } = {}) {
 
 // PUBLIC — non-streaming chat (helper orb). Same slow-and-steady, no-burst policy.
 export async function pollText(messages, { onStatus } = {}) {
-  const attempts = [
+  const browser = [
     () => textDirect(messages),
     () => textDirectGet(messages),
     () => textDirect(messages),
   ];
+  // Local dev → server first (browser-direct is Turnstile-blocked on localhost).
+  const attempts = IS_LOCAL
+    ? [() => textViaServer(messages, { onStatus }), ...browser]
+    : browser;
   let lastErr;
   for (let i = 0; i < attempts.length; i++) {
     try {
