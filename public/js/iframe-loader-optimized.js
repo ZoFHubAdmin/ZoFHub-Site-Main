@@ -20,7 +20,7 @@ const PROXY_TIMEOUT = 15000;        // default /embed path — generous (games l
 // the game the instant it's genuinely ready, long before this fires.
 const DIRECT_TIMEOUT = 25000;       // direct-publisher safety net (was 12000 → caused false-fail → broken proxy fallback)
 const PREFLIGHT_TIMEOUT = 3000;     // /api/frame-check HEAD budget
-const OPTIMISTIC_REVEAL = 3500;     // direct-only: uncover the publisher's OWN loading UI this early
+const OPTIMISTIC_REVEAL = 2500;     // uncover the game's OWN loading UI this early (all paths) — see startLoad
 const NET_TIMEOUT = 35000;          // overlay safety net — must exceed any single stage timeout
 
 class OptimizedIframeLoader {
@@ -245,13 +245,28 @@ class OptimizedIframeLoader {
         this.loader.classList.add('hide');
       }
     }, NET_TIMEOUT);
-    
+
+    // ── Optimistic reveal (EVERY load path) ────────────────────────────────
+    // The #1 complaint: the loading spinner stays up "even when the game is
+    // already running behind it." That happens because a cross-origin game only
+    // fires our `load` handler when its OUTER document fully loads (GM/GD ~9s),
+    // and a same-origin /embed only fires it after ALL sub-resources finish —
+    // long after the game itself is interactive. Every publisher paints its OWN
+    // loading UI within ~1–2s, so uncover the frame early. If the game hasn't
+    // painted yet the user sees the blurred game-art backdrop (#frameThumbBg),
+    // never a black screen. The real `load` still calls finish(); we DON'T set
+    // `loaded` here, so a genuinely blocked/dead game still hits its stage
+    // timeout + error card.
+    this.revealTimer = setTimeout(() => {
+      if (!this.loaded) this.loader?.classList.add('hide');
+    }, OPTIMISTIC_REVEAL);
+
     if (opts.forceProxy && this.stages.length > 0) {
       this.currentStage = -1;
       this.advanceStage();
       return;
     }
-    
+
     if (this.iframeSrc?.startsWith('/embed/')) {
       this.currentStage = 0;
       this.frame.src = this.iframeSrc;
@@ -264,18 +279,9 @@ class OptimizedIframeLoader {
         if (this.stages.length) this.advanceStage();
         else this.showError('This game is taking too long to load.');
       });
-      // GameMonetize/GD render their OWN progress bar within ~1s but only fire the
-      // outer `load` event ~9s later. Rather than hide their splash behind our
-      // spinner that whole time, uncover it early — the real `load` still fires
-      // finish(). We DON'T set loaded here, so a genuinely dead game still hits the
-      // safety-net timeout. Skip preflight (can't proxy these anyway).
-      if (this.directOnly) {
-        this.revealTimer = setTimeout(() => {
-          if (!this.loaded) this.loader?.classList.add('hide');
-        }, OPTIMISTIC_REVEAL);
-      } else {
-        this.runPreflight();
-      }
+      // Non-GM/GD direct games CAN be X-Frame-Options-blocked — preflight detects
+      // that and jumps to the proxy. GM/GD (directOnly) can't be proxied, so skip.
+      if (!this.directOnly) this.runPreflight();
     }
   }
 

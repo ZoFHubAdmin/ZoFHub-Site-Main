@@ -54,6 +54,15 @@ body:not(.zad-on):not(.zad-preview) :is(
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
+/* Always show the vertical scrollbar so there's a consistent, visible "sidebar"
+   to scroll with (and the layout never jumps when content grows past one screen).
+   Firefox reads scrollbar-color/width here; Chrome/Edge/Safari use the styled
+   ::-webkit-scrollbar rules lower down. */
+html {
+  overflow-y: scroll;
+  scrollbar-width: auto;
+  scrollbar-color: rgba(125,170,255,.55) rgba(125,170,255,.07);
+}
 body {
   background:
     radial-gradient(1400px 600px at 50% -8%, rgba(41,120,255,.28), transparent 65%),
@@ -209,6 +218,22 @@ kbd {
   text-transform: uppercase; letter-spacing: .06em; color: var(--text-mute);
 }
 .suggest-empty { padding: 16px; text-align: center; color: var(--text-mute); font-size: 13px; }
+/* Footer CTA row → jump to the full results gallery (hit Enter). */
+.suggest-all {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 4px; padding: 10px 11px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 10px 10px;
+  color: var(--accent-2); font-size: 12.5px; font-weight: 700;
+  text-decoration: none; cursor: pointer;
+}
+.suggest-all:hover, .suggest-all.is-active { background: rgba(41,211,255,.12); }
+.suggest-all svg { flex: 0 0 auto; }
+.suggest-all > span:first-of-type { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-all-arrow {
+  flex: 0 0 auto; font-size: 11px; color: var(--text-mute);
+  border: 1px solid var(--line-2); border-radius: 5px; padding: 0 6px; line-height: 18px;
+}
 
 /* ============ Layout shell (frameless, full-width) ============ */
 .frame {
@@ -550,11 +575,15 @@ html { scroll-behavior: smooth; }
 body { letter-spacing: -0.005em; }
 ::selection { background: rgba(255,224,0,.35); color: #fff; }
 
-/* Custom scrollbar (skipped on iOS where it's invisible anyway) */
-::-webkit-scrollbar          { width: 11px; height: 11px; }
-::-webkit-scrollbar-track    { background: rgba(255,255,255,.03); }
-::-webkit-scrollbar-thumb    { background: rgba(255,255,255,.14); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.24); background-clip: content-box; }
+/* Custom scrollbar — always visible + clearly coloured so there's an obvious
+   "sidebar" to drag. `overflow-y: scroll` on <html> (set near the top) keeps the
+   track present on every page so it never disappears. The old thumb was 14% white
+   on a dark bg = nearly invisible; brand-blue at higher opacity reads clearly. */
+::-webkit-scrollbar          { width: 14px; height: 14px; }
+::-webkit-scrollbar-track    { background: rgba(125,170,255,.07); }
+::-webkit-scrollbar-thumb    { background: rgba(125,170,255,.45); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(125,170,255,.70); background-clip: content-box; }
+::-webkit-scrollbar-thumb:active { background: rgba(125,170,255,.85); background-clip: content-box; }
 
 /* Polished focus ring (replaces ugly browser default) */
 :focus-visible {

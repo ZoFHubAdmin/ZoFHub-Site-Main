@@ -7,7 +7,7 @@
 
 import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
-import { pollTextPromptStream } from './pollinations.js?v=20260709';
+import { pollTextPromptStream } from './pollinations.js?v=20260711';
 
 (function initAIHelper() {
   // The /ai page is the full assistant — don't double up there.
@@ -180,8 +180,8 @@ import { pollTextPromptStream } from './pollinations.js?v=20260709';
   }
 
   // Ask the AI. pollTextPromptStream calls Pollinations DIRECTLY from this device
-  // first (offloads our server) and STREAMS the answer token-by-token so it shows
-  // up live; it falls back to the same-origin shield and retries 429s internally.
+  // (over the visitor's OWN connection — never our server) and STREAMS the answer
+  // token-by-token so it shows up live; it retries across browser-direct routes.
   async function ask(prompt, displayText) {
     if (busy) return;
     busy = true;
@@ -194,7 +194,7 @@ import { pollTextPromptStream } from './pollinations.js?v=20260709';
       recordTurn(displayText || prompt, text);
     } catch (e) {
       console.warn('[ai-orb] failed:', e?.message || e);
-      thinking.innerHTML = '<em>The AI is busy right now — please try again in a moment.</em>';
+      thinking.innerHTML = '<em>That didn’t come through — ask once more and it will. (Free &amp; unlimited, straight from your browser.)</em>';
     } finally {
       busy = false;
       body.scrollTop = body.scrollHeight;

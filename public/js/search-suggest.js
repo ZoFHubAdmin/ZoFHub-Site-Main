@@ -92,6 +92,11 @@ function initSuggest(form, input) {
       a.addEventListener('mouseenter', () => setActive(i));
       box.appendChild(a);
     });
+    // Footer row → open the FULL results gallery (homepage filtered by ?q=).
+    // This is the "hit Enter → gallery of games to pick from" path.
+    const all = el('a', { class: 'suggest-all', href: `/?q=${encodeURIComponent(q)}` });
+    all.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>See all results for “${escapeHtml(q)}”</span><span class="suggest-all-arrow" aria-hidden="true">↵</span>`;
+    box.appendChild(all);
     open();
   }
 
@@ -116,8 +121,16 @@ function initSuggest(form, input) {
     if (e.key === 'ArrowDown')      { e.preventDefault(); setActive((active + 1) % items.length); }
     else if (e.key === 'ArrowUp')   { e.preventDefault(); setActive((active - 1 + items.length) % items.length); }
     else if (e.key === 'Enter')     {
-      const g = items[active >= 0 ? active : 0];
-      if (g) { e.preventDefault(); location.href = `/play/${encodeURIComponent(g.slug || g.id || '')}`; }
+      // A highlighted suggestion (arrowed/hovered to) → open THAT game directly.
+      if (active >= 0 && items[active]) {
+        e.preventDefault();
+        location.href = `/play/${encodeURIComponent(items[active].slug || items[active].id || '')}`;
+      } else {
+        // Plain Enter with nothing highlighted → the full results GALLERY
+        // (homepage filtered by ?q=), so the user can browse + pick.
+        e.preventDefault();
+        location.href = `/?q=${encodeURIComponent(input.value.trim())}`;
+      }
     } else if (e.key === 'Escape')  { close(); }
   });
 

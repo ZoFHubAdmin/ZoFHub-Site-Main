@@ -1,36 +1,40 @@
-// ZoFHub · pollinations.js — shared CLIENT-SIDE AI helper.
+// ZoFHub · pollinations.js — 100% CLIENT-SIDE AI helper.
 // ---------------------------------------------------------------------------
-// Calls Pollinations.ai DIRECTLY from the user's browser, so every AI request
-// goes out on THAT visitor's IP — none of the text/image load ever touches our
-// server. Pollinations is free + keyless and returns Access-Control-Allow-Origin
-// '*', and our CSP allows https:, so the browser is permitted to call it.
+// EVERY AI request (text AND images) is made DIRECTLY from the visitor's own
+// browser to Pollinations.ai, over THEIR internet connection, on THEIR IP.
+// NOTHING is proxied through our server — there is deliberately no /api/ai/*
+// fallback anymore. Why: routing AI through the server meant every visitor
+// shared ONE server IP, which Pollinations rate-limited almost immediately →
+// the endless "AI is busy, try later" message. Per-user browser-direct calls
+// don't share a rate bucket, so it's effectively free + unlimited.
 //
-// SPEED (why it used to feel slow / "loading model"):
-//   • We now STREAM the reply token-by-token, so the first words appear in ~1-2s
-//     instead of the user staring at "Thinking…" until the whole answer is done.
-//   • We use a FAST model ('openai-fast') which is far quicker to first token and
-//     doesn't cold-start the way the heavier 'openai' model can.
-//   • We FAIL FAST: if no first token arrives in a few seconds (model cold /
-//     network blocked), we abort and fall back instead of hanging for 30s.
+// Pollinations is free + keyless and sends Access-Control-Allow-Origin '*', and
+// our CSP allows https: for connect-src (text) and img-src (images), so the
+// browser is permitted to call it directly.
 //
-// Reliability: direct stream → same-origin server shield (/api/ai/text) → caller
-// decides. The server is ONLY a fallback, never the primary path.
+// Two browser-direct text routes, tried in order (NO server at any point):
+//   1) POST https://text.pollinations.ai/openai  (streaming, token-by-token)
+//   2) GET  https://text.pollinations.ai/<prompt> (the simple URL API — a plain
+//      GET that returns the answer as text; very reliable, no streaming)
+//   3) one more streaming attempt after a short warm-up pause
+// Images are just an <img src> pointing straight at image.pollinations.ai.
 // ---------------------------------------------------------------------------
 
 const REFERRER    = (typeof location !== 'undefined' && location.hostname) || 'zofhub';
-const TEXT_DIRECT = 'https://text.pollinations.ai/openai';
+const TEXT_POST   = 'https://text.pollinations.ai/openai';   // OpenAI-compatible, streams
+const TEXT_GET    = 'https://text.pollinations.ai/';         // simple URL API: /<prompt>
 const IMG_DIRECT  = 'https://image.pollinations.ai/prompt/';
-const MODEL       = 'openai-fast';   // quick to first token; avoids cold-start stalls
+const MODEL       = 'openai-fast';   // the keyless model that actually works free; others 429
 const SYSTEM      = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown.';
 
-// Two-stage timeouts (ms). A BLOCKED network fails at connection time (no
-// response headers), so we bail fast there; but once connected, the model can be
-// slow to its first token (openai-fast is usually ~2-3s but can spike), so we
-// wait longer rather than throwing away a reply that's about to arrive.
-const CONNECT_MS    = 8000;   // no response headers by now → blocked → fall back fast
-const FIRST_BYTE_MS = 20000;  // connected, but model slow to first token → keep waiting
-const IDLE_MS       = 15000;  // abort if the stream stalls mid-answer
-const SHIELD_MS     = 20000;  // server-shield (non-streaming) overall timeout
+// Timeouts (ms). Pollinations' streaming POST is flaky (often stalls with no
+// first token), so we give it only a SHORT window before failing over to the
+// rock-solid GET URL route — which we then retry a few times, because individual
+// Pollinations requests randomly time out but a retry almost always lands.
+const CONNECT_MS    = 5000;    // no response headers by now → give up on streaming
+const FIRST_BYTE_MS = 7000;    // connected but no first token → fail over to GET
+const IDLE_MS       = 15000;   // stream stalled mid-answer
+const GET_MS        = 20000;   // the simple GET URL route (whole answer at once)
 
 const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -41,8 +45,7 @@ function timed(ms) {
   return { signal: ctrl.signal, clear: () => clearTimeout(id) };
 }
 
-// Salvage a reply from a non-SSE body (some responses come back as plain JSON
-// or text even when we asked to stream).
+// Salvage a reply from a non-SSE body (some responses come back as plain JSON).
 function salvage(raw) {
   const s = String(raw || '').trim();
   if (!s) return '';
@@ -51,25 +54,33 @@ function salvage(raw) {
   return '';
 }
 
+// Flatten a messages[] array into a single prompt string for the GET URL route
+// (which takes the prompt in the path). Keeps the system instruction + the last
+// few turns, capped so the encoded URL stays well within limits.
+function flatten(messages) {
+  const sys = messages.find(m => m.role === 'system')?.content || SYSTEM;
+  const convo = messages.filter(m => m.role !== 'system')
+    .map(m => (m.role === 'assistant' ? 'Assistant: ' : 'User: ') + String(m.content || ''))
+    .join('\n');
+  return (sys + '\n\n' + convo + '\nAssistant:').slice(-1500);
+}
+
 // ── Route 1 (streaming): direct browser → Pollinations, token by token ───────
-// onToken(partialText) is called with the growing reply so the UI can render
-// live. Resolves with the full text; throws (with .status) so callers fall back.
 async function textDirectStream(messages, { onToken } = {}) {
   const ctrl = new AbortController();
-  let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);  // stage 1: connection
+  let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
   const arm = (ms) => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), ms); };
   let full = '', raw = '';
   try {
-    const r = await fetch(TEXT_DIRECT, {
+    const r = await fetch(TEXT_POST, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // private:true keeps prompts out of Pollinations' public feed.
       body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true }),
       signal: ctrl.signal,
     });
     if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
     if (!r.body || !r.body.getReader) throw new Error('no-stream');
-    arm(FIRST_BYTE_MS); // stage 2: connected — allow the model time for token #1
+    arm(FIRST_BYTE_MS);
 
     const reader = r.body.getReader();
     const dec = new TextDecoder();
@@ -77,19 +88,19 @@ async function textDirectStream(messages, { onToken } = {}) {
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
-      arm(IDLE_MS); // got data → switch from first-byte to idle timeout
+      arm(IDLE_MS);
       const chunk = dec.decode(value, { stream: true });
       raw += chunk; buf += chunk;
       const lines = buf.split('\n');
-      buf = lines.pop();                    // keep the trailing partial line
+      buf = lines.pop();
       for (const line of lines) {
         const t = line.trim();
-        if (!t || t.startsWith(':')) continue;       // keepalive/comment
+        if (!t || t.startsWith(':')) continue;
         if (!t.startsWith('data:')) continue;
-        const p = t.slice(5).trim();
-        if (p === '[DONE]') continue;
+        const pl = t.slice(5).trim();
+        if (pl === '[DONE]') continue;
         try {
-          const j = JSON.parse(p);
+          const j = JSON.parse(pl);
           const delta = j?.choices?.[0]?.delta?.content ?? j?.choices?.[0]?.text ?? '';
           if (delta) { full += delta; onToken?.(clean(full)); }
         } catch { /* JSON split across chunks — completes on the next read */ }
@@ -97,31 +108,37 @@ async function textDirectStream(messages, { onToken } = {}) {
     }
     full = clean(full);
     if (full) return full;
-    const fromRaw = salvage(raw);           // wasn't really SSE → salvage it
+    const fromRaw = salvage(raw);
     if (fromRaw) { onToken?.(fromRaw); return fromRaw; }
     throw new Error('empty');
   } finally { clearTimeout(timer); }
 }
 
-// ── Route 2 (non-streaming): same-origin server shield (fallback only) ───────
-async function textShield(messages, ms = SHIELD_MS) {
-  const t = timed(ms);
+// ── Route 2 (simple URL API): direct browser → GET text.pollinations.ai/<prompt>
+// Returns the whole answer as plain text. No streaming, but very reliable.
+async function textDirectGet(messages, { onToken } = {}) {
+  const url = TEXT_GET + encodeURIComponent(flatten(messages))
+    + `?model=${encodeURIComponent(MODEL)}&referrer=${encodeURIComponent(REFERRER)}&private=true`;
+  const t = timed(GET_MS);
   try {
-    const r = await fetch('/api/ai/text', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }), signal: t.signal,
-    });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok && j.reply) return clean(j.reply);
-    const e = new Error(j.error || ('http ' + r.status)); e.status = r.status; throw e;
+    const r = await fetch(url, { signal: t.signal });
+    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+    const ct = r.headers.get('content-type') || '';
+    let txt = ct.includes('application/json')
+      ? (await r.json())?.choices?.[0]?.message?.content || ''
+      : await r.text();
+    txt = clean(salvage(txt) || txt);
+    if (!txt) throw new Error('empty');
+    onToken?.(txt);   // not streamed → render once
+    return txt;
   } finally { t.clear(); }
 }
 
-// Non-streaming direct call (used by the small helper orb).
+// Non-streaming direct POST (used by the small helper orb).
 async function textDirect(messages, ms = 15000) {
   const t = timed(ms);
   try {
-    const r = await fetch(TEXT_DIRECT, {
+    const r = await fetch(TEXT_POST, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true }),
       signal: t.signal,
@@ -138,45 +155,44 @@ async function textDirect(messages, ms = 15000) {
 }
 
 // PUBLIC — streaming chat. onToken(partial) renders live; onStatus(label) for UI.
-// Tries direct streaming (offloads our server), then the server shield.
-// Returns { text, route }. Throws only if BOTH routes fail.
+// All BROWSER-DIRECT, ZERO server. Strategy: one quick streaming attempt for the
+// nice live-typing UX, then the reliable GET URL API retried several times
+// (Pollinations randomly times out individual requests, so retries land it).
 export async function pollTextStream(messages, { onToken, onStatus } = {}) {
-  for (let attempt = 0; attempt <= 1; attempt++) {
-    try {
-      onStatus?.(attempt ? 'Busy — retrying…' : 'Thinking…');
-      const text = await textDirectStream(messages, { onToken });
-      return { text, route: 'direct' };
-    } catch (e) {
-      if (e?.status === 429 && attempt < 1) { onStatus?.('Cooling down a moment…'); await sleep(1500); continue; }
-      console.warn('[ai] direct stream failed:', e?.message || e);
-      break;
-    }
-  }
+  // 1) Quick streaming attempt (short timeouts) — lovely UX when it works.
   try {
-    onStatus?.('Reconnecting…');
-    const text = await textShield(messages);
-    onToken?.(text);                        // shield isn't streamed → render once
-    return { text, route: 'server' };
-  } catch (e) {
-    console.warn('[ai] server shield failed:', e?.message || e);
+    onStatus?.('Thinking…');
+    const text = await textDirectStream(messages, { onToken });
+    if (text) return { text, route: 'direct-stream' };
+  } catch (e) { console.warn('[ai] stream attempt failed:', e?.message || e); }
+
+  // 2) The simple GET URL API — the reliable workhorse. Retry a few times.
+  for (let i = 0; i < 4; i++) {
+    try {
+      onStatus?.(i ? 'Reconnecting…' : 'Almost there…');
+      const text = await textDirectGet(messages, { onToken });
+      if (text) return { text, route: 'direct-get' };
+    } catch (e) {
+      console.warn(`[ai] GET attempt ${i + 1} failed:`, e?.message || e);
+      await sleep(800);
+    }
   }
   throw new Error('all-ai-routes-failed');
 }
 
-// PUBLIC — non-streaming chat (used by the helper orb). Direct then shield.
+// PUBLIC — non-streaming chat (helper orb). Reliable GET URL retried, then POST.
 export async function pollText(messages, { onStatus } = {}) {
-  for (const [route, fn] of [['direct', textDirect], ['server', textShield]]) {
-    for (let attempt = 0; attempt <= 1; attempt++) {
-      try {
-        onStatus?.(attempt ? 'Busy — retrying…' : 'Thinking…');
-        return { text: await fn(messages), route };
-      } catch (e) {
-        if (e?.status === 429 && attempt < 1) { onStatus?.('Cooling down a moment…'); await sleep(1500); continue; }
-        console.warn(`[ai] ${route} route failed:`, e?.message || e);
-        break;
-      }
+  for (let i = 0; i < 4; i++) {
+    try {
+      onStatus?.(i ? 'Reconnecting…' : 'Thinking…');
+      return { text: await textDirectGet(messages), route: 'direct-get' };
+    } catch (e) {
+      console.warn(`[ai] GET attempt ${i + 1} failed:`, e?.message || e);
+      await sleep(800);
     }
   }
+  try { return { text: await textDirect(messages), route: 'direct-post' }; }
+  catch (e) { console.warn('[ai] POST failed:', e?.message || e); }
   throw new Error('all-ai-routes-failed');
 }
 
@@ -188,8 +204,7 @@ export async function pollTextPrompt(prompt, opts) {
   ], opts);
 }
 
-// Streaming single-prompt convenience (helper orb) — same as pollTextPrompt but
-// streams tokens via opts.onToken so the orb answer appears as it's generated.
+// Streaming single-prompt convenience (helper orb).
 export async function pollTextPromptStream(prompt, opts) {
   return pollTextStream([
     { role: 'system', content: SYSTEM },
@@ -197,12 +212,16 @@ export async function pollTextPromptStream(prompt, opts) {
   ], opts);
 }
 
-// ── Images — the browser loads them DIRECTLY from Pollinations (no bytes
-// through our server). pollImageShieldUrl is the same-origin fallback, used
-// automatically by an <img onerror> handler if the direct host is blocked. ───
+// ── Images — the browser loads them DIRECTLY from Pollinations (no bytes ever
+// touch our server). Both URLs below point straight at image.pollinations.ai.
+// pollImageUrl is the full-quality request; pollImageShieldUrl (kept for the
+// <img onerror> fallback in ai.js) is a lighter DIRECT retry — smaller + no
+// model pin — which succeeds more often when the first request is throttled. ──
 export function pollImageUrl(prompt, seed = Math.floor(Math.random() * 1e6), { w = 1024, h = 1024 } = {}) {
   return `${IMG_DIRECT}${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}&referrer=${encodeURIComponent(REFERRER)}`;
 }
 export function pollImageShieldUrl(prompt, seed = 0) {
-  return `/api/ai/image?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+  // NOT a server route — a second browser-direct attempt with lighter params.
+  const s = seed || Math.floor(Math.random() * 1e6) + 1;
+  return `${IMG_DIRECT}${encodeURIComponent(prompt)}?nologo=true&seed=${s}&referrer=${encodeURIComponent(REFERRER)}`;
 }
