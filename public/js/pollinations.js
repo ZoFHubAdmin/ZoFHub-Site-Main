@@ -36,9 +36,10 @@ const SYSTEM      = 'You are ZoFHub AI, a friendly, concise assistant for studen
 // spaced with back-off (see pollTextStream / pollText). Firing rapid retries is
 // what caused the "that reply didn't come through" every-time failure.
 const CONNECT_MS    = 15000;   // no response headers by now → connection is dead
-const FIRST_BYTE_MS = 22000;   // connected but no first token yet (reasoning warm-up / load)
+const FIRST_BYTE_MS = 25000;   // connected but no first token yet (reasoning warm-up / load)
 const IDLE_MS       = 20000;   // stream stalled mid-answer
-const GET_MS        = 28000;   // the simple GET URL route (whole answer at once)
+const GET_MS        = 45000;   // GET waits for the WHOLE answer at once, so it needs a big window
+                               // (a long reply from the slow reasoning model can take 30-40s)
 
 const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -125,7 +126,8 @@ async function textDirectStream(messages, { onToken, onStatus } = {}) {
 
 // ── Route 2 (simple URL API): direct browser → GET text.pollinations.ai/<prompt>
 // Returns the whole answer as plain text. No streaming, but very reliable.
-async function textDirectGet(messages, { onToken } = {}) {
+async function textDirectGet(messages, { onToken, onStatus } = {}) {
+  onStatus?.('Thinking…');
   const url = TEXT_GET + encodeURIComponent(flatten(messages))
     + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`;
   const t = timed(GET_MS);
@@ -168,16 +170,22 @@ async function textDirect(messages, ms = GET_MS) {
 // short spacer keeps us from ever hammering it. Never fire attempts concurrently.
 const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
 
-// PUBLIC — streaming chat. onToken(partial) renders live; onStatus(label) for UI.
-// All BROWSER-DIRECT, ZERO server. The only keyless model (gpt-oss-20b) rate-limits
-// bursts, so we go SLOW & STEADY: sequential attempts, spaced with back-off — a
-// streaming POST (live typing) → one GET URL → one more streaming POST. This is
-// the fix for the "that reply didn't come through" every-time failure, which was
-// caused by the old code firing a stream + FOUR rapid GETs → instant 429.
+// PUBLIC — chat. onToken(partial) renders live; onStatus(label) for UI.
+// All BROWSER-DIRECT to text.pollinations.ai, ZERO server. Order matters for the
+// one slow keyless model (gpt-oss-20b) we're stuck with:
+//   1) STREAMING POST — best for a slow reasoning model: the first words appear
+//      in a few seconds and the rest streams in, so a LONG answer never "times
+//      out" (we only give up if tokens stop flowing) and the user always sees
+//      progress instead of a frozen box.
+//   2) GET URL API — `GET text.pollinations.ai/<prompt>` — the simple "URL
+//      version": a plain cross-origin GET (no CORS preflight). Rock-solid for
+//      short answers; it waits for the whole reply so it has a big timeout.
+// Attempts are SEQUENTIAL + SPACED with back-off (never concurrent) because the
+// anon tier 429s on bursts — that self-inflicted burst was the old every-time bug.
 export async function pollTextStream(messages, { onToken, onStatus } = {}) {
   const attempts = [
     { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
-    { route: 'direct-get',    run: () => textDirectGet(messages, { onToken }) },
+    { route: 'direct-get',    run: () => textDirectGet(messages, { onToken, onStatus }) },
     { route: 'direct-stream', run: () => textDirectStream(messages, { onToken, onStatus }) },
   ];
   let lastErr;
