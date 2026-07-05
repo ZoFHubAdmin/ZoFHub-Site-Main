@@ -2,12 +2,12 @@
 // Floating AI assistant orb — appears on every page EXCEPT the /ai page
 // (which is itself the full AI chat). On a game page it gives tips/tricks
 // for that specific game using the game's metadata (title + category);
-// elsewhere it's a general helper. Powered by /api/ai/text (Pollinations
-// with an AI Horde fallback).
+// elsewhere it's a general helper. Powered by Pollinations called DIRECTLY
+// from the visitor's browser (public/js/pollinations.js) — no server proxy.
 
 import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
-import { pollTextPromptStream } from './pollinations.js?v=20260711';
+import { pollTextPromptStream } from './pollinations.js?v=20260712';
 
 (function initAIHelper() {
   // The /ai page is the full assistant — don't double up there.

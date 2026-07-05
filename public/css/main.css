@@ -160,7 +160,7 @@ kbd {
 .header-social img { width: 18px; height: 18px; display: block; transition: transform .15s ease; }
 .header-social a:hover img { transform: scale(1.12); }
 .header-search {
-  flex: 1; max-width: 720px;
+  flex: 1 1 0; min-width: 0; max-width: 720px;
   display: flex; align-items: center; gap: 10px;
   padding: 0 16px;
   background: rgba(255,255,255,.07);
@@ -171,7 +171,7 @@ kbd {
 }
 .header-search svg { color: var(--text-dim); flex: 0 0 18px; }
 .header-search input {
-  flex: 1; background: transparent;
+  flex: 1; min-width: 0; background: transparent;
   border: 0; outline: 0;
   font-size: 14px; color: var(--text);
 }
