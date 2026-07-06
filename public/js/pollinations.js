@@ -1,84 +1,48 @@
-// ZoFHub · pollinations.js — CLIENT-SIDE AI helper (browser-direct).
+// ZoFHub · pollinations.js — CLIENT-SIDE AI, the simple keyless URL way.
 // ---------------------------------------------------------------------------
-// EVERY AI request (text AND images) is made DIRECTLY from the visitor's own
-// browser to Pollinations, over THEIR connection, on THEIR IP. The prompt the
-// user types is sent to a Pollinations WEB URL and the response comes back on
-// their end — NOT processed on our server.
+// The prompt the user types is sent to a Pollinations WEB URL directly from the
+// visitor's browser, and the answer comes back on their end. NO API key, NO
+// login, NO pollen — using the endpoints that are still free & keyless:
+//   • Text:  GET/POST  https://text.pollinations.ai/…
+//   • Image: <img src>  https://image.pollinations.ai/prompt/…
+// (The newer gen.pollinations.ai/text and /image endpoints now REQUIRE a paid
+//  key — 401/402 — so we deliberately do NOT use them.)
 //
-// WHY A KEY IS NOW REQUIRED (changed 2026-07-05): Pollinations retired keyless
-// browser access. An anonymous browser fetch from an http/localhost origin is
-// rejected with a Cloudflare Turnstile 403 ("Missing Turnstile token") that a
-// dev machine can't satisfy. The fix is a **publishable `pk_` key** — free from
-// https://enter.pollinations.ai, explicitly "safe to ship in browsers" — which
-// authenticates the request so it works browser-direct from ANY origin
-// (localhost INCLUDED) with no server and no Turnstile. This is exactly how
-// Pollinations' own web app calls its API (gen.pollinations.ai + a pk_ key).
-//
-// Text routes when a key is present (all browser-direct to gen.pollinations.ai):
-//   1) GET  gen.pollinations.ai/text/<prompt>?key=pk_…   (the simple URL API —
-//      free, whole answer at once; this is the "web URL" method)
-//   2) POST gen.pollinations.ai/v1/chat/completions       (OpenAI, streaming)
-// Without a key: anonymous text.pollinations.ai still works on an https domain;
-// on localhost it Turnstile-fails, so we fall back to this app's own /api/ai/text
-// (dev only). Images use <img src> (no Origin header) so they work everywhere.
+// One caveat we can't change: Pollinations' TEXT endpoint blocks BROWSER fetches
+// from http/localhost origins with a Cloudflare "Turnstile" 403 (it keys on the
+// Origin header). On a real https domain the keyless text URL works fine; on
+// localhost during development it doesn't, so there we fall back to this app's
+// own /api/ai/text (dev only). Images are unaffected — an <img> sends no Origin,
+// so image.pollinations.ai works on localhost and in production alike.
+// If every network route fails, ai.js finishes with an on-device model, so the
+// chat is never fully dead.
 // ---------------------------------------------------------------------------
 
 const REFERRER = (typeof location !== 'undefined' && location.hostname) || 'zofhub';
 
+// Turnstile blocks browser TEXT fetches from http/localhost — detect that so we
+// can use the dev server hop there. Real https prod → keyless browser-direct.
 const IS_LOCAL = typeof location !== 'undefined' && (
   location.protocol !== 'https:' ||
   /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(location.hostname || '')
 );
 
-// Keyed (modern) endpoints — the ones Pollinations' own frontend uses.
-const GEN_TEXT = 'https://gen.pollinations.ai/text/';               // GET /text/<prompt>?key=pk_
-const GEN_CHAT = 'https://gen.pollinations.ai/v1/chat/completions'; // POST (OpenAI-compatible), streams
-// Legacy anonymous endpoints — only used when NO key is configured.
-const TEXT_POST = 'https://text.pollinations.ai/openai';
-const TEXT_GET  = 'https://text.pollinations.ai/';
+const TEXT_POST = 'https://text.pollinations.ai/openai'; // OpenAI-compatible, streams
+const TEXT_GET  = 'https://text.pollinations.ai/';       // simple URL API: /<prompt>
 const IMG_DIRECT = 'https://image.pollinations.ai/prompt/';
 
-const MODEL     = 'openai-fast'; // GPT-OSS 20B reasoning model (free tier)
-const REASONING = 'low';         // reasoning_effort:'low' → fast first token (~1.5s vs ~20s)
+const MODEL     = 'openai-fast'; // keyless text model (GPT-OSS 20B reasoning)
+const REASONING = 'low';         // reasoning_effort:'low' → fast first token
 const SYSTEM    = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown. Keep answers focused and reasonably brief unless asked for more detail.';
 
-const CONNECT_MS    = 15000;
-const FIRST_BYTE_MS = 25000;
-const IDLE_MS       = 20000;
-const GET_MS        = 45000;
+const CONNECT_MS = 15000, FIRST_BYTE_MS = 25000, IDLE_MS = 20000, GET_MS = 45000;
 
 const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
 function timed(ms) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
   return { signal: ctrl.signal, clear: () => clearTimeout(id) };
-}
-
-// ── Publishable API key resolution ──────────────────────────────────────────
-// Order: window.POLLINATIONS_KEY → localStorage('zofhub_pollinations_key') →
-// GET /api/ai/key (served from the POLLINATIONS_PUBLIC_KEY env var). The result
-// is cached. A `pk_` key is publishable (safe in the browser); the AI request
-// still goes browser-direct — only this small credential comes from config.
-let _keyPromise = null;
-async function getKey() {
-  try {
-    if (typeof window !== 'undefined' && window.POLLINATIONS_KEY) return String(window.POLLINATIONS_KEY);
-    if (typeof localStorage !== 'undefined') { const k = localStorage.getItem('zofhub_pollinations_key'); if (k) return k; }
-  } catch { /* storage blocked → fall through to server config */ }
-  if (!_keyPromise) {
-    _keyPromise = fetch('/api/ai/key')
-      .then(r => (r.ok ? r.json() : {}))
-      .then(d => (d && d.key) || '')
-      .catch(() => '');
-  }
-  return _keyPromise;
-}
-// Let the app / user set a key at runtime without editing files.
-export function setPollinationsKey(key) {
-  try { localStorage.setItem('zofhub_pollinations_key', String(key || '')); } catch {}
-  _keyPromise = null;
 }
 
 function salvage(raw) {
@@ -89,7 +53,7 @@ function salvage(raw) {
   return '';
 }
 
-// Flatten messages[] into a single prompt for the GET URL route (prompt in path).
+// Flatten messages[] into one prompt string for the GET URL route (prompt in path).
 function flatten(messages) {
   const sys = messages.find(m => m.role === 'system')?.content || SYSTEM;
   const convo = messages.filter(m => m.role !== 'system')
@@ -98,8 +62,7 @@ function flatten(messages) {
   return (sys + '\n\n' + convo + '\nAssistant:').slice(-1500);
 }
 
-// Shared SSE consumer for the streaming POST routes. `arm(ms)` re-arms the
-// idle-abort on every chunk so a long answer never times out mid-stream.
+// Shared SSE reader for the streaming POST; arm(ms) re-arms idle-abort per chunk.
 async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
   if (!r.body || !r.body.getReader) throw new Error('no-stream');
   arm(FIRST_BYTE_MS);
@@ -124,10 +87,8 @@ async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
         const choice = j?.choices?.[0] || {};
         const delta = choice.delta?.content ?? choice.text ?? '';
         if (delta) { full += delta; onToken?.(clean(full)); }
-        // Reasoning models stream chain-of-thought BEFORE the answer — don't show
-        // it, but keep "Thinking…" alive until real content starts.
         else if (!full && choice.delta?.reasoning) onStatus?.('Thinking…');
-      } catch { /* JSON split across chunks — completes next read */ }
+      } catch { /* JSON split across chunks — finishes next read */ }
     }
   }
   full = clean(full);
@@ -137,47 +98,7 @@ async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
   throw new Error('empty');
 }
 
-// ── KEYED routes (gen.pollinations.ai + pk_ key) — browser-direct EVERYWHERE ──
-
-// The "web URL" method: GET gen.pollinations.ai/text/<prompt>?key=pk_… — free,
-// whole answer at once, works from localhost and prod alike.
-async function textKeyedGet(messages, key, { onToken, onStatus } = {}) {
-  onStatus?.('Thinking…');
-  const url = GEN_TEXT + encodeURIComponent(flatten(messages))
-    + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&key=${encodeURIComponent(key)}`;
-  const t = timed(GET_MS);
-  try {
-    const r = await fetch(url, { signal: t.signal });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
-    const ct = r.headers.get('content-type') || '';
-    let txt = ct.includes('application/json') ? (await r.json())?.choices?.[0]?.message?.content || '' : await r.text();
-    txt = clean(salvage(txt) || txt);
-    if (!txt) throw new Error('empty');
-    onToken?.(txt);
-    return txt;
-  } finally { t.clear(); }
-}
-
-// Streaming, OpenAI-compatible: POST gen.pollinations.ai/v1/chat/completions with
-// Authorization: Bearer pk_… — token-by-token UX for longer answers.
-async function textKeyedStream(messages, key, { onToken, onStatus } = {}) {
-  const ctrl = new AbortController();
-  let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
-  const arm = (ms) => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), ms); };
-  try {
-    const r = await fetch(GEN_CHAT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-      body: JSON.stringify({ model: MODEL, messages, stream: true, reasoning_effort: REASONING }),
-      signal: ctrl.signal,
-    });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
-    return await consumeSSE(r, arm, { onToken, onStatus });
-  } finally { clearTimeout(timer); }
-}
-
-// ── ANONYMOUS routes (legacy text.pollinations.ai) — only when NO key set ────
-// Work on real https domains; Turnstile-blocked on localhost.
+// Streaming: browser → text.pollinations.ai/openai (keyless), token by token.
 async function textDirectStream(messages, { onToken, onStatus } = {}) {
   const ctrl = new AbortController();
   let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
@@ -192,6 +113,8 @@ async function textDirectStream(messages, { onToken, onStatus } = {}) {
     return await consumeSSE(r, arm, { onToken, onStatus });
   } finally { clearTimeout(timer); }
 }
+
+// The simple "web URL" method: GET text.pollinations.ai/<prompt> (keyless).
 async function textDirectGet(messages, { onToken, onStatus } = {}) {
   onStatus?.('Thinking…');
   const url = TEXT_GET + encodeURIComponent(flatten(messages))
@@ -209,10 +132,10 @@ async function textDirectGet(messages, { onToken, onStatus } = {}) {
   } finally { t.clear(); }
 }
 
-// LOCAL-DEV last resort — our own server (server-side call, no Origin/Turnstile).
-// Only reached on localhost when no key is configured; never in production.
+// LOCAL-DEV ONLY — our own server (no Origin, so no Turnstile). Never used in
+// production (IS_LOCAL is false on https), so no AI ever runs on the server there.
 async function textViaServer(messages, { onToken, onStatus } = {}) {
-  onStatus?.('Thinking… (local dev · via server)');
+  onStatus?.('Thinking… (local dev)');
   const t = timed(GET_MS);
   try {
     const r = await fetch('/api/ai/text', {
@@ -228,10 +151,8 @@ async function textViaServer(messages, { onToken, onStatus } = {}) {
   } finally { t.clear(); }
 }
 
-// Back-off before the next attempt; longer on a 429 (rate limit). Never concurrent.
 const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
 
-// Run a list of {route, run} attempts sequentially with back-off; return first success.
 async function runAttempts(attempts, onStatus) {
   let lastErr;
   for (let i = 0; i < attempts.length; i++) {
@@ -245,29 +166,14 @@ async function runAttempts(attempts, onStatus) {
       if (i < attempts.length - 1) await backoff(e);
     }
   }
-  const err = new Error('all-ai-routes-failed: ' + (lastErr?.message || 'unknown'));
-  err.noKey = !!(lastErr && lastErr.noKey);
-  throw err;
+  throw new Error('all-ai-routes-failed: ' + (lastErr?.message || 'unknown'));
 }
 
-// Build the ordered attempt list for the current environment.
-function buildAttempts(messages, key, cbs) {
+// Keyless browser-direct to text.pollinations.ai. Streaming first (best for long
+// answers), then the simple GET URL. On localhost, Turnstile blocks those, so try
+// the dev server first. In production it's pure browser-direct — no server.
+function buildAttempts(messages, cbs) {
   const attempts = [];
-  if (key) {
-    // BEST PATH — pk_ key → gen.pollinations.ai browser-direct, works EVERYWHERE
-    // (localhost + prod), no server, no Turnstile. Streaming FIRST: the reasoning
-    // model can take ~40s for a long reply and a non-streaming GET would time out
-    // waiting for the whole thing — streaming shows the first words in a few
-    // seconds and never times out mid-answer. The simple GET "web URL" is next.
-    // Both send the prompt to a Pollinations URL, answered on the user's device.
-    attempts.push(
-      { route: 'keyed-stream', run: () => textKeyedStream(messages, key, cbs) },
-      { route: 'keyed-get',    run: () => textKeyedGet(messages, key, cbs) },
-    );
-  }
-  // Safety net (and the ONLY path with no key): on localhost, anonymous browser
-  // routes are Turnstile-blocked, so use our own server; anonymous also works on
-  // an https domain. This guarantees a reply even if a key is depleted (402).
   if (IS_LOCAL) attempts.push({ route: 'server-dev', run: () => textViaServer(messages, cbs) });
   attempts.push(
     { route: 'direct-stream', run: () => textDirectStream(messages, cbs) },
@@ -276,34 +182,22 @@ function buildAttempts(messages, key, cbs) {
   return attempts;
 }
 
-// PUBLIC — streaming chat. onToken(partial) renders live; onStatus(label) for UI.
 export async function pollTextStream(messages, { onToken, onStatus } = {}) {
-  const key = await getKey();
-  return runAttempts(buildAttempts(messages, key, { onToken, onStatus }), onStatus);
+  return runAttempts(buildAttempts(messages, { onToken, onStatus }), onStatus);
 }
-
-// PUBLIC — chat used by the helper orb (same routing).
 export async function pollText(messages, { onStatus } = {}) {
-  const key = await getKey();
-  const { text } = await runAttempts(buildAttempts(messages, key, { onStatus }), onStatus);
+  const { text } = await runAttempts(buildAttempts(messages, { onStatus }), onStatus);
   return { text, route: 'direct' };
 }
-
 export async function pollTextPrompt(prompt, opts) {
-  return pollText([
-    { role: 'system', content: SYSTEM },
-    { role: 'user', content: String(prompt).slice(0, 4000) },
-  ], opts);
+  return pollText([{ role: 'system', content: SYSTEM }, { role: 'user', content: String(prompt).slice(0, 4000) }], opts);
 }
 export async function pollTextPromptStream(prompt, opts) {
-  return pollTextStream([
-    { role: 'system', content: SYSTEM },
-    { role: 'user', content: String(prompt).slice(0, 4000) },
-  ], opts);
+  return pollTextStream([{ role: 'system', content: SYSTEM }, { role: 'user', content: String(prompt).slice(0, 4000) }], opts);
 }
 
-// ── Images — loaded via <img src> straight from Pollinations (no Origin header,
-// so they work on localhost and prod with no key and no Turnstile). ──────────
+// Images — loaded via <img src> straight from image.pollinations.ai (keyless; no
+// Origin header, so they work on localhost and in production, no key, no login).
 export function pollImageUrl(prompt, seed = Math.floor(Math.random() * 1e6), { w = 1024, h = 1024 } = {}) {
   return `${IMG_DIRECT}${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}&referrer=${encodeURIComponent(REFERRER)}`;
 }

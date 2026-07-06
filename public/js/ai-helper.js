@@ -7,7 +7,7 @@
 
 import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
-import { pollTextPromptStream } from './pollinations.js?v=20260717';
+import { pollTextPromptStream } from './pollinations.js?v=20260718';
 
 (function initAIHelper() {
   // The /ai page is the full assistant — don't double up there.
