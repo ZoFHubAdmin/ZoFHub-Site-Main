@@ -249,6 +249,78 @@
         "thumbnail_url": "/thumbs/slope.png",
         "category": "arcade"
       }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "balap-liar"
+      },
+      "set": {
+        "title": "Wild Street Racing"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "balap-maut"
+      },
+      "set": {
+        "title": "Deadly Racing"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "bebas-hambatan"
+      },
+      "set": {
+        "title": "Highway Rider"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "macet"
+      },
+      "set": {
+        "title": "Traffic Jam"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "mobil-mania"
+      },
+      "set": {
+        "title": "Car Mania"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "perang-galaksi"
+      },
+      "set": {
+        "title": "Galaxy War"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "tank-tempur"
+      },
+      "set": {
+        "title": "Battle Tank"
+      }
+    },
+    {
+      "_note": "Un-hidden 2026-07-10 (working GameMonetize copy); English display title.",
+      "match": {
+        "slug": "tembak"
+      },
+      "set": {
+        "title": "Shoot 'Em Up"
+      }
     }
   ],
   "add": [
@@ -329,43 +401,13 @@
       "_note": "DEAD GAMES removed 2026-07-04: verified in a real browser to NOT load at all (GameMonetize invalid IDs → placeholder page; GameDistribution → \"Not found at origin!\"; OnlineGames → S3 \"Access Denied\"). Also set is_working=false in the DB; these override rules keep them hidden even if a restore-games re-run flips is_working back to true."
     },
     {
-      "slug": "balap-liar"
-    },
-    {
-      "slug": "balap-maut"
-    },
-    {
-      "slug": "bebas-hambatan"
-    },
-    {
-      "slug": "macet"
-    },
-    {
       "slug": "mecha-allstars-battle-royale"
-    },
-    {
-      "slug": "meteor"
-    },
-    {
-      "slug": "mobil-mania"
-    },
-    {
-      "slug": "perang-galaksi"
-    },
-    {
-      "slug": "tank-tempur"
-    },
-    {
-      "slug": "tembak"
     },
     {
       "slug": "cube-surfer"
     },
     {
       "slug": "moto-x3m-bike-race"
-    },
-    {
-      "slug": "penalty-shooters-2"
     },
     {
       "slug": "tunnel-rush"
