@@ -142,6 +142,13 @@ const supabase = DRY_RUN ? null : createClient(SUPABASE_URL, SUPABASE_KEY, {
 const ALL_SOURCES = [
   { path: 'data/top_games.json',        priority: 5, shape: 'auto', curated: true  },
   { path: 'api/games.json',             priority: 4, shape: 'auto', curated: true  },
+  // finalgames.json — the cleaned master catalog (licensing-blocked hosts already
+  // stripped by scripts/strip-finalgames-blocked.mjs). It's the bulk of what the
+  // live site serves, so it's a CURATED source: `migrate:curated` pushes the full
+  // served catalog (curated + finalgames) into Supabase without the unvetted
+  // scrape dumps below. Priority 3 keeps the hand-vetted top_games/api entries
+  // winning on any slug collision (they carry richer, override-friendly metadata).
+  { path: 'finalgames.json',            priority: 3, shape: 'auto', curated: true  },
   { path: 'somethingrandom.json',       priority: 3, shape: 'auto', curated: false },
   { path: 'master_games.json',          priority: 2, shape: 'auto', curated: false },
   { path: 'everygame.json',             priority: 1, shape: 'auto', curated: false },
