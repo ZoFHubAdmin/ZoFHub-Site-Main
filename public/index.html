@@ -55,6 +55,11 @@
         <!-- ========== TOP LEADERBOARD AD ========== -->
         <div class="catalog-ad-top ad-slot" data-ad-type="leaderboard" data-slot="catalog-top"></div>
 
+        <!-- ========== GAME OF THE DAY (rotates daily; same for everyone) ========== -->
+        <section class="row gotd-row" id="gotdRow" hidden>
+          <a class="gotd" id="gotdHero" href="#" aria-label="Game of the Day"></a>
+        </section>
+
         <section class="row" id="featuredRow">
           <h2 class="row-title">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="12 2 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9 12 2"/></svg>
@@ -92,6 +97,14 @@
 
         <!-- ===== IN-FEED AD ===== -->
         <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="home-mid-2"></div>
+
+        <section class="row" id="forYouRow" hidden>
+          <h2 class="row-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 2.4l1.9 5 5.3.3-4.1 3.4 1.4 5.1L12 18.5l-4.4 2.7 1.4-5.1-4.1-3.4 5.3-.3z"/></svg>
+            Recommended for you
+          </h2>
+          <div class="game-grid" id="forYouGrid"></div>
+        </section>
 
         <section class="row" id="recentRow" hidden>
           <h2 class="row-title">
@@ -138,7 +151,8 @@
   <script type="module" src="/js/layout.js?v=20260720"></script>
   <script type="module" src="/js/panic.js?v=20260720"></script>
   <script type="module" src="/js/catalog.js?v=20260720"></script>
+  <script type="module" src="/js/game-of-the-day.js?v=20260713"></script>
   <script type="module" src="/js/search-suggest.js?v=20260720"></script>
-  <script type="module" src="/js/vibe-finder.js?v=20260720"></script>
+  <script type="module" src="/js/vibe-finder.js?v=20260713"></script>
 </body>
 </html>

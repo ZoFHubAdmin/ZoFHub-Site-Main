@@ -94,10 +94,9 @@
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>
             <span>Leaderboard</span>
           </button>
-          <button class="btn-ghost btn-sm" id="proxyBtn" title="Game not loading? Load it through the ZoFHub proxy">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 12l4-4M4 12l4 4M14 6l4 4-4 4"/></svg>
-            <span>Proxy</span>
-          </button>
+          <!-- No manual "Proxy" toggle: every game that CAN be proxied is already
+               served through the ZoFHub proxy by default (see server /play routing),
+               so a per-game switch is redundant. -->
           <button class="btn-primary btn-sm" id="fullscreenBtn" title="Fullscreen">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
             <span>Fullscreen</span>
@@ -116,14 +115,17 @@
         <!-- SECURITY: the game runs in a restricted sandbox.
              - allow-scripts + allow-same-origin: games need JS + their own
                (cross-origin) localStorage/IndexedDB to run and save progress.
-             - allow-popups + allow-popups-to-escape-sandbox: legit "more games"
-               / share links open as NORMAL new tabs (not sandboxed shells).
              - allow-forms / pointer-lock / orientation / presentation / modals /
                downloads: gameplay features (FPS mouse-lock, fullscreen, exports).
+             - DELIBERATELY OMITTED: allow-popups (+ allow-popups-to-escape-sandbox).
+               Without them a game CANNOT spawn a new browser tab — every ad-tab /
+               "more games" pop-under is blocked, so gameplay always stays INSIDE
+               this iframe (what users asked for). Proxied games route their own
+               window.open back into the frame via EMBED_GUARD; direct games just
+               can't pop.
              - DELIBERATELY OMITTED: allow-top-navigation(-by-user-activation).
                This is the anti-hijack guarantee — a malicious game CANNOT redirect
-               or replace YOUR ZoFHub tab to push ads/scam/malware. It can only
-               affect its own frame or open a separate tab. -->
+               or replace YOUR ZoFHub tab to push ads/scam/malware. -->
         <!-- NB: no `src` here ON PURPOSE. game-page.js sets it AFTER wiring the
              load/error listeners, so a fast game can't fire `load` before we're
              listening (which left the loader stuck and bounced working games to
@@ -138,17 +140,24 @@
           frameborder="0"
           scrolling="no"
           allowfullscreen
-          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-pointer-lock allow-orientation-lock allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation"
           allow="autoplay; fullscreen; gamepad; pointer-lock; clipboard-write; encrypted-media; accelerometer; gyroscope; xr-spatial-tracking"
           referrerpolicy="strict-origin-when-cross-origin"
           loading="eager"></iframe>
       </div>
 
-      <p class="play-fallback">
-        Games may not load on the very first try — if you see a black screen it will retry on its own,
-        or just hit <strong>Reload</strong> (or press <kbd>R</kbd>) and it'll open. Still stuck?
-        <a href="?direct=1" id="openDirectLink">Open directly (skip proxy)</a>
-      </p>
+      <!-- Always-visible heads-up + one-tap recovery for EVERY visitor. Games are
+           third-party embeds that can be slow or need a retry; this states that
+           plainly and keeps Reload one tap away, so a frozen / black / blurry
+           frame is never a dead end (the core "stuck on a blurry screen" fix). -->
+      <div class="play-notice" role="note">
+        <svg class="play-notice-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <span class="play-notice-txt">Games load from other sites, so they can take a few seconds — if you see a <strong>frozen, black, or blurry</strong> screen, tap <strong>Reload</strong> (or press <kbd>R</kbd>). Some games need a couple of tries.</span>
+        <button type="button" class="play-notice-btn" id="noticeReloadBtn" title="Reload the game (R)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          Reload
+        </button>
+      </div>
 
       <!-- ====== LEADERBOARD ====== -->
       <section class="score-panel" id="scorePanel" hidden>
@@ -161,7 +170,7 @@
           <input id="scoreValue" type="number" min="0" max="2000000000" placeholder="Your score" required />
           <button class="btn-primary btn-sm" type="submit">Submit score</button>
         </form>
-        <p class="score-note">Submitting as <b id="scoreAs">…</b> · best score per player is kept — it's just for fun. 🏆</p>
+        <p class="score-note">Submitting as <b id="scoreAs">…</b> · your best is kept. Scores are player-reported — impossible ones are rejected and suspicious spikes are held for review, so treat the board as fun, not gospel. 🏆</p>
       </section>
 
       <!-- ====== 728×90 LEADERBOARD AD (below game) ====== -->
@@ -201,7 +210,7 @@
   <script type="module" src="/js/layout.js?v=20260720"></script>
   <script type="module" src="/js/panic.js?v=20260720"></script>
   <!-- iframe-loader-optimized.js is imported by game-page.js — no separate tag needed. -->
-  <script type="module" src="/js/game-page.js?v=20260720"></script>
+  <script type="module" src="/js/game-page.js?v=20260713"></script>
   <script type="module" src="/js/search-suggest.js?v=20260720"></script>
 </body>
 </html>

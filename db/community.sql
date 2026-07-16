@@ -56,10 +56,12 @@ create table if not exists public.scores (
   slug        text         not null,
   player_name varchar(40)  not null default 'Player',
   score       bigint       not null default 0,
+  status      text         not null default 'ok',   -- 'ok' = visible, 'flagged' = quarantined outlier
+  flag_reason text,
   created_at  timestamptz  not null default now()
 );
 
-comment on table public.scores is 'Player-reported leaderboard scores per game slug.';
+comment on table public.scores is 'Player-reported leaderboard scores per game slug. status=ok is public; flagged rows are held for review (see db/community-scores-integrity.sql).';
 
 -- Per-game leaderboard: WHERE slug = $1 ORDER BY score DESC.
 create index if not exists scores_slug_score_idx on public.scores (slug, score desc);
@@ -68,20 +70,25 @@ create index if not exists scores_score_idx on public.scores (score desc);
 -- Best-per-player lookup: the score POST does WHERE slug = $1 AND player_name = $2
 -- (keep-best dedupe). This index makes that exact lookup an index seek.
 create index if not exists scores_slug_player_idx on public.scores (slug, player_name);
+-- Visible-scores read path (public board only ever shows status='ok').
+create index if not exists scores_status_score_idx on public.scores (status, score desc);
 
 alter table public.scores enable row level security;
 drop policy if exists "Public can read scores" on public.scores;
-create policy "Public can read scores"
-  on public.scores for select using (true);
+drop policy if exists "Public can read visible scores" on public.scores;
+create policy "Public can read visible scores"
+  on public.scores for select using (status = 'ok');
 
 -- ---------------------------------------------------------------------
 -- prune_scores() — keep the leaderboard BOUNDED so storage can't run away.
--- Keeps only the top `keep_per_game` scores per game (by score, oldest-first as
--- the tiebreak) and deletes the long tail nobody ever sees — the UI only shows
--- the top ~20-50. Together with the one-row-per-(game,player) keep-best dedupe
--- the score API already enforces, this hard-caps the table at roughly
--- keep_per_game × (number of games with scores) rows, each only ~80 bytes.
--- A single set-based statement (fast with the scores_slug_score_idx index).
+-- Two set-based deletes:
+--   1. Purge quarantined ('flagged') rows older than 7 days — they're never
+--      shown, so holding them only lets a cheater bloat the table.
+--   2. Keep only the top `keep_per_game` VISIBLE ('ok') scores per game and
+--      delete the long tail. Flagged rows are EXCLUDED from this ranking, so a
+--      fake outlier can never survive in place of (or crowd out) a real score.
+-- Together with the one-row-per-(game,player) keep-best dedupe the score API
+-- enforces, this hard-caps the table at ~keep_per_game × (games with scores).
 -- Called daily by the Node cron via RPC: supa.rpc('prune_scores', {...}).
 -- SECURITY DEFINER so the service role can run it; not exposed to anon.
 -- ---------------------------------------------------------------------
@@ -92,23 +99,60 @@ security definer
 set search_path = public
 as $$
 declare
-  removed integer;
+  removed integer := 0;
+  n integer;
 begin
+  -- 1) Old quarantined rows.
+  delete from public.scores
+  where status is distinct from 'ok'
+    and created_at < now() - interval '7 days';
+  get diagnostics n = row_count;  removed := removed + n;
+
+  -- 2) Long tail of visible scores, per game.
   with ranked as (
     select id,
            row_number() over (partition by slug order by score desc, created_at asc) as rn
     from public.scores
+    where status is not distinct from 'ok'
   )
   delete from public.scores s
   using ranked r
   where s.id = r.id and r.rn > keep_per_game;
+  get diagnostics n = row_count;  removed := removed + n;
+
+  return removed;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- prune_recommendations() — hard-cap the community feed so it can't grow
+-- forever. Keeps the newest `keep` rows and deletes the rest. Complements the
+-- server's daily "delete >30d old AND <3 views" pass (which leaves popular old
+-- posts in place); this guarantees an absolute ceiling regardless of views.
+-- ---------------------------------------------------------------------
+create or replace function public.prune_recommendations(keep integer default 1000)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare removed integer;
+begin
+  with ranked as (
+    select id, row_number() over (order by created_at desc) as rn
+    from public.recommendations
+  )
+  delete from public.recommendations r
+  using ranked k
+  where r.id = k.id and k.rn > keep;
   get diagnostics removed = row_count;
   return removed;
 end;
 $$;
 
 -- Only the server (service role / postgres) may prune; never the public anon key.
-revoke all on function public.prune_scores(integer) from public, anon, authenticated;
+revoke all on function public.prune_scores(integer)          from public, anon, authenticated;
+revoke all on function public.prune_recommendations(integer) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- Sanity check

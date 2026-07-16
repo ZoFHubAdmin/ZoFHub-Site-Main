@@ -39,9 +39,44 @@ if (slug) {
   recordPlay();
   bindActions();
   bindFrameOptimized();
+  autoFitFromEmbed();
   bindLiveCount();
   bindScores();
   loadRelated();
+}
+
+// Shape the frame-box to the game's TRUE aspect ratio. Proxied publishers (Y8
+// especially) hard-code the game into a fixed-size inner <iframe>, and games come
+// in many shapes — including portrait — while our frame-box defaults to 16:9, so
+// those games end up squashed or tiny with big letterbox bars ("not properly
+// styled for width and length"). /embed is SAME-ORIGIN, so we can read the inner
+// iframe's real pixel size and set the box's aspect-ratio (and portrait flag) to
+// match — so every game fills its box at its true proportions, no stretch.
+function autoFitFromEmbed() {
+  const frame = $('#gameFrame');
+  const box = $('#frameBox');
+  if (!frame || !box) return;
+  if (!(window.ZOFHUB_GAME?.iframeSrc || '').startsWith('/embed/')) return;  // only same-origin proxied pages are readable
+  let tries = 0;
+  const poll = setInterval(() => {
+    if (++tries > 40) { clearInterval(poll); return; }   // ~6s, then give up (keep default)
+    let w = 0, h = 0;
+    try {
+      const doc = frame.contentDocument;
+      const inner = doc && doc.querySelector('.container iframe, .container canvas, body > iframe, body > canvas');
+      if (inner) {
+        const s = inner.getAttribute('style') || '';
+        w = parseFloat((s.match(/width:\s*([\d.]+)px/) || [])[1]) || parseFloat(inner.getAttribute('width')) || 0;
+        h = parseFloat((s.match(/height:\s*([\d.]+)px/) || [])[1]) || parseFloat(inner.getAttribute('height')) || 0;
+      }
+    } catch { clearInterval(poll); return; }              // cross-origin → unreadable, leave default
+    if (w >= 100 && h >= 100 && w <= 6000 && h <= 6000) {
+      clearInterval(poll);
+      box.style.aspectRatio = `${Math.round(w)} / ${Math.round(h)}`;
+      // Portrait games get the centered, width-capped portrait layout (game-page.css).
+      box.dataset.orientation = h > w * 1.1 ? 'portrait' : 'landscape';
+    }
+  }, 150);
 }
 
 // Switch the running game over to the server-side /embed proxy. Used by the
@@ -82,6 +117,29 @@ function bindScores() {
   const asEl = $('#scoreAs');
   if (asEl) asEl.textContent = playerName;
 
+  // Single-use play SESSION required to submit a score (IP-bound + time-gated
+  // server-side). Minted as soon as the page is ready so the play-time clock
+  // starts at the beginning of the session; re-minted after each submit.
+  let session = null, sessionPending = null;
+  function ensureSession() {
+    if (session) return Promise.resolve(session);
+    if (sessionPending) return sessionPending;
+    sessionPending = (async () => {
+      try {
+        const r = await fetch('/api/scores/session', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, token }),
+        });
+        const j = await r.json();
+        session = j.ok ? j.session : null;
+      } catch { session = null; }
+      finally { sessionPending = null; }
+      return session;
+    })();
+    return sessionPending;
+  }
+  ensureSession();   // start the play-time clock now
+
   const render = (scores) => {
     if (!list) return;
     if (!scores || !scores.length) { list.innerHTML = '<li class="score-empty">No scores yet — be the first!</li>'; return; }
@@ -107,14 +165,22 @@ function bindScores() {
     e.preventDefault();
     const score = parseInt($('#scoreValue')?.value, 10);
     if (!Number.isFinite(score) || score < 0) { toast('Enter a valid score', 'err'); return; }
+    const s = await ensureSession();
+    if (!s) { toast('Could not start a score session — reload and try again.', 'err'); return; }
     try {
       const r = await fetch('/api/scores', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, name: playerName, score, token })
+        body: JSON.stringify({ slug, name: playerName, score, session: s })
       });
       const j = await r.json();
-      if (!j.ok) { toast(j.error || 'Could not submit', 'err'); return; }
-      toast(j.updated ? 'New personal best! 🏆' : (j.created ? 'Score submitted! 🏆' : 'Your best score is kept 🏆'), 'ok');
+      if (!j.ok) {
+        if (j.renew) { session = null; ensureSession(); }   // consumed/expired → mint a fresh one
+        toast(j.error || 'Could not submit', 'err');
+        return;
+      }
+      session = null; ensureSession();   // session was consumed — start the next one
+      if (j.pending) toast('Score submitted — pending review 🕵️', 'ok');
+      else toast(j.updated ? 'New personal best! 🏆' : (j.created ? 'Score submitted! 🏆' : 'Your best score is kept 🏆'), 'ok');
       if ($('#scoreValue')) $('#scoreValue').value = '';
       load();
     } catch { toast('Network error', 'err'); }
@@ -176,21 +242,9 @@ function bindActions() {
   });
   $('#reloadBtn')?.addEventListener('click', reloadGame);
 
-  // Proxy button — manually route the game through the server-side /embed
-  // proxy (bypasses X-Frame-Options / referer blocks) if it won't load direct.
-  $('#proxyBtn')?.addEventListener('click', loadViaProxy);
-
-  // "Game not loading?" fallback link — open the publisher URL directly in a new tab.
-  const directLink = $('#openDirectLink');
-  if (directLink) {
-    const up = window.ZOFHUB_GAME?.upstream || '';
-    if (up) {
-      directLink.href = up;
-      directLink.target = '_blank';
-      directLink.rel = 'noopener noreferrer';
-      directLink.textContent = 'Open directly in new tab';
-    }
-  }
+  // The always-visible notice bar's Reload button — same one-tap recovery as the
+  // top Reload button / the R key, but right where a stuck frame draws the eye.
+  $('#noticeReloadBtn')?.addEventListener('click', reloadGame);
 
   // Keyboard shortcuts (outside text inputs)
   window.addEventListener('keydown', (e) => {
@@ -234,7 +288,11 @@ function bindFrameOptimized() {
     slug,
     proxyUrl: window.ZOFHUB_GAME?.proxyUrl,
     upstream: window.ZOFHUB_GAME?.upstream,
-    iframeSrc: window.ZOFHUB_GAME?.iframeSrc
+    iframeSrc: window.ZOFHUB_GAME?.iframeSrc,
+    // GameMonetize / GameDistribution: never fall back to the proxy (their SDK
+    // black-screens behind /embed). Passed explicitly so the loader doesn't have
+    // to rely on the global.
+    directOnly: window.ZOFHUB_GAME?.directOnly
   });
 
   // Expose hooks for the Reload / Proxy buttons + the R shortcut

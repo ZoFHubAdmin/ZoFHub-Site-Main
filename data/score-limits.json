@@ -1,0 +1,5 @@
+{
+  "_comment": "Per-game maximum plausible score for the leaderboard. Any submitted score ABOVE the applicable ceiling is rejected outright (replaces the old useless 2-billion cap). 'default' applies to any game not listed in 'perGame'. As you learn a game's realistic top score, add an entry to 'perGame' keyed by its slug, e.g. \"2048\": 200000. Edited values load on server start.",
+  "default": 5000000,
+  "perGame": {}
+}

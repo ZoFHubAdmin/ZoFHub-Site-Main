@@ -131,6 +131,31 @@ import { pollTextPromptStream } from './pollinations.js?v=20260720';
     return div;
   }
 
+  // Styled, compact "rate limited" notice with a live countdown, rendered into the
+  // pending message bubble when a genuine 429 comes back.
+  function renderRateLimit(node, seconds) {
+    const total = Math.max(5, Math.min(120, Math.round(seconds) || 15));
+    let left = total;
+    const paint = () => {
+      node.innerHTML = `<div class="ai-orb-rl">
+          <span class="ai-orb-rl-ico" aria-hidden="true">⏳</span>
+          <span>Rate limit reached — the free AI needs a short break. Try again in <b>${left}s</b>.</span>
+        </div>`;
+      body.scrollTop = body.scrollHeight;
+    };
+    paint();
+    const tick = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(tick);
+        node.innerHTML = `<div class="ai-orb-rl ready">
+            <span class="ai-orb-rl-ico" aria-hidden="true">✅</span>
+            <span>Ready again — ask me anything.</span>
+          </div>`;
+      } else paint();
+    }, 1000);
+  }
+
   // Metadata-driven prompt: the game's title + category ARE the metadata we
   // send, so the AI gives tips specific to THIS game.
   function gamePrompt(userQ) {
@@ -194,7 +219,11 @@ import { pollTextPromptStream } from './pollinations.js?v=20260720';
       recordTurn(displayText || prompt, text);
     } catch (e) {
       console.warn('[ai-orb] failed:', e?.message || e);
-      thinking.innerHTML = '<em>That didn’t come through — ask once more and it will. (Free &amp; unlimited, straight from your browser.)</em>';
+      if (e?.rateLimited) {
+        renderRateLimit(thinking, e.retryAfter || 15);
+      } else {
+        thinking.innerHTML = '<em>That didn’t come through — ask once more and it will.</em>';
+      }
     } finally {
       busy = false;
       body.scrollTop = body.scrollHeight;

@@ -54,6 +54,16 @@ function bindSuggestCards(scope) {
   }));
 }
 
+// Bounded chat context sent to the model: our system prompt + the last 8 real
+// (non-streaming, non-image) turns.
+function buildContext() {
+  const history = current.messages
+    .filter(m => !m.streaming && m.content && m.kind !== 'image')
+    .slice(-8)
+    .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content).slice(0, 4000) }));
+  return [{ role: 'system', content: SYSTEM }, ...history];
+}
+
 async function respond() {
   composing = true;
   setSendBusy(true);
@@ -69,12 +79,7 @@ async function respond() {
   current.messages.push(reply);
   render();
 
-  // Bounded history (last 8 turns). The server prepends its own system prompt.
-  const history = current.messages
-    .filter(m => !m.streaming && m.content)
-    .slice(-8)
-    .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content).slice(0, 4000) }));
-  const messages = [{ role: 'system', content: SYSTEM }, ...history];
+  const messages = buildContext();
 
   // 1) pollTextStream calls Pollinations DIRECTLY from this device and STREAMS the
   //    reply token-by-token (first words show in ~1-2s). It retries across several
@@ -87,24 +92,111 @@ async function respond() {
     return done(reply, text, false);
   } catch (e) {
     console.warn('[ai] online AI unavailable:', e?.message || e);
+    // A genuine RATE LIMIT (429) gets its OWN styled notice + live countdown —
+    // we do NOT silently download the heavy on-device model for a temporary
+    // throttle. Drop the empty streaming bubble so the notice stands alone.
+    if (e?.rateLimited) {
+      if (current.messages[current.messages.length - 1] === reply) current.messages.pop();
+      render();
+      showRateLimit(e.retryAfter || 15);
+      finishTurn();
+      return;
+    }
   }
 
-  // 2) GUARANTEED-FREE LAST RESORT: an on-device model (runs entirely in this
-  //    browser — no server, no key, no login, truly unlimited). The cloud path
-  //    above is preferred for quality/speed, but if it's unavailable (no key +
-  //    Turnstile, rate limit, offline, Pollinations changed again…) we fall back
-  //    here so the AI NEVER hard-fails. It's a one-time ~download then cached, so
-  //    we only trigger it after the cloud genuinely failed.
-  try {
-    setStatus('Switching to the on-device AI (one-time setup)…');
-    await localGenerate(messages, reply);
-    if (reply.content && reply.content !== '(no response)') return done(reply, reply.content, true);
-  } catch (e) { console.error('[ai] on-device engine failed:', e?.message || e); }
+  // 2) NON-rate-limit failure (offline / network / Pollinations down): fall back
+  //    to the GUARANTEED-FREE on-device model so the AI NEVER hard-fails.
+  if (await localFallback(reply)) return;
 
   reply.content = '_That reply didn’t come through — just hit send once more and it will._';
   reply.streaming = false; render();
   setStatus('Tap send to retry');
   finishTurn();
+}
+
+// Run the on-device model (Transformers.js) into `reply`. One-time ~download,
+// then cached; returns true if it produced a usable answer.
+async function localFallback(reply) {
+  try {
+    setStatus('Switching to the on-device AI (one-time setup)…');
+    await localGenerate(buildContext(), reply);
+    if (reply.content && reply.content !== '(no response)') { done(reply, reply.content, true); return true; }
+  } catch (e) { console.error('[ai] on-device engine failed:', e?.message || e); }
+  return false;
+}
+
+// Answer the last user message with the on-device model on demand (the "Use
+// offline AI" button in the rate-limit notice — the truly-unlimited path).
+async function useOfflineForLast() {
+  const reply = { role: 'assistant', content: '', streaming: true };
+  current.messages.push(reply);
+  render();
+  if (await localFallback(reply)) return;
+  reply.content = '_The on-device AI couldn’t start here — hit send to try the online AI again._';
+  reply.streaming = false; render();
+  finishTurn();
+}
+
+// ── Styled "you hit the rate limit" notice ─────────────────────────────────
+// Shown ONLY on a genuine 429. A calm amber card (not a red error) with a live
+// countdown, a Retry button that arms when the window clears, and an "offline AI"
+// escape hatch. Not stored in chat history — it's transient UI. Locks the
+// composer for the countdown so an instant resend can't immediately re-trip 429.
+function showRateLimit(seconds) {
+  const wrap = $('#aiMessages'); if (!wrap) return;
+  wrap.querySelector('.ai-ratelimit-row')?.remove();   // only ever one at a time
+  const total = Math.max(5, Math.min(120, Math.round(seconds) || 15));
+
+  aiCooling = true; setSendBusy(true);
+
+  const row = el('div', { class: 'msg assistant ai-ratelimit-row' });
+  row.innerHTML = `
+    <div class="msg-av">AI</div>
+    <div class="msg-body">
+      <div class="ai-ratelimit" role="status" aria-live="polite">
+        <span class="ai-rl-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M6 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V2M6 22v-5a6 6 0 0 1 6-6 6 6 0 0 1 6 6v5"/></svg>
+        </span>
+        <div class="ai-rl-text">
+          <b>You've reached the AI's rate limit</b>
+          <span>The free AI is shared and only allows a few messages in a short window. It'll be ready again in <b class="ai-rl-count">${total}s</b>.</span>
+        </div>
+        <div class="ai-rl-actions">
+          <button class="ai-rl-btn ai-rl-retry" type="button" disabled>Retry in ${total}s</button>
+          <button class="ai-rl-btn ai-rl-local" type="button">Use offline AI</button>
+        </div>
+      </div>
+    </div>`;
+  wrap.appendChild(row);
+  wrap.scrollTop = wrap.scrollHeight;
+
+  const countEl = row.querySelector('.ai-rl-count');
+  const retryBtn = row.querySelector('.ai-rl-retry');
+  let left = total;
+  const arm = () => {
+    if (countEl) countEl.textContent = 'now';
+    retryBtn.disabled = false;
+    retryBtn.textContent = 'Retry now';
+    retryBtn.classList.add('ready');
+    aiCooling = false; setSendBusy(composing);
+  };
+  const tick = setInterval(() => {
+    left -= 1;
+    if (left <= 0) { clearInterval(tick); arm(); }
+    else { if (countEl) countEl.textContent = left + 's'; retryBtn.textContent = `Retry in ${left}s`; }
+  }, 1000);
+
+  retryBtn.addEventListener('click', () => {
+    if (retryBtn.disabled) return;
+    clearInterval(tick);
+    row.remove();
+    respond();
+  });
+  row.querySelector('.ai-rl-local').addEventListener('click', () => {
+    clearInterval(tick); arm();     // unlock the composer
+    row.remove();
+    useOfflineForLast();
+  });
 }
 
 function done(reply, txt, local) {

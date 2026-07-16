@@ -11,8 +11,9 @@
 // ---------------------------------------------------------------------------
 import { $, el } from './utils.js';
 
-// Quick one-tap moods (sent to the same endpoint as typed text).
-const VIBES = ['Chill', 'Competitive', 'Brainy', 'Silly', 'Quick', 'Epic', 'Scary', 'Cars'];
+// Quick one-tap moods (sent to the same endpoint as typed text). A mix of
+// feelings and activity-moods so "how you feel" is obvious at a glance.
+const VIBES = ['Happy', 'Sad', 'Angry', 'Chill', 'Competitive', 'Brainy', 'Silly', 'Romantic', 'Scary', 'Cars'];
 
 // A recognizable "sparkles" mark (lucide-style) — the Vibe Finder's icon.
 const SPARK = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06A2 2 0 0 0 8.5 12.6l-5.4-1.4a.5.5 0 0 1 0-.96l5.4-1.4A2 2 0 0 0 9.94 7.4l1.4-5.4a.5.5 0 0 1 .96 0l1.4 5.4a2 2 0 0 0 1.44 1.44l5.4 1.4a.5.5 0 0 1 0 .96l-5.4 1.4a2 2 0 0 0-1.44 1.44l-1.4 5.4a.5.5 0 0 1-.96 0z"/><path d="M19 3v3M20.5 4.5h-3M5 17v2M6 18H4"/></svg>`;

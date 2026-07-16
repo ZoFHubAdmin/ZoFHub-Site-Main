@@ -45,6 +45,36 @@ function timed(ms) {
   return { signal: ctrl.signal, clear: () => clearTimeout(id) };
 }
 
+// How many seconds to wait after a 429, from the upstream Retry-After header when
+// present (0 = not given, so the caller uses its own sensible default).
+function retryAfterOf(r) {
+  const ra = parseInt(r?.headers?.get?.('retry-after'), 10);
+  return Number.isFinite(ra) && ra > 0 ? ra : 0;
+}
+
+// ── Optional publishable Pollinations key (pk_) ─────────────────────────────
+// Lifts the anonymous per-IP rate limit when POLLINATIONS_PUBLIC_KEY is set in
+// .env (served, tokenised, by /api/ai/key — a pk_ key is designed to be public).
+// Fetched ONCE, cached, bounded; stays '' (fully keyless) if unset/unreachable,
+// so the free path is never broken. Passed as `token` (body/query) — not an
+// Authorization header — to avoid a CORS preflight on the cross-origin call.
+let _keyPromise = null;
+function getPublishableKey() {
+  if (_keyPromise) return _keyPromise;
+  _keyPromise = (async () => {
+    try {
+      const t = timed(2500);
+      const r = await fetch('/api/ai/key', { signal: t.signal }).finally(() => t.clear());
+      if (!r.ok) return '';
+      const d = await r.json();
+      return (d && typeof d.key === 'string' && d.key.startsWith('pk_')) ? d.key : '';
+    } catch { return ''; }
+  })();
+  return _keyPromise;
+}
+// Warm the cache at load so the first message never waits on this round-trip.
+getPublishableKey();
+
 function salvage(raw) {
   const s = String(raw || '').trim();
   if (!s) return '';
@@ -100,16 +130,18 @@ async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
 
 // Streaming: browser → text.pollinations.ai/openai (keyless), token by token.
 async function textDirectStream(messages, { onToken, onStatus } = {}) {
+  const key = await getPublishableKey();
+  const postUrl = TEXT_POST + (key ? `?token=${encodeURIComponent(key)}&referrer=${encodeURIComponent(REFERRER)}` : '');
   const ctrl = new AbortController();
   let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
   const arm = (ms) => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), ms); };
   try {
-    const r = await fetch(TEXT_POST, {
+    const r = await fetch(postUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING }),
+      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING, ...(key ? { token: key } : {}) }),
       signal: ctrl.signal,
     });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
     return await consumeSSE(r, arm, { onToken, onStatus });
   } finally { clearTimeout(timer); }
 }
@@ -117,12 +149,14 @@ async function textDirectStream(messages, { onToken, onStatus } = {}) {
 // The simple "web URL" method: GET text.pollinations.ai/<prompt> (keyless).
 async function textDirectGet(messages, { onToken, onStatus } = {}) {
   onStatus?.('Thinking…');
+  const key = await getPublishableKey();
   const url = TEXT_GET + encodeURIComponent(flatten(messages))
-    + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`;
+    + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`
+    + (key ? `&token=${encodeURIComponent(key)}` : '');
   const t = timed(GET_MS);
   try {
     const r = await fetch(url, { signal: t.signal });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
     const ct = r.headers.get('content-type') || '';
     let txt = ct.includes('application/json') ? (await r.json())?.choices?.[0]?.message?.content || '' : await r.text();
     txt = clean(salvage(txt) || txt);
@@ -142,7 +176,7 @@ async function textViaServer(messages, { onToken, onStatus } = {}) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages }), signal: t.signal,
     });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
     const data = await r.json().catch(() => ({}));
     const txt = clean(data?.reply || '');
     if (!txt) throw new Error(data?.error || 'empty');
@@ -154,7 +188,7 @@ async function textViaServer(messages, { onToken, onStatus } = {}) {
 const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
 
 async function runAttempts(attempts, onStatus) {
-  let lastErr;
+  let lastErr, sawRateLimit = false, retryAfter = 0;
   for (let i = 0; i < attempts.length; i++) {
     try {
       onStatus?.(i === 0 ? 'Thinking…' : 'Still working…');
@@ -162,11 +196,20 @@ async function runAttempts(attempts, onStatus) {
       if (text) return { text, route: attempts[i].route };
     } catch (e) {
       lastErr = e;
+      if (e?.status === 429) { sawRateLimit = true; retryAfter = Math.max(retryAfter, e.retryAfter || 0); }
       console.warn(`[ai] attempt ${i + 1} (${attempts[i].route}) failed:`, e?.status || '', e?.message || e);
       if (i < attempts.length - 1) await backoff(e);
     }
   }
-  throw new Error('all-ai-routes-failed: ' + (lastErr?.message || 'unknown'));
+  // Surface a TYPED failure so callers can tell a genuine rate-limit (429) apart
+  // from offline / other breakage and react differently (styled limit notice vs.
+  // the on-device fallback). retryAfter falls back to ~15s (the documented keyless
+  // ~1 req/15s window) when the upstream didn't send a Retry-After header.
+  const err = new Error(sawRateLimit ? 'rate-limited' : ('all-ai-routes-failed: ' + (lastErr?.message || 'unknown')));
+  err.rateLimited = sawRateLimit;
+  err.retryAfter = retryAfter || (sawRateLimit ? 15 : 0);
+  err.status = lastErr?.status;
+  throw err;
 }
 
 // Keyless browser-direct to text.pollinations.ai. Streaming first (best for long

@@ -20,7 +20,7 @@ const PROXY_TIMEOUT = 15000;        // default /embed path — generous (games l
 // the game the instant it's genuinely ready, long before this fires.
 const DIRECT_TIMEOUT = 25000;       // direct-publisher safety net (was 12000 → caused false-fail → broken proxy fallback)
 const PREFLIGHT_TIMEOUT = 3000;     // /api/frame-check HEAD budget
-const OPTIMISTIC_REVEAL = 2500;     // uncover the game's OWN loading UI this early (all paths) — see startLoad
+const OPTIMISTIC_REVEAL = 2500;     // fully uncover the frame this early (all paths) — see scheduleReveal
 const NET_TIMEOUT = 35000;          // overlay safety net — must exceed any single stage timeout
 
 class OptimizedIframeLoader {
@@ -43,6 +43,7 @@ class OptimizedIframeLoader {
     this.currentTimer = null;
     this.revealTimer = null;
     this.netTimer = null;
+    this.revealed = false;
     this.preflightDone = false;
     this.abortController = null;
     
@@ -120,35 +121,59 @@ class OptimizedIframeLoader {
     if (this.loaded) return;
     this.loaded = true;
     this.clearTimers();
-    this.loader?.classList.remove('waiting');
+    this.loader?.classList.remove('waiting', 'mini');
     this.loader?.classList.add('hide');
     console.log(`[IframeLoader] Game loaded successfully on attempt ${this.retryCount + 1}`);
   }
 
+  // FULL reset of every timer + the preflight abort. Used by finish / startLoad /
+  // showError / destroy. NOTE: armTimeout must NOT use this — wiping the reveal +
+  // net timers here (via armTimeout) was the bug that left the "Loading…" overlay
+  // stuck on top of a game that had already loaded.
   clearTimers() {
-    if (this.currentTimer) {
-      clearTimeout(this.currentTimer);
-      this.currentTimer = null;
-    }
-    if (this.revealTimer) {
-      clearTimeout(this.revealTimer);
-      this.revealTimer = null;
-    }
-    if (this.netTimer) {
-      clearTimeout(this.netTimer);
-      this.netTimer = null;
-    }
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
+    this.clearStageTimer();
+    if (this.revealTimer) { clearTimeout(this.revealTimer); this.revealTimer = null; }
+    if (this.netTimer) { clearTimeout(this.netTimer); this.netTimer = null; }
+    if (this.abortController) { this.abortController.abort(); this.abortController = null; }
+  }
+
+  // Clears ONLY the per-stage load timer — never the reveal / net timers.
+  clearStageTimer() {
+    if (this.currentTimer) { clearTimeout(this.currentTimer); this.currentTimer = null; }
   }
 
   armTimeout(timeoutMs, callback) {
-    this.clearTimers();
+    this.clearStageTimer();
     this.currentTimer = setTimeout(() => {
       if (!this.loaded) callback();
     }, timeoutMs);
+  }
+
+  // Optimistically uncover the frame after a short beat. A cross-origin game (or a
+  // same-origin /embed) fires the iframe `load` event LONG after it's actually
+  // interactive, so waiting on it leaves the loading overlay sitting on top of an
+  // already-playable game — the "it keeps saying loading" bug. We fully hide the
+  // overlay here (finish() still fires on the real load); the always-visible notice
+  // bar under the frame is what offers Reload if a game is genuinely stuck.
+  scheduleReveal() {
+    if (this.revealTimer) clearTimeout(this.revealTimer);
+    this.revealed = false;
+    this.revealTimer = setTimeout(() => {
+      this.revealed = true;
+      if (!this.loaded) { this.loader?.classList.remove('waiting', 'mini'); this.loader?.classList.add('hide'); }
+    }, OPTIMISTIC_REVEAL);
+  }
+
+  // A stage TIMEOUT (not a real load error) means the game hasn't fired its load
+  // event but hasn't errored either. Once the frame has been optimistically
+  // revealed, the game is almost certainly running (cross-origin games routinely
+  // never fire our load event), so we must NOT reload it — reloading a working game
+  // is the "it restarts / re-shows loading" bug. Just ensure the overlay is gone. A
+  // genuine error still fails over via onError; the notice bar covers a stuck game.
+  onStageTimeout() {
+    if (this.loaded) return;
+    if (this.revealed) { this.loader?.classList.add('hide'); return; }
+    this.advanceStage();
   }
 
   onLoad() {
@@ -175,10 +200,11 @@ class OptimizedIframeLoader {
 
   advanceStage() {
     if (this.loaded) return;
-    this.clearTimers();
-    
+    this.clearStageTimer();
+    if (this.abortController) { this.abortController.abort(); this.abortController = null; }
+
     this.currentStage++;
-    
+
     // Check if we've exhausted all stages
     if (this.currentStage >= this.stages.length) {
       this.retryCount++;
@@ -191,15 +217,20 @@ class OptimizedIframeLoader {
       }
       return;
     }
-    
+
     const stage = this.stages[this.currentStage];
-    this.setStatus(this.retryCount > 0 
-      ? `Retrying (${this.retryCount + 1}/${MAX_RETRIES})…` 
+    this.setStatus(this.retryCount > 0
+      ? `Retrying (${this.retryCount + 1}/${MAX_RETRIES})…`
       : (this.currentStage === 0 ? 'Loading…' : 'Still working on it…'));
-    
+
+    // Re-show the overlay for this fresh attempt, then let the optimistic reveal
+    // uncover it again shortly so a failover isn't stuck behind a spinner either.
+    this.loader?.classList.remove('hide');
+    this.scheduleReveal();
+
     console.log(`[IframeLoader] Loading stage ${this.currentStage}: ${stage.name}`);
     this.frame.src = stage.src;
-    this.armTimeout(stage.timeout, () => this.advanceStage());
+    this.armTimeout(stage.timeout, () => this.onStageTimeout());
   }
 
   async runPreflight() {
@@ -235,10 +266,11 @@ class OptimizedIframeLoader {
     this.loaded = false;
     this.clearTimers();
     this.box?.querySelector('.frame-error')?.remove();
-    this.loader?.classList.remove('hide', 'waiting');
+    this.loader?.classList.remove('hide', 'waiting', 'mini');
     this.setStatus('Loading…');
     
-    // Net timeout - never block forever
+    // Absolute backstop — the overlay can never sit on screen past this, no matter
+    // what. (Redundant with the reveal below, but a guaranteed floor.)
     this.netTimer = setTimeout(() => {
       if (!this.loaded && this.loader && !this.loader.classList.contains('hide')) {
         console.warn('[IframeLoader] Net timeout reached, forcing hide');
@@ -246,20 +278,11 @@ class OptimizedIframeLoader {
       }
     }, NET_TIMEOUT);
 
-    // ── Optimistic reveal (EVERY load path) ────────────────────────────────
-    // The #1 complaint: the loading spinner stays up "even when the game is
-    // already running behind it." That happens because a cross-origin game only
-    // fires our `load` handler when its OUTER document fully loads (GM/GD ~9s),
-    // and a same-origin /embed only fires it after ALL sub-resources finish —
-    // long after the game itself is interactive. Every publisher paints its OWN
-    // loading UI within ~1–2s, so uncover the frame early. If the game hasn't
-    // painted yet the user sees the blurred game-art backdrop (#frameThumbBg),
-    // never a black screen. The real `load` still calls finish(); we DON'T set
-    // `loaded` here, so a genuinely blocked/dead game still hits its stage
-    // timeout + error card.
-    this.revealTimer = setTimeout(() => {
-      if (!this.loaded) this.loader?.classList.add('hide');
-    }, OPTIMISTIC_REVEAL);
+    // Uncover the frame after a short beat (see scheduleReveal). THIS is what keeps
+    // the loading overlay from covering an already-running game — a cross-origin
+    // game fires our `load` handler long after it's interactive, so we can't wait
+    // for it. The blurred game-art backdrop shows through until the game paints.
+    this.scheduleReveal();
 
     if (opts.forceProxy && this.stages.length > 0) {
       this.currentStage = -1;
@@ -270,15 +293,12 @@ class OptimizedIframeLoader {
     if (this.iframeSrc?.startsWith('/embed/')) {
       this.currentStage = 0;
       this.frame.src = this.iframeSrc;
-      this.armTimeout(PROXY_TIMEOUT, () => this.advanceStage());
+      this.armTimeout(PROXY_TIMEOUT, () => this.onStageTimeout());
     } else {
       this.currentStage = -1;
       const startSrc = this.iframeSrc || this.upstream || '';
       this.frame.src = startSrc;
-      this.armTimeout(DIRECT_TIMEOUT, () => {
-        if (this.stages.length) this.advanceStage();
-        else this.showError('This game is taking too long to load.');
-      });
+      this.armTimeout(DIRECT_TIMEOUT, () => this.onStageTimeout());
       // Non-GM/GD direct games CAN be X-Frame-Options-blocked — preflight detects
       // that and jumps to the proxy. GM/GD (directOnly) can't be proxied, so skip.
       if (!this.directOnly) this.runPreflight();

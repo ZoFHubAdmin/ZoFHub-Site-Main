@@ -208,6 +208,24 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 }
 .game-loader.waiting .loader-bar { display: none; }
 .game-loader.waiting p { font-size: 13px; color: rgba(255,255,255,.65); text-align: center; }
+
+/* Mini state: after the optimistic reveal the full-screen loader shrinks to a
+   small non-blocking pill at the bottom, so the game (or its own boot UI) is
+   fully visible while we still show "Loading…". pointer-events:none so it never
+   eats a click meant for the game. Removed the instant the game truly loads. */
+.game-loader.mini {
+  inset: auto; left: 50%; bottom: 14px; transform: translateX(-50%);
+  width: auto; max-width: calc(100% - 28px);
+  flex-direction: row; gap: 10px;
+  padding: 8px 15px; border-radius: 999px;
+  background: rgba(10,4,28,.82);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 12px 34px rgba(0,0,0,.5);
+  pointer-events: none;
+}
+.game-loader.mini .loader-bar { width: 64px; margin: 0; }
+.game-loader.mini p { font-size: 12px; margin: 0; white-space: nowrap; color: rgba(255,255,255,.82); }
 .loader-proxy-link {
   pointer-events: auto;
   color: var(--brand, #ffe000);
@@ -235,6 +253,39 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   color: var(--text-mute);
 }
 .play-fallback a { color: var(--brand); text-decoration: underline; }
+
+/* Always-on heads-up + one-tap Reload directly under the game. Calm amber, never
+   overlaps the frame. This is the site's "games may need a refresh" warning AND
+   the escape hatch for a frozen / black / blurry frame, in one bar. */
+.play-notice {
+  display: flex; align-items: center; gap: 11px;
+  margin-top: -2px; padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(255,196,0,.13), rgba(255,196,0,.055));
+  border: 1px solid rgba(255,196,0,.28);
+  border-radius: 12px;
+  font-size: 12.5px; line-height: 1.45; color: var(--text-dim);
+}
+.play-notice-ico { color: #ffc400; flex: 0 0 auto; }
+.play-notice-txt { flex: 1 1 auto; min-width: 0; }
+.play-notice-txt strong { color: var(--text); font-weight: 700; }
+.play-notice-txt kbd {
+  font: inherit; font-size: 11px; font-weight: 700;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+  border-radius: 5px; padding: 0 5px; color: var(--text);
+}
+.play-notice-btn {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 9px; cursor: pointer;
+  background: linear-gradient(135deg, #ffe000, #ff9d00); color: #1a0b02;
+  border: 0; font: inherit; font-size: 12.5px; font-weight: 800;
+  transition: filter .2s ease, transform .2s ease;
+}
+.play-notice-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.play-notice-btn:active { transform: translateY(0); }
+@media (max-width: 560px) {
+  .play-notice { flex-wrap: wrap; }
+  .play-notice-btn { width: 100%; justify-content: center; }
+}
 
 /* Leaderboard panel */
 .score-panel {

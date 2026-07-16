@@ -111,6 +111,7 @@ const lazyIO = new IntersectionObserver((entries) => {
     renderNew();
     renderRunners();
     renderFavoritesRow();
+    renderForYouRow();
     renderRecentRow();
     applyFilter();
     // Defer the full-catalog background load until the browser is idle, so it
@@ -204,6 +205,7 @@ async function loadRest() {
   recomputeCounts();
   renderSidebar();
   renderFeatured(); renderTrending(); renderNew(); renderRunners();
+  renderForYouRow();   // now that the full catalog is loaded, recs can pull from every game
   // Re-run if the user is searching (so results now cover the FULL catalog, not
   // just the first 600) or is on the default all-games view. resetView=false
   // keeps however many games the user already expanded via "Load more".
@@ -428,6 +430,38 @@ function renderRecentRow() {
   if (!items.length) { row.hidden = true; return; }
   row.hidden = false;
   paintGrid(grid, items);
+}
+
+// "Recommended for you" — personalized from THIS device's play history. Builds a
+// category-affinity profile (recent plays weighted higher), then surfaces the
+// most popular games you HAVEN'T played yet from the categories you play most.
+// Stays hidden until there's enough history to be meaningful, and re-renders as
+// the full catalog streams in (so the pool covers every game, not just page 1).
+function renderForYouRow() {
+  const row = $('#forYouRow'), grid = $('#forYouGrid'); if (!row || !grid) return;
+  const hist = store.history.get();
+  if (hist.length < 3) { row.hidden = true; return; }        // need a few plays first
+
+  const played = new Set(hist.map(h => h.id));
+  // Affinity: earlier entries in history are MORE recent → weight them higher.
+  const affinity = {};
+  hist.forEach((h, i) => {
+    const g = state.all.find(x => x.slug === h.id);
+    if (!g || !g.category) return;
+    affinity[g.category] = (affinity[g.category] || 0) + Math.max(1, 12 - i);
+  });
+  const favCats = Object.entries(affinity).sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]);
+  if (!favCats.length) { row.hidden = true; return; }
+
+  const catSet = new Set(favCats);
+  // Candidates: unplayed games in the favored categories, ranked by real
+  // popularity, then a light shuffle of the top slice so the row varies per visit.
+  let pool = state.all.filter(g => catSet.has(g.category) && !played.has(g.slug));
+  pool.sort((a, b) => popularityScore(b) - popularityScore(a));
+  pool = pool.slice(0, 60).sort(() => Math.random() - .5).slice(0, 18);
+  if (pool.length < 6) { row.hidden = true; return; }        // not enough to fill a row
+  row.hidden = false;
+  paintGrid(grid, pool);
 }
 
 function paintGrid(grid, items, opts = {}) {

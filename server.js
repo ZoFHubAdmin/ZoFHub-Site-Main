@@ -592,7 +592,7 @@ const COMPANION_ENGINES = [
   { id: 'nautilus',     label: 'NautilusOS',   url: (process.env.PROXY_NAUTILUS_URL     || 'http://localhost:8091/').trim() },
   { id: 'interstellar', label: 'Interstellar', url: (process.env.PROXY_INTERSTELLAR_URL || 'http://localhost:8092/').trim() },
   { id: 'daydream',     label: 'DayDream',     url: (process.env.PROXY_DAYDREAM_URL     || '').trim() },
-  { id: 'nebula',       label: 'Nebula',       url: (process.env.PROXY_NEBULA_URL       || '').trim() },
+  { id: 'nebula',       label: 'Nebula',       url: (process.env.PROXY_NEBULA_URL       || 'http://localhost:8094/').trim() },
 ].filter(e => e.url);
 
 // Origins we must allow in frame-src so the stage iframe can embed a companion.
@@ -1364,7 +1364,102 @@ function verifyScoreToken(token, slug) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-// --- POST /api/scores  { slug, name, score, token } ------------------------
+// --- Play SESSIONS: single-use, IP-bound, play-time-gated ------------------
+// The static token above only proves "the page was loaded" — a cheater could
+// open the page once and fire thousands of scores. A real submission now needs
+// a SESSION: minted per play (POST /api/scores/session, itself gated by the
+// static token), bound to the caller's IP, usable ONCE, and only after the
+// player has actually been in the game for >= MIN_PLAY_MS. That turns "curl any
+// number" into "load the page, wait, and burn a one-time token for each score"
+// — rate-limited and trivial to detect. HMAC-signed + a bounded used-nonce set.
+const SCORE_SESSIONS = new Map();                 // nonce -> { slug, ip, iat, exp }
+const SESSION_TTL_MS  = 3 * 60 * 60 * 1000;       // a session stays usable for 3h
+const MIN_PLAY_MS     = 8000;                     // must play >= 8s before a score counts
+const MAX_SESSIONS    = 20000;                    // hard memory bound
+const ipTag = (ip) => createHmac('sha256', SCORE_SECRET).update(String(ip || '')).digest('base64url').slice(0, 16);
+function issueSession(slug, ip) {
+  if (SCORE_SESSIONS.size >= MAX_SESSIONS) {       // drop expired, then oldest, to stay bounded
+    const now = Date.now();
+    for (const [k, v] of SCORE_SESSIONS) if (v.exp < now) SCORE_SESSIONS.delete(k);
+    while (SCORE_SESSIONS.size >= MAX_SESSIONS) { const k = SCORE_SESSIONS.keys().next().value; if (k === undefined) break; SCORE_SESSIONS.delete(k); }
+  }
+  const nonce = randomBytes(16).toString('base64url');
+  const iat = Date.now();
+  SCORE_SESSIONS.set(nonce, { slug, ip: ipTag(ip), iat, exp: iat + SESSION_TTL_MS });
+  const sig = createHmac('sha256', SCORE_SECRET).update(`${slug}.${nonce}.${iat}`).digest('base64url');
+  return `${nonce}.${iat}.${sig}`;
+}
+function consumeSession(token, slug, ip) {
+  if (typeof token !== 'string') return { ok: false, code: 'no-session' };
+  const p = token.split('.');
+  if (p.length !== 3) return { ok: false, code: 'bad-session' };
+  const [nonce, iatStr, sig] = p;
+  const iat = Number(iatStr);
+  const good = createHmac('sha256', SCORE_SECRET).update(`${slug}.${nonce}.${iat}`).digest('base64url');
+  const a = Buffer.from(sig), b = Buffer.from(good);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, code: 'bad-session' };
+  const s = SCORE_SESSIONS.get(nonce);
+  if (!s) return { ok: false, code: 'used' };                          // single-use (or server restarted)
+  if (s.slug !== slug || s.ip !== ipTag(ip)) return { ok: false, code: 'mismatch' };
+  if (Date.now() > s.exp) { SCORE_SESSIONS.delete(nonce); return { ok: false, code: 'expired' }; }
+  const played = Date.now() - s.iat;
+  if (played < MIN_PLAY_MS) return { ok: false, code: 'too-fast', wait: Math.ceil((MIN_PLAY_MS - played) / 1000) };
+  SCORE_SESSIONS.delete(nonce);                                        // consume
+  return { ok: true, played };
+}
+setInterval(() => { const now = Date.now(); for (const [k, v] of SCORE_SESSIONS) if (v.exp < now) SCORE_SESSIONS.delete(k); }, 10 * 60 * 1000).unref?.();
+
+// --- Per-game plausibility ceilings (data/score-limits.json) ---------------
+// Replaces the useless global 2-billion cap: any score above a game's ceiling
+// is rejected outright. Edit the JSON to tune a game as you learn its real top.
+let SCORE_LIMITS = { default: 5_000_000, perGame: {} };
+function loadScoreLimits() {
+  try {
+    const f = join(__dirname, 'data', 'score-limits.json');
+    if (!existsSync(f)) return;
+    const j = JSON.parse(readFileSync(f, 'utf8'));
+    SCORE_LIMITS = {
+      default: Number(j.default) > 0 ? Number(j.default) : 5_000_000,
+      perGame: (j.perGame && typeof j.perGame === 'object') ? j.perGame : {},
+    };
+  } catch (e) { console.warn('[scores] score-limits.json load failed:', e.message); }
+}
+loadScoreLimits();
+const scoreCeiling = (slug) => { const g = Number(SCORE_LIMITS.perGame[slug]); return Number.isFinite(g) && g > 0 ? g : SCORE_LIMITS.default; };
+
+// Outlier quarantine tuning + a one-time probe for the `status` column, so this
+// all keeps working BEFORE the user runs db/community-scores-integrity.sql
+// (quarantine simply stays off until the column exists).
+const OUTLIER_FACTOR = 6;         // a new score > 6x the current game-best ...
+const OUTLIER_BASELINE = 50;      // ... but only once the board has a real baseline
+let scoresStatusCol = null;       // null=unknown, true/false after probe
+async function ensureStatusCap(supa) {
+  if (scoresStatusCol !== null) return scoresStatusCol;
+  try {
+    const { error } = await supa.from('scores').select('status').limit(1);
+    scoresStatusCol = !error;
+    if (error) console.warn('[scores] `status` column not found — run db/community-scores-integrity.sql to enable outlier quarantine. Proof-of-play + ceilings are active regardless.');
+  } catch { scoresStatusCol = false; }
+  return scoresStatusCol;
+}
+
+// --- POST /api/scores/session  { slug, token } -----------------------------
+// Mint a one-time play session. Gated by the static per-page token so only a
+// real page-load can start one. The clock starts NOW (MIN_PLAY_MS is measured
+// from here), so the client requests this as the game begins.
+app.post('/api/scores/session', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!writeAllow(req.ip || 'unknown', 20, 1500)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
+  }
+  const b = req.body || {};
+  const slug = clean(b.slug, 80).toLowerCase();
+  if (!slug || !bySlug.has(slug)) return res.status(400).json({ ok: false, error: 'unknown game' });
+  if (!verifyScoreToken(b.token, slug)) return res.status(403).json({ ok: false, error: 'Open and play the game first.' });
+  return res.json({ ok: true, session: issueSession(slug, req.ip), minPlaySeconds: Math.ceil(MIN_PLAY_MS / 1000) });
+});
+
+// --- POST /api/scores  { slug, name, score, session } ----------------------
 app.post('/api/scores', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Scores are submitted after a game ends — generous burst, then 1 every ~4s.
@@ -1377,29 +1472,58 @@ app.post('/api/scores', async (req, res) => {
   const score = Math.max(0, Math.min(2_000_000_000, Math.floor(Number(b.score) || 0)));
   if (!slug)  return res.status(400).json({ ok: false, error: 'missing slug' });
   if (!bySlug.has(slug)) return res.status(400).json({ ok: false, error: 'unknown game' });
-  // Proof-of-play: must carry a valid token issued by THIS game's /play page.
-  if (!verifyScoreToken(b.token, slug)) {
-    return res.status(403).json({ ok: false, error: 'Open and play the game before submitting a score.' });
+
+  // Proof-of-play SESSION — single-use, IP-bound, and only after real play time.
+  const sess = consumeSession(b.session, slug, req.ip);
+  if (!sess.ok) {
+    if (sess.code === 'too-fast') return res.status(403).json({ ok: false, error: `Keep playing — scores can be submitted after ${Math.ceil(MIN_PLAY_MS / 1000)}s.`, retryAfter: sess.wait });
+    if (sess.code === 'used' || sess.code === 'expired') return res.status(409).json({ ok: false, error: 'That score session was already used — play a round and submit again.', renew: true });
+    return res.status(403).json({ ok: false, error: 'Open and play the game before submitting a score.', renew: true });
+  }
+
+  // Plausibility ceiling — reject impossible scores outright.
+  const ceiling = scoreCeiling(slug);
+  if (score > ceiling) {
+    return res.status(422).json({ ok: false, error: `That score is above this game's allowed range (max ${ceiling.toLocaleString()}).` });
   }
 
   const supa = getSupabase();
   if (!supa) return res.status(503).json({ ok: false, error: 'Leaderboard not configured.' });
+  const hasStatus = await ensureStatusCap(supa);
   try {
+    // Outlier quarantine: a wild leap past an ESTABLISHED game-best is held for
+    // review (status='flagged') instead of shown. Only active once the column
+    // exists (post-migration); harmless no-op before that.
+    let flagged = false;
+    if (hasStatus) {
+      const { data: topRow } = await supa.from('scores')
+        .select('score').eq('slug', slug).eq('status', 'ok')
+        .order('score', { ascending: false }).limit(1).maybeSingle();
+      const best = topRow?.score || 0;
+      if (best >= OUTLIER_BASELINE && score > best * OUTLIER_FACTOR) flagged = true;
+    }
+    if (flagged) {
+      const { error } = await supa.from('scores').insert({ slug, player_name: name, score, status: 'flagged', flag_reason: 'outlier' });
+      if (error) throw error;
+      return res.json({ ok: true, best: score, pending: true });
+    }
+
     // Keep ONE row per (game, player) — the player's BEST score. This stops a
     // single identity flooding the board and keeps the leaderboard clean.
-    const { data: existing, error: selErr } = await supa.from('scores')
-      .select('id, score').eq('slug', slug).eq('player_name', name)
-      .order('score', { ascending: false }).limit(1).maybeSingle();
+    let exQ = supa.from('scores').select('id, score').eq('slug', slug).eq('player_name', name);
+    if (hasStatus) exQ = exQ.eq('status', 'ok');
+    const { data: existing, error: selErr } = await exQ.order('score', { ascending: false }).limit(1).maybeSingle();
     if (selErr) throw selErr;
 
+    const patch = hasStatus ? { status: 'ok', flag_reason: null } : {};
     if (existing) {
       if (score <= existing.score) return res.json({ ok: true, best: existing.score, updated: false });
       const { error } = await supa.from('scores')
-        .update({ score, created_at: new Date().toISOString() }).eq('id', existing.id);
+        .update({ score, created_at: new Date().toISOString(), ...patch }).eq('id', existing.id);
       if (error) throw error;
       return res.json({ ok: true, best: score, updated: true });
     }
-    const { error } = await supa.from('scores').insert({ slug, player_name: name, score });
+    const { error } = await supa.from('scores').insert({ slug, player_name: name, score, ...patch });
     if (error) throw error;
     return res.json({ ok: true, best: score, created: true });
   } catch (e) {
@@ -1417,7 +1541,9 @@ app.get('/api/scores', async (req, res) => {
   const supa = getSupabase();
   if (!supa) return res.json({ scores: [], source: 'no-supabase' });
   try {
+    const hasStatus = await ensureStatusCap(supa);
     let q = supa.from('scores').select('slug, player_name, score, created_at').order('score', { ascending: false }).limit(limit);
+    if (hasStatus) q = q.eq('status', 'ok');       // hide flagged/quarantined scores from the public board
     if (slug) q = q.eq('slug', slug);
     const { data, error } = await q;
     if (error) throw error;
@@ -1747,8 +1873,25 @@ const VIBE_BUCKETS = [
     k: ['build','craft','draw','design','color','paint','decorate','merge','tycoon','city','dress','style','salon','makeover'] },
   { t: ['cute','girly','dress','fashion','makeover','pretty','princess','beauty'],
     k: ['dress','makeover','salon','fashion','princess','baby','style','hair','nail','wedding','beauty','design'] },
+  // --- Raw EMOTIONS → comforting / cathartic / energizing genres -------------
+  // (so "I feel sad" or "I'm so angry" returns fitting games instantly, without
+  //  waiting on the AI). Triggers avoid false hits like "made"/"download".
+  { t: ['sad','lonely','cry','crying','heartbroken','heartbreak','depress','unhappy','gloomy','miserable','upset','homesick','grief'],
+    k: ['bubble','match','jelly','cat','dog','pet','puppy','kitten','garden','bake','cook','color','coloring','jigsaw','farm','fish','candy','merge','zen','cozy'] },
+  { t: ['happy','joy','joyful','cheerful','excited','ecstatic','delighted','good mood','great mood','feeling good','pumped'],
+    k: ['run','jump','party','dance','color','hyper','dash','arcade','candy','bubble','pop','bounce','stack','slice'] },
+  { t: ['angry','anger','furious','rage','raging','frustrat','pissed','annoyed','irritated','mad at'],
+    k: ['smash','fight','punch','kick','boxing','shoot','shooter','war','battle','destroy','slap','ragdoll','stickman','kombat','gun','tank','crush','demolition'] },
+  { t: ['anxious','stressed','nervous','overwhelmed','worried','panic','restless','tense','can\'t sleep','cant sleep'],
+    k: ['bubble','jigsaw','coloring','color','garden','match','sort','zen','water','jelly','merge','idle','fish','puzzle','mahjong'] },
+  { t: ['energetic','hyper','wired','buzzing','hyped','amped','full of energy'],
+    k: ['run','dash','race','racing','jump','parkour','speed','bike','moto','stack','ball','flappy','helix','subway'] },
+  { t: ['romantic','love','crush','valentine','date night','couple','in love','lovey'],
+    k: ['dress','makeover','salon','wedding','princess','couple','kiss','date','style','hair','beauty','baby','love'] },
+  { t: ['nostalgic','nostalgia','retro','classic','old school','oldschool','throwback','childhood'],
+    k: ['retro','classic','arcade','pixel','snake','tetris','block','brick','pinball','bubble','pac','8'] },
 ];
-const VIBE_ALLOWED = ['racing','car','drift','parking','bike','puzzle','word','sudoku','mahjong','chess','match','jigsaw','block','merge','2048','shooting','shooter','sniper','gun','zombie','war','soccer','football','basketball','sports','golf','pool','bubble','jelly','candy','color','coloring','dress','makeover','salon','baby','cooking','bake','adventure','rpg','dragon','ninja','tower','idle','clicker','run','jump','dash','flappy','helix','stack','ball','escape','horror','survival','draw','build','craft','city','fight','battle','arcade'];
+const VIBE_ALLOWED = ['racing','car','drift','parking','bike','puzzle','word','sudoku','mahjong','chess','match','jigsaw','block','merge','2048','shooting','shooter','sniper','gun','zombie','war','soccer','football','basketball','sports','golf','pool','bubble','jelly','candy','color','coloring','dress','makeover','salon','baby','cooking','bake','adventure','rpg','dragon','ninja','tower','idle','clicker','run','jump','dash','flappy','helix','stack','ball','escape','horror','survival','draw','build','craft','city','fight','battle','arcade','smash','punch','boxing','ragdoll','stickman','tank','pet','dog','cat','dance','party','retro','pixel','snake','love','wedding','couple','garden','farm','fish','zen'];
 
 // Filler words to ignore when harvesting the user's own words as keywords.
 const VIBE_STOP = new Set(['want','something','really','feel','feeling','like','some','that','with','this','your','have','play','game','games','just','need','give','please','today','right','now','about','kind','type','mood','vibe','into','from','what','when','make','more','wanna','gonna','being']);
@@ -1846,6 +1989,48 @@ app.get('/api/categories', (req, res) => {
   // Categories change only when the catalog reloads — cache hard at the edge.
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
   res.json(cachedCategoriesPayload);
+});
+
+// ========================================================================
+// /api/game-of-the-day — ONE featured game, the SAME for everyone all day.
+// Deterministic: a hash of today's (UTC) date indexes into the popular,
+// thumbnailed games, so it rotates once per calendar day and is stable across
+// server restarts and across users (no per-visit randomness). Cached for the
+// day in-process.
+// ========================================================================
+let gotdCache = { day: '', payload: null };
+function gameOfTheDay() {
+  const day = new Date().toISOString().slice(0, 10);          // UTC YYYY-MM-DD
+  if (gotdCache.day === day && gotdCache.payload) return gotdCache.payload;
+  // Feature only games worth featuring: has a thumbnail, ranked by popularity.
+  const withThumb = CATALOG.games.filter(g => g.thumbnail || g.thumbnail_url);
+  const pool = rankByPopularity(withThumb.length ? withThumb : CATALOG.games).slice(0, 500);
+  const base = pool.length ? pool : CATALOG.games;
+  let payload = null;
+  if (base.length) {
+    // djb2-style hash of the date → a stable index for the day.
+    let h = 5381; for (let i = 0; i < day.length; i++) h = ((h * 33) ^ day.charCodeAt(i)) >>> 0;
+    const g = base[h % base.length];
+    payload = {
+      date: day,
+      game: {
+        slug: g.slug, title: g.title,
+        thumbnail: g.thumbnail || g.thumbnail_url || '',
+        category: g.category || 'arcade',
+        category_label: g.category_label || g.category || 'Arcade',
+        plays: g.plays || 0,
+      },
+    };
+  }
+  gotdCache = { day, payload };
+  return payload;
+}
+app.get('/api/game-of-the-day', (req, res) => {
+  const p = gameOfTheDay();
+  // The pick only changes at UTC midnight, so it's safe to cache a while.
+  res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=1800, stale-while-revalidate=3600');
+  if (!p) return res.json({ game: null });
+  res.json(p);
 });
 
 // ========================================================================
@@ -2003,17 +2188,22 @@ async function fetchAsBrowser(targetUrl, { ua, timeoutMs = 20_000, accept } = {}
 // serve the Y8 page through this proxy (same-origin), we can inject CSS that
 // forces the wrapper + its game iframe to fill 100% of our frame. `!important`
 // beats the inline width/height. Injected ONLY for y8.com pages.
+// High specificity (`html body …`) + `!important` so it beats the game's own CSS
+// AND the iframe's inline width/height, regardless of source order. Covers the
+// game surface whether it's a direct child of `.container`, nested deeper, or a
+// top-level `<iframe>` — and no longer keys on the inner host (some Y8 games nest
+// a gamedistribution.com iframe, which the old `src*="y8.com"` rule missed).
 const Y8_FIT_CSS = `<style id="zofhub-y8-fit">
-html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#000!important;}
-body>.container,.container{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;}
-.container>iframe,iframe[src*="storage.y8.com"],iframe[src*="cdn.y8.com"]{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;border:0!important;margin:0!important;display:block!important;}
+html body>.container,html body .container,html body div.container{position:absolute!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;}
+html body .container>iframe,html body .container iframe,html body>iframe{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;border:0!important;margin:0!important;display:block!important;}
 </style>`;
 
-// HTMLGames titles ship as a full self-scaling page (GameLib transforms
-// #gameContainer to fit). We only guarantee the viewport fills our frame — no
-// scrollbars, black letterbox — WITHOUT touching the game's own transform.
-const HTMLGAMES_FIT_CSS = `<style id="zofhub-htmlgames-fit">
-html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#000!important;}
+// Applied to EVERY proxied /embed page: fill the viewport, kill default margins &
+// scrollbars, black backdrop — so no game is offset by page chrome or shows a
+// scrollbar. (HTMLGames et al. self-scale their own container; this only frames
+// the viewport, WITHOUT touching the game's own transform.)
+const BASE_FIT_CSS = `<style id="zofhub-fit-base">
+html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;overflow:hidden!important;background:#000!important;}
 </style>`;
 
 // ---------- Embed HTML cache ----------
@@ -2086,9 +2276,9 @@ app.get('/embed/:slug', async (req, res) => {
     baseHref = upstream.pathname.endsWith('/') ? upstream.toString() : upstream.toString() + '/';
   }
 
-  // Y8 embed pages need fit-to-frame CSS (fixed 900x600 nested iframe) — see Y8_FIT_CSS.
+  // Y8 embed pages nest the game in a fixed-size <iframe> inside .container — they
+  // need the extra fill CSS (see Y8_FIT_CSS). Every /embed page also gets BASE_FIT_CSS.
   const isY8 = /(^|\.)y8\.com$/i.test(upstream.host);
-  const isHtmlGames = /(^|\.)htmlgames\.com$/i.test(upstream.host);
 
   // ?ua=N lets game-page.js force a different UA on retry (when first attempt 403/5xx'd).
   const uaPick = Math.max(0, Math.min(UA_POOL.length - 1, parseInt(req.query.ua) || 0));
@@ -2132,7 +2322,7 @@ app.get('/embed/:slug', async (req, res) => {
         html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?x-frame-options["']?[^>]*>/gi, '');
         html = html.replace(/<base[^>]*>/gi, '');
 
-        const inject = `<base href="${baseHref}">${isY8 ? Y8_FIT_CSS : ''}${isHtmlGames ? HTMLGAMES_FIT_CSS : ''}${EMBED_GUARD}`;
+        const inject = `<base href="${baseHref}">${BASE_FIT_CSS}${isY8 ? Y8_FIT_CSS : ''}${EMBED_GUARD}`;
         if (/<head[^>]*>/i.test(html))      html = html.replace(/(<head[^>]*>)/i,  `$1${inject}`);
         else if (/<html[^>]*>/i.test(html)) html = html.replace(/(<html[^>]*>)/i, `$1<head>${inject}</head>`);
         else                                html = `<!doctype html><html><head>${inject}</head><body>${html}</body></html>`;

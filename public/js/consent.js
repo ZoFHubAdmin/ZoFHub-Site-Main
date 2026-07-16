@@ -1,6 +1,7 @@
 // ZoFHub · consent.js — lightweight cookie-consent notice.
 // ---------------------------------------------------------------------------
-// Shows a one-time banner disclosing cookie use and linking the Cookie Policy.
+// Shows a one-time banner where the visitor agrees to the Terms of Service and
+// cookie use (links the Terms / Cookie / Privacy pages).
 // It records the visitor's choice in localStorage and exposes it as
 // window.ZOFHUB_CONSENT ('accepted' | 'declined') plus a 'zofhub:consent' event.
 //
@@ -87,13 +88,15 @@ function mountBanner() {
   el.setAttribute('aria-label', 'Cookie consent');
   el.innerHTML = `
     <p class="zh-consent__text">
-      We use cookies to run the site and, on some pages, to show ads.
-      See our <a href="/cookies">Cookie Policy</a> and
-      <a href="/privacy">Privacy Policy</a>.
+      By clicking <strong>Accept &amp; Play</strong> you agree to our
+      <a href="/terms">Terms of Service</a> and our use of cookies
+      (<a href="/cookies">Cookie Policy</a> · <a href="/privacy">Privacy Policy</a>).
+      Heads-up: games are loaded from other sites and may occasionally be slow or
+      need a reload.
     </p>
     <div class="zh-consent__btns">
       <button class="zh-consent__btn" data-choice="declined" type="button">Decline</button>
-      <button class="zh-consent__btn zh-consent__btn--primary" data-choice="accepted" type="button">Accept</button>
+      <button class="zh-consent__btn zh-consent__btn--primary" data-choice="accepted" type="button">Accept &amp; Play</button>
     </div>`;
   el.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-choice]');
