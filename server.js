@@ -2441,12 +2441,18 @@ app.get('/play/:gameSlug', async (req, res) => {
   // broke on the proxy build (relative assets 404'd → unstyled). Proxy on EVERY
   // build so htmlgames renders identically and correctly everywhere.
   const isHtmlGames = /(^|\.)htmlgames\.com$/.test(embedHost);
+  // Famobi games render in-frame direct, BUT their title-screen "Play" button
+  // and in-game links use target=_blank / window.open, so direct-embedded they
+  // pop the game into a NEW TAB. Route them through /embed on every build so the
+  // injected EMBED_GUARD rewrites those to same-frame navigation (in-iframe, no
+  // new tab). Verified the proxy renders Famobi identically to direct.
+  const isFamobi = /(^|\.)famobi\.com$/.test(embedHost);
   // SDK-sensitive publishers that black-screen when proxied — always DIRECT.
   const isSdkDirectOnly = /(^|\.)(gamedistribution\.com|gamemonetize\.(com|co))$/.test(embedHost);
   let iframeSrc;
   if (req.query.direct === '1')                 iframeSrc = dynamicEmbedUrl;
   else if (req.query.proxy === '1')             iframeSrc = proxySrc;
-  else if (isY8 || isHtmlGames)                 iframeSrc = proxySrc;      // need fit CSS + same-origin relative-asset resolution on every build
+  else if (isY8 || isHtmlGames || isFamobi)     iframeSrc = proxySrc;      // fit CSS + same-origin relative-asset resolution + EMBED_GUARD (no new-tab) on every build
   else if (PROXY_ENABLED && !isSdkDirectOnly)   iframeSrc = proxySrc;      // unblock build → same-origin everything safe to proxy
   else                                          iframeSrc = dynamicEmbedUrl;
 
