@@ -18,26 +18,39 @@ let companions = [];         // [{ id, label, url }] standalone browsers that ar
 // framing even when every proxy engine is blocked.
 const BASE_CHAIN = ['scramjet', 'uv', 'direct'];
 
-(async function init() {
-  // Paint an interactive UI IMMEDIATELY. Engine bring-up (service workers,
-  // Scramjet wasm, the Wisp transport) used to be awaited here, which made the
-  // whole page sit on a blank "loading forever" state if any of them was slow
-  // or blocked. None of that is needed before first paint — the default engine
-  // (GUST) is a self-contained app — so we kick it all off in the background.
-  bindUI();
-  newTab();
+// Spinning up the epoxy/Wisp tunnel (bare-mux worker + wasm) takes ~5-6s cold.
+// It's warmed in the background at page load, but we NEVER await it unbounded:
+//  • TRANSPORT_SETUP_MS — hard cap inside ensureTransport so transportReady
+//    always settles (a hung setTransport used to leave it pending forever).
+//  • TRANSPORT_WAIT_MS  — how long a proxied engine waits for the tunnel before
+//    failing over to the next engine, so a slow tunnel can't hang the load.
+const TRANSPORT_SETUP_MS = 20000;
+const TRANSPORT_WAIT_MS  = 12000;
+
+// init() is DECLARED here but INVOKED at the very bottom of this module (after all
+// const/let declarations exist), so nothing it touches is in the temporal dead
+// zone. (Running it as a top-of-file IIFE threw "Cannot access 'browserBar' before
+// initialization" and left the whole page half-initialized / spinning forever.)
+async function init() {
+  // Start the SLOW proxy bring-up FIRST (the epoxy/Wisp transport + the UV/
+  // Scramjet service workers), so it's warm by the time the user picks a proxied
+  // engine — none of it blocks first paint or is ever awaited on the UI thread.
   initBareMux();
-  transportReady = ensureTransport();           // not awaited — UV/Scramjet await it lazily
-  loadStatus().catch(() => {});                 // background: fills the status line + card badges
-  loadCompanions().catch(() => {});             // background: adds standalone-browser cards
+  transportReady = ensureTransport();           // not awaited — engines await it (bounded) lazily
   registerUVServiceWorker().catch(() => {});    // background: only needed if UV is picked
   initScramjet().catch(() => {});               // background: only needed if Scramjet is picked
+  // Paint an interactive UI immediately. The default engine (GUST) is a
+  // self-contained app that needs none of the above.
+  bindUI();
+  newTab();
+  loadStatus().catch(() => {});                 // background: fills the status line + card badges
+  loadCompanions().catch(() => {});             // background: adds standalone-browser cards
   // NOTHING auto-loads. We show the engine CHOOSER first and only load a proxy
   // when the user picks one — so arriving at /browser is instant instead of
   // hanging on a spinner while a slow engine boots. (That auto-load was the
   // "takes forever to load" problem.)
   showChooser();
-})();
+}
 
 function engineValue() { return $('#engineSelect')?.value || 'gust'; }
 function isGustMode() { return engineValue() === 'gust'; }
@@ -236,17 +249,25 @@ function initBareMux() {
 }
 
 // Configure the shared transport once.  Resolves true when traffic can flow.
+// Bounded + retried: setTransport occasionally hangs (dying worker / wasm stall),
+// which used to leave transportReady pending FOREVER and hang every proxied load.
+// We cap each attempt and retry once, so this ALWAYS settles to true/false.
 async function ensureTransport() {
   if (!bareConn) return false;
-  try {
-    const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-    const wispUrl = `${scheme}://${location.host}/wisp/`;
-    await bareConn.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]);
-    return true;
-  } catch (e) {
-    console.warn('[browser] transport setup failed:', e);
-    return false;
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  const wispUrl = `${scheme}://${location.host}/wisp/`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await Promise.race([
+        bareConn.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('transport setup timed out')), TRANSPORT_SETUP_MS)),
+      ]);
+      return true;
+    } catch (e) {
+      console.warn(`[browser] transport setup attempt ${attempt + 1} failed:`, e?.message || e);
+    }
   }
+  return false;
 }
 
 function bindUI() {
@@ -393,13 +414,25 @@ function loadGust() {
   browserBar()?.classList.remove('bar-hidden');   // show the bar (GUST shows its own note)
   setActiveEngine('gust');
   setEngineChrome('gust');
-  setLoaderCaption('Starting GUST — this can take a few seconds the first time…');
+  setLoaderCaption('Starting GUST…');
   loader.hidden = false;
-  const done = () => { loader.hidden = true; };
-  const timeout = setTimeout(done, 12000);
-  frame.onload = () => { clearTimeout(timeout); done(); };
-  frame.onerror = () => { clearTimeout(timeout); done(); toast('GUST failed to load', 'err'); };
+
+  // Hide OUR overlay as soon as GUST's own page is interactive — do NOT wait for
+  // frame.onload. GUST pulls external Google-Fonts CDN links; on a slow/blocked
+  // (school) network those never finish, so frame.onload could be delayed 10s+ and
+  // spin our loader over an ALREADY-USABLE GUST (it renders with fallback fonts +
+  // shows its own splash). /gust/ is same-origin, so we can watch its readyState.
+  let poll, cap;
+  const done = () => { clearInterval(poll); clearTimeout(cap); loader.hidden = true; };
+  frame.onload = done;
+  frame.onerror = () => { done(); toast('GUST failed to load', 'err'); };
   frame.src = '/gust/';
+  poll = setInterval(() => {
+    let ready = false;
+    try { ready = frame.contentDocument && frame.contentDocument.readyState !== 'loading'; } catch { /* not ready yet */ }
+    if (ready) done();
+  }, 150);
+  cap = setTimeout(done, 4000);   // safety cap so it can never spin indefinitely
 }
 
 function setLoaderCaption(text) { const c = $('#loaderCaption'); if (c) c.textContent = text; }
@@ -442,14 +475,21 @@ async function attemptChain(url, chain, idx) {
   loader.hidden = false;
 
   // Proxy service workers fetch through bare-mux at request time, so the shared
-  // transport must be LIVE before we set frame.src. If the Wisp tunnel is down,
-  // a proxied engine would just hang for the full timeout on EVERY engine
-  // ("loads forever") — so when the transport isn't ready, skip straight to the
-  // next engine (the chain ends at Direct, which needs no tunnel).
+  // transport must be LIVE before we set frame.src. The tunnel takes ~5-6s to
+  // warm; we wait a BOUNDED time for it (never the unbounded await that used to
+  // hang the load "forever"). If it isn't ready in time, fail over to the next
+  // engine — the chain ends at Direct, which needs no tunnel.
   if (engine !== 'direct') {
+    setLoaderCaption(`Connecting secure tunnel for ${engineLabel(engine)}…`);
     let tReady = false;
-    try { tReady = await transportReady; } catch {}
-    if (!tReady) { advance(`${engineLabel(engine)} tunnel offline`); return; }
+    try {
+      tReady = await Promise.race([
+        transportReady,
+        new Promise(r => setTimeout(() => r(false), TRANSPORT_WAIT_MS)),
+      ]);
+    } catch {}
+    if (!tReady) { advance(`${engineLabel(engine)} tunnel not ready`); return; }
+    setLoaderCaption(`Loading via ${engineLabel(engine)}…`);
   }
 
   const target = buildProxyUrl(url, engine);
@@ -484,3 +524,7 @@ function renderStart() {
   const input = $('#urlInput'); if (input) input.value = '';
   showChooser();   // "start" = the engine chooser
 }
+
+// Kick everything off — LAST, so every module-level declaration above (browserBar,
+// the caches, etc.) is fully initialized before init() touches it. No TDZ.
+init();

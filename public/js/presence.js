@@ -1,9 +1,15 @@
 // ZoFHub · presence.js
 //
 // Live "people playing now" + total visitors.  Talks to:
-//   POST /api/presence/beat   { sessionId, slug }  -- every 10s
+//   POST /api/presence/beat   { sessionId, slug }  -- every BEAT_MS; response is a
+//                                                      fresh snapshot (this is the
+//                                                      live update — no SSE needed)
 //   POST /api/presence/leave  (sendBeacon on pagehide)
-//   GET  /api/presence/stream (EventSource — snapshots every ~2.5s)
+//
+// Uses light POLLING, NOT a long-lived EventSource. A per-tab SSE holds one of the
+// browser's ~6 HTTP/1.1 connections open forever, so 7+ tabs saturated the pool and
+// starved the beats (the "count takes 8-11s to update / lags" bug). Short beats
+// release the connection between polls, so any number of tabs stay fast.
 //
 // Public API:
 //   import { presence } from './presence.js';
@@ -12,10 +18,13 @@
 //   presence.unsubscribe(fn);
 //
 // On import, presence auto-starts (single instance per tab).  Safe to import
-// from multiple modules — only one EventSource and one heartbeat are created.
+// from multiple modules — only one heartbeat is created.
 
 const SESSION_KEY = 'zofhub:sid';
-const BEAT_MS = 4_000;
+// Beat cadence. Frequent enough to feel live (the tab you're looking at also beats
+// on focus for an instant refresh), but kept well under the server's
+// PRESENCE_TTL_MS so a live session never expires between beats.
+const BEAT_MS = 2_000;
 
 function makeSessionId() {
   // 16 hex chars from crypto if available, otherwise Math.random fallback.
@@ -43,9 +52,7 @@ class Presence {
     this.slug = null;
     this.snapshot = { total: 0, games: {}, t: 0 };
     this.subs = new Set();
-    this.es = null;
     this.beatTimer = null;
-    this.reconnectAttempt = 0;
     this._wired = false;
   }
 
@@ -67,36 +74,31 @@ class Presence {
   start() {
     if (this._wired) return;
     this._wired = true;
+    // Light POLLING — a periodic beat POST that returns the current snapshot. We
+    // deliberately do NOT hold a long-lived SSE/EventSource: a per-tab stream keeps
+    // one of the browser's ~6 HTTP/1.1 connections-per-origin open forever, so 7+
+    // tabs saturated the pool and STARVED these very beats (that was the "count
+    // takes 8-11s to update" bug). Short beats release the connection between polls,
+    // so ANY number of tabs stay fast, and the tab you're looking at updates
+    // instantly from its OWN beat response (below).
     this._beat();
     this.beatTimer = setInterval(() => this._beat(), BEAT_MS);
-    this._connectSSE();
-    // Leave promptly on page hide.
-    window.addEventListener('pagehide', () => this._leave(), { capture: true });
+    // Refresh instantly whenever the tab regains focus (switching to it, alt-tab…).
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') this._beat();
     });
+    // Drop out of the count the moment the tab closes (beacon) so others see it fast.
+    window.addEventListener('pagehide', () => this._leave(), { capture: true });
   }
 
-  _connectSSE() {
-    try { this.es?.close(); } catch {}
-    const es = new EventSource('/api/presence/stream');
-    this.es = es;
-    es.onopen = () => { this.reconnectAttempt = 0; };
-    es.onmessage = (ev) => {
-      try {
-        const snap = JSON.parse(ev.data);
-        this.snapshot = snap;
-        for (const fn of this.subs) { try { fn(snap); } catch (e) { console.warn('[presence] sub error:', e); } }
-      } catch {}
-    };
-    es.onerror = () => {
-      // Browser auto-reconnects, but if the connection truly broke we add a backoff.
-      this.reconnectAttempt++;
-      if (this.reconnectAttempt > 5) {
-        try { es.close(); } catch {}
-        setTimeout(() => this._connectSSE(), Math.min(30_000, 1000 * 2 ** this.reconnectAttempt));
-      }
-    };
+  // Apply a snapshot (from a beat response) and notify subscribers. Ignores
+  // anything malformed or older than what we already have, so an out-of-order
+  // response (two beats in flight) can never make the count flicker backwards.
+  _applySnapshot(snap) {
+    if (!snap || typeof snap.total !== 'number') return;
+    if (typeof snap.t === 'number' && typeof this.snapshot.t === 'number' && snap.t < this.snapshot.t) return;
+    this.snapshot = snap;
+    for (const fn of this.subs) { try { fn(snap); } catch (e) { console.warn('[presence] sub error:', e); } }
   }
 
   async _beat() {
@@ -107,14 +109,7 @@ class Presence {
         body: JSON.stringify({ sessionId: this.sid, slug: this.slug }),
         keepalive: true
       });
-      if (r.ok) {
-        // Use the immediate response in case the SSE hasn't tick'd yet.
-        const snap = await r.json();
-        if (snap && typeof snap.total === 'number') {
-          this.snapshot = snap;
-          for (const fn of this.subs) { try { fn(snap); } catch {} }
-        }
-      }
+      if (r.ok) this._applySnapshot(await r.json());   // the response carries the live snapshot
     } catch {}
   }
 

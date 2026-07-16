@@ -6,7 +6,7 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { exec } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -147,6 +147,42 @@ function normalizeRuntimeEntry(g) {
   };
 }
 
+// Bulk sources (finalgames.json) label categories in free display form
+// ("Puzzle & Logic", "Puzzles", ".Io", "Sports & Racing") which — after a plain
+// lowercase — would fragment the nav into several near-duplicate pages. Collapse
+// them into the app's canonical slug set (the same slugs the curated catalog
+// uses: puzzle-logic / io-games / sports-racing …). Idempotent: a slug that is
+// already canonical maps to itself.
+const CATEGORY_ALIASES = {
+  'puzzles': 'puzzle',
+  'puzzle-and-logic': 'puzzle-logic',
+  'sports-and-racing': 'sports-racing',
+  'io': 'io-games',
+  'card-games': 'card',
+  'hidden-object-games': 'puzzle',
+  'hidden-object': 'puzzle',
+  'car': 'racing',
+  'cars': 'racing',
+  'traffic': 'racing',
+  'bike': 'racing',
+  'board': 'strategy',
+  'sandbox': 'simulator',
+  'training': 'arcade',
+  'music': 'arcade',
+  'horror': 'adventure',
+  'observation': 'puzzle',
+  'tripeaks-and-golf': 'card',
+  'pyramid': 'card',
+  'other': 'arcade',
+};
+function canonCategory(raw) {
+  const c = String(raw || 'arcade').toLowerCase().trim()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'arcade';
+  return CATEGORY_ALIASES[c] || c;
+}
+
 function loadCatalog() {
   // Primary source: api/games.json (built by build-curated.mjs from data/top_games.json).
   let games = [];
@@ -181,10 +217,64 @@ function loadCatalog() {
     }
   }
 
+  // NOTE: finalgames.json (the large master catalog at the repo root) is merged
+  // separately inside setCatalog(), so its games are added no matter whether the
+  // catalog came from these bundled files OR from Supabase (which replaces the
+  // bundled set ~2s after boot). See mergeFinalGames().
   const source = aiAdded > 0
     ? `bundled (${games.length}, +${aiAdded} from ai_gaming_hub_final.json)`
     : `bundled (${games.length})`;
   setCatalog(games, source);
+}
+
+// finalgames.json — the large master catalog at the repo root. Parsed + normalized
+// ONCE and cached (hot-reloads when the file's mtime changes), so replacing the
+// file just works with no build step. De-duped within itself by slug.
+let _finalGamesCache = { mtime: -1, games: [] };
+function loadFinalGames() {
+  const file = join(__dirname, 'finalgames.json');
+  try {
+    if (!existsSync(file)) { _finalGamesCache = { mtime: 0, games: [] }; return _finalGamesCache.games; }
+    const mt = statSync(file).mtimeMs;
+    if (mt === _finalGamesCache.mtime) return _finalGamesCache.games;
+    const raw = JSON.parse(readFileSync(file, 'utf8'));
+    const list = Array.isArray(raw) ? raw : (raw.games || []);
+    const seen = new Set();
+    const out = [];
+    for (const entry of list) {
+      const norm = normalizeRuntimeEntry(entry);
+      if (!norm || seen.has(norm.slug)) continue;
+      norm.category = canonCategory(norm.category);
+      seen.add(norm.slug);
+      out.push(norm);
+    }
+    _finalGamesCache = { mtime: mt, games: out };
+    console.log(`[zofhub] finalgames.json: ${out.length} unique games loaded.`);
+  } catch (e) {
+    console.warn('[zofhub] finalgames.json read failed (skipping):', e.message);
+  }
+  return _finalGamesCache.games;
+}
+
+// Append every finalgames entry whose slug isn't already present. Runs against
+// WHATEVER catalog is being installed (bundled OR Supabase), so finalgames' games
+// always appear. The installed catalog wins on slug conflict (it carries richer
+// metadata / flags); finalgames only fills gaps. Licensing removals still run
+// afterward in applyCatalogOverrides, so hidden hosts (HTMLGames/Gamezop/…) never
+// survive — they're added here and dropped there, netting zero.
+function mergeFinalGames(games) {
+  const extra = loadFinalGames();
+  if (!extra.length) return games;
+  const present = new Set(games.map(g => g.slug));
+  let added = 0;
+  for (const g of extra) {
+    if (present.has(g.slug)) continue;
+    games.push({ ...g });
+    present.add(g.slug);
+    added++;
+  }
+  if (added) console.log(`[zofhub] +${added} game(s) merged from finalgames.json`);
+  return games;
 }
 
 // Replace the live catalog + rebuild the slug/category indexes. Shared by the
@@ -215,6 +305,9 @@ function spreadCatalog(games) {
 }
 
 function setCatalog(games, source) {
+  // Merge in finalgames.json (the repo-root master list) FIRST, so its games are
+  // present whether this catalog came from the bundled JSON or from Supabase.
+  games = mergeFinalGames(games);
   // Apply in-repo display overrides (rename/re-thumbnail/hide) BEFORE indexing,
   // so the homepage grid, category pages, /play, search and counts are all
   // consistent — no DB write required. See lib/catalog-overrides.mjs.
@@ -228,7 +321,11 @@ function setCatalog(games, source) {
     if (g.slug) bySlug.set(g.slug, g);
     // Re-attach the live play count (catalog objects are rebuilt each refresh).
     g.plays = playCounts.get(g.slug) || 0;
-    const cat = (g.category || 'arcade').toLowerCase();
+    // Canonicalize every game's category here (one place for ALL sources) so the
+    // nav never fragments into near-duplicate pages (e.g. "car"/"traffic" → racing,
+    // "card games" → card) regardless of whether it came from Supabase or a file.
+    const cat = canonCategory(g.category);
+    g.category = cat;
     if (!byCategory.has(cat)) byCategory.set(cat, []);
     byCategory.get(cat).push(g);
     const plat = g.platform ? g.platform.toLowerCase() : null;
@@ -549,7 +646,19 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 // Only compress responses larger than 2KB — smaller payloads get bigger when compressed.
-app.use(compression({ level: 6, threshold: 2048 }));
+// NEVER compress Server-Sent Events: gzip buffers each tiny `data:` frame instead of
+// flushing it, so the live presence stream would arrive in delayed BATCHES (that was
+// the "online count takes 8-11s to update / flickers" bug). The filter runs on the
+// first write, by which point the SSE handler has set Content-Type: text/event-stream.
+app.use(compression({
+  level: 6,
+  threshold: 2048,
+  filter: (req, res) => {
+    const type = res.getHeader('Content-Type');
+    if (typeof type === 'string' && type.includes('text/event-stream')) return false;
+    return compression.filter(req, res);
+  }
+}));
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
@@ -1327,18 +1436,19 @@ app.get('/api/scores', async (req, res) => {
 // posted a heartbeat in the last PRESENCE_TTL_MS milliseconds.  Sessions
 // expire automatically; a sweep runs every PRESENCE_SWEEP_MS.
 //
-// Tuned aggressive so the UI feels live: beat every 4s, expire at 9s,
-// broadcast every 1.2s, sweep every 1.5s.  When a session changes slug or
-// leaves, we ALSO broadcast immediately (out of band of the periodic tick)
-// so other clients see the change in <50ms instead of waiting for the next
-// scheduled broadcast.
+// The client POLLS: it beats every ~2s and the beat RESPONSE is a fresh snapshot,
+// which is the live-update path (see public/js/presence.js). We keep a TTL of 8s
+// (4× the beat) so a live session can never expire between beats; the TTL is just
+// the backstop for a MISSED leave beacon (crash / network drop) — a normal
+// tab-close drops instantly via the leave beacon.
 //
-// Client flow (see public/js/presence.js):
-//   - On any page: POST /api/presence/beat every 4s with {sessionId, slug?}
-//   - Subscribe to GET /api/presence/stream (SSE) to receive snapshots.
-//   - On pagehide, navigator.sendBeacon a {action:'leave'} so counts drop fast.
+// NOTE: the SSE endpoint below (/api/presence/stream + presenceBroadcast) still
+// exists but is no longer used by the bundled client — per-tab SSE saturated the
+// browser's 6-connections-per-origin limit and starved these very POSTs (the
+// "count takes 8-11s to update" bug), so the client switched to polling. Kept as a
+// harmless no-op (sseClients stays empty) for any external/future consumer.
 // ========================================================================
-const PRESENCE_TTL_MS       = 9_000;
+const PRESENCE_TTL_MS       = 8_000;
 const PRESENCE_SWEEP_MS     = 1_500;
 const PRESENCE_BROADCAST_MS = 1_200;
 const PRESENCE_MAX_SESSIONS = 20_000;
@@ -1375,7 +1485,9 @@ function presenceBroadcast() {
   if (sseClients.size === 0) return;
   const snap = presenceSnapshot();
   const payload = `data: ${JSON.stringify(snap)}\n\n`;
-  for (const res of sseClients) { try { res.write(payload); } catch {} }
+  // res.flush() forces the bytes out NOW (belt-and-suspenders vs any buffering
+  // layer); the compression filter above already skips event-streams.
+  for (const res of sseClients) { try { res.write(payload); res.flush?.(); } catch {} }
 }
 
 setInterval(() => { presenceSweep(); presenceBroadcast(); }, PRESENCE_SWEEP_MS).unref();
@@ -1416,15 +1528,18 @@ app.post('/api/presence/beat', (req, res) => {
   res.json(presenceSnapshot());
 });
 
-// Same endpoint over text/plain so navigator.sendBeacon works on page-hide.
+// sendBeacon on page-hide hits this. The beacon's Blob type is application/json,
+// so the GLOBAL express.json() has usually ALREADY parsed req.body into an object
+// by the time we get here — the express.text() below then no-ops. So accept BOTH:
+// an already-parsed object OR a raw string. (The old code did JSON.parse() on the
+// object, which threw → the session was never deleted → leaves only dropped via
+// the 8s TTL. THAT was the "count takes ~11s to show 1 after closing tabs" bug.)
 app.post('/api/presence/leave', express.text({ type: '*/*', limit: '4kb' }), (req, res) => {
-  try {
-    const body = JSON.parse(req.body || '{}');
-    if (body.sessionId && presence.has(body.sessionId)) {
-      presence.delete(body.sessionId);
-      broadcastSoon();
-    }
-  } catch {}
+  let sessionId;
+  const b = req.body;
+  if (b && typeof b === 'object') sessionId = b.sessionId;
+  else { try { sessionId = JSON.parse(b || '{}').sessionId; } catch {} }
+  if (sessionId && presence.has(sessionId)) { presence.delete(sessionId); broadcastSoon(); }
   res.status(204).end();
 });
 
@@ -1440,6 +1555,7 @@ app.get('/api/presence/stream', (req, res) => {
   res.flushHeaders?.();
   res.write(`retry: 3000\n\n`);
   res.write(`data: ${JSON.stringify(presenceSnapshot())}\n\n`);
+  res.flush?.();
   sseClients.add(res);
   req.on('close', () => { sseClients.delete(res); });
 });

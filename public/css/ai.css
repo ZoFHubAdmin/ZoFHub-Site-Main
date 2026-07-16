@@ -228,6 +228,19 @@
 .ai-image-cap { margin-top: 8px; font-size: 12.5px; color: var(--text-mute, #9b93c4); font-style: italic; }
 .ai-image-err { padding: 24px; border-radius: 14px; background: rgba(239,68,68,.12); color: #fca5a5; font-size: 13px; }
 
+/* /image generating state — reuses .ai-image's footprint so there's no layout shift. */
+.ai-image-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  color: var(--text-mute, #9b93c4); font-size: 12.5px; letter-spacing: .02em;
+}
+.ai-spin {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.14); border-top-color: var(--accent, #8b5cf6);
+  animation: ai-spin .8s linear infinite;
+}
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ai-spin { animation-duration: 2.4s; } }
+
 /* ---- Web search results (/search) ---- */
 .ai-results { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
 .ai-results-head { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-mute, #9b93c4); margin-bottom: 2px; }
