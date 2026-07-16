@@ -75,16 +75,15 @@ mountLiveTotal();
 
 // ════════════════════════════════════════════════════════════════════════
 // Social links — Discord + GitHub only.
-// Icons served from /assets/social/ (discord.svg + github.svg, both white so they
-// read on the dark bar). If you later drop in a branded discord_icon.png, point
-// `icon` at it and set `fallback` to the SVG — the <img> onerror swaps once.
-// 👉 TODO: paste your Discord invite URL into the Discord `href` below once the
-//    server exists (replace the YOUR-INVITE placeholder).
+// Brand social links — INTENTIONALLY EMPTY until each points somewhere REAL:
+//   • a placeholder/dead link (discord.gg/YOUR-INVITE) just looks broken, and
+//   • a GitHub link to a PRIVATE repo 404s for every visitor AND advertises your
+//     account — zero audience upside, pure anonymity leak.
+// When you have PSEUDONYMOUS brand accounts, add them here, e.g.:
+//   { name: 'Discord', href: 'https://discord.gg/REAL-INVITE', icon: '/assets/social/discord.svg' },
+//   { name: 'TikTok',  href: 'https://www.tiktok.com/@zofhub',  icon: '/assets/social/tiktok.svg' },
 // ════════════════════════════════════════════════════════════════════════
-const SOCIALS = [
-  { name: 'Discord', href: 'https://discord.gg/YOUR-INVITE', icon: '/assets/social/discord.svg?v=20260720' },
-  { name: 'GitHub',  href: 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub', icon: '/assets/social/github.svg' },
-];
+const SOCIALS = [];
 // Shared builder for a row of social icon links (reused by header + footer).
 function buildSocialCluster(className, size = 20) {
   const wrap = document.createElement('div');
@@ -114,7 +113,6 @@ function mountFooter() {
   if (!footer || footer.dataset.enhanced) return;
   footer.dataset.enhanced = '1';
   const year = new Date().getFullYear();
-  const REPO = 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub';
   footer.innerHTML = `
     <div class="footer-main">
       <div class="footer-brand">
@@ -140,12 +138,6 @@ function mountFooter() {
         <a href="/browser">Proxy Browser</a>
         <a href="/api/health" target="_blank" rel="noopener">Status</a>
       </nav>
-      <nav class="footer-col" aria-label="Project">
-        <h4>Project</h4>
-        <a href="${REPO}" target="_blank" rel="noopener">GitHub</a>
-        <a href="${REPO}/blob/main/README.md" target="_blank" rel="noopener">About</a>
-        <a href="${REPO}/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
-      </nav>
       <nav class="footer-col" aria-label="Legal">
         <h4>Legal</h4>
         <a href="/privacy">Privacy Policy</a>
@@ -157,9 +149,11 @@ function mountFooter() {
     <div class="footer-bottom">
       <span class="footer-copy">© ${year} ZoFHub · Personal &amp; non-commercial use only.</span>
     </div>`;
-  // Social cluster sits under the brand blurb; bottom bar gets a mirror on desktop.
-  footer.querySelector('.footer-brand')?.appendChild(buildSocialCluster('footer-social'));
-  footer.querySelector('.footer-bottom')?.appendChild(buildSocialCluster('footer-social footer-social-mini', 18));
+  // Social cluster — only when there are REAL socials to show (no empty gaps).
+  if (SOCIALS.length) {
+    footer.querySelector('.footer-brand')?.appendChild(buildSocialCluster('footer-social'));
+    footer.querySelector('.footer-bottom')?.appendChild(buildSocialCluster('footer-social footer-social-mini', 18));
+  }
 }
 mountFooter();
 
@@ -167,7 +161,7 @@ mountFooter();
 // so visitors never have to scroll to the footer to find/follow us.
 function mountHeaderSocial() {
   const header = document.querySelector('.header-inner');
-  if (!header || header.querySelector('.header-social')) return;
+  if (!header || !SOCIALS.length || header.querySelector('.header-social')) return;
   header.appendChild(buildSocialCluster('header-social', 18));
 }
 mountHeaderSocial();
