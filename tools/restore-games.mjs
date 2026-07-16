@@ -19,7 +19,11 @@ import { isTrademarkTitle } from '../lib/cron-jobs.mjs';   // same trademark blo
 
 const DRY = process.argv.includes('--dry-run');
 
-const slugify = t => (t || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+// Slug formula MUST match the server (normalizeRuntimeEntry) + the migrate tool:
+// NFKD-fold accents and cap at 80 chars, so a game gets the SAME slug no matter
+// which loader inserted it (otherwise accented/long titles land under two slugs
+// = duplicate rows the server can't reconcile).
+const slugify = t => (t || '').toString().toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 const isUrl   = u => typeof u === 'string' && /^https?:\/\//i.test(u);
 const readJson = p => { try { return JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')); } catch { return null; } };
 const asArray  = d => Array.isArray(d) ? d : (d && (d.games || d.gamesFlat || d.data || d.items || d.results)) || [];
@@ -48,6 +52,10 @@ const SOURCES = [
   ['everygame.json',         'other'],
   ['somethingrandom.json',   'other'],
   ['data/top_games.json',    'other'],
+  // The cleaned master catalog the live site serves. Listed last (lowest
+  // priority) so the authoritative export/api/y8 rows win on any slug tie;
+  // finalgames only fills in games the other sources don't have.
+  ['finalgames.json',        'other'],
 ];
 
 const bySlug = new Map();
