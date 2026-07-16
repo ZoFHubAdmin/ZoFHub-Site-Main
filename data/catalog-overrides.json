@@ -382,12 +382,8 @@
       "hostIncludes": "play.gamezop.com"
     },
     {
-      "_note": "licensing: removed OnlineGames.io - DISABLED to allow games to load",
-      "hostIncludes": "onlinegames.io.disabled"
-    },
-    {
-      "_note": "Broken embedded 2026-07-11: cloud.onlinegames.io is an S3 bucket that returns \"Access Denied\" when framed on any non-onlinegames domain (confirmed in-browser) — the games black-screen / show a Unity JS error. Block them at serve time.",
-      "hostIncludes": "cloud.onlinegames.io"
+      "_note": "Broken embedded 2026-07-11 (user-approved full-host block): onlinegames.io games (www + cloud) black-screen / throw the Unity \"couldn’t load the content\" error when framed on ZoFHub (cloud S3 returns Access Denied; www old-Unity builds ORB-block their assets; the /embed proxy hangs on them). Block the whole host.",
+      "hostIncludes": "onlinegames.io"
     },
     {
       "_note": "HIDDEN 2026-07-04: HTMLGames' on-page GameLib/ThirdParty.js frame-busts to about:blank / shows 'Internet allowance is over' on any UNLICENSED domain, so the ~1,200 titles load broken. Hidden at serve time until a licensed HTMLGames publisher account + licensed embed URLs are wired in. To bring back: append '.disabled' to the host below again.",
