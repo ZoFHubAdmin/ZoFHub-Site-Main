@@ -1999,18 +1999,32 @@ app.get('/api/categories', (req, res) => {
 // day in-process.
 // ========================================================================
 let gotdCache = { day: '', payload: null };
+const hashStr = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h; };
 function gameOfTheDay() {
   const day = new Date().toISOString().slice(0, 10);          // UTC YYYY-MM-DD
   if (gotdCache.day === day && gotdCache.payload) return gotdCache.payload;
-  // Feature only games worth featuring: has a thumbnail, ranked by popularity.
+  // Feature only games worth featuring: has a thumbnail.
   const withThumb = CATALOG.games.filter(g => g.thumbnail || g.thumbnail_url);
-  const pool = rankByPopularity(withThumb.length ? withThumb : CATALOG.games).slice(0, 500);
-  const base = pool.length ? pool : CATALOG.games;
+  // Privacy-preserving analytics: bias the feature toward the GENRES visitors
+  // actually play most. Aggregate play counts per category (no personal data,
+  // just totals), rotate deterministically among the top genres for the day,
+  // then pick a popular game in that genre — so the daily feature tracks real
+  // demand while staying stable + identical for everyone.
+  let base = [];
+  if (withThumb.length) {
+    const genrePlays = new Map();
+    for (const g of withThumb) { const c = g.category || 'arcade'; genrePlays.set(c, (genrePlays.get(c) || 0) + (g.plays || 0)); }
+    const topGenres = [...genrePlays.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c).slice(0, 8);
+    if (topGenres.length) {
+      const genre = topGenres[hashStr(day) % topGenres.length];
+      base = rankByPopularity(withThumb.filter(g => (g.category || 'arcade') === genre)).slice(0, 120);
+    }
+    if (!base.length) base = rankByPopularity(withThumb).slice(0, 500);
+  }
+  if (!base.length) base = CATALOG.games;
   let payload = null;
   if (base.length) {
-    // djb2-style hash of the date → a stable index for the day.
-    let h = 5381; for (let i = 0; i < day.length; i++) h = ((h * 33) ^ day.charCodeAt(i)) >>> 0;
-    const g = base[h % base.length];
+    const g = base[hashStr(day + '|game') % base.length];
     payload = {
       date: day,
       game: {

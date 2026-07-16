@@ -64,6 +64,30 @@ function buildContext() {
   return [{ role: 'system', content: SYSTEM }, ...history];
 }
 
+// ---- Client-side answer cache (localStorage) --------------------------------
+// Before hitting Pollinations, check if we've already answered this exact
+// standalone question on THIS device. Hit → instant, zero network. Miss → fetch,
+// then store. Bounded so it can't grow forever. Stays entirely on-device (no
+// server, no personal data) — matches the "private, local-first" model.
+const AI_CACHE_KEY = 'zofhub:ai:cache:v1';
+const AI_CACHE_MAX = 200;
+const normQ = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+function aiCacheGet(q) {
+  if (!q || q.length < 12) return null;                 // skip short/contextual messages
+  try { return (JSON.parse(localStorage.getItem(AI_CACHE_KEY) || '{}'))[normQ(q)] || null; }
+  catch { return null; }
+}
+function aiCacheSet(q, answer) {
+  if (!q || q.length < 12 || !answer) return;
+  try {
+    const m = JSON.parse(localStorage.getItem(AI_CACHE_KEY) || '{}');
+    m[normQ(q)] = answer;
+    const keys = Object.keys(m);
+    if (keys.length > AI_CACHE_MAX) delete m[keys[0]];  // evict oldest to stay bounded
+    localStorage.setItem(AI_CACHE_KEY, JSON.stringify(m));
+  } catch { /* storage full/blocked → just skip caching */ }
+}
+
 async function respond() {
   composing = true;
   setSendBusy(true);
@@ -81,6 +105,13 @@ async function respond() {
 
   const messages = buildContext();
 
+  // 0) Instant answer from THIS DEVICE's cache — if we've answered this exact
+  //    standalone question before, show it with zero network calls. Only for a
+  //    first/standalone turn (follow-ups depend on context, so never cache-serve).
+  const userTurns = current.messages.filter(m => m.role === 'user').length;
+  const cachedAnswer = userTurns <= 1 ? aiCacheGet(userMsg) : null;
+  if (cachedAnswer) { setStatus('Answered instantly from this device'); return done(reply, cachedAnswer, false); }
+
   // 1) pollTextStream calls Pollinations DIRECTLY from this device and STREAMS the
   //    reply token-by-token (first words show in ~1-2s). It retries across several
   //    BROWSER-DIRECT routes (no server) before giving up. onToken renders live.
@@ -89,6 +120,7 @@ async function respond() {
       onStatus: setStatus,
       onToken: (partial) => { reply.content = partial; reply.streaming = true; render(); },
     });
+    if (userTurns <= 1) aiCacheSet(userMsg, text);       // remember standalone Q→A for instant repeats
     return done(reply, text, false);
   } catch (e) {
     console.warn('[ai] online AI unavailable:', e?.message || e);
