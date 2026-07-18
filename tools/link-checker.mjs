@@ -9,6 +9,7 @@
 //   - Render free cron (15 min minimum, free)
 //   - Just run it manually:  node tools/link-checker.mjs
 
+import '../lib/load-env.mjs';   // MUST be first — loads .env so getSupabase() sees your creds
 import { runLinkCheck } from '../lib/link-checker.mjs';
 
 (async () => {

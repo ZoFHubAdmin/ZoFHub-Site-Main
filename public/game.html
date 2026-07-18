@@ -11,6 +11,16 @@
   <!-- Proof-of-play token: required to submit a leaderboard score for this game. -->
   <meta name="score-token" content="{{SCORE_TOKEN}}" />
   <title>{{TITLE}} · ZoFHub</title>
+  <!-- Open Graph / social share (per-game) -->
+  <meta property="og:site_name" content="ZoFHub" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{TITLE}} · ZoFHub" />
+  <meta property="og:description" content="Play {{TITLE}} on ZoFHub — free, instant, no signup." />
+  <meta property="og:image" content="{{OG_IMAGE}}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{TITLE}} · ZoFHub" />
+  <meta name="twitter:image" content="{{OG_IMAGE}}" />
+
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <link rel="apple-touch-icon" href="/assets/favicon.png" />
   <!-- Open TCP+TLS to the publisher CDN in parallel with the rest of this page
@@ -207,7 +217,7 @@
   </footer>
 
   <script>window.ZOFHUB_GAME = { slug: "{{SLUG}}", title: "{{TITLE}}", category: "{{CATEGORY}}", upstream: "{{UPSTREAM_URL}}", iframeSrc: "{{IFRAME_SRC}}", proxyUrl: "{{PROXY_URL}}", thumbnail: "{{THUMBNAIL}}", directOnly: {{DIRECT_ONLY}} };</script>
-  <script type="module" src="/js/layout.js?v=20260716"></script>
+  <script type="module" src="/js/layout.js?v=20260716c"></script>
   <script type="module" src="/js/panic.js?v=20260720"></script>
   <!-- iframe-loader-optimized.js is imported by game-page.js — no separate tag needed. -->
   <script type="module" src="/js/game-page.js?v=20260713"></script>

@@ -1,0 +1,128 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: #0b1020;
+  color: #eaf0ff;
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  min-height: 100vh;
+}
+
+/* -------------------------------------------------------------------------
+ * Layout: the game stays centered; ad rails flank it and a leaderboard sits
+ * underneath. Rails reserve fixed space (no layout shift) and hide on screens
+ * too narrow to fit them, so the game view is never clipped.
+ * ------------------------------------------------------------------------- */
+.md-shell {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+}
+
+.md-ad { flex: 0 0 auto; }
+.md-ad ins { display: inline-block; }
+.md-ad-left,
+.md-ad-right { width: 160px; min-height: 600px; }
+
+.md-ad-bottom {
+  max-width: 1024px;
+  min-height: 90px;
+  margin: 0 auto 24px;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.md-stage {
+  position: relative;        /* anchor for the modal + score overlays */
+  flex: 0 1 1024px;
+  width: 100%;
+  max-width: 1024px;
+}
+
+/* Canvas: centered, responsive, locked to the original 1024:800 ratio.
+   draw.js already calls resizeCanvasToDisplaySize() each frame, so the WebGL
+   buffer follows this displayed size and stays crisp at any width. */
+#glcanvas {
+  display: block;
+  width: 100%;
+  max-width: 1024px;
+  height: auto;
+  aspect-ratio: 1024 / 800;
+  margin: 0 auto;
+  background: #000;
+  touch-action: none;        /* let the swipe handlers own touch gestures */
+}
+
+/* Drop the side rails when there isn't room for canvas + both rails. */
+@media (max-width: 1380px) {
+  .md-ad-left,
+  .md-ad-right { display: none; }
+}
+
+/* ---- Score ---- */
+.score {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: none;
+  z-index: 2;
+}
+.score_box {
+  min-width: 110px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #0b1020;
+  text-align: center;
+  border-radius: 8px;
+}
+.score_box h1 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.score_box h2 { margin: 2px 0 0; font-size: 26px; }
+
+/* ---- Modal (start / game over) ---- */
+.modal {
+  display: none;             /* JS toggles to flex */
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.modal-content {
+  min-width: 260px;
+  padding: 24px 28px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0b1020;
+  border-radius: 14px;
+  text-align: center;
+  animation: animatetop 0.6s ease;
+}
+.modal-header p {
+  font-weight: 800;
+  color: #0b1020;
+  font-size: 30px;
+  margin: 6px 0;
+}
+/* The "start" control rendered as a play triangle */
+.modal-footer {
+  width: 0;
+  height: 0;
+  border-top: 22px solid transparent;
+  border-bottom: 22px solid transparent;
+  border-left: 40px solid #0b1020;
+  margin: 14px auto 4px;
+}
+.play_again { color: #1565ff !important; }
+
+@keyframes animatetop {
+  from { transform: translateY(-40px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}

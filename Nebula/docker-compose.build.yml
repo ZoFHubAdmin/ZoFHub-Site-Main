@@ -1,0 +1,32 @@
+services:
+  nebula:
+    image: motortruck1221/nebula:latest
+    container_name: nebula
+    build: .
+    restart: unless-stopped
+    ports:
+      # HOST:CONTAINER (DO NOT CHANGE THE CONTAINER PORT, UNLESS EDITED IN THE config.toml FILE)
+      - 8080:8080
+    volumes:
+      - ./config.toml:/app/config.toml
+  nebula-2:
+    image: motortruck1221/nebula:9.1.4
+    container_name: nebula
+    build: .
+    restart: unless-stopped
+    ports:
+      # HOST:CONTAINER (DO NOT CHANGE THE CONTAINER PORT, UNLESS EDITED IN THE config.toml FILE)
+      - 8080:8080
+    volumes:
+      - ./config.toml:/app/config.toml
+
+# Uncomment the the below stuff to use POSTGRES!
+#  db:
+#    image: postgres
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_PASSWORD: password #CHANGE THIS
+#      POSTGRES_USER: username
+#      POSTGRES_DB: db
+#    volumes:
+#      - ./db:/var/lib/postgresql/data

@@ -1,15 +1,12 @@
 {
-  "lastGrowAt": 1782934202842,
+  "lastGrowAt": 1784086202040,
   "totalAdded": 30,
   "lastStats": {
-    "pool": 11060,
-    "fresh": 298,
-    "tested": 36,
-    "verified": 35,
-    "inserted": 30,
-    "rejects": {
-      "http-403": 1
-    },
-    "eligible": 30
+    "pool": 12016,
+    "fresh": 0,
+    "tested": 0,
+    "verified": 0,
+    "inserted": 0,
+    "rejects": {}
   }
 }

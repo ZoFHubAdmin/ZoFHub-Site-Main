@@ -47,6 +47,12 @@ class OptimizedIframeLoader {
     this.preflightDone = false;
     this.abortController = null;
     
+    // Bind ONCE so addEventListener and removeEventListener reference the SAME
+    // function object. `this.onLoad.bind(this)` creates a NEW function each call,
+    // so the old destroy() removed nothing (a real, if latent, listener leak).
+    this._onLoad = this.onLoad.bind(this);
+    this._onError = this.onError.bind(this);
+
     this.stages = this.buildStages();
     this.init();
   }
@@ -73,9 +79,9 @@ class OptimizedIframeLoader {
     // Add preconnect/preload for faster loading
     this.addResourceHints();
     
-    // Set up event listeners
-    this.frame.addEventListener('load', this.onLoad.bind(this));
-    this.frame.addEventListener('error', this.onError.bind(this));
+    // Set up event listeners (stable bound refs — see constructor)
+    this.frame.addEventListener('load', this._onLoad);
+    this.frame.addEventListener('error', this._onError);
     
     // Start loading
     this.startLoad();
@@ -385,8 +391,8 @@ class OptimizedIframeLoader {
 
   destroy() {
     this.clearTimers();
-    this.frame?.removeEventListener('load', this.onLoad.bind(this));
-    this.frame?.removeEventListener('error', this.onError.bind(this));
+    this.frame?.removeEventListener('load', this._onLoad);
+    this.frame?.removeEventListener('error', this._onError);
     
     // Clean up resource hints
     document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach(link => {

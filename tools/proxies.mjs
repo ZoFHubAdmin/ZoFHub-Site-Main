@@ -2,12 +2,12 @@
 //
 //   npm run proxies
 //
-// Eduame embeds Ultraviolet, Scramjet and GUST directly (same origin).  The
+// ZoFHub embeds Ultraviolet, Scramjet and GUST directly (same origin).  The
 // other open-source proxy browsers the project ships — NautilusOS, Interstellar,
 // DayDream, Nebula — are whole self-contained apps that assume they own the site
-// root, so they can't be nested under a sub-path of Eduame without service-worker
+// root, so they can't be nested under a sub-path of ZoFHub without service-worker
 // and path collisions.  Instead each runs as its OWN service on its own port;
-// the Eduame browser page probes /api/proxies and lists whichever are online.
+// the ZoFHub browser page probes /api/proxies and lists whichever are online.
 //
 // This launcher starts the ones that are ready on this machine:
 //   • NautilusOS  — pure static, served here with a tiny built-in file server.
@@ -46,6 +46,35 @@ const MIME = {
 
 const started = [];
 const skipped = [];
+// Everything we launch, tracked so a single Ctrl+C stops it all (no orphans).
+const children = [];   // spawned companion Node processes (Interstellar, …)
+const servers = [];    // static http servers we own (NautilusOS)
+
+// Free a port before we bind it. A companion child from a PREVIOUS run can
+// survive a Ctrl+C and keep holding its port; without this, the next
+// `npm run proxies` hits EADDRINUSE and the companion crashes with an ugly
+// unhandled-error stack trace. Freeing first makes re-runs always work.
+function freePort(port) {
+  return new Promise((resolve) => {
+    const k = spawn(process.execPath, [join(ROOT, 'tools', 'kill-port.mjs'), String(port)], { stdio: 'ignore' });
+    k.on('exit', resolve);
+    k.on('error', resolve);
+  });
+}
+
+// Clean shutdown: kill every companion child + close our static servers so
+// nothing is left orphaned holding a port after Ctrl+C.
+let shuttingDown = false;
+function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('\n[proxies] stopping all companion services…');
+  for (const c of children) { try { c.kill(); } catch {} }
+  for (const s of servers) { try { s.close(); } catch {} }
+  setTimeout(() => process.exit(0), 300);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 // A minimal, safe static file server rooted at `dir`, serving index.html for
 // directory requests.  Path traversal is blocked by normalising and confirming
@@ -77,6 +106,7 @@ function serveStatic(dir, port, name) {
     started.push(`${name.padEnd(13)} http://localhost:${port}/   (static)`);
     console.log(`[proxies] ${name} online → http://localhost:${port}/`);
   });
+  servers.push(server);
   return server;
 }
 
@@ -88,10 +118,21 @@ function runNode(cwd, entry, port, name, env = {}) {
     env: { ...process.env, PORT: String(port), ...env },
   });
   child.on('error', (e) => console.error(`[proxies] ${name} spawn error: ${e.message}`));
+  child.on('exit', (code) => {
+    if (!shuttingDown && code && code !== 0) {
+      console.error(`[proxies] ${name} exited (code ${code}) — its port may already be in use. Re-run \`npm run proxies\` (it now frees ports first).`);
+    }
+  });
+  children.push(child);
   started.push(`${name.padEnd(13)} http://localhost:${port}/   (node ${entry})`);
   console.log(`[proxies] ${name} starting → http://localhost:${port}/`);
   return child;
 }
+
+// Free every companion port FIRST — clears any orphaned process from a prior
+// run so binding can't fail with EADDRINUSE. This is what makes re-running
+// `npm run proxies` reliable instead of crashing the second time.
+for (const p of Object.values(PORTS)) await freePort(p);
 
 // ---- NautilusOS — pure static, always available -------------------------
 const nautilusDir = join(ROOT, 'NautilusOS');
@@ -130,11 +171,15 @@ if (existsSync(join(nebDir, 'server', 'server.js')) && existsSync(join(nebDir, '
 // ---- summary ------------------------------------------------------------
 setTimeout(() => {
   console.log('\n──────────────────────────────────────────────');
-  console.log('Companion proxy browsers');
+  console.log('Companion proxy browsers (OPTIONAL — the site works fine without any)');
   console.log('──────────────────────────────────────────────');
-  if (started.length) { console.log('ONLINE:'); for (const s of started) console.log('  ✓ ' + s); }
-  if (skipped.length) { console.log('SKIPPED:'); for (const s of skipped) console.log('  • ' + s); }
-  console.log('\nStart Eduame in another terminal (npm start), open /browser,');
-  console.log('and the online browsers above will appear in the engine dropdown.');
+  if (started.length) { console.log('RUNNING:'); for (const s of started) console.log('  ✓ ' + s); }
+  if (skipped.length) {
+    console.log('NOT STARTED (optional — this is NOT an error; set up only if you want them):');
+    for (const s of skipped) console.log('  • ' + s);
+  }
+  console.log('\nThese are LOCAL-ONLY extras. Your real site (and every deploy) uses the');
+  console.log('built-in Scramjet · Ultraviolet · GUST engines, which always work.');
+  console.log('Open /browser and any RUNNING companion above will appear in the dropdown.');
   console.log('Press Ctrl+C to stop all companion services.\n');
 }, 600);

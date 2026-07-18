@@ -49,9 +49,10 @@ which are licensed separately under their own terms (see Section 5).
 
 5. THIRD-PARTY COMPONENTS
    The Software is built with third-party software provided under separate
-   licenses (see CREDITS.md), including MIT-licensed proxy engines. Those
-   components remain governed by their own licenses; this license does not apply
-   to them and does not enlarge or restrict your rights under them.
+   licenses (see CREDITS.md), including proxy components under the MIT,
+   LGPL-3.0, and AGPL-3.0 licenses. Those components remain governed by their
+   own licenses; this license does not apply to them and does not enlarge or
+   restrict your rights under them.
 
 6. TERMINATION
    Any breach of this license automatically and immediately terminates the
@@ -67,5 +68,5 @@ which are licensed separately under their own terms (see Section 5).
    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 For permissions beyond this license (commercial use, public hosting, or
-redistribution), contact the Licensor through the official project repository:
-https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
+redistribution), contact the Licensor through the official ZoFHub Discord
+server — the invite is linked from the footer of the live ZoFHub website.

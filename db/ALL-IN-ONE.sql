@@ -521,14 +521,14 @@ select id, last_pinged from public.keepalive;
 -- Batch 1 of 1
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working, last_checked)
 values
-  ('snow-rider-3d', 'Snow Rider 3D', 'https://html5.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8-512x512.jpg', 'racing', true, now()),
+  ('snow-rider-3d', 'Snow Rider 3D', 'https://html5.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8-512x512.jpg', 'racing', true, now()),
   ('drift-king', 'Drift King', 'https://www.onlinegames.io/games/2024/unity/drift-king/index.html', 'https://www.onlinegames.io/media/posts/931/responsive/drift-king-2.webp', 'racing', true, now()),
-  ('moto-x3m-bike-race', 'Moto X3M Bike Race', 'https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/20473956346b412497645161048f020c-512x384.jpg', 'racing', true, now()),
-  ('cube-surfer', 'Cube Surfer', 'https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c-512x512.jpg', 'arcade', true, now()),
-  ('tunnel-rush', 'Tunnel Rush', 'https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/001f3e30922b40658421a71f0081e891-512x384.jpg', 'arcade', true, now()),
-  ('basket-random', 'Basket Random', 'https://html5.gamedistribution.com/13e9441113544116801912f71694f9e0/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/13e9441113544116801912f71694f9e0-512x384.jpg', 'sports', true, now()),
-  ('soccer-random', 'Soccer Random', 'https://html5.gamedistribution.com/567f4078864a4750949a888806a66699/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/567f4078864a4750949a888806a66699-512x384.jpg', 'sports', true, now()),
-  ('penalty-shooters-2', 'Penalty Shooters 2', 'https://html5.gamedistribution.com/264789f8167746358044702008e92582/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/264789f8167746358044702008e92582-512x384.jpg', 'sports', true, now())
+  ('moto-x3m-bike-race', 'Moto X3M Bike Race', 'https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/20473956346b412497645161048f020c-512x384.jpg', 'racing', true, now()),
+  ('cube-surfer', 'Cube Surfer', 'https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c-512x512.jpg', 'arcade', true, now()),
+  ('tunnel-rush', 'Tunnel Rush', 'https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/001f3e30922b40658421a71f0081e891-512x384.jpg', 'arcade', true, now()),
+  ('basket-random', 'Basket Random', 'https://html5.gamedistribution.com/13e9441113544116801912f71694f9e0/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/13e9441113544116801912f71694f9e0-512x384.jpg', 'sports', true, now()),
+  ('soccer-random', 'Soccer Random', 'https://html5.gamedistribution.com/567f4078864a4750949a888806a66699/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/567f4078864a4750949a888806a66699-512x384.jpg', 'sports', true, now()),
+  ('penalty-shooters-2', 'Penalty Shooters 2', 'https://html5.gamedistribution.com/264789f8167746358044702008e92582/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/264789f8167746358044702008e92582-512x384.jpg', 'sports', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,
@@ -3259,8 +3259,8 @@ values
   ('coffee-mahjong', 'Coffee Mahjong', 'https://play.famobi.com/coffee-mahjong', 'https://img.cdn.famobi.com/portal/html5games/images/tmp/CoffeeMahjongTeaser.jpg', 'arcade', true, now()),
   ('capybara-clicker-pro', 'Capybara Clicker Pro', 'https://www.onlinegames.io/games/2023/q2/capybara-clicker-pro/index.html', 'https://www.onlinegames.io/media/posts/554/responsive/Capybara-Clicker-Pro-xs.jpg', 'clicker', true, now()),
   ('chess-freezenova', 'Chess FreezeNova', 'https://cloud.onlinegames.io/games/2025/unity3/chess/index-og.html', 'https://www.onlinegames.io/media/posts/1116/responsive/chess-freezenova-xs.webp', 'strategy', true, now()),
-  ('moto-x3m-bike-race', 'Moto X3M Bike Race', 'https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/20473956346b412497645161048f020c-512x384.jpg', 'racing', true, now()),
-  ('cube-surfer', 'Cube Surfer', 'https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c-512x512.jpg', 'arcade', true, now()),
+  ('moto-x3m-bike-race', 'Moto X3M Bike Race', 'https://html5.gamedistribution.com/20473956346b412497645161048f020c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/20473956346b412497645161048f020c-512x384.jpg', 'racing', true, now()),
+  ('cube-surfer', 'Cube Surfer', 'https://html5.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/01a1c2c5d52e4b4f9c6f8c3a4f3a2b1c-512x512.jpg', 'arcade', true, now()),
   ('stack-fire-ball', 'Stack Fire Ball', 'https://www.onlinegames.io/games/2021/unity/stack-fire-ball/index.html', 'https://www.onlinegames.io/media/posts/184/responsive/Stack-Fire-Ball-Game-xs.jpg', 'arcade', true, now()),
   ('2-player-tank-wars', '2 Player Tank Wars', 'https://html5.gamemonetize.co/qa1dihi0rivea56yi772cprll9hc1sl5/', 'https://img.gamemonetize.com/qa1dihi0rivea56yi772cprll9hc1sl5/512x384.jpg', 'multiplayer', true, now()),
   ('checkout-frenzy', 'Checkout Frenzy', 'https://cloud.onlinegames.io/games/2025/unity/checkout-frenzy/index-og.html', 'https://www.onlinegames.io/media/posts/974/responsive/checkout-frenzy-cashier-game-xs.jpg', 'simulator', true, now()),
@@ -3270,7 +3270,7 @@ values
   ('bubbles-shooter', 'Bubbles Shooter', 'https://play.famobi.com/bubbles-shooter', 'https://img.cdn.famobi.com/portal/html5games/images/tmp/BubblesShooterTeaser.jpg', 'arcade', true, now()),
   ('stray-knight', 'Stray Knight', 'https://play.famobi.com/stray-knight', 'https://img.cdn.famobi.com/portal/html5games/images/tmp/StrayKnight2ndTeaser.jpg', 'arcade', true, now()),
   ('mahjong-collision', 'Mahjong Collision', 'https://play.famobi.com/mahjong-collision', 'https://img.cdn.famobi.com/portal/html5games/images/tmp/MahjongCollisionTeaser.jpg', 'arcade', true, now()),
-  ('tunnel-rush', 'Tunnel Rush', 'https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/001f3e30922b40658421a71f0081e891-512x384.jpg', 'arcade', true, now()),
+  ('tunnel-rush', 'Tunnel Rush', 'https://html5.gamedistribution.com/001f3e30922b40658421a71f0081e891/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/001f3e30922b40658421a71f0081e891-512x384.jpg', 'arcade', true, now()),
   ('drift-king', 'Drift King', 'https://www.onlinegames.io/games/2024/unity/drift-king/index.html', 'https://www.onlinegames.io/media/posts/729/responsive/Drift-King-xs.jpg', 'racing', true, now()),
   ('penalty-shooters-2', 'Penalty Shooters 2', 'https://play.famobi.com/penalty-shooters-2', 'https://img.cdn.famobi.com/portal/html5games/images/tmp/PenaltyShooters2Teaser.jpg', 'arcade', true, now()),
   ('cake-match-puzzle', 'Cake Match Puzzle', 'https://cloud.onlinegames.io/games/2024/unity3/cake-match-puzzle/index-og.html', 'https://www.onlinegames.io/media/posts/908/responsive/55-xs.jpg', 'puzzle', true, now()),
@@ -5627,7 +5627,7 @@ values
   ('beach-mahjong', 'Beach Mahjong', 'https://cdn.htmlgames.com/BeachMahjong/index.html', 'https://cdn.htmlgames.com/BeachMahjong/img/icon/image-300x200.jpg', 'mahjong solitaire', true, now()),
   ('among-impostor', 'Among Impostor', 'https://www.onlinegames.io/games/2023/construct/234/among-impostor/index.html', 'https://www.onlinegames.io/media/posts/472/responsive/Among-Impostor-xs.jpg', 'action', true, now()),
   ('animal-farm-for-kids-toddler-games-online', 'Animal Farm for Kids. Toddler games online', 'https://html5.gamemonetize.co/ir1se6yels7ynmj28ibrgwkidh04tfxb/', 'https://img.gamemonetize.com/ir1se6yels7ynmj28ibrgwkidh04tfxb/512x384.jpg', 'action', true, now()),
-  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now()),
+  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now()),
   ('animals-party', 'Animals Party', 'https://html5.gamemonetize.co/b19ta39e0zi3hh48iu4924v8vv68ubne/', 'https://img.gamemonetize.com/b19ta39e0zi3hh48iu4924v8vv68ubne/512x384.jpg', 'action', true, now()),
   ('tarantula-solitaire', 'Tarantula Solitaire', 'https://cdn.htmlgames.com/TarantulaSolitaire/index.html', 'https://cdn.htmlgames.com/TarantulaSolitaire/img/icon/image-300x200.jpg', 'spider', true, now()),
   ('animate-space-create-animated-gif', 'Animate.Space: Create Animated GIF!', 'https://html5.gamemonetize.co/zvluq2l3w4mxywskmoca63u5mm21uvd6/', 'https://img.gamemonetize.com/zvluq2l3w4mxywskmoca63u5mm21uvd6/512x384.jpg', 'action', true, now()),
@@ -29213,7 +29213,7 @@ values
   ('3-keys-solitaire', '3 Keys Solitaire', 'https://cdn.htmlgames.com/3KeysSolitaire/index.html', 'https://cdn.htmlgames.com/3KeysSolitaire/img/icon/image-300x200.jpg', 'tripeaks & golf', true, now()),
   ('beach-mahjong', 'Beach Mahjong', 'https://cdn.htmlgames.com/BeachMahjong/index.html', 'https://cdn.htmlgames.com/BeachMahjong/img/icon/image-300x200.jpg', 'mahjong solitaire', true, now()),
   ('ludo-with-friends', 'Ludo With Friends', 'https://zv1y2i8p.play.gamezop.com/g/SkhljT2fdgb', 'https://static.gamezop.com/SkhljT2fdgb/brick.png', 'board', true, now()),
-  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now())
+  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

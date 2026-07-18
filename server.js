@@ -55,7 +55,7 @@ for (const f of ['.env', '.env.example']) {
 
 // These modules read process.env at import time, so they must be imported
 // AFTER the env-file load above.
-const { getSupabase, isSupabaseConfigured, supabaseKeepAlive } = await import('./lib/supabase.mjs');
+const { getSupabase, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
 const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs');
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
@@ -585,14 +585,20 @@ app.set('etag', 'weak');
 // so they can't be nested under a sub-path without service-worker scope and
 // path collisions.  Instead each runs as its own self-contained service on its
 // own origin; the browser page lists the ones that are reachable and loads them
-// in the stage iframe.  Locally `npm run proxies` starts them on the default
-// ports below; in production point the PROXY_*_URL env vars at deployed
-// instances (or leave blank to hide that browser from the dropdown).
+// Companion browsers (Interstellar, Nebula, NautilusOS, DayDream) are SEPARATE
+// third-party apps — NOT part of this server, NOT deployed with the site, and
+// redundant with the built-in Scramjet/Ultraviolet/GUST engines (which are
+// same-origin and always work). They are therefore fully OPT-IN: a companion
+// appears in the /browser dropdown ONLY when its PROXY_*_URL is explicitly set
+// to a reachable instance. With none set (the default — normal `npm start` and
+// every deploy), the dropdown shows just the three built-in engines: clean, no
+// "offline" clutter, no errors. `npm run dev:all` sets these locally so a
+// developer who wants to tinker still sees whichever companions are running.
 const COMPANION_ENGINES = [
-  { id: 'nautilus',     label: 'NautilusOS',   url: (process.env.PROXY_NAUTILUS_URL     || 'http://localhost:8091/').trim() },
-  { id: 'interstellar', label: 'Interstellar', url: (process.env.PROXY_INTERSTELLAR_URL || 'http://localhost:8092/').trim() },
+  { id: 'nautilus',     label: 'NautilusOS',   url: (process.env.PROXY_NAUTILUS_URL     || '').trim() },
+  { id: 'interstellar', label: 'Interstellar', url: (process.env.PROXY_INTERSTELLAR_URL || '').trim() },
   { id: 'daydream',     label: 'DayDream',     url: (process.env.PROXY_DAYDREAM_URL     || '').trim() },
-  { id: 'nebula',       label: 'Nebula',       url: (process.env.PROXY_NEBULA_URL       || 'http://localhost:8094/').trim() },
+  { id: 'nebula',       label: 'Nebula',       url: (process.env.PROXY_NEBULA_URL       || '').trim() },
 ].filter(e => e.url);
 
 // Origins we must allow in frame-src so the stage iframe can embed a companion.
@@ -756,7 +762,7 @@ if (!PROXY_ENABLED) {
 // (/embed, /asset) is intentionally NOT included — games need it on both builds.
 if (!PROXY_ENABLED) {
   app.use(['/gust', '/uv', '/scram', '/epoxy', '/baremux', '/wisp', '/browser', '/proxy'],
-    (req, res) => res.redirect(301, '/'));
+    (req, res) => { res.set('Cache-Control', 'no-store'); res.redirect(301, '/'); });
 }
 
 app.use(express.static(PUBLIC_DIR, {
@@ -774,11 +780,21 @@ app.use(express.static(PUBLIC_DIR, {
   }
 }));
 
-app.get('/api/health', (req, res) => res.json({
-  status: 'ok', uptime: process.uptime(), node: process.version,
-  catalog: { source: CATALOG.source, games: CATALOG.games.length },
-  proxy: proxyStatus
-}));
+app.get('/api/health', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // Live Supabase connectivity probe — so "configured but not working" becomes a
+  // precise reason (paused project / bad key / RLS / egress). Bounded (8s client
+  // timeout); if the probe itself hiccups we still return the rest of the health.
+  let supabase;
+  try { supabase = await supabaseHealth(); }
+  catch (e) { supabase = { configured: isSupabaseConfigured(), connected: false, error: e?.message || String(e) }; }
+  res.json({
+    status: 'ok', uptime: process.uptime(), node: process.version,
+    catalog: { source: CATALOG.source, games: CATALOG.games.length },
+    supabase,
+    proxy: proxyStatus
+  });
+});
 
 // ── Keep-alive endpoint (free-tier uptime) ───────────────────────────────────
 // Point an external uptime monitor (cron-job.org, UptimeRobot, …) at
@@ -2517,10 +2533,22 @@ app.get('/api/frame-check', async (req, res) => {
 // internals.  All checks have a hard 5s ceiling.
 // ========================================================================
 app.get('/api/proxy/diag', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // Rate-limit: this endpoint fetches a caller-supplied URL server-side, so cap
+  // it to stop it being used as a fast internal port-scanner / traffic amplifier.
+  if (!writeAllow(req.ip || 'unknown', 10, 3000)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
+  }
   const raw = req.query.u;
   if (!raw) return res.json({ ok: false, error: 'missing ?u=' });
   let target;
   try { target = new URL(raw); } catch { return res.json({ ok: false, error: 'bad url' }); }
+  // SSRF guard: only ever probe PUBLIC https game hosts. Refuse http/other
+  // schemes and any internal/loopback/link-local/cloud-metadata address — the
+  // same block the /embed asset proxy uses — so a crafted ?u= can't reach the
+  // Render metadata service or scan the server's private network.
+  if (target.protocol !== 'https:') return res.status(400).json({ ok: false, error: 'https URLs only' });
+  if (isInternalHost(target.hostname)) return res.status(403).json({ ok: false, error: 'blocked host' });
 
   const report = { url: target.toString(), checks: {}, ts: new Date().toISOString() };
 
@@ -2664,7 +2692,18 @@ app.get('/play/:gameSlug', async (req, res) => {
   // with the rest of the page HTML — shaves 200-600ms off iframe first byte.
   let preconnectOrigin = '';
   try { preconnectOrigin = new URL(game.embed_url).origin; } catch {}
+  // Absolute og:image for social crawlers (Facebook/LinkedIn reject relative
+  // URLs). CDN thumbnails are already absolute; local /thumbs/* get the request
+  // origin prepended; thumbnail-less games fall back to the brand favicon.
+  const ogImage = (() => {
+    const t = (game.thumbnail || '').trim();
+    if (/^https?:\/\//i.test(t)) return t;
+    const origin = requestOrigin(req);
+    if (!t) return origin + '/assets/favicon.png';
+    return origin + (t.startsWith('/') ? t : '/' + t);
+  })();
   const html = GAME_TEMPLATE
+    .replace(/\{\{OG_IMAGE\}\}/g,     htmlEscape(ogImage))
     .replace(/\{\{TITLE\}\}/g,        htmlEscape(game.title))
     .replace(/\{\{SLUG\}\}/g,         htmlEscape(game.slug))
     .replace(/\{\{IFRAME_SRC\}\}/g,   htmlEscape(iframeSrc))

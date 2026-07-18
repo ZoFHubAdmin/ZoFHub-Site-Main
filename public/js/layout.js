@@ -74,16 +74,14 @@ function mountLiveTotal() {
 mountLiveTotal();
 
 // ════════════════════════════════════════════════════════════════════════
-// Social links — Discord + GitHub only.
-// Brand social links — INTENTIONALLY EMPTY until each points somewhere REAL:
-//   • a placeholder/dead link (discord.gg/YOUR-INVITE) just looks broken, and
-//   • a GitHub link to a PRIVATE repo 404s for every visitor AND advertises your
-//     account — zero audience upside, pure anonymity leak.
-// When you have PSEUDONYMOUS brand accounts, add them here, e.g.:
-//   { name: 'Discord', href: 'https://discord.gg/REAL-INVITE', icon: '/assets/social/discord.svg' },
-//   { name: 'TikTok',  href: 'https://www.tiktok.com/@zofhub',  icon: '/assets/social/tiktok.svg' },
+// Brand social links — ONLY pseudonymous brand accounts that point somewhere
+// REAL. Never a GitHub link (private repo → 404s for visitors AND advertises
+// the account — pure anonymity leak). Add future accounts here, e.g.:
+//   { name: 'TikTok', href: 'https://www.tiktok.com/@zofhub', icon: '/assets/social/tiktok.svg' },
 // ════════════════════════════════════════════════════════════════════════
-const SOCIALS = [];
+const SOCIALS = [
+  { name: 'Discord', href: 'https://discord.gg/SeMuMRG9gG', icon: '/assets/social/discord.svg' },
+];
 // Shared builder for a row of social icon links (reused by header + footer).
 function buildSocialCluster(className, size = 20) {
   const wrap = document.createElement('div');

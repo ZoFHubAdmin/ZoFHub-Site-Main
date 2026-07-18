@@ -409,7 +409,7 @@ async function main() {
       return `${mark} ${String(r.status || '---').padStart(3)}  ${r.slug.padEnd(40)}  ${r.url}${r.error ? '   ! ' + r.error : ''}`;
     }).join('\n');
     writeFileSync(join(__dirname, 'build-mvp.report.txt'),
-      `Eduame MVP health check — ${new Date().toISOString()}\n` +
+      `ZoFHub MVP health check — ${new Date().toISOString()}\n` +
       `OK: ${reportObj.filter(r => r.ok).length} / Broken: ${reportObj.filter(r => !r.ok).length}\n\n` +
       txt + '\n'
     );

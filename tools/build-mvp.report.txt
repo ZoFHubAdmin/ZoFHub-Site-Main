@@ -1,4 +1,4 @@
-Eduame MVP health check — 2026-05-26T01:13:47.464Z
+ZoFHub MVP health check — 2026-07-17T01:07:17.199Z
 OK: 170 / Broken: 0
 
 OK  200  golf-bit                                  https://cloud.onlinegames.io/games/2026/construct/328/golf-bit/game.html

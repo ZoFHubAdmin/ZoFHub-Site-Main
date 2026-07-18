@@ -1,8 +1,8 @@
 {
   "project": {
-    "name": "Eduame · AI Gaming Hub source",
+    "name": "ZoFHub · AI Gaming Hub source",
     "version": "2026.6.2",
-    "description": "Curated source list for the Eduame catalog. Games are restricted to publishers that explicitly license iframe embedding (GameDistribution, OnlineGames.io, GameMonetize, HTMLGames). This is the safe-to-embed subset; do not add URLs from CrazyGames / Poki / CoolMath / now.gg / easyfun.gg / cloud.maddox.games or community mirrors (*.github.io, *.gitlab.io, bitbucket.io, *unblocked.org) — those either block framing or violate trademark."
+    "description": "Curated source list for the ZoFHub catalog. Games are restricted to publishers that explicitly license iframe embedding (GameDistribution, OnlineGames.io, GameMonetize, HTMLGames). This is the safe-to-embed subset; do not add URLs from CrazyGames / Poki / CoolMath / now.gg / easyfun.gg / cloud.maddox.games or community mirrors (*.github.io, *.gitlab.io, bitbucket.io, *unblocked.org) — those either block framing or violate trademark."
   },
   "ai_models": {
     "text": [
@@ -83,7 +83,7 @@
       "slug": "snow-rider-3d",
       "name": "Snow Rider 3D",
       "category": "racing",
-      "embed_url": "https://html5.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F",
+      "embed_url": "https://html5.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F",
       "thumbnail": "https://img.gamedistribution.com/3b79a8537ebc414fb4f9672a9b8c68c8-512x512.jpg",
       "developer": "Ashima Prabhakar",
       "source": "GameDistribution",

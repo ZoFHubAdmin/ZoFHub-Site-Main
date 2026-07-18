@@ -5,11 +5,12 @@
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
+[![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
 A single-server web app that bundles three things into one site:
 
-1. **A games hub** — 16,000+ free browser games served from official/authorized embeds, with search, categories, favorites, a global leaderboard, and a community wall.
-2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), proxied through the server (no API key required for the visitor).
+1. **A games hub** — 16,000+ free browser games served from official/authorized embeds, with search, categories, favorites, a Game of the Day, a cheat-resistant global leaderboard, and a community wall.
+2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **directly in the visitor's browser** (keyless — no API key, and prompts never pass through this server).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks.
 
 It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, scores, and community data. One codebase deploys as either the **monetizable hub** or the **proxy site** by flipping a single environment variable.
@@ -20,12 +21,14 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 - 🎮 **16,000+ games** from GameMonetize, GameDistribution, Y8, Famobi, HTMLGames, OnlineGames.io & GameFlare — all via their official embed URLs.
 - ⚡ **Instant catalog** — the full game list is held in memory and refreshed from Supabase every 30 min; API responses are edge-cached.
-- 🏆 **Leaderboard & community** — per-game and global high scores (proof-of-play protected), plus a community recommendation wall and honest live-visitor presence.
-- 🤖 **Built-in AI** — text + image generation, streamed, with a "Vibe Finder" that recommends games from your mood.
+- 🌟 **Game of the Day** — a deterministic daily pick (same for every visitor, changes at UTC midnight), genre-weighted toward what players actually play.
+- 🏆 **Cheat-resistant leaderboard** — score submissions require a signed **proof-of-play session** (single-use, minimum play time, per-game score ceilings); statistical outliers are quarantined instead of shown.
+- 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for, no emails collected.
+- 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks.
 - 🧩 **Two deploy modes, one codebase** — `SITE_MODE=hub` (ads on, proxy off) vs `SITE_MODE=full` (proxy on, ads off). See [GO-LIVE.md](GO-LIVE.md).
 - 💤 **Free-tier friendly** — a secured `/healthz` keep-alive endpoint keeps Render + Supabase awake without a paid plan.
-- 🛠️ **Self-maintaining** — scheduled jobs check dead links, grow the catalog, sync Y8, prune scores, and heartbeat the DB.
+- 🛠️ **Self-maintaining** — 7 scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune scores & community posts, and heartbeat the DB. See [`lib/cron-jobs.mjs`](lib/cron-jobs.mjs).
 
 ---
 
@@ -36,7 +39,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Server | Node.js (≥18) + Express, ES modules, **no build step** |
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework) |
 | Database | Supabase (Postgres) — accessed via PostgREST |
-| AI | Pollinations (server-proxied) |
+| AI | Pollinations (browser-direct, keyless — no server proxying) |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -73,6 +76,7 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 | `SCORE_SECRET` | Signs the proof-of-play leaderboard tokens. Keep it stable. |
 | `ADSENSE_CLIENT` | Your `ca-pub-…` id — lights up ad units + `/ads.txt` (**hub only**). |
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
+| `CRON_DISABLED` | Set `1` on the proxy instance so only the hub runs the scheduled jobs. |
 
 ---
 
@@ -84,7 +88,9 @@ The live catalog and community features live in Supabase. Fastest path once your
 npm run restore-games     # loads every game source into Supabase in one command
 ```
 
-Prefer the SQL editor? Run the files in [`db/`](db/) in order — **`schema.sql` → `community.sql` → (optional) `stats.sql` → (optional) `keepalive.sql` → the `load-*.sql` game loaders**. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+Prefer the SQL editor? Run the files in [`db/`](db/) in order — **`schema.sql` → `community.sql` → `community-scores-integrity.sql` (leaderboard anti-cheat: quarantine + cleanup functions) → (optional) `stats.sql` → (optional) `keepalive.sql` → the `load-*.sql` game loaders**. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+
+> **`db/ALL-IN-ONE.sql`** bundles everything into a single file, but at ~6.7 MB it's far too big for Supabase's web editor — it's for direct `psql` restores only: `psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`. For everyone else, `npm run restore-games` is the one-command path.
 
 📄 Full walkthroughs: [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md) (short) · [GAMES-SETUP.md](GAMES-SETUP.md) (detailed) · [db/ADDING-A-GAME.md](db/ADDING-A-GAME.md).
 
@@ -94,7 +100,7 @@ Prefer the SQL editor? Run the files in [`db/`](db/) in order — **`schema.sql`
 
 ZoFHub is a **persistent server** (it runs cron jobs, holds the catalog in memory, and serves the `/wisp` WebSocket) — so it needs a real host, **not** serverless. [`render.yaml`](render.yaml) defines both services (hub + proxy) ready to deploy.
 
-- **Render auto-deploys** on every push to `main`.
+- **Render auto-deploys** on every push to `main` (works with private repositories via Render's GitHub authorization).
 - **Free tier:** the included `/healthz` endpoint + an external uptime monitor (e.g. cron-job.org) pinging it every ~10 min keeps the service (and Supabase) from sleeping.
 
 Full launch checklist — domains, ad networks, QA — in **[GO-LIVE.md](GO-LIVE.md)**.
@@ -116,8 +122,8 @@ ZoFHub/
 ├── render.yaml          # Render blueprint (hub + proxy services)
 ├── Dockerfile           # container image (Node 20-alpine, port 8080)
 ├── api/                 # bundled catalog JSON (fallback when Supabase is down)
-├── data/                # catalog-overrides.json + game data manifests
-├── db/                  # Supabase SQL: schema, community, stats, keepalive, load-*.sql
+├── data/                # catalog-overrides.json, score-limits.json, game data manifests
+├── db/                  # Supabase SQL: schema, community, integrity, loaders, ALL-IN-ONE
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules: supabase, cron-jobs, cache, y8 ingest
 ├── public/
@@ -136,6 +142,7 @@ ZoFHub/
 | Guide | What it covers |
 |---|---|
 | [HOW-IT-WORKS.md](HOW-IT-WORKS.md) | Plain-English tour of the whole app |
+| [NEW-LAPTOP-SETUP.md](NEW-LAPTOP-SETUP.md) | Moving to a new machine (this private repo backs up everything — just clone + `npm install`) |
 | [GO-LIVE.md](GO-LIVE.md) | Deployment, domains, ad networks, launch QA |
 | [GAMES-SETUP.md](GAMES-SETUP.md) | Loading the full game catalog into Supabase |
 | [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md) | The exact SQL run order |
@@ -147,12 +154,18 @@ ZoFHub/
 
 ---
 
+## 💬 Community
+
+Join the **[ZoFHub Official Discord](https://discord.gg/SeMuMRG9gG)** — announcements, game requests, and support. It's also the contact channel for licensing questions (see [`LICENSE`](LICENSE)) and third-party source requests (see [CREDITS.md](CREDITS.md)).
+
+---
+
 ## 📜 License & credits
 
-ZoFHub's own code is under the terms in [`LICENSE`](LICENSE). The bundled proxy engines (Ultraviolet, Scramjet, Wisp, Epoxy, libcurl.js) keep their **own** upstream licenses (MIT / AGPL-3.0 / LGPL-3.0) — see **[CREDITS.md](CREDITS.md)** for the full attribution and the AGPL network-use source offer. Standalone copyleft companion browsers are **not** included in this repository.
+ZoFHub's own code is under the terms in [`LICENSE`](LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, Wisp, Epoxy, libcurl.js) keep their **own** upstream licenses (MIT / AGPL-3.0 / LGPL-3.0) — see **[CREDITS.md](CREDITS.md)** for the full attribution and the AGPL network-use source offer. Standalone copyleft companion browsers are **not** included in this repository.
 
 Games are served through their publishers' **official embed URLs**; ZoFHub hosts no pirated game assets.
 
 ## 👨‍💻 Author
 
-**ZSM1010** — https://github.com/ZSM1010
+**ZSM1010** — maintained pseudonymously. Reach the project via the [ZoFHub Discord](https://discord.gg/SeMuMRG9gG).

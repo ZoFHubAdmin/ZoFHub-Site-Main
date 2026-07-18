@@ -1,0 +1,36 @@
+export const minifyConfig = {
+  removeComments: true,
+  collapseWhitespace: true,
+  conservativeCollapse: false,
+  preserveLineBreaks: false,
+  collapseBooleanAttributes: true,
+  removeAttributeQuotes: true,
+  removeRedundantAttributes: true,
+  preventAttributesEscaping: true,
+  useShortDoctype: true,
+  removeEmptyAttributes: true,
+  removeScriptTypeAttributes: true,
+  removeStyleLinkTypeAttributes: true,
+  removeOptionalTags: true,
+  removeEmptyElements: false,
+  minifyCSS: true,
+  minifyJS: {
+    mangle: {
+      toplevel: true,
+      properties: false,
+      keep_fnames: false,
+    },
+    compress: {
+      drop_console: true,
+      drop_debugger: true,
+      pure_funcs: [
+        "console.log",
+        "console.info",
+        "console.debug",
+        "console.warn",
+        "console.error",
+      ],
+      passes: 3,
+    },
+  },
+};

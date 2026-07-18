@@ -23,9 +23,11 @@ Loads every game source into Supabase at once. This is how the live database
 
 1. `schema.sql` — the `games` table + `games_public` view *(required, once)*
 2. `community.sql` — `scores` + `recommendations` *(required, once)*
-3. `stats.sql` — `game_stats` for persistent play counts *(optional)*
-4. `keepalive.sql` — heartbeat row for free-tier uptime *(optional)*
-5. Every `load-*.sql` game loader — big ones are split into `-partNN.sql`;
+3. `community-scores-integrity.sql` — leaderboard anti-cheat: quarantine column,
+   tightened RLS, and the cleanup functions *(required for the leaderboard)*
+4. `stats.sql` — `game_stats` for persistent play counts *(optional)*
+5. `keepalive.sql` — heartbeat row for free-tier uptime *(optional)*
+6. Every `load-*.sql` game loader — big ones are split into `-partNN.sql`;
    run the parts in numeric order. All are idempotent upserts, so re-running is safe.
 
 ## Verify

@@ -2,7 +2,7 @@
 //
 //   node tools/kill-port.mjs 8080
 //
-// Used by `npm run restart` so a stale Eduame process can't keep us from
+// Used by `npm run restart` so a stale ZoFHub process can't keep us from
 // re-launching.  Silent on success; prints a short note if it killed anything.
 
 import { execSync } from 'node:child_process';

@@ -8,7 +8,7 @@ npm-debug.log
 *.md
 !README.md
 
-# Reference-only proxy sites cloned for study — Eduame uses the npm
+# Reference-only proxy sites cloned for study — ZoFHub uses the npm
 # @mercuryworkshop/scramjet + @titaniumnetwork-dev/ultraviolet packages,
 # not these source trees, so keep them out of the deployed image.
 Nebula

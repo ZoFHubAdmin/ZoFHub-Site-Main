@@ -441,7 +441,7 @@ values
   ('3-keys-solitaire', '3 Keys Solitaire', 'https://cdn.htmlgames.com/3KeysSolitaire/index.html', 'https://cdn.htmlgames.com/3KeysSolitaire/img/icon/image-300x200.jpg', 'tripeaks & golf', true, now()),
   ('beach-mahjong', 'Beach Mahjong', 'https://cdn.htmlgames.com/BeachMahjong/index.html', 'https://cdn.htmlgames.com/BeachMahjong/img/icon/image-300x200.jpg', 'mahjong solitaire', true, now()),
   ('ludo-with-friends', 'Ludo With Friends', 'https://zv1y2i8p.play.gamezop.com/g/SkhljT2fdgb', 'https://static.gamezop.com/SkhljT2fdgb/brick.png', 'board', true, now()),
-  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Feduame.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now())
+  ('slope-web-clone', 'Slope (Web Clone)', 'https://html5.gamedistribution.com/8591784201f445788946a1aaff65b11c/?gd_sdk_referrer_url=https%3A%2F%2Fzofhub.com%2F', 'https://img.gamedistribution.com/8591784201f445788946a1aaff65b11c-512x512.jpeg', 'action', true, now())
 on conflict (slug) do update set
   title = excluded.title,
   game_url = excluded.game_url,

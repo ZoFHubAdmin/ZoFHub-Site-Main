@@ -140,17 +140,20 @@ function buildDropdown() {
   const optgIn = el('optgroup', { label: 'Built-in (always available)' });
   for (const e of IN_APP) optgIn.appendChild(el('option', { value: e.id }, e.label));
   select.appendChild(optgIn);
-  const optgCo = el('optgroup', { label: 'Standalone browsers' });
-  for (const id of COMPANION_IDS) {
-    const c = companions.find(x => x.id === id);
-    const label = c ? c.label : (id.charAt(0).toUpperCase() + id.slice(1));
-    const up = !!(c && c.up);
-    const opt = el('option', { value: id }, `${label}${up ? '' : ' — offline'}`);
-    if (!up) opt.disabled = true;   // can't pick a dead engine
-    optgCo.appendChild(opt);
+  // Standalone companions appear ONLY when they're actually RUNNING (up). We
+  // never show an "offline"/disabled option — a companion that isn't up just
+  // isn't listed, so the dropdown is always clean (no dead entries, no errors).
+  // With no companions configured/running (the default + every deploy), this
+  // whole group is omitted and only the built-in engines show.
+  const upCompanions = companions.filter(c => c.up);
+  if (upCompanions.length) {
+    const optgCo = el('optgroup', { label: 'Standalone browsers' });
+    for (const c of upCompanions) {
+      optgCo.appendChild(el('option', { value: c.id }, c.label));
+    }
+    select.appendChild(optgCo);
   }
-  select.appendChild(optgCo);
-  if (cur) select.value = cur;
+  if (cur && select.querySelector(`option[value="${cur}"]`)) select.value = cur;
 }
 
 async function loadCompanions() {

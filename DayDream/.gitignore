@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+*-lock.json
+*.lock
+*.lockb
+*-lock.yaml
+dist/
+config.js
+database.sqlite
+.VSCodeCounter/
+plus-backend/
+.github/
+concepting/
+*.uo.ts
+demo/
+TSX/

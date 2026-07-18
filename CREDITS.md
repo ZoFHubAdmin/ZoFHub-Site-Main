@@ -32,8 +32,8 @@ are offered the **corresponding source**: it is each project's upstream
 repository (linked above) at the version pinned in `package-lock.json`
 (`node_modules/@mercuryworkshop/*`). ZoFHub runs them unmodified; any local
 changes would be kept in this repository. To request the source for a specific
-deployed build, open an issue at
-<https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub>.
+deployed build, ask in the official **ZoFHub Discord server** — the invite is
+linked from the footer of the live site.
 
 ## Companion standalone browsers (optional, NOT included in this repository)
 

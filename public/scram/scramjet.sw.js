@@ -1,4 +1,4 @@
-// Eduame · Scramjet service worker
+// ZoFHub · Scramjet service worker
 // Wraps the packaged Scramjet worker factory.  Scope is /scram/service/
 // (set by browser.js at registration time), which matches the controller
 // prefix so only proxied navigations are intercepted.  Everything Scramjet

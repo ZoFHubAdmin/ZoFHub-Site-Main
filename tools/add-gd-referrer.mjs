@@ -8,7 +8,7 @@
 //   GameDistribution's SDK parses the value as a URL.  A curly-braced
 //   placeholder fails parsing and the SDK silently falls back to no
 //   attribution — same as if we omitted the param entirely.  Using a
-//   real URL (https://eduame.com/) gives their analytics a valid value.
+//   real URL (https://zofhub.com/) gives their analytics a valid value.
 //
 // Why the runtime injector in server.js still matters:
 //   The static value here is fine for analytics, but the LIVE referrer
@@ -35,7 +35,7 @@ const FILES = [
   'everygame.json',
 ];
 
-const REFERRER_DEFAULT = 'https://eduame.com/';
+const REFERRER_DEFAULT = 'https://zofhub.com/';
 const GD_URL_RE = /^https?:\/\/html5\.gamedistribution\.com\//i;
 const URL_FIELDS = ['embed_url', 'embedUrl', 'embed', 'url', 'link', 'game_url', 'iframe', 'iframeUrl', 'gameUrl'];
 

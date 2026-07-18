@@ -6222,7 +6222,7 @@
                 try { ls.setItem('gust:wisp:last-working:v1', url); } catch {}
                 lastWorkingWisp = url;
             }
-            // Eduame: default to the SAME-ORIGIN Wisp server this app already runs
+            // ZoFHub: default to the SAME-ORIGIN Wisp server this app already runs
             // at /wisp/, so all proxy traffic stays on our own domain (nothing
             // ever talks to a third-party public Wisp host). Falls back to the
             // upstream public server only if we somehow aren't on http(s).
@@ -16705,7 +16705,7 @@ _VIEWER_DL_JS +
             </div>
         </div>
     </div>
-    <!-- Eduame integration: shared cloak system (Ctrl+` panic key, tab title/favicon
+    <!-- ZoFHub integration: shared cloak system (Ctrl+` panic key, tab title/favicon
          disguise, about:blank cloak). Served same-origin from /js/, isolated as a module. -->
     <script type="module" src="/js/panic.js"></script>
 </body>

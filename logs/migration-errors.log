@@ -1,0 +1,91 @@
+2026-06-13T13:59:23.301Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T13:59:24.414Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T13:59:26.560Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T13:59:30.673Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T13:59:38.815Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T13:59:47.744Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T13:59:48.829Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T13:59:50.916Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T13:59:54.819Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T13:59:55.051Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T13:59:55.054Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T13:59:56.128Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T13:59:58.209Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:00:02.349Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:00:03.146Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:00:10.469Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:00:19.151Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:00:19.274Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:00:20.468Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:00:22.565Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:00:26.668Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:00:34.761Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:00:50.760Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:00:50.881Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:00:51.966Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:00:54.053Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:01:00.830Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:01:08.954Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:01:24.957Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:01:25.076Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:01:26.157Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:01:28.244Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:01:32.357Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:01:40.593Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:01:56.592Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:01:58.581Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:02:01.414Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:02:03.529Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:02:08.393Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:02:16.521Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:02:32.538Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:02:32.663Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:02:33.765Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:02:39.992Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:02:44.136Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:02:52.255Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:03:08.262Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:03:08.347Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:03:09.422Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:03:11.523Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:03:15.640Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:03:23.746Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:03:39.750Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:03:40.299Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:03:41.608Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:03:44.254Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:03:48.385Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:03:56.497Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:04:12.513Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:04:12.611Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:04:13.740Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:04:15.828Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:04:20.028Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:04:28.232Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:04:44.237Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:04:44.402Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:04:45.613Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:04:47.688Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:04:51.825Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:05:00.050Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:05:16.059Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:05:16.166Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:05:17.334Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:05:19.504Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:05:23.614Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:05:31.730Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:05:47.725Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:05:47.833Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:05:48.924Z [upsert 1000 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:05:51.047Z [upsert 1000 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:05:55.183Z [upsert 1000 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:06:03.483Z [upsert 1000 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:06:19.495Z [upsert 1000 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-13T14:06:19.623Z [upsert 160 rows] attempt 1/5: TypeError: fetch failed
+2026-06-13T14:06:20.698Z [upsert 160 rows] attempt 2/5: TypeError: fetch failed
+2026-06-13T14:06:22.824Z [upsert 160 rows] attempt 3/5: TypeError: fetch failed
+2026-06-13T14:06:27.053Z [upsert 160 rows] attempt 4/5: TypeError: fetch failed
+2026-06-13T14:06:35.435Z [upsert 160 rows] attempt 5/5: TypeError: fetch failed
+2026-06-13T14:06:51.431Z [upsert 160 rows] PERMANENT FAIL after 5 attempts: TypeError: fetch failed
+2026-06-27T03:27:45.539Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed
+2026-06-27T03:34:39.838Z [upsert 1000 rows] attempt 1/5: TypeError: fetch failed

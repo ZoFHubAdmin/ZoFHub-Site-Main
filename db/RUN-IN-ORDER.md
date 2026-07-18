@@ -16,8 +16,9 @@ number is your real proof the data saved, and it should climb as you go.
 |------:|------|-----------------|
 | 1 | `schema.sql` | The `games` table + `games_public` view (**required**) |
 | 2 | `community.sql` | `scores` + `recommendations` — leaderboard & community (**required**) |
-| 3 | `stats.sql` | `game_stats` — makes play counts persist (optional) |
-| 4 | `keepalive.sql` | `keepalive` — heartbeat row for free-tier uptime (optional) |
+| 3 | `community-scores-integrity.sql` | Leaderboard anti-cheat: score quarantine (`status` column), tightened RLS, and the `prune_scores` / `prune_recommendations` cleanup functions (**required** for the leaderboard) |
+| 4 | `stats.sql` | `game_stats` — makes play counts persist (optional) |
+| 5 | `keepalive.sql` | `keepalive` — heartbeat row for free-tier uptime (optional) |
 
 ## 2. Then the games — run every `load-*.sql`
 
@@ -61,3 +62,7 @@ You should land around **16,791 working games**.
 - **Legacy files:** the older `y8-games-01.sql … y8-games-05.sql` are a small,
   superseded subset now covered by `load-y8-games-partNN.sql`. You can ignore
   them — the `load-*.sql` set is the current, complete catalog.
+- **`ALL-IN-ONE.sql`:** everything above bundled into one file — but at ~6.7 MB
+  it is far too big for the Supabase web editor. It's for direct `psql` restores
+  only (`psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`); in the web editor, use
+  the individual files listed here instead.
