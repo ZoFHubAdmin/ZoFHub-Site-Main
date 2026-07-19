@@ -26,12 +26,18 @@ Everything that matters is committed and comes down with `git clone`:
 - **metro-dash** — your WebGL game, including your in-progress changes.
 - **All data files** — catalogs, audits, caches, state.
 
-## 🔁 The ONE thing that isn't committed: `node_modules`
+## 📦 Everything — including `node_modules` — is committed
 
-Dependency folders are the *only* thing excluded, and for a good technical reason:
-they can't be restored from git on Windows (Nebula uses pnpm symlinks that check
-out as broken stubs), and `npm install` rebuilds them perfectly in seconds. So you
-rebuild them, you don't back them up.
+This repo now backs up **literally everything**, including every `node_modules`
+folder, so nothing at all is left out. After cloning you already have all the
+downloaded packages.
+
+**One caveat:** `Nebula/node_modules` is a pnpm store built from symlinks. It's
+backed up, but on a fresh Windows machine git may restore those as broken stubs.
+If Nebula misbehaves after a clone, just run `pnpm install` inside the `Nebula`
+folder to fix it. (The **main website** uses the root `node_modules`, which
+restores fine — but running `npm install` once after cloning is still the safe
+habit, since it repairs anything that didn't copy cleanly.)
 
 ---
 
