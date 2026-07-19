@@ -1,19 +1,12 @@
 # ═══════════════════════════════════════════════════════════════════════════
-#  PRIVATE FULL-BACKUP REPOSITORY
-#  This repo intentionally commits EVERYTHING — including .env (your real keys)
-#  and every companion app's source. It is a complete snapshot for backup.
+#  PRIVATE FULL-BACKUP REPOSITORY — NOTHING IS EXCLUDED
+#  Everything is committed on purpose, including .env (real keys) and every
+#  node_modules folder. This is a complete, physical snapshot for backup.
 #
 #  ⚠  KEEP THIS REPOSITORY PRIVATE. It contains your Supabase service-role key.
-#     If it is ever made public, rotate that key immediately in the Supabase
-#     dashboard (Settings → API).
+#     If it ever becomes public, rotate that key in Supabase → Settings → API.
+#
+#  Note: Nebula/node_modules is a pnpm store built from symlinks. It IS backed
+#  up here, but on a fresh Windows machine it may restore as broken stubs — if
+#  Nebula misbehaves after a clone, just run `pnpm install` inside Nebula.
 # ═══════════════════════════════════════════════════════════════════════════
-
-# The ONLY things excluded are dependency folders. They are NOT source code:
-#   • they rebuild exactly from package.json / lockfiles via `npm install`
-#     (or `pnpm install` inside Nebula), in seconds;
-#   • Nebula's node_modules is a pnpm symlink store that does NOT restore
-#     correctly through git on Windows — it would check out as broken text
-#     stubs, so committing it is worse than useless.
-# Rebuild them on the new machine instead of backing them up.
-node_modules/
-**/node_modules/

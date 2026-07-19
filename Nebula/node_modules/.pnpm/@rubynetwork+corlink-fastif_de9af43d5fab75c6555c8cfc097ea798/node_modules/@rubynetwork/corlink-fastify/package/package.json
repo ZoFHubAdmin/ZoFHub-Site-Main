@@ -1,0 +1,41 @@
+{
+    "name": "@rubynetwork/corlink-fastify",
+    "version": "2.0.2",
+    "description": "A simple package providing middleware for basic auth and authorization with a Corlink server",
+    "main": "dist/index.js",
+    "scripts": {
+        "types": "tsc --declaration --emitDeclarationOnly --outDir dist/ --declarationMap",
+        "tsc": "tsc",
+        "compile": "babel src/ --out-dir dist/ --extensions '.ts' --extensions '.js'"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ruby-network/corlink.git"
+    },
+    "keywords": [
+        "javascript",
+        "esm",
+        "fastify",
+        "middleware",
+        "cjs",
+        "corlink"
+    ],
+    "bugs": {
+        "url": "https://github.com/ruby-network/corlink/issues"
+    },
+    "homepage": "https://github.com/ruby-network/corlink#readme",
+    "author": "Ruby Network",
+    "license": "GPL-3.0",
+    "dependencies": {
+        "@babel/cli": "^7.23.9",
+        "@babel/core": "^7.23.9",
+        "@babel/preset-env": "^7.23.9",
+        "@fastify/cookie": "^11.0.2",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@babel/preset-typescript": "^7.23.3",
+        "@types/node": "^20.11.20",
+        "fastify-plugin": "^5.0.1"
+    }
+}
