@@ -1930,20 +1930,56 @@ function vibeKeywords(text) {
   return { keywords: [...out], matched };
 }
 
+// Genre/mood keyword → the REAL catalog category slug it implies. Category is the
+// ONE field every one of the ~16k games reliably has (the bulk catalog carries no
+// tags or description), so mapping a mood's keywords onto categories is what lets
+// the Vibe Finder pull from the WHOLE database instead of only games whose TITLE
+// happens to contain the word. Only confident, unambiguous mappings live here.
+const KW_TO_CAT = {
+  race:'racing', racing:'racing', drift:'racing', car:'racing', cars:'racing', parking:'racing', truck:'racing', moto:'racing', traffic:'racing', drive:'racing',
+  shoot:'shooting', shooter:'shooting', sniper:'shooting', gun:'shooting', fps:'shooting', strike:'shooting',
+  soccer:'sports', football:'sports', basketball:'sports', golf:'sports', bowling:'sports', tennis:'sports', sport:'sports', dunk:'sports',
+  puzzle:'puzzle', sudoku:'puzzle', word:'puzzle', jigsaw:'puzzle', logic:'puzzle', brain:'puzzle', memory:'puzzle', quiz:'puzzle', chess:'puzzle',
+  mahjong:'mahjong-solitaire', solitaire:'mahjong-solitaire',
+  bubble:'bubble-shooter',
+  dress:'girls', makeover:'girls', salon:'girls', fashion:'girls', princess:'girls', wedding:'girls', beauty:'girls', hair:'girls', nail:'girls', baby:'girls',
+  adventure:'adventure', quest:'adventure', dragon:'adventure', ninja:'adventure', dungeon:'adventure', knight:'adventure', survival:'adventure',
+  zombie:'adventure', horror:'adventure', scary:'adventure', ghost:'adventure', granny:'adventure',
+  fight:'action', battle:'action', boxing:'action', punch:'action', ragdoll:'action', kombat:'action', smash:'action', stickman:'action',
+  run:'hypercasual', jump:'hypercasual', dash:'hypercasual', flappy:'hypercasual', hyper:'hypercasual', stack:'hypercasual', helix:'hypercasual', parkour:'hypercasual',
+  idle:'clicker', clicker:'clicker', tycoon:'clicker',
+  tetris:'retro', pixel:'retro', snake:'retro', pinball:'retro', retro:'retro',
+};
+
+// Rank the FULL in-memory catalog against a mood's keywords. Scoring blends three
+// signals, strongest first: (1) the game's CATEGORY matches a category the mood
+// implies — reliable for every one of the ~16k games, so this is what makes a mood
+// span the whole database instead of a handful of title matches; (2) TAGS match
+// (only the curated fallback carries tags — a free bonus when present, ignored
+// otherwise); (3) the TITLE contains the word. Then we shuffle a generous top
+// slice so repeat searches feel fresh.
 function rankCatalogByKeywords(keywords, limit = 18) {
   const kw = [...new Set(keywords.map(k => String(k).toLowerCase().trim()).filter(k => k.length >= 3))];
   if (!kw.length) return [];
+  const moodCats = new Set();
+  for (const k of kw) { const c = KW_TO_CAT[k]; if (c) moodCats.add(c); }
   const scored = [];
   for (const g of CATALOG.games) {
     const title = (g.title || '').toLowerCase();
     const cat = (g.category || '').toLowerCase();
+    const tags = Array.isArray(g.tags) ? g.tags.map(t => String(t).toLowerCase()) : [];
     let score = 0;
-    for (const k of kw) { if (cat === k) score += 2; if (title.includes(k)) score += 3; }
+    if (moodCats.has(cat)) score += 4;                          // mood→category: spans the whole DB
+    for (const k of kw) {
+      if (cat === k) score += 3;                                // keyword IS the exact category
+      if (title.includes(k)) score += 3;                        // title mention
+      if (tags.length) { if (tags.includes(k)) score += 4; else if (tags.some(t => t.includes(k))) score += 2; }
+    }
     if (score > 0) scored.push({ g, score });
   }
   scored.sort((a, b) => b.score - a.score);
   // Shuffle within a generous top slice so repeat searches feel fresh.
-  const top = scored.slice(0, Math.max(limit * 3, 45));
+  const top = scored.slice(0, Math.max(limit * 3, 60));
   for (let i = top.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [top[i], top[j]] = [top[j], top[i]]; }
   return top.slice(0, limit).map(({ g }) => ({
     slug: g.slug, title: g.title,
