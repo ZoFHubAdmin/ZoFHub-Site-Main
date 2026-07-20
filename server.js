@@ -745,11 +745,19 @@ app.use((req, res, next) => {
 const proxyStatus = { gust: false, ultraviolet: false, scramjet: false, bare: false, wisp: false, epoxy: false };
 
 // ── Deploy mode ────────────────────────────────────────────────────────────
-// SITE_MODE=hub  → a clean, monetizable games hub with the WEB PROXY DISABLED,
-//                  so ad networks (AdSense/Ezoic/…) will approve the domain.
-// SITE_MODE=full → everything on (default; used for the proxy-domain deploy and
-//                  local dev). NOTE: the GAME proxy (/embed, /asset) is NOT gated
-//                  here — it's needed for games to load on BOTH builds.
+// ONE site does everything. SITE_MODE=full (the DEFAULT) runs the web proxy AND
+// ads together, because the proxy build earns from a PROXY-FRIENDLY ad network
+// (Monetag / Adsterra / HilltopAds, via PROXY_AD_SCRIPTS) — those networks are
+// allowed on proxy domains, so there is no need to trade the proxy away to show
+// ads. This is the mode you want.
+//   The ONLY thing that can't run on the proxy build is Google AdSense: Google
+// bans proxy / anonymizer sites at the ACCOUNT level, so we force AdSense off
+// here (see /api/site-config) to protect your AdSense account. Proxy-friendly
+// ads fill that role instead — you lose nothing.
+//   SITE_MODE=hub is an OPTIONAL variant for a SEPARATE proxy-free domain that
+// wants Google AdSense specifically (higher rates, but no proxy). Most deploys
+// just use the default. Either way the GAME proxy (/embed, /asset) stays on — it
+// is NOT gated here, because games need it to load on both builds.
 const PROXY_ENABLED = (process.env.SITE_MODE || 'full').toLowerCase() !== 'hub';
 
 let wisp = null;
@@ -2914,10 +2922,12 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(join(PUBLIC_DIR, 'assets', 'favicon.png'), err => { if (err) res.status(404).end(); });
 });
 
-// Per-deployment config the frontend reads at load — so ONE codebase serves both
-// the monetizable hub (proxy off, AdSense id from env) and the proxy domain
-// (proxy on, no AdSense). layout.js uses this to load ads with the env client id
-// and to hide proxy links when the proxy is disabled.
+// Per-deployment config the frontend reads at load. ONE codebase, ONE site that
+// runs the proxy AND ads together: the default (full) build returns proxy:true
+// plus your proxy-friendly ad scripts, while Google AdSense stays off there for
+// account safety. (The optional hub build flips this: proxy off, AdSense id on.)
+// layout.js uses this to load the right ad loader and to hide proxy links when
+// the proxy is disabled.
 app.get('/api/site-config', (req, res) => {
   res.set('Cache-Control', 'public, max-age=60');
   // AdSense id is exposed ONLY on the hub (proxy-disabled) build. On the proxy

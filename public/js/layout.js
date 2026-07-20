@@ -254,8 +254,10 @@ mountMobileNav();
 // ════════════════════════════════════════════════════════════════════════
 // Per-deployment config + deferred ads.
 // ONE codebase serves both deployments via env vars (no code forks):
-//   • Hub domain  (SITE_MODE=hub)  → proxy OFF, AdSense id from ADSENSE_CLIENT.
-//   • Proxy domain (SITE_MODE=full)→ proxy ON, no AdSense.
+//   • Default (SITE_MODE=full) → proxy ON *and* ads ON via a proxy-friendly
+//     network (PROXY_AD_SCRIPTS). Google AdSense stays off here (Google bans
+//     proxy domains account-wide), so proxy-friendly ads fill that role.
+//   • Optional hub (SITE_MODE=hub) → proxy OFF + Google AdSense (ADSENSE_CLIENT).
 // We fetch /api/site-config, then (a) on the hub strip the proxy links from the
 // nav/footer/mobile-menu, (b) hand the env AdSense id to ads.js, then load ads.
 // ════════════════════════════════════════════════════════════════════════
