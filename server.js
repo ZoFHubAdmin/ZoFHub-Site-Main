@@ -304,6 +304,23 @@ function spreadCatalog(games) {
   return out;
 }
 
+// Precomputed mood/genre tags per game (slug -> [tags]), built OFFLINE by
+// tools/build-mood-index.py from the whole catalog. Loaded once at boot. The Vibe
+// Finder scores games by these tags, so a game can match a mood its TITLE never
+// mentions (e.g. a racing game with a bland name still surfaces for "energetic").
+// Optional: if the file is absent the Vibe Finder falls back to category matching,
+// with no error — so the site never depends on the Python step having been run.
+let MOOD_TAGS = new Map();
+try {
+  const mtFile = join(__dirname, 'data', 'mood-tags.json');
+  if (existsSync(mtFile)) {
+    MOOD_TAGS = new Map(Object.entries(JSON.parse(readFileSync(mtFile, 'utf8'))));
+    console.log(`[zofhub] mood-tags loaded: ${MOOD_TAGS.size} games`);
+  } else {
+    console.log('[zofhub] no data/mood-tags.json — Vibe Finder uses category matching. Build it with: python tools/build-mood-index.py');
+  }
+} catch (e) { console.warn('[zofhub] mood-tags load failed:', e.message); }
+
 function setCatalog(games, source) {
   // Merge in finalgames.json (the repo-root master list) FIRST, so its games are
   // present whether this catalog came from the bundled JSON or from Supabase.
@@ -326,6 +343,10 @@ function setCatalog(games, source) {
     // "card games" → card) regardless of whether it came from Supabase or a file.
     const cat = canonCategory(g.category);
     g.category = cat;
+    // Attach precomputed mood tags (if built) so the Vibe Finder can match moods
+    // the title never mentions. Merge with any existing tags (curated fallback).
+    const mtags = MOOD_TAGS.get(g.slug);
+    if (mtags) g.tags = (Array.isArray(g.tags) && g.tags.length) ? [...new Set([...g.tags, ...mtags])] : mtags;
     if (!byCategory.has(cat)) byCategory.set(cat, []);
     byCategory.get(cat).push(g);
     const plat = g.platform ? g.platform.toLowerCase() : null;
