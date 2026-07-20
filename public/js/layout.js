@@ -142,6 +142,7 @@ function mountFooter() {
         <a href="/terms">Terms of Service</a>
         <a href="/cookies">Cookie Policy</a>
         <a href="/dmca">DMCA / Copyright</a>
+        <a href="/credits">Credits &amp; Licenses</a>
       </nav>
     </div>
     <div class="footer-bottom">

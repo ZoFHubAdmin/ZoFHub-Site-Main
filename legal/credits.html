@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="ZoFHub Credits & Licenses — attribution for the open-source software, fonts, and game publishers whose work makes ZoFHub possible, with license notices and the AGPL network-use source offer." />
+  <title>Credits &amp; Licenses · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" media="print" onload="this.media=&#39;all&#39;" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260630" />
+  <link rel="stylesheet" href="/css/legal.css?v=20260630" />
+  <style>
+    /* Keep wide license tables from ever pushing the page sideways on mobile. */
+    .credits-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 14px 0; }
+    .credits-table-wrap table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 460px; }
+    .credits-table-wrap th, .credits-table-wrap td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(125,170,255,.16); vertical-align: top; }
+    .credits-table-wrap th { color: #a7bce0; font-weight: 700; white-space: nowrap; }
+    .credits-table-wrap a { word-break: break-word; }
+    .lic { font-weight: 700; white-space: nowrap; }
+    .lic-copyleft { color: #ffb454; }
+  </style>
+</head>
+<body class="page-legal">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-shell">
+    <div class="legal-hero">
+      <h1>Credits &amp; Licenses</h1>
+      <p class="legal-updated">Last updated: July 19, 2026</p>
+    </div>
+
+    <div class="legal-body">
+      <p><strong>ZoFHub</strong> is built on the work of many open-source projects, and its games are
+        provided by third-party publishers. This page credits them and preserves their license notices.
+        ZoFHub's own code is covered by the ZoFHub License; the components below keep <em>their own</em>
+        upstream licenses, which always take precedence for those components.</p>
+
+      <h2>Core platform</h2>
+      <p>The site itself runs on these open-source projects:</p>
+      <div class="credits-table-wrap">
+        <table>
+          <thead><tr><th>Project</th><th>Role</th><th>License</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a></td><td>JavaScript runtime</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://expressjs.com" target="_blank" rel="noopener">Express</a></td><td>Web server framework</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://helmetjs.github.io" target="_blank" rel="noopener">Helmet</a></td><td>HTTP security headers</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/node-cron/node-cron" target="_blank" rel="noopener">node-cron</a></td><td>Scheduled maintenance jobs</td><td class="lic">ISC</td></tr>
+            <tr><td><a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> (PostgreSQL)</td><td>Game catalog, scores &amp; community data</td><td class="lic">Apache-2.0 / MIT</td></tr>
+            <tr><td><a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a></td><td>Free browser-direct AI (chat &amp; images)</td><td class="lic">MIT</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Proxy engines (served from this site)</h2>
+      <p>The optional web-browser feature is powered by these open-source proxy projects, served to
+        users from this origin:</p>
+      <div class="credits-table-wrap">
+        <table>
+          <thead><tr><th>Project</th><th>Role</th><th>License</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://github.com/titaniumnetwork-dev/Ultraviolet" target="_blank" rel="noopener">Ultraviolet</a></td><td>In-page proxy engine</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener">Scramjet</a></td><td>In-page proxy engine</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/bare-mux" target="_blank" rel="noopener">bare-mux</a></td><td>Transport multiplexer</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/wisp-client-js" target="_blank" rel="noopener">Wisp (wisp-js)</a></td><td>Tunnel protocol client</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/EpoxyTransport" target="_blank" rel="noopener">Epoxy transport</a></td><td>TLS-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a></td><td>WASM curl (used by GUST)</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>AGPL-3.0 §13 — network-use source offer</h2>
+      <p>Because ZoFHub serves the AGPL-3.0 components above over a network, their users are offered the
+        <strong>corresponding source</strong>: it is each project's upstream repository (linked above) at
+        the version pinned in the site's <code>package-lock.json</code>. ZoFHub runs them unmodified; any
+        local changes would be kept in ZoFHub's own repository. To request the source for a specific
+        deployed build, contact us at {{CONTACT}} or via the <strong>ZoFHub Discord</strong> linked in the
+        footer below.</p>
+
+      <h2>Standalone companion browsers (optional, not bundled)</h2>
+      <p>ZoFHub can optionally list these separate, self-hosted proxy-browser apps when they are running.
+        They are <strong>not bundled with the live site</strong>; each keeps its own copyleft license, and
+        anyone deploying one must honour that license (including the AGPL network-use clause).</p>
+      <div class="credits-table-wrap">
+        <table>
+          <thead><tr><th>Project</th><th>Repository</th><th>License</th></tr></thead>
+          <tbody>
+            <tr><td>NautilusOS</td><td><a href="https://github.com/nautilus-os/NautilusOS" target="_blank" rel="noopener">nautilus-os/NautilusOS</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td>Interstellar</td><td><a href="https://github.com/UseInterstellar/Interstellar" target="_blank" rel="noopener">UseInterstellar/Interstellar</a></td><td class="lic lic-copyleft">GPL-3.0-or-later</td></tr>
+            <tr><td>DayDream</td><td><a href="https://github.com/NightProxy/DayDream" target="_blank" rel="noopener">NightProxy/DayDream</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td>Nebula</td><td><a href="https://github.com/NebulaServices/Nebula" target="_blank" rel="noopener">NebulaServices/Nebula</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Games</h2>
+      <p>The games on ZoFHub are embedded through their publishers' <strong>official / authorized embed
+        URLs</strong> and remain the property of their respective owners. ZoFHub hosts no pirated game
+        assets. Publishers include GameDistribution, GameMonetize, Y8, Famobi, HTMLGames,
+        OnlineGames.io and GameFlare. If you are a rights holder and want a game removed, see our
+        <a href="/dmca">DMCA / Copyright</a> page.</p>
+
+      <h2>ZoFHub original games</h2>
+      <p><strong>Metro Dash</strong> is a first-party endless runner built for ZoFHub in WebGL, using
+        original placeholder art and a runtime-synthesized soundtrack (no third-party assets). It is
+        released under the MIT License.</p>
+
+      <h2>Fonts</h2>
+      <p>Headings and body text use <a href="https://fonts.google.com/specimen/Inter" target="_blank" rel="noopener">Inter</a>
+        and <a href="https://fonts.google.com/specimen/Lilita+One" target="_blank" rel="noopener">Lilita One</a>,
+        served via Google Fonts under the <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License</a>.</p>
+
+      <div class="legal-contact" id="contact">
+        <h2>Questions or corrections</h2>
+        <p>If we've missed an attribution or you'd like a correction, reach us at {{CONTACT}} or in the
+          ZoFHub Discord (linked in the footer). ZoFHub's own source code is covered by the
+          <strong>ZoFHub License</strong>; all third-party components above are governed solely by their
+          own licenses listed here.</p>
+      </div>
+
+      <nav class="legal-related" aria-label="Related policies">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/dmca">DMCA / Copyright</a>
+        <a href="/cookies">Cookie Policy</a>
+      </nav>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260716c"></script>
+  <script type="module" src="/js/panic.js?v=20260630"></script>
+</body>
+</html>
