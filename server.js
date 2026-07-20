@@ -2928,7 +2928,17 @@ app.get('/api/site-config', (req, res) => {
   const adsenseClient = PROXY_ENABLED
     ? ''
     : (process.env.ADSENSE_CLIENT || process.env.ZOFHUB_ADSENSE || process.env.GOOGLE_AD_CLIENT || '').trim();
-  res.json({ proxy: PROXY_ENABLED, adsenseClient });
+  // Proxy-build monetization. Google ads are prohibited on proxy/anonymizer
+  // domains (account-level ban), so the proxy build earns via a proxy-friendly
+  // network instead — Monetag, Adsterra, HilltopAds, etc. Paste your network's
+  // loader-script URL(s) into PROXY_AD_SCRIPTS (comma-separated). Returned ONLY on
+  // the proxy build, and NEVER together with an AdSense id — the two ad-account
+  // types stay completely separate so neither can jeopardise the other.
+  const proxyAdScripts = PROXY_ENABLED
+    ? (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
+        .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s))
+    : [];
+  res.json({ proxy: PROXY_ENABLED, adsenseClient, proxyAdScripts });
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));

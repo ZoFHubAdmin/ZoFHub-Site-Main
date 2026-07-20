@@ -269,6 +269,18 @@ fetch('/api/site-config')
     window.ZOFHUB_PROXY = cfg.proxy !== false;
     if (cfg.adsenseClient) window.ZOFHUB_ADSENSE = cfg.adsenseClient;
     if (!window.ZOFHUB_PROXY) removeProxyLinks();
+    // Proxy build earns via a proxy-friendly network (Google ads are banned on
+    // proxy domains). These NEVER load alongside AdSense — the hub build returns
+    // no proxyAdScripts, and ads.js bails on the proxy build — so the two ad
+    // account types can never contaminate each other.
+    if (window.ZOFHUB_PROXY && Array.isArray(cfg.proxyAdScripts) && cfg.proxyAdScripts.length) {
+      window.ZOFHUB_PROXY_ADS = cfg.proxyAdScripts;
+    }
   })
   .catch(() => { /* config unavailable → fall back to built-in defaults */ })
-  .finally(() => { import('./ads.js?v=20260720'); });   // load ads AFTER the client id is set (versioned so the fix isn't cached)
+  .finally(() => {
+    // On the proxy build load ONLY the proxy-ad loader; on the hub load ONLY ads.js
+    // (AdSense). Never both — this is the account-safety boundary.
+    if (window.ZOFHUB_PROXY && window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260720');
+    else import('./ads.js?v=20260720');
+  });
