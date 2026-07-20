@@ -1,0 +1,122 @@
+/* ZoFHub · routing-ui.css — styles for the honest routing UI:
+   the node/route picker, the real connection indicator, and the isolated
+   footer banner. All class names are prefixed (.np- / .cxs- / .fad-) so they
+   never collide with the rest of the site. Dark-theme palette matches the app. */
+
+:root {
+  --ru-bg:      #0e2247;
+  --ru-bg-2:    #0a1a38;
+  --ru-line:    rgba(125, 170, 255, .22);
+  --ru-line-hi: rgba(255, 224, 0, .55);
+  --ru-text:    #eaf1ff;
+  --ru-dim:     #a7bce0;
+  --ru-accent:  #7c4dff;
+  --ru-accent2: #ff4d8d;
+  --ru-good:    #33d17a;
+  --ru-bad:     #ff5c6c;
+}
+
+/* ─────────────────────────────  1. NODE / ROUTE PICKER  ───────────────────── */
+.np-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.np-card {
+  display: flex; flex-direction: column; gap: 8px;
+  text-align: left; cursor: pointer;
+  background: var(--ru-bg-2);
+  border: 1px solid var(--ru-line);
+  border-radius: 14px;
+  padding: 14px 15px;
+  color: var(--ru-text);
+  font: inherit;
+  transition: border-color .14s ease, transform .1s ease, box-shadow .14s ease;
+}
+.np-card:hover { border-color: var(--ru-line-hi); transform: translateY(-2px); }
+.np-card:focus-visible { outline: 2px solid var(--ru-line-hi); outline-offset: 2px; }
+.np-card[aria-pressed="true"] {
+  border-color: var(--ru-accent2);
+  box-shadow: 0 0 0 1px var(--ru-accent2), 0 8px 24px rgba(124, 77, 255, .25);
+}
+.np-card-head { display: flex; align-items: center; gap: 9px; }
+.np-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; background: var(--ru-dim); }
+.np-dot.is-online { background: var(--ru-good); box-shadow: 0 0 8px rgba(51, 209, 122, .7); }
+.np-dot.is-offline { background: var(--ru-bad); }
+.np-name { font-size: 15px; font-weight: 800; }
+.np-badge {
+  margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ru-dim);
+  border: 1px solid var(--ru-line); border-radius: 999px; padding: 2px 8px;
+}
+.np-desc { font-size: 12.5px; color: var(--ru-dim); line-height: 1.45; }
+.np-selected-tag {
+  font-size: 11px; font-weight: 700; color: var(--ru-accent2);
+  display: none; margin-top: auto;
+}
+.np-card[aria-pressed="true"] .np-selected-tag { display: block; }
+
+/* ───────────────────────  2. CONNECTION STATUS INDICATOR  ─────────────────── */
+.cxs-overlay {
+  position: fixed; inset: 0; z-index: 10050;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(4, 7, 18, .82); backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.cxs-overlay.is-open { display: flex; }
+.cxs-card {
+  width: min(420px, 100%);
+  background: var(--ru-bg); border: 1px solid var(--ru-line);
+  border-radius: 18px; padding: 26px 24px;
+  text-align: center; color: var(--ru-text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .55);
+}
+.cxs-spinner {
+  width: 42px; height: 42px; margin: 0 auto 16px;
+  border: 3px solid rgba(255, 255, 255, .14);
+  border-top-color: var(--ru-accent2);
+  border-radius: 50%; animation: cxs-spin .8s linear infinite;
+}
+@keyframes cxs-spin { to { transform: rotate(360deg); } }
+.cxs-label { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+.cxs-sub { font-size: 12.5px; color: var(--ru-dim); margin: 0; min-height: 16px; }
+.cxs-actions { margin-top: 18px; }
+.cxs-btn {
+  cursor: pointer; border: 1px solid var(--ru-line); background: transparent;
+  color: var(--ru-dim); border-radius: 10px; padding: 8px 16px;
+  font: inherit; font-size: 13px; font-weight: 600;
+}
+.cxs-btn:hover { border-color: var(--ru-line-hi); color: var(--ru-text); }
+.cxs-card.is-error .cxs-spinner { display: none; }
+.cxs-card.is-error .cxs-label { color: var(--ru-bad); }
+
+/* ─────────────────────────  3. ISOLATED FOOTER BANNER  ────────────────────── */
+/* Kept in its OWN bar with clear separation + generous spacing so a visitor can
+   never mistake it for a nav control (that accidental-click protection is what
+   keeps your ad account healthy). Labeled "Advertisement" per ad-network rules. */
+.fad-bar {
+  width: 100%;
+  margin-top: 28px;                 /* breathing room above — never flush to buttons */
+  padding: 10px 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(6, 10, 22, .6);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.fad-label {
+  font-size: 9px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(190, 210, 255, .4);
+}
+.fad-slot {
+  display: grid; place-items: center; overflow: hidden;
+  width: 100%; max-width: 728px; min-height: 90px;   /* 728×90 desktop leaderboard */
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .03);
+  /* isolate from surrounding click targets */
+  isolation: isolate; position: relative;
+}
+.fad-slot > * { max-width: 100%; }
+/* Mobile: swap to a 320×50 footprint so it never overflows or crowds the UI. */
+@media (max-width: 500px) {
+  .fad-slot { max-width: 320px; min-height: 50px; }
+}
