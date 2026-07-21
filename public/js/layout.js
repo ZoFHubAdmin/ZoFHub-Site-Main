@@ -278,11 +278,26 @@ fetch('/api/site-config')
     if (window.ZOFHUB_PROXY && Array.isArray(cfg.proxyAdScripts) && cfg.proxyAdScripts.length) {
       window.ZOFHUB_PROXY_ADS = cfg.proxyAdScripts;
     }
+    // Optional fixed footer display banner for the proxy build (PROXY_BANNER_TAG).
+    // Independent of the page-level scripts above — you can have either, both, or
+    // neither. footer-ad.js shows the slot ONLY when this is a non-empty tag.
+    if (window.ZOFHUB_PROXY && typeof cfg.proxyBannerTag === 'string' && cfg.proxyBannerTag.trim()) {
+      window.ZOFHUB_PROXY_BANNER = cfg.proxyBannerTag;
+    }
   })
   .catch(() => { /* config unavailable → fall back to built-in defaults */ })
   .finally(() => {
-    // On the proxy build load ONLY the proxy-ad loader; on the hub load ONLY ads.js
-    // (AdSense). Never both — this is the account-safety boundary.
-    if (window.ZOFHUB_PROXY && window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260720');
-    else import('./ads.js?v=20260720');
+    // Account-safety boundary: the proxy build loads ONLY proxy-friendly ads and
+    // NEVER Google; the hub build loads ONLY ads.js (AdSense). Never both.
+    if (window.ZOFHUB_PROXY) {
+      // (a) page-level proxy-friendly ad scripts (popunder / push / interstitial)…
+      if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260720');
+      // (b) …plus the clean, isolated footer display banner. It self-checks
+      //     window.ZOFHUB_PROXY_BANNER and stays hidden until a banner tag is set,
+      //     so it's armed and harmless — a real banner appears the moment you
+      //     configure PROXY_BANNER_TAG. Loads no Google code.
+      import('./footer-ad.js?v=20260721').then(m => m.mountFooterAd()).catch(() => {});
+    } else {
+      import('./ads.js?v=20260720');
+    }
   });

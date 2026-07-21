@@ -2948,7 +2948,14 @@ app.get('/api/site-config', (req, res) => {
     ? (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
         .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s))
     : [];
-  res.json({ proxy: PROXY_ENABLED, adsenseClient, proxyAdScripts });
+  // Optional fixed DISPLAY BANNER for the proxy build's footer slot (footer-ad.js):
+  // the raw banner tag your proxy-friendly network gives you (e.g. an Adsterra /
+  // HilltopAds 728×90 unit — usually two <script> tags). Returned ONLY on the proxy
+  // build, and refused outright if it contains Google ad code (a Google banner on a
+  // proxy/anonymizer domain is an ACCOUNT-LEVEL ban), so it can never load AdSense.
+  const rawBanner = PROXY_ENABLED ? (process.env.PROXY_BANNER_TAG || '').trim() : '';
+  const proxyBannerTag = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(rawBanner) ? '' : rawBanner;
+  res.json({ proxy: PROXY_ENABLED, adsenseClient, proxyAdScripts, proxyBannerTag });
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));

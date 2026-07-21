@@ -1,38 +1,84 @@
-// ZoFHub · footer-ad.js — one clean, isolated footer banner.
+// ZoFHub · footer-ad.js — one clean, isolated footer banner (PROXY build).
 // ---------------------------------------------------------------------------
-// A single responsive banner (728×90 desktop / 320×50 mobile) mounted at the
-// ABSOLUTE bottom of the layout, inside its own bar with a top divider and
-// generous spacing so it can NEVER be mistaken for — or overlap — a nav button.
+// A single responsive display banner (728×90 desktop / 320×50 mobile) mounted at
+// the ABSOLUTE bottom of the page, inside its own bar with a top divider and
+// generous spacing so it can NEVER be mistaken for — or overlap — a nav control.
 // That accidental-click isolation is what protects your ad-account reputation.
 //
-// It also honors your existing hub/proxy split automatically:
-//   • HUB build  (window.ZOFHUB_ADSENSE set) → renders an AdSense unit slot
-//     that your ads.js fills. Set data-ad-slot to your 728×90 unit id.
-//   • PROXY build (window.ZOFHUB_PROXY) → does NOT load Google (that's banned on
-//     proxy domains). Instead it leaves a clearly-marked container where you drop
-//     your proxy-friendly network's banner tag (Monetag / Adsterra / HilltopAds).
-//   • Neither configured → the bar stays hidden, so visitors never see an empty box.
+// WHERE IT RUNS
+//   • PROXY build only (window.ZOFHUB_PROXY === true). On the HUB build, ads.js
+//     already injects a bottom leaderboard, so this stays out to avoid a double
+//     bar. The proxy build never loads Google (that's banned on proxy domains).
 //
-// USAGE:
+// WHAT FILLS IT
+//   • Your proxy-friendly network's fixed BANNER tag, configured server-side in
+//     the PROXY_BANNER_TAG env var → /api/site-config → window.ZOFHUB_PROXY_BANNER.
+//     It's usually two <script> tags (e.g. an Adsterra / HilltopAds 728×90 unit).
+//   • If NOTHING is configured, the bar never appears — no empty "Advertisement"
+//     box is ever shown to a visitor. So it's armed and harmless until you set it.
+//
+// USAGE (already wired from layout.js on the proxy build):
 //   import { mountFooterAd } from './footer-ad.js';
 //   mountFooterAd();                 // appends to <body> (or pass a container)
 // ---------------------------------------------------------------------------
 
-// Your AdSense 728×90 ad-unit slot id (numbers only), if you use manual units on
-// the hub. Leave '' to rely on AdSense Auto Ads (the slot then just reserves space).
-const ADSENSE_LEADERBOARD_SLOT = '';
+// Belt-and-suspenders: never render Google ad markup on the proxy build (the
+// server already refuses it, but we re-check the tag here before touching the DOM).
+const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
+
+const CSS = `
+.fad-bar{width:100%;margin-top:28px;padding:10px 12px 14px;border-top:1px solid rgba(255,255,255,.08);background:rgba(6,10,22,.6);display:flex;flex-direction:column;align-items:center;gap:6px}
+.fad-label{font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:rgba(190,210,255,.4)}
+.fad-slot{display:grid;place-items:center;overflow:hidden;width:100%;max-width:728px;min-height:90px;border-radius:10px;background:rgba(255,255,255,.03);isolation:isolate;position:relative}
+.fad-slot > *{max-width:100%}
+@media(max-width:500px){.fad-slot{max-width:320px;min-height:50px}}
+`;
+
+function injectCss() {
+  if (document.getElementById('fad-css')) return;
+  const st = document.createElement('style');
+  st.id = 'fad-css';
+  st.textContent = CSS;
+  document.head.appendChild(st);
+}
+
+// Inject an ad snippet WITH script execution. Setting innerHTML alone will NOT
+// run <script> tags, so we parse the configured markup in an inert <template>
+// and re-create each script node (copying attributes + inline code) in order, so
+// an inline config script runs before the loader that reads it — how banner tags
+// like Adsterra's atOptions + invoke.js pair expect to execute.
+function injectMarkup(container, html) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  for (const node of Array.from(tpl.content.childNodes)) {
+    if (node.tagName === 'SCRIPT') {
+      const s = document.createElement('script');
+      for (const attr of Array.from(node.attributes)) s.setAttribute(attr.name, attr.value);
+      if (node.textContent) s.textContent = node.textContent;
+      container.appendChild(s);
+    } else {
+      container.appendChild(node);
+    }
+  }
+}
 
 export function mountFooterAd(target = document.body) {
-  if (!target || document.querySelector('.fad-bar')) return; // mount once
+  if (typeof window === 'undefined' || !document.body) return;
+  if (document.querySelector('.fad-bar')) return;               // mount once
 
-  const onProxyBuild = typeof window !== 'undefined' && window.ZOFHUB_PROXY === true;
-  const adsenseClient = (typeof window !== 'undefined' && window.ZOFHUB_ADSENSE) || '';
+  // PROXY build only — the hub build's banner is owned by ads.js.
+  if (window.ZOFHUB_PROXY !== true) return;
 
-  // Compliance guard: never render Google ad markup on the proxy build/routes.
-  // With no hub AdSense AND no proxy network wired up, don't show an empty bar.
-  const hasProxyNetwork = onProxyBuild && Array.isArray(window.ZOFHUB_PROXY_ADS) && window.ZOFHUB_PROXY_ADS.length;
-  if (!onProxyBuild && !adsenseClient) return;   // hub, but ads not configured → hide
-  if (onProxyBuild && !hasProxyNetwork) return;  // proxy, but no network → hide
+  // Only render when a REAL banner tag is configured. No tag → no bar (no empty box).
+  const bannerTag = (typeof window.ZOFHUB_PROXY_BANNER === 'string' ? window.ZOFHUB_PROXY_BANNER : '').trim();
+  if (!bannerTag) return;
+  if (GOOGLE_AD_RE.test(bannerTag)) return;                     // never Google on the proxy build
+
+  // Layout-sensitive pages: the AI chat is a fixed-height grid — a bottom bar
+  // would cover the composer. Skip there, exactly as ads.js does.
+  if (document.body.classList.contains('page-ai') || document.querySelector('.ai-shell')) return;
+
+  injectCss();
 
   const bar = document.createElement('aside');
   bar.className = 'fad-bar';
@@ -44,28 +90,12 @@ export function mountFooterAd(target = document.body) {
 
   const slot = document.createElement('div');
   slot.className = 'fad-slot';
-
-  if (onProxyBuild) {
-    // PROXY BUILD — no Google. Your proxy-ads.js already injects the network's
-    // page-level script from PROXY_AD_SCRIPTS; if that network also gives you an
-    // inline BANNER tag for a fixed container, paste it here. Example (Adsterra):
-    //
-    //   slot.innerHTML = `<script async data-cfasync="false"
-    //     src="//your-adsterra-domain/INVOKE.js"></script>
-    //     <div id="container-XXXXXXXX"></div>`;
-    //
-    // Until you add one, this container simply reserves clean, labeled space.
-    slot.dataset.proxyBanner = '1';
-  } else {
-    // HUB BUILD — a standard AdSense leaderboard unit. ads.js fills .ad-slot
-    // elements, so we speak its data-* convention and let it do the work.
-    slot.classList.add('ad-slot');
-    slot.setAttribute('data-ad-type', 'leaderboard');
-    if (ADSENSE_LEADERBOARD_SLOT) slot.setAttribute('data-ad-slot', ADSENSE_LEADERBOARD_SLOT);
-  }
+  slot.dataset.proxyBanner = '1';
 
   bar.appendChild(label);
   bar.appendChild(slot);
-  target.appendChild(bar);
+  (target || document.body).appendChild(bar);
+
+  injectMarkup(slot, bannerTag);
   return bar;
 }

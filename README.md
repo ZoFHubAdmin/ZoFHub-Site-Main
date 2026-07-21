@@ -13,7 +13,7 @@ A single-server web app that bundles three things into one site:
 2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **directly in the visitor's browser** (keyless — no API key, and prompts never pass through this server).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks.
 
-It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, scores, and community data. One codebase deploys as either the **monetizable hub** or the **proxy site** by flipping a single environment variable.
+It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, scores, and community data. One codebase runs as the **proxy site** (proxy **and** ads together, via a proxy-friendly ad network) or, optionally, an **AdSense-only hub** (proxy off) — set by a single environment variable.
 
 ---
 
@@ -26,7 +26,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for, no emails collected.
 - 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks.
-- 🧩 **Two deploy modes, one codebase** — `SITE_MODE=hub` (ads on, proxy off) vs `SITE_MODE=full` (proxy on, ads off). See [GO-LIVE.md](GO-LIVE.md).
+- 🧩 **One codebase, one site** — `SITE_MODE=full` (default) runs the proxy **and** ads together via a proxy-friendly network; `SITE_MODE=hub` is an optional AdSense-only, proxy-off variant. See [💰 Monetization](#-monetizing-the-proxy-build).
 - 💤 **Free-tier friendly** — a secured `/healthz` keep-alive endpoint keeps Render + Supabase awake without a paid plan.
 - 🛠️ **Self-maintaining** — 7 scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune scores & community posts, and heartbeat the DB. See [`lib/cron-jobs.mjs`](lib/cron-jobs.mjs).
 
@@ -70,13 +70,64 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 
 | Variable | Purpose |
 |---|---|
-| `SITE_MODE` | `hub` (games + ads, proxy off) or `full` (proxy on, ads off). Default `full`. |
+| `SITE_MODE` | `full` (default: proxy **on** + proxy-friendly ads) or `hub` (AdSense-only, proxy off). |
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Public Supabase access (optional locally). |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Server-only.** Bypasses RLS for cron + writes. Never expose to the browser or commit it. |
 | `SCORE_SECRET` | Signs the proof-of-play leaderboard tokens. Keep it stable. |
+| `PROXY_AD_SCRIPTS` | Proxy-friendly ad-network loader script(s), comma-separated (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
+| `PROXY_BANNER_TAG` | Optional footer display-banner tag (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
 | `ADSENSE_CLIENT` | Your `ca-pub-…` id — lights up ad units + `/ads.txt` (**hub only**). |
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
 | `CRON_DISABLED` | Set `1` on the proxy instance so only the hub runs the scheduled jobs. |
+
+---
+
+## 💰 Monetizing the proxy build
+
+The proxy site runs **ads and the proxy at the same time** — it just uses a
+**proxy-friendly ad network** (Monetag / Adsterra / HilltopAds) instead of Google
+AdSense, because Google bans proxy / anonymizer sites at the **account level**.
+Nothing here can put AdSense on the proxy: Google ad code is **stripped
+server-side** ([`/api/site-config`](server.js)), so an AdSense account can never be
+put at risk. There are **two** places to paste ad code — both are environment
+variables, so no code changes are needed to go live.
+
+**1. Page-level ad scripts → `PROXY_AD_SCRIPTS`**
+Your network's main loader script(s) — these run the popunder / push / interstitial
+formats the network manages itself. Comma-separate to stack multiple networks:
+
+```
+PROXY_AD_SCRIPTS=https://your-adsterra-tag.com/invoke.js,https://your-hilltop-tag.com/loader.js
+```
+
+**2. Footer display banner → `PROXY_BANNER_TAG`**
+An optional fixed **728×90** banner for the clean, labelled slot at the very bottom
+of the page. Paste the raw banner tag your network gives you (usually two `<script>`
+tags) as **one line**:
+
+```
+PROXY_BANNER_TAG=<script>atOptions={...}</script><script src="//network/invoke.js"></script>
+```
+
+Leave `PROXY_BANNER_TAG` blank and the footer slot simply never appears — **no empty
+"Advertisement" boxes, ever.** The slot is isolated with a divider + spacing so it
+can't be mis-clicked as a nav button (that protects your ad-account standing).
+
+### Going live (for you + your parent/guardian)
+
+1. **A parent/guardian signs up as the _publisher_** at one network first (Adsterra
+   or HilltopAds — both approve instantly), with their real name + tax details. The
+   account and payouts must be in an adult's name.
+2. Create an ad unit and copy the loader link (and, if you want it, the banner tag).
+3. Paste them into the env vars above on your host (**Render → Environment**), then
+   redeploy. Ads appear on the next load.
+4. **Start with one network.** Stacking five popunder networks slows the site and
+   trips their fraud checks — add more only once the first is working.
+
+> **Real talk:** proxy traffic pays low rates (often cents per 1,000 views), so real
+> income needs real, steady traffic first. Keep it clean and honest — **no** fake
+> loading timers, **no** "complete an offer to unlock" gates. That's what keeps your
+> accounts alive and your visitors coming back.
 
 ---
 
