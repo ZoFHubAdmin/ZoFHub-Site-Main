@@ -1,180 +1,218 @@
-ZoFHub Project Analysis
+# ZoFHub — Project Analysis
 
-Based on my analysis of the ZoFHub project located at C:\Users\sumat\Documents\CLAUDECODEPROJECTS\ZoFHub, here is a complete overview of the project and all npm commands available.
+A complete overview of the ZoFHub project located at
+`C:\Users\jayes\OneDrive\Documents\CLAUDECODEPROJECTS\ZoFHub`, including every npm
+command available in `package.json`.
 
 ## Project Overview
 
-ZoFHub is a single-server web application that combines three main features into one site:
-1. Games Hub - 16,000+ free browser games from official/authorized websites and search categories, favorites, Game of the Day, cheat-resistant leaderboard, and community wall
-2. Free AI Assistant - Chat + image generation via Pollinations, running directly in the visitor’s browser (keyless, no API key, prompts never pass through the server)
-3. Proxy Wall (optional) - An “open the web” mode using GUST + Ultraviolet/Scramjet/Wisp for filtered networks
+ZoFHub is a single-server web application that combines three features into one site:
 
-Built with: Node.js + Express, vanilla HTML/CSS/JS (no framework, no build step), Supabase (Postgres) for catalog/scores/community data.
+1. **Games Hub** — 16,000+ free browser games served via official/authorized embed
+   URLs, with search, categories, favorites, Game of the Day, a cheat-resistant
+   leaderboard, and a community wall.
+2. **Free AI Assistant** — chat + image generation via Pollinations, running
+   directly in the visitor's browser (keyless — no API key, and prompts never pass
+   through the server).
+3. **Proxy Browser (optional)** — an "open the web" mode using GUST +
+   Ultraviolet / Scramjet / Wisp for filtered networks.
+
+**Built with:** Node.js + Express, vanilla HTML/CSS/JS (no framework, no build
+step), and Supabase (Postgres) for catalog, scores, and community data.
 
 ## NPM Scripts Available
 
-All available npm commands from package.json:
+All commands come from `package.json`. Node scripts run with `--use-system-ca`
+(makes Node trust the Windows certificate store for corporate/school TLS setups).
 
 ### Server Management
 
-npm start - node --use-system-ca server.js (starts the server)
-npm run serve - node --use-system-ca --watch server.js (auto-restart on changes)
-npm run kill-port - node tools/kill-port.js && node --use-system-ca server.js (free port + start)
-npm run kill-port:alt - node tools/kill-port.js && npm run start:alt (process on port 8800)
+- `npm start` — `node --use-system-ca server.js` (start the server)
+- `npm run dev` — `node --use-system-ca --watch server.js` (auto-restart on change)
+- `npm run restart` — free port 8080, then start
+- `npm run kill-port` — free port 8080
+- `npm run proxies` — run the optional companion proxy browsers
+- `npm run dev:all` — run the main server + companion proxies together
 
-### Development & Maintenance
+### Development & Build
 
-npm run check - node tools/check-js.js (JavaScript syntax check)
-npm run dev - node tools/dev-all.js (development utilities)
-npm run build - node tools/build-wp.js (build multi-WP version)
+- `npm run check` — JavaScript syntax check (`tools/check-js.mjs`)
+- `npm run build-mvp` — build the trimmed MVP bundle (`tools/build-mvp.mjs`)
 
-### Database & Data Management
+### Database & Migration
 
-npm run upgrade - node --use-system-ca tools/migrate-to-supabase.js (run supabase migrations)
-npm run migrate - node --use-system-ca tools/migrate-curated.js (curated migrations)
-npm run migrate:curated - node --use-system-ca tools/migrate-curated --dry-run (dry run curated migrations)
-npm run restore - node --use-system-ca tools/restore-to-supabase.js (load all sources into supabase)
-# run Supabase migrations
-npm run migrate:dry - mode -use-system-cta tools/migrate.js --dry-run (dry run curated migrations)
-npm run migrate:curated - mode -use-system-cta tools/migrate.js --as-curated (curated migrations)
-npm run migrate:all - mode -use-system-cta tools/migrate.js --as-curated --dry-run (dry run curated migrations)
-npm run clean-fakes - mode tools/clean-fake-db-hashes.js (clean fake db distribution hashes)
+- `npm run migrate` — migrate data into Supabase (`tools/migrate-to-supabase.mjs`)
+- `npm run migrate:dry` — dry-run migration (no writes)
+- `npm run migrate:curated` — migrate only the curated set
+- `npm run migrate:curated:dry` — dry-run curated migration
+- `npm run restore-games` — load every game source into Supabase (one command)
+- `npm run export-games` — export the catalog from Supabase to local JSON
 
-## Catalog & Game Management
-npm run add-game - mode -use-system-cta tools/add-game.js (add individual game)
-npm run report-games - mode -use-system-cta tools/report-games.js (report games data)
-npm run restore-games - mode -use-system-cta tools/restore-games.js (restore games from sources)
+### Catalog & Game Management
 
-## Auditing & Maintenance
-npm run audit-index - mode -use-system-cta tools/audit-catalog.js (audit game thumbnails)
-npm run audit-license - mode -use-system-cta tools/audit-license.js (audit licensing)
-npm run audit-links - mode -use-system-cta tools/audit-links.js (audit link detection)
-npm run fix-thumbnails - mode -use-system-cta tools/fix-thumbnails.js (fix thumbnails)
-npm run fix-links - mode -use-system-cta tools/fix-links.js (fix link issues)
+- `npm run add-game` — add an individual game (`tools/add-game.mjs`)
+- `npm run add-slope` — add the Slope game (`tools/add-slope.mjs`)
+- `npm run grow` — grow the catalog with render-verified games
+- `npm run y8-scrape` — scrape the Y8 embed directory
+- `npm run y8-harvest` — harvest raw Y8 game data
+- `npm run y8-sync` — sync Y8 games into the catalog (`lib/y8-ingest.mjs`)
+- `npm run fix-thumbnails` — fetch/repair Y8 thumbnails (`tools/fetch-y8-thumbs.mjs`)
+- `npm run mood-index` — `python tools/build-mood-index.py` (build the mood-tag
+  index that powers the AI "Vibe Finder" recommendations)
 
-## Analytics and Utilities
-npm run build-index - python tools/build-aood-index.py (build index for AI recommendations)
-npm run py-harvest - node tools/harvest-games.py (raw harvester)
-npm run py-analyze - node tools/analyze-games.py (analyze games)
+### Auditing & Maintenance
+
+- `npm run audit` — audit the catalog (`tools/audit-catalog.mjs`)
+- `npm run audit-thumbnails` — audit thumbnails
+- `npm run audit-licensing` — audit game licensing/compliance
+- `npm run link-check` — check for dead game links
+- `npm run link-check:full` — full link-check pass
+- `npm run clean-fakes` — remove fake GameDistribution hashes
+- `npm run purge-eduame` — purge legacy "Eduame" references
+
+> **Note:** `mood-index` is the only Python script (offline, stdlib-only). Every
+> other tool is Node (ES modules, `.mjs`).
 
 ## Getting Started
-Clone the repository
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
-cd clone https://github.com/ZoFHubAdmin/ZoFHub-Site.git
-Install dependencies
+cd ZoFHub-Gaming-AI-Browser-Hub
+
+# 2. Install dependencies
 npm install
-# Getting started
 
-1. Clone the repository
-git clone https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
-cd Fomo-Gaming
-git clone https://github.com/ZoFHubAdmin/ZoFHub-Site.git
-cd Fomo-Site
-2. Install dependencies
-npm install
-3. Configure environment
-KEY environment variables in .env:
-- SERVER host
-- SERVER port
-- NODE_ENV - environment (development/production)
-- PROXY - proxy settings (local proxy, proxy-only, proxy off)
-- SUPABASE_URL - Supabase URL (project URL)
-- SUPABASE_SERVICE_ROLE_KEY - Supabase service role key
-4. Start the application
-npm start
-Visit http://localhost:3000
+# 3. Configure environment
+cp .env.example .env      # then fill in your values (see Configuration)
 
-## Configuration Options
+# 4. Start the application
+npm start                 # → http://localhost:8080
+```
 
-KEY environment variables in .env:
-- SERVER host
-- SERVER port
-- NODE_ENV - environment (development/production)
-- PROXY - proxy settings (local proxy, proxy-only, proxy off)
-- SUPABASE_URL - Supabase URL (project URL)
-- SUPABASE_SERVICE_ROLE_KEY - Supabase service role key
-- DATABASE_SETUP - set on proxy instance so only runs on proxy instance
+> A second private repo, `https://github.com/ZoFHubAdmin/ZoFHub-Site.git`, is used
+> only as a full backup mirror (git remote `backup`), not a separate clone.
 
-The project uses Supabase for persistent data. To set up:
+## Configuration
 
-Quick method (loads all game sources):
-1. Run load-all.sh
-2. Recommended method (loads files in dir) in this order:
-   - load-games.sh
-   - load-assets.sh
-   - load-users.sh
-   - load-scores.sh
-Numbered load-all: run loaders (run in numeric order)
-# visit http://localhost:8080
-## Schema.sql (Stored tables)
-- Optional: stats.sql + keepalive.sql
-- Download load-sql + game loaders (run in numeric order)
+All configuration is via environment variables in `.env`. The essentials:
+
+- `PORT` — server port (default `8080`)
+- `HOST` — bind address (default `0.0.0.0`)
+- `NODE_ENV` — `development` / `production`
+- `SITE_MODE` — `full` (default: proxy **on** + proxy-friendly ads) or `hub`
+  (AdSense-only, proxy off)
+- `SUPABASE_URL` — Supabase project URL
+- `SUPABASE_PUBLISHABLE_KEY` (a.k.a. anon key) — browser-safe, RLS-protected
+- `SUPABASE_SERVICE_ROLE_KEY` — **server-only**, bypasses RLS for cron + writes
+  (never expose to the browser or commit it)
+- `SCORE_SECRET` — signs the proof-of-play leaderboard tokens
+- `PROXY_AD_SCRIPTS` — proxy-friendly ad-network loader script(s) (proxy build)
+- `PROXY_BANNER_TAG` — optional footer display-banner tag (proxy build)
+- `ADSENSE_CLIENT` — Google AdSense id (hub build only)
+- `CRON_SECRET` — protects `/healthz`; set the same value in your uptime monitor
+- `CRON_DISABLED` — set `1` to disable the scheduled jobs
+
+### Database setup (Supabase)
+
+**Quick method (one command, loads all game sources):**
+
+```bash
+npm run restore-games
+```
+
+**Manual method — run the SQL files in `db/` in order:**
+
+1. `schema.sql`
+2. `community.sql`
+3. `community-scores-integrity.sql` (leaderboard anti-cheat functions)
+4. *(optional)* `stats.sql`, `keepalive.sql`
+5. the `load-*.sql` game loaders (run in numeric order — each is an idempotent
+   upsert, so re-running is safe)
 
 ## Docker Deployment
-docker build -t zofhub
+
+```bash
+docker build -t zofhub .
 docker run -p 8080:8080 --env-file .env zofhub
+```
 
 ## Production Deployment
-The project is designed for persistent server platforms (not serverless) due to:
-- long jobs that need maintenance tasks
-- game state catalog
-- multiple endpoints (Whip endpoints)
+
+ZoFHub needs a **persistent server** (not serverless) because it:
+
+- runs scheduled cron jobs,
+- holds the full game catalog in memory, and
+- serves the `/wisp` WebSocket tunnel for the proxy engines.
+
+`render.yaml` defines the Render deployment. Render auto-deploys on every push to
+`main`. On the free tier, an external uptime monitor pinging `/healthz` keeps the
+service (and Supabase) awake.
 
 ## Self-Maintaining Features
-- link-check (hourly) - Hidden gems and jobs (configured in side_jobs.py)
-- job-sync (continuous) - syncs jobs to catalog (side_jobs.py)
-- keepalive (daily) - ensures no thread or app freeze
-- cleanup (daily) - removes old logs from top 20 recent days
-- resample (daily) - rebalances top 20 app records to database parse
+
+Scheduled jobs live in `lib/cron-jobs.mjs` (Node, ~7 jobs):
+
+- **Link check** — flags dead game links.
+- **Catalog growth** — adds render-verified new games.
+- **Y8 sync** — ingests new Y8 embeds.
+- **Score pruning** — trims each leaderboard to its top N and quarantines outliers.
+- **Community pruning** — removes stale community posts.
+- **DB heartbeat** — keeps the free-tier Supabase project from pausing.
 
 ## Project Structure
-Summary:
-- app.py          Main application entry point
-- Dockerfile      Docker deployment blueprint
-- controller.py   Controller class (Whip endpoints)
-# ZoFHub
-Main application entry point
-render.yml        - Render deployment blueprint
-dockerfile        - Container image (node:20-alpine)
-api/              - Unified catalog (show/subpage fallback)
-cfg/              - Configuration overrides (catalog overrides, etc.)
-dbapi/            - Provider / items / DB ingest
-lib/              - Shared functions (DB access, cache, etc.)
-map/              - Map providers (mapbox, leaflet, etc.)
-pub/              - Public pages (front, countries, leaderboard, game)
-src/              - JS/TS sources
-test/             - Tests
-thumbs/           - Thumbnails, audits, tag generators, link checker, etc.
 
-Key features
-- Aggregates from official embed sources (GameDistribution, Y8, etc.)
-- Fetches data by leaderboard, price, genre, and minutes
-- Provides unified catalog with rich metadata
-- Supports dynamic filtering, sorting, pagination, and score ceilings
-- Optional progressive web app (PWA) collection
-- Additional providers - GIST, ultrawide/lowres server proxying
-- Optional hub mode - standalone hub (AdSense-only)
-- Automated cron jobs handle link checking, cache growth, score pruning, etc.
+```text
+ZoFHub/
+├── server.js            # the entire app: pages, APIs, game/AI/web proxies (entry)
+├── render.yaml          # Render deployment blueprint
+├── Dockerfile           # container image (node:20-alpine, port 8080)
+├── api/                 # bundled catalog JSON (fallback when Supabase is down)
+├── data/                # catalog-overrides.json, score-limits.json, mood-tags.json
+├── db/                  # Supabase SQL: schema, community, integrity, loaders
+├── legal/               # privacy / terms / DMCA / cookies / credits source
+├── lib/                 # server modules: supabase, cron-jobs, cache, y8 ingest
+├── public/
+│   ├── *.html           # pages (home, ai, community, leaderboard, browser, game…)
+│   ├── css/  js/        # styles + vanilla frontend modules
+│   ├── gust/            # GUST proxy-browser UI (libcurl.js + Wisp)
+│   ├── uv/  scram/      # Ultraviolet + Scramjet proxy engines
+│   └── assets/ thumbs/  # images + game thumbnails
+└── tools/               # maintenance scripts (audits, migration, link checker)
+```
 
-Monetization
-Primary build (SITE_MODE=full) uses proxy-friendly ad networks (MonetizeMore, Adsterra, HilltopAds) instead of AdSense (which bans proxy/sites). Ad configuration is done
-through /cfg/ads.yml
-The hub build (SITE_MODE=hub) uses standard Google AdSense with ADSENSE_CLIENT variable.
-158  Instant games from official embed sources (GameMonetize, GameDistribution, Y8, GameMonobi, etc.)
-159  Instant catalog -> Loaded into memory, refreshed from Supabase every 3 minutes
-160  Instant chart -> leaderboard: daily, picks, genre-weighted by actual play data
-161  Core-accounts -> Visitors and mappings signed proof-of-play with min/max playtime and score ceilings
-162  Core-account browser -> Guest (at ultraweblitz/scrape/wisp) for filtered or themed listings
-163  Dual-node deployer -> Single codebase SITE_MODE=full (Proxy) or SITE_MODE=hub (AdSense-only)
-164  Self-training -> 7 automated cron jobs handle link checking, catalog graph, score pruning, etc.
-165
-166  ## Monetization
-167
-168  The proxy build (SITE_MODE=full) uses proxy-friendly ad networks (Monetag, Adsterra, hilltopads) instead of AdSense (which bans proxy/sites). Ad configuration is done
-169  entirely via environment variables.
-170  PROXY_AD_SCRIPTS -> page-level ad scripts (common-separated for multiple networks)
-171  PROXY_BANNER_TAG -> Optional footer display banner (728x90)
-172
-173  The hub build (SITE_MODE=hub) uses standard Google AdSense with ADSENSE_CLIENT variable.
-174
-175  This covers all pm commands and provides a comprehensive understanding of the ZoFHub project based on the available documentation and code structure.
+## Key Features
+
+- Aggregates games from official embed sources (GameMonetize, GameDistribution,
+  Y8, Famobi, HTMLGames, OnlineGames.io).
+- In-memory catalog, refreshed from Supabase every ~30 minutes; API responses
+  edge-cached.
+- **Game of the Day** — a deterministic daily pick (same for every visitor, changes
+  at UTC midnight), genre-weighted toward what players actually play.
+- **Cheat-resistant leaderboard** — signed proof-of-play sessions (single-use,
+  minimum play time, per-game score ceilings); statistical outliers are quarantined.
+- **No accounts** — every visitor gets an auto-generated device-local username.
+- **Built-in AI** — text + image generation, browser-direct and keyless, plus a
+  "Vibe Finder" that recommends games from the user's mood.
+- **Proxy browser** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines.
+- **One codebase, two modes** — `SITE_MODE=full` (proxy) or `SITE_MODE=hub`
+  (AdSense-only).
+- Automated cron jobs handle link checking, catalog growth, score pruning, etc.
+
+## Monetization
+
+The **proxy build** (`SITE_MODE=full`, the default) uses proxy-friendly ad networks
+(Monetag, Adsterra, HilltopAds) instead of Google AdSense, which bans proxy /
+anonymizer sites at the account level. Ad configuration is entirely via environment
+variables (Google ad code is auto-stripped so AdSense can never load on the proxy):
+
+- `PROXY_AD_SCRIPTS` — page-level ad scripts (comma-separated for multiple networks)
+- `PROXY_BANNER_TAG` — optional footer display banner (728×90)
+
+The **hub build** (`SITE_MODE=hub`) uses standard Google AdSense via the
+`ADSENSE_CLIENT` variable.
+
+---
+
+*This covers all npm commands and provides a comprehensive, accurate understanding
+of the ZoFHub project based on its actual code and configuration.*

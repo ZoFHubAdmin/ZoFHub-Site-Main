@@ -744,26 +744,17 @@ app.use((req, res, next) => {
 // ========================================================================
 const proxyStatus = { gust: false, ultraviolet: false, scramjet: false, bare: false, wisp: false, epoxy: false };
 
-// ── Deploy mode ────────────────────────────────────────────────────────────
-// ONE site does everything. SITE_MODE=full (the DEFAULT) runs the web proxy AND
-// ads together, because the proxy build earns from a PROXY-FRIENDLY ad network
-// (Monetag / Adsterra / HilltopAds, via PROXY_AD_SCRIPTS) — those networks are
-// allowed on proxy domains, so there is no need to trade the proxy away to show
-// ads. This is the mode you want.
-//   The ONLY thing that can't run on the proxy build is Google AdSense: Google
-// bans proxy / anonymizer sites at the ACCOUNT level, so we force AdSense off
-// here (see /api/site-config) to protect your AdSense account. Proxy-friendly
-// ads fill that role instead — you lose nothing.
-//   SITE_MODE=hub is an OPTIONAL variant for a SEPARATE proxy-free domain that
-// wants Google AdSense specifically (higher rates, but no proxy). Most deploys
-// just use the default. Either way the GAME proxy (/embed, /asset) stays on — it
-// is NOT gated here, because games need it to load on both builds.
-const PROXY_ENABLED = (process.env.SITE_MODE || 'full').toLowerCase() !== 'hub';
+// ── Always-on proxy + proxy-friendly ads ────────────────────────────────────
+// ZoFHub is ALWAYS a proxy site. There is NO hub / Google-AdSense mode: Google
+// bans proxy / anonymizer domains at the ACCOUNT level, so the site earns solely
+// via proxy-friendly ad networks (Adsterra / HilltopAds / Monetag / …) wired
+// through PROXY_AD_SCRIPTS + PROXY_BANNER_TAG. The web proxy stack (GUST /
+// Ultraviolet / Scramjet / Wisp) is always enabled. PROXY_ENABLED is kept as a
+// named constant (always true) so the proxy setup below stays readable.
+const PROXY_ENABLED = true;
 
 let wisp = null;
-if (!PROXY_ENABLED) {
-  console.log('[zofhub] SITE_MODE=hub → web-proxy stack disabled (clean games-hub build).');
-} else {
+{
   // GUST — self-contained libcurl.js + Wisp proxy (NO service worker). Lives as a
   // single vendored HTML file in public/gust/ with all of its assets (libcurl,
   // font-awesome, pdf.js, iso-639-1) served from our own origin. Its default Wisp
@@ -811,14 +802,8 @@ if (!PROXY_ENABLED) {
 // ========================================================================
 // Static + APIs
 // ========================================================================
-// Hub build: block the proxy front-end assets that live in public/ (gust, uv
-// config, scram SW + vendor bundles) so the static mount below can't re-expose
-// the proxy UI at e.g. /gust/. Must run BEFORE express.static. The GAME proxy
-// (/embed, /asset) is intentionally NOT included — games need it on both builds.
-if (!PROXY_ENABLED) {
-  app.use(['/gust', '/uv', '/scram', '/epoxy', '/baremux', '/wisp', '/browser', '/proxy'],
-    (req, res) => { res.set('Cache-Control', 'no-store'); res.redirect(301, '/'); });
-}
+// The proxy front-end assets (gust, uv, scram, …) are ALWAYS served — this is a
+// proxy site with no hub mode that would ever hide them.
 
 // First-party original games live OUTSIDE /public (their own folders at the repo
 // root), served same-origin here so their relative assets resolve and they load
@@ -2824,28 +2809,18 @@ app.get('/play/:gameSlug', async (req, res) => {
 });
 
 // ========================================================================
-// /ads.txt — IAB authorized-digital-sellers declaration (ad-network compliance)
-// Lists the ad systems allowed to sell/represent OUR inventory (AdSense/AdX/MCM).
-// Populated from env so configuring the publisher id lights this up automatically:
-//   ADSENSE_CLIENT=ca-pub-XXXXXXXXXXXXXXXX   (or ZOFHUB_ADSENSE / GOOGLE_AD_CLIENT)
-//   ADS_TXT_EXTRA="line1\nline2"             (optional extra MCM / SSP lines)
-// NOTE: in-game ads inside embedded games are served under the GAME PUBLISHER's
-// own domain + ads.txt (GameMonetize / GameDistribution), NOT this file — so we
-// never declare their sellers here (doing so would be a false declaration).
+// /ads.txt — IAB authorized-digital-sellers declaration.
+// ZoFHub is a proxy site and uses NO Google AdSense. It monetizes via
+// proxy-friendly networks (Adsterra / HilltopAds / Monetag / …). Most of those
+// use popunder/push formats that need no ads.txt entry; if a network DOES give
+// you one, add it via the ADS_TXT_EXTRA env var (\n-separated). In-game ads run
+// under each game publisher's own domain/ads.txt, not here.
 app.get('/ads.txt', (req, res) => {
-  const raw = (process.env.ADSENSE_CLIENT || process.env.ZOFHUB_ADSENSE || process.env.GOOGLE_AD_CLIENT || '').trim();
-  const pub = raw.replace(/^ca-/, ''); // ads.txt wants "pub-…", AdSense ids are "ca-pub-…"
   const lines = [
     '# ads.txt — Authorized Digital Sellers (IAB Tech Lab).',
-    '# Declares the ad systems authorized to sell ZoFHub inventory.',
+    '# ZoFHub uses proxy-friendly ad networks, not Google AdSense.',
     '# In-game ads run under each game publisher\'s own domain/ads.txt, not here.',
   ];
-  if (/^pub-\d+$/.test(pub)) {
-    lines.push(`google.com, ${pub}, DIRECT, f08c47fec0942fa0`);
-  } else {
-    lines.push('# No publisher id configured yet. Set ADSENSE_CLIENT in .env, e.g.:');
-    lines.push('# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0');
-  }
   const extra = (process.env.ADS_TXT_EXTRA || '').replace(/\\n/g, '\n').trim();
   if (extra) lines.push(extra);
   res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(lines.join('\n') + '\n');
@@ -2853,9 +2828,9 @@ app.get('/ads.txt', (req, res) => {
 
 // ========================================================================
 // /robots.txt — keep proxy/utility + internal routes out of search indexing.
-// Web-proxy pages indexed alongside ad pages muddy AdSense site review and can
-// get the domain classified as a proxy/anonymizer; internal API/embed/asset
-// routes shouldn't be crawled either. Content pages stay fully crawlable.
+// The web-proxy pages can get a domain classified as a proxy/anonymizer, and the
+// internal API/embed/asset routes shouldn't be crawled — but the games/content
+// pages stay fully crawlable (and the sitemap is advertised) for SEO.
 function requestOrigin(req) {
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
   const host  = req.headers['x-forwarded-host']  || req.get('host') || '';
@@ -2879,9 +2854,9 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /bare/',
     'Disallow: /wisp/',
   ];
-  // Advertise the sitemap ONLY on the monetizable hub — the proxy domain stays
-  // low-profile (it gets filtered/rotated; no reason to hand crawlers its map).
-  if (!PROXY_ENABLED) lines.push('', `Sitemap: ${requestOrigin(req)}/sitemap.xml`);
+  // Advertise the sitemap so search engines discover the games catalog (the
+  // proxy routes above are already disallowed, so only content pages get crawled).
+  lines.push('', `Sitemap: ${requestOrigin(req)}/sitemap.xml`);
   res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(lines.join('\n') + '\n');
 });
 
@@ -2922,54 +2897,30 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(join(PUBLIC_DIR, 'assets', 'favicon.png'), err => { if (err) res.status(404).end(); });
 });
 
-// Per-deployment config the frontend reads at load. ONE codebase, ONE site that
-// runs the proxy AND ads together: the default (full) build returns proxy:true
-// plus your proxy-friendly ad scripts, while Google AdSense stays off there for
-// account safety. (The optional hub build flips this: proxy off, AdSense id on.)
-// layout.js uses this to load the right ad loader and to hide proxy links when
-// the proxy is disabled.
+// Frontend config read at load. ZoFHub is always a proxy site monetized by
+// proxy-friendly ad networks (no AdSense). Google ad code is filtered out of both
+// the page-level scripts and the footer banner so it can never load on a proxy
+// domain. layout.js reads this to wire up proxy-ads.js + the footer banner.
 app.get('/api/site-config', (req, res) => {
   res.set('Cache-Control', 'public, max-age=60');
-  // AdSense id is exposed ONLY on the hub (proxy-disabled) build. On the proxy
-  // domain we ALWAYS return an empty client, so Google ads can never load there
-  // even if ADSENSE_CLIENT is set by mistake. A proxy/anonymizer domain carrying
-  // any Google ads is an ACCOUNT-LEVEL policy violation, so this separation is
-  // enforced server-side rather than trusting per-deploy env hygiene.
-  const adsenseClient = PROXY_ENABLED
-    ? ''
-    : (process.env.ADSENSE_CLIENT || process.env.ZOFHUB_ADSENSE || process.env.GOOGLE_AD_CLIENT || '').trim();
-  // Proxy-build monetization. Google ads are prohibited on proxy/anonymizer
-  // domains (account-level ban), so the proxy build earns via a proxy-friendly
-  // network instead — Monetag, Adsterra, HilltopAds, etc. Paste your network's
-  // loader-script URL(s) into PROXY_AD_SCRIPTS (comma-separated). Returned ONLY on
-  // the proxy build, and NEVER together with an AdSense id — the two ad-account
-  // types stay completely separate so neither can jeopardise the other.
-  const proxyAdScripts = PROXY_ENABLED
-    ? (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
-        .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s))
-    : [];
-  // Optional fixed DISPLAY BANNER for the proxy build's footer slot (footer-ad.js):
-  // the raw banner tag your proxy-friendly network gives you (e.g. an Adsterra /
-  // HilltopAds 728×90 unit — usually two <script> tags). Returned ONLY on the proxy
-  // build, and refused outright if it contains Google ad code (a Google banner on a
-  // proxy/anonymizer domain is an ACCOUNT-LEVEL ban), so it can never load AdSense.
-  const rawBanner = PROXY_ENABLED ? (process.env.PROXY_BANNER_TAG || '').trim() : '';
+  // PROXY_AD_SCRIPTS — page-level loader script URL(s), comma-separated (Adsterra
+  // popunder, Monetag push, etc.). https only; any Google ad URL is dropped.
+  const proxyAdScripts = (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
+    .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s));
+  // PROXY_BANNER_TAG — optional raw footer banner tag (e.g. a HilltopAds / Adsterra
+  // 728×90 unit). Refused outright if it contains Google ad code.
+  const rawBanner = (process.env.PROXY_BANNER_TAG || '').trim();
   const proxyBannerTag = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(rawBanner) ? '' : rawBanner;
-  res.json({ proxy: PROXY_ENABLED, adsenseClient, proxyAdScripts, proxyBannerTag });
+  res.json({ proxy: true, proxyAdScripts, proxyBannerTag });
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));
 app.get('/ai',       (req, res) => res.sendFile(join(PUBLIC_DIR, 'ai.html')));
-if (PROXY_ENABLED) {
-  app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')));
-  // GUST — the primary, service-worker-free proxy browser. `/gust` and `/proxy`
-  // both resolve to the vendored single-file app (its sub-assets live under
-  // /gust/vendor/ and are served by the static mount above).
-  app.get(['/gust', '/proxy'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'gust', 'index.html')));
-} else {
-  // Hub build: the web proxy isn't offered on this domain — send old links home.
-  app.get(['/browser', '/gust', '/proxy'], (req, res) => res.redirect(301, '/'));
-}
+app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')));
+// GUST — the primary, service-worker-free proxy browser. `/gust` and `/proxy`
+// both resolve to the vendored single-file app (its sub-assets live under
+// /gust/vendor/ and are served by the static mount above).
+app.get(['/gust', '/proxy'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'gust', 'index.html')));
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
 app.get('/leaderboard',(req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.html')));
 
@@ -2978,7 +2929,7 @@ app.get('/leaderboard',(req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.
 // Sources live OUTSIDE /public (in ./legal) so the raw {{tokens}} are never
 // served statically; we template them here once at boot. The contact details
 // come from ONE env var (CONTACT_EMAIL) so you never hard-code your inbox.
-// Available on BOTH the hub and proxy deployments (AdSense requires these).
+// Always served — legal pages (privacy / terms / DMCA / cookies) are required.
 // ========================================================================
 const LEGAL_DIR = join(__dirname, 'legal');
 const REPO_URL  = 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub';

@@ -14566,5 +14566,29 @@
     "name": "Cannon Shot 3d",
     "thumbnail": "https://cdn2.y8.com/cloudimage/407513/file/w180h135_webp-f60a3dd5d63c996be239801c561f8eb5.webp",
     "source": "directory"
+  },
+  "cut_tower_3d": {
+    "slug": "cut_tower_3d",
+    "name": "Cut Tower 3d",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408811/file/w180h135_webp-ed0e66eab9a5aef96812d496d803fb69.webp",
+    "source": "directory"
+  },
+  "lexi_s_urban_story": {
+    "slug": "lexi_s_urban_story",
+    "name": "Lexi S Urban Story",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408851/file/w180h135_webp-b6e862f055063055cffe8472b4f6f9c4.webp",
+    "source": "directory"
+  },
+  "slap_battle": {
+    "slug": "slap_battle",
+    "name": "Slap Battle",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408835/file/w180h135_webp-ca04d9c9eb806b2d57b38539688e2a94.webp",
+    "source": "directory"
+  },
+  "perfect_shot_webgl": {
+    "slug": "perfect_shot_webgl",
+    "name": "Perfect Shot",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408211/file/w180h135_webp-97395a8f573f441dc4c82e23b2d8f3a1.webp",
+    "source": "directory"
   }
 }
