@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 const require = createRequire(import.meta.url);
@@ -2998,6 +2998,23 @@ refreshCatalogFromSupabase().then(ok => {
 setInterval(() => { refreshCatalogFromSupabase().catch(() => {}); }, CATALOG_REFRESH_MS).unref();
 // Flush changed play counts to Supabase once a minute (also prunes the dedup map).
 setInterval(() => { flushPlayStats().catch(() => {}); }, 60 * 1000).unref();
+// On boot, immediately fetch any MISSING Y8 thumbnails from the web — best-effort,
+// in the BACKGROUND so it never delays the server. Because it's tied to server
+// boot, it runs on EVERY start command (npm start / dev / restart / production).
+// The tool only touches games whose thumbnail is missing, so after the first pass
+// it's a fast no-op. Skips when Supabase isn't configured or SKIP_THUMB_FETCH=1.
+function kickThumbnailFetch() {
+  if (process.env.SKIP_THUMB_FETCH === '1') return;
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  try {
+    // Pass through only CA flags (not --watch etc.) so the child's TLS matches ours.
+    const caArgs = process.execArgv.filter(a => /^--use-(system|bundled|openssl)-ca/.test(a));
+    const child = spawn(process.execPath, [...caArgs, join(__dirname, 'tools', 'fetch-y8-thumbs.mjs'), '--missing-only'],
+      { cwd: __dirname, stdio: 'inherit' });
+    child.on('error', (e) => console.warn('[zofhub] thumbnail fetch could not start:', e.message));
+  } catch (e) { console.warn('[zofhub] thumbnail fetch skipped:', e.message); }
+}
+
 function startListening(host) {
   httpServer.listen(PORT, host, () => {
     const enabled = Object.entries(proxyStatus).filter(([, v]) => v).map(([k]) => k);
@@ -3022,3 +3039,4 @@ httpServer.once('error', (e) => {
   }
 });
 startListening(HOST);
+kickThumbnailFetch();   // grab any missing Y8 thumbnails from the web on every boot

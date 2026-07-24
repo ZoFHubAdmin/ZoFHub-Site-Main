@@ -16,18 +16,20 @@ there is no Google AdSense and no separate "hub" mode.
 
 | Command | What it does |
 |---|---|
-| `npm start` | Start the server → **http://localhost:8080**. |
-| `npm run dev` | **Auto-fetch missing Y8 thumbnails from y8.com, then** start with `--watch` (auto-restarts when you edit a file). |
-| `npm run restart` | Free port 8080, **auto-fetch missing Y8 thumbnails**, then start. Use this if a previous server is stuck on the port. |
+| `npm start` | Start the server → **http://localhost:8080**. Auto-fetches missing Y8 thumbnails on boot. |
+| `npm run dev` | Start with `--watch` (auto-restarts when you edit a file). Auto-fetches missing thumbnails on boot. |
+| `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
 | `npm run proxies` | Launch the optional standalone companion proxy browsers (Interstellar/Nebula) on their own ports. |
 | `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
-> **About the auto-thumbnails:** `dev` and `restart` first run the thumbnail
-> fetcher. It only touches games whose thumbnail is missing (pulls the image from
-> that game's y8.com page), so it's fast and idempotent — after the first run there's
-> usually nothing left to fetch. If Supabase or the network is unavailable it just
-> prints a warning and the server **still starts** (never blocks).
+> **About the auto-thumbnails:** EVERY start command fetches missing Y8 thumbnails
+> from the web on boot — it's built into the server start itself, so `npm start`,
+> `npm run dev`, `npm run restart`, and production all do it automatically. It only
+> touches games whose thumbnail is missing (pulls the image from that game's y8.com
+> page), so it's fast and idempotent — nothing to do after the first pass. It runs in
+> the **background** so it never delays the site, and it's a best-effort no-op if
+> Supabase/network is unavailable. Turn it off with `SKIP_THUMB_FETCH=1`.
 
 ---
 
@@ -139,6 +141,7 @@ Copy `.env.example` → `.env` and fill in:
 | `PROXY_BANNER_TAG` | Optional footer banner tag (one line). Shows only when set. |
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
 | `CRON_DISABLED` | Set `1` to disable the background jobs. |
+| `SKIP_THUMB_FETCH` | Set `1` to skip the automatic on-boot Y8 thumbnail fetch. |
 
 ---
 

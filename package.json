@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node --use-system-ca server.js",
-    "dev": "node --use-system-ca tools/fetch-y8-thumbs.mjs && node --use-system-ca --watch server.js",
-    "restart": "node tools/kill-port.mjs 8080 && node --use-system-ca tools/fetch-y8-thumbs.mjs && node --use-system-ca server.js",
+    "dev": "node --use-system-ca --watch server.js",
+    "restart": "node tools/kill-port.mjs 8080 && node --use-system-ca server.js",
     "kill-port": "node tools/kill-port.mjs 8080",
     "proxies": "node tools/proxies.mjs",
     "dev:all": "node tools/dev-all.mjs",

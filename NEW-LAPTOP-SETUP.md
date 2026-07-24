@@ -23,7 +23,6 @@ Everything that matters is committed and comes down with `git clone`:
 - **All your code** — server, frontend, tools, SQL.
 - **`.env`** — your real Supabase + Pollinations keys. *(Committed on purpose because this repo is private.)*
 - **Every companion app's files** — Interstellar, Nebula, NautilusOS, DayDream, scramjet.
-- **metro-dash** — your WebGL game, including your in-progress changes.
 - **All data files** — catalogs, audits, caches, state.
 
 ## 📦 Everything — including `node_modules` — is committed
@@ -95,8 +94,8 @@ To put the companion apps' files *directly* into this repo, their own inner `.gi
 folders were moved out to a sibling folder: **`../ZoFHub-nested-git-backups/`**
 (next to this project, not inside it). Their *files* are fully backed up here in
 GitHub; only their separate commit histories live in that sibling folder. You almost
-certainly never need those — but if you ever want metro-dash's original history or
-to pull upstream updates for a companion, that's where they are. It is **not** part
+certainly never need those — but if you ever want to pull upstream updates for a
+companion, that's where they are. It is **not** part
 of this repo and does **not** transfer with `git clone`; copy it to USB only if you
 specifically care about those histories.
 

@@ -40,6 +40,10 @@ if (!SB_URL || !SB_KEY) { console.warn('⚠ Skipping thumbnails — SUPABASE_URL
 
 const DRY = process.argv.includes('--dry-run');
 const SELF_HOST = process.argv.includes('--self-host');
+// --missing-only: fetch ONLY rows whose thumbnail is NULL; skip the "manual
+// overrides always re-apply" pass. The on-boot fetch uses this so it's a true
+// no-op once every thumbnail is present (instead of re-hitting y8 each restart).
+const MISSING_ONLY = process.argv.includes('--missing-only');
 const UA = 'Mozilla/5.0 (+catalog-thumbnailer)';
 const supabase = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const thumbsDir = join(root, 'public', 'thumbs');
@@ -123,7 +127,7 @@ async function getTargets() {
   // URLs into data/thumbnail-overrides.json and re-run to set them for good.
   const slugKeys = Object.keys(overrides).filter(k => !/^\d+$/.test(k));
   const idKeys   = Object.keys(overrides).filter(k => /^\d+$/.test(k)).map(Number);
-  if (slugKeys.length || idKeys.length) {
+  if (!MISSING_ONLY && (slugKeys.length || idKeys.length)) {
     const extra = await fetchByKeys(slugKeys, idKeys);
     const seen = new Set(list.map(r => r.id));
     for (const r of extra) if (!seen.has(r.id)) { list.push(r); seen.add(r.id); }
