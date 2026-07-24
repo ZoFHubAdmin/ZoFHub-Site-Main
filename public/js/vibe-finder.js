@@ -52,6 +52,9 @@ function injectStyles() {
     .vibe-trigger::before{display:none}}
   .vibe-back{position:fixed;inset:0;z-index:10001;background:rgba(4,7,18,.74);backdrop-filter:blur(6px);
     display:flex;align-items:flex-start;justify-content:center;padding:9vh 16px 16px;animation:vibeIn .18s ease both}
+  /* The [hidden] attribute alone can't hide this — the display:flex above beats the
+     UA [hidden]{display:none}. This explicit rule makes close() actually close it. */
+  .vibe-back[hidden]{display:none!important}
   @keyframes vibeIn{from{opacity:0}to{opacity:1}}
   .vibe-card{width:min(680px,100%);background:#0e2247;border:1px solid rgba(125,170,255,.24);border-radius:18px;
     box-shadow:0 30px 80px rgba(0,0,0,.6);padding:20px;font-family:Inter,system-ui,sans-serif;max-height:82vh;display:flex;flex-direction:column}

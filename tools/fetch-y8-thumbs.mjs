@@ -36,7 +36,7 @@ for (const f of ['.env', '.env.example']) {
   if (existsSync(p) && typeof process.loadEnvFile === 'function') { try { process.loadEnvFile(p); } catch {} break; }
 }
 const SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SB_URL || !SB_KEY) { console.error('✗ Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env'); process.exit(1); }
+if (!SB_URL || !SB_KEY) { console.warn('⚠ Skipping thumbnails — SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set in .env (server still starts).'); process.exit(0); }
 
 const DRY = process.argv.includes('--dry-run');
 const SELF_HOST = process.argv.includes('--self-host');
@@ -95,7 +95,7 @@ async function fetchByKeys(slugs, ids) {
       const { data, error } = await supabase
         .from('games').select('id, slug, title, game_url, thumbnail_url')
         .in(col, vals.slice(i, i + 150));
-      if (error) { console.error('✗ Supabase read error:', error.message); process.exit(1); }
+      if (error) { console.warn('⚠ Skipping thumbnails — Supabase read error (server still starts):', error.message); process.exit(0); }
       out.push(...(data || []));
     }
   };

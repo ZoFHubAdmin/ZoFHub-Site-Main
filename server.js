@@ -321,33 +321,7 @@ try {
   }
 } catch (e) { console.warn('[zofhub] mood-tags load failed:', e.message); }
 
-// First-party ORIGINAL games hosted by ZoFHub itself (not third-party embeds).
-// Served same-origin from /games/<slug>/ so their relative assets resolve and
-// they load DIRECTLY in the /play iframe — never through the /embed proxy, which
-// would rewrite their relative URLs and break them. embed_url is a same-origin
-// path; injectGdReferrer + the host checks treat it as a plain relative URL and
-// leave it untouched. Re-added on every catalog refresh so they never drop out.
-const FIRST_PARTY_GAMES = [
-  {
-    slug: 'metro-dash',
-    title: 'Metro Dash',
-    embed_url: '/games/metro-dash/game.html',
-    game_url: '/games/metro-dash/game.html',
-    thumbnail: '/games/metro-dash/assets/train.jpg',
-    category: 'arcade',
-    category_label: 'Arcade',
-    platform: 'ZoFHub Original',
-    orientation: 'landscape',
-    first_party: true,
-    is_featured: true,
-  },
-];
-
 function setCatalog(games, source) {
-  // Prepend our own first-party games (deduped by slug) so they always appear —
-  // whether the incoming set came from the bundled JSON, finalgames, or Supabase.
-  const fpSlugs = new Set(FIRST_PARTY_GAMES.map(g => g.slug));
-  games = [...FIRST_PARTY_GAMES.map(g => ({ ...g })), ...games.filter(g => !fpSlugs.has(g.slug))];
   // Merge in finalgames.json (the repo-root master list) FIRST, so its games are
   // present whether this catalog came from the bundled JSON or from Supabase.
   games = mergeFinalGames(games);
@@ -804,14 +778,6 @@ let wisp = null;
 // ========================================================================
 // The proxy front-end assets (gust, uv, scram, …) are ALWAYS served — this is a
 // proxy site with no hub mode that would ever hide them.
-
-// First-party original games live OUTSIDE /public (their own folders at the repo
-// root), served same-origin here so their relative assets resolve and they load
-// directly in the /play iframe. `extensions:['html']` lets /games/metro-dash/ work.
-app.use('/games/metro-dash', express.static(join(__dirname, 'metro-dash'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-  extensions: ['html'],
-}));
 
 app.use(express.static(PUBLIC_DIR, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
@@ -2766,8 +2732,7 @@ app.get('/play/:gameSlug', async (req, res) => {
   // SDK-sensitive publishers that black-screen when proxied — always DIRECT.
   const isSdkDirectOnly = /(^|\.)(gamedistribution\.com|gamemonetize\.(com|co))$/.test(embedHost);
   let iframeSrc;
-  if (game.first_party)                         iframeSrc = game.embed_url;  // our own same-origin game — always direct, never proxied
-  else if (req.query.direct === '1')            iframeSrc = dynamicEmbedUrl;
+  if (req.query.direct === '1')                 iframeSrc = dynamicEmbedUrl;
   else if (req.query.proxy === '1')             iframeSrc = proxySrc;
   else if (isY8 || isHtmlGames || isFamobi)     iframeSrc = proxySrc;      // fit CSS + same-origin relative-asset resolution + EMBED_GUARD (no new-tab) on every build
   else if (PROXY_ENABLED && !isSdkDirectOnly)   iframeSrc = proxySrc;      // unblock build → same-origin everything safe to proxy
@@ -2803,7 +2768,7 @@ app.get('/play/:gameSlug', async (req, res) => {
     // directOnly = GameMonetize/GameDistribution — the client loader must NEVER
     // fall back to the proxy for these (it black-screens them). Emitted as a bare
     // JS boolean into window.ZOFHUB_GAME, so no htmlEscape.
-    .replace(/\{\{DIRECT_ONLY\}\}/g,  (isSdkDirectOnly || game.first_party) ? 'true' : 'false')
+    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false')
     .replace(/\{\{SCORE_TOKEN\}\}/g,  htmlEscape(issueScoreToken(game.slug)));
   res.set('Cache-Control', 'no-cache').send(html);
 });

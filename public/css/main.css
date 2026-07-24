@@ -15,9 +15,22 @@
    grid flow entirely).
    ============================================================ */
 body:not(.zad-on):not(.zad-preview) :is(
-  .ad-slot, .ad-ingrid, .ad-inline, .ad-rail, .ad-space,
-  .catalog-ad-top, .catalog-ad-bottom, .zad-anchor
-) { display: none !important; }
+  .ad-slot, .ad-ingrid, .ad-rail, .ad-space, .zad-anchor
+):not(.ad-inline):not(.catalog-ad-top):not(.catalog-ad-bottom) { display: none !important; }
+
+/* Blank reserved ad space — an unobtrusive EMPTY gap where a banner can load.
+   No "Advertisement" label, no border, no visible box, no dimensions — just
+   whitespace. A proxy-friendly ad network fills it once configured; until then it
+   stays clean and empty. Only the horizontal inline leaderboard slots are reserved
+   (never the side rails / in-grid units, which would disturb the layout). */
+.ad-inline, .catalog-ad-top, .catalog-ad-bottom {
+  display: block !important;
+  width: 100%; max-width: 970px; min-height: 90px; margin: 20px auto;
+  background: transparent !important; border: 0 !important;
+}
+@media (max-width: 560px) {
+  .ad-inline, .catalog-ad-top, .catalog-ad-bottom { min-height: 60px; margin: 14px auto; }
+}
 
 :root {
   /* ZoFHub — deep navy/blue gaming-hub base, signature yellow, electric-blue neon. */

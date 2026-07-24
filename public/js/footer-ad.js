@@ -27,9 +27,8 @@
 const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
 
 const CSS = `
-.fad-bar{width:100%;margin-top:28px;padding:10px 12px 14px;border-top:1px solid rgba(255,255,255,.08);background:rgba(6,10,22,.6);display:flex;flex-direction:column;align-items:center;gap:6px}
-.fad-label{font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:rgba(190,210,255,.4)}
-.fad-slot{display:grid;place-items:center;overflow:hidden;width:100%;max-width:728px;min-height:90px;border-radius:10px;background:rgba(255,255,255,.03);isolation:isolate;position:relative}
+.fad-bar{width:100%;margin-top:24px;padding:6px 12px 16px;display:flex;flex-direction:column;align-items:center}
+.fad-slot{display:grid;place-items:center;overflow:hidden;width:100%;max-width:728px;min-height:90px;isolation:isolate;position:relative}
 .fad-slot > *{max-width:100%}
 @media(max-width:500px){.fad-slot{max-width:320px;min-height:50px}}
 `;
@@ -66,7 +65,7 @@ export function mountFooterAd(target = document.body) {
   if (typeof window === 'undefined' || !document.body) return;
   if (document.querySelector('.fad-bar')) return;               // mount once
 
-  // PROXY build only — the hub build's banner is owned by ads.js.
+  // Safety guard; ZOFHUB_PROXY is always true now (proxy-only site).
   if (window.ZOFHUB_PROXY !== true) return;
 
   // Only render when a REAL banner tag is configured. No tag → no bar (no empty box).
@@ -82,17 +81,14 @@ export function mountFooterAd(target = document.body) {
 
   const bar = document.createElement('aside');
   bar.className = 'fad-bar';
-  bar.setAttribute('aria-label', 'Advertisement');
+  bar.setAttribute('aria-label', 'Advertisement');   // a11y label only — NOT shown on screen
 
-  const label = document.createElement('span');
-  label.className = 'fad-label';
-  label.textContent = 'Advertisement';
-
+  // No visible "Advertisement" label and no box — the banner sits in clean blank
+  // space so nothing reads as a labelled rectangle.
   const slot = document.createElement('div');
   slot.className = 'fad-slot';
   slot.dataset.proxyBanner = '1';
 
-  bar.appendChild(label);
   bar.appendChild(slot);
   (target || document.body).appendChild(bar);
 
