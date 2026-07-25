@@ -2483,7 +2483,13 @@ function isInternalHost(host) {
   return false;
 }
 
-const ASSET_MAX_BYTES = 25 * 1024 * 1024;
+// 100 MB. Unity WebGL .data/.wasm files (decompressed) are routinely far larger
+// than a normal image/audio asset. We STREAM the body (below) instead of buffering,
+// so raising this ceiling costs no extra memory. (Was 25 MB — which 413'd every
+// large Unity game, so their data file never downloaded and the game surfaced an
+// "unfixable" JavaScript loading error. Smaller HTML5 games stayed under 25 MB,
+// which is exactly why ONLY Unity games were affected.)
+const ASSET_MAX_BYTES = 100 * 1024 * 1024;
 
 app.get('/asset', async (req, res) => {
   const raw = req.query.u;
@@ -2497,26 +2503,47 @@ app.get('/asset', async (req, res) => {
   try {
     const r = await fetchAsBrowser(target.toString(), {
       ua: UA_POOL[0],
-      timeoutMs: 8_000,
+      timeoutMs: 15_000,          // TTFB only; the body streams below with no time cap
       accept: req.headers['accept'] || '*/*'
     });
 
-    // Streamed size cap — abort if upstream tries to send more than the limit.
-    const buf = Buffer.from(await r.arrayBuffer());
-    if (buf.length > ASSET_MAX_BYTES) {
-      return res.status(413).type('text').send('asset too large');
-    }
-
-    const ct = r.headers.get('content-type') || 'application/octet-stream';
+    // Keep upstream's content-type, but force application/wasm for Unity's WebAssembly
+    // so WebAssembly.instantiateStreaming() accepts it (otherwise Unity errors out or
+    // falls back to a slower path). fetch() already decompressed the body, so we send
+    // NO content-encoding — the bytes are the final decoded content.
+    let ct = r.headers.get('content-type') || 'application/octet-stream';
+    if (/\.wasm(\.[a-z0-9]+)?$/i.test(target.pathname)) ct = 'application/wasm';
     res.status(r.status);
     res.setHeader('content-type', ct);
     res.setHeader('access-control-allow-origin', '*');
     res.setHeader('access-control-expose-headers', '*');
     res.setHeader('cross-origin-resource-policy', 'cross-origin');
     res.setHeader('cache-control', 'public, max-age=300');
-    return res.send(buf);
+
+    if (!r.body) return res.end();
+
+    // STREAM the body straight to the client — never buffer a whole multi-MB/GB
+    // asset in memory. Enforce the size cap incrementally and respect backpressure.
+    const reader = r.body.getReader();
+    let total = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (res.destroyed) { try { await reader.cancel(); } catch {} break; }   // client left
+      total += value.length;
+      if (total > ASSET_MAX_BYTES) { try { await reader.cancel(); } catch {} break; }
+      if (!res.write(Buffer.from(value))) {
+        await new Promise((resolve) => {
+          const cleanup = () => { res.off('drain', cleanup); res.off('close', cleanup); resolve(); };
+          res.once('drain', cleanup);
+          res.once('close', cleanup);   // client disconnected mid-write — don't hang
+        });
+      }
+    }
+    return res.end();
   } catch (e) {
-    return res.status(502).type('text').send('asset proxy failed: ' + (e.message || 'unknown'));
+    if (!res.headersSent) return res.status(502).type('text').send('asset proxy failed: ' + (e.message || 'unknown'));
+    try { return res.end(); } catch {}
   }
 });
 
