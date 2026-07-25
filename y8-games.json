@@ -2,11 +2,130 @@
   "_meta": {
     "source": "https://www.y8.com/games_for_your_website",
     "embedPattern": "https://www.y8.com/embed/<slug>",
-    "scrapedAt": "2026-06-28T19:08:59.277Z",
+    "scrapedAt": "2026-07-25T16:40:59.292Z",
     "pages": 46,
-    "count": 2415
+    "count": 2425
   },
   "gamesFlat": [
+    {
+      "name": "Circle Jump Html5",
+      "slug": "circle_jump_html5",
+      "embedUrl": "https://www.y8.com/embed/circle_jump_html5",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408947/file/w180h135_webp-be7aac7c6c4e2396f28bec71608871be.webp",
+      "gamePage": "https://www.y8.com/games/circle_jump_html5"
+    },
+    {
+      "name": "Cut Tower 3d",
+      "slug": "cut_tower_3d",
+      "embedUrl": "https://www.y8.com/embed/cut_tower_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408811/file/w180h135_webp-ed0e66eab9a5aef96812d496d803fb69.webp",
+      "gamePage": "https://www.y8.com/games/cut_tower_3d"
+    },
+    {
+      "name": "Lexi S Urban Story",
+      "slug": "lexi_s_urban_story",
+      "embedUrl": "https://www.y8.com/embed/lexi_s_urban_story",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408851/file/w180h135_webp-b6e862f055063055cffe8472b4f6f9c4.webp",
+      "gamePage": "https://www.y8.com/games/lexi_s_urban_story"
+    },
+    {
+      "name": "Slap Battle",
+      "slug": "slap_battle",
+      "embedUrl": "https://www.y8.com/embed/slap_battle",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408833/file/w180h135_webp-ad287df51248add7acd314e93528384d.webp",
+      "gamePage": "https://www.y8.com/games/slap_battle"
+    },
+    {
+      "name": "Perfect Shot",
+      "slug": "perfect_shot_webgl",
+      "embedUrl": "https://www.y8.com/embed/perfect_shot_webgl",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408211/file/w180h135_webp-97395a8f573f441dc4c82e23b2d8f3a1.webp",
+      "gamePage": "https://www.y8.com/games/perfect_shot_webgl"
+    },
+    {
+      "name": "Color War Rainbow",
+      "slug": "color_war_rainbow",
+      "embedUrl": "https://www.y8.com/embed/color_war_rainbow",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407737/file/w180h135_webp-69900dee598dae4502e74dbf2f25cbdf.webp",
+      "gamePage": "https://www.y8.com/games/color_war_rainbow"
+    },
+    {
+      "name": "Cannon Shot 3d",
+      "slug": "cannon_shot_3d",
+      "embedUrl": "https://www.y8.com/embed/cannon_shot_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407513/file/w180h135_webp-f60a3dd5d63c996be239801c561f8eb5.webp",
+      "gamePage": "https://www.y8.com/games/cannon_shot_3d"
+    },
+    {
+      "name": "Ball Connect Puzzle",
+      "slug": "ball_connect_puzzle",
+      "embedUrl": "https://www.y8.com/embed/ball_connect_puzzle",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407345/file/w180h135_webp-bae5aff7879ee29571ec57cb8b862c8b.webp",
+      "gamePage": "https://www.y8.com/games/ball_connect_puzzle"
+    },
+    {
+      "name": "Maria S Vacation Seasons Dress Up",
+      "slug": "maria_s_vacation_seasons_dress_up",
+      "embedUrl": "https://www.y8.com/embed/maria_s_vacation_seasons_dress_up",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407371/file/w180h135_webp-7108754a2a112c20d8cd750c30f504f4.webp",
+      "gamePage": "https://www.y8.com/games/maria_s_vacation_seasons_dress_up"
+    },
+    {
+      "name": "Turn And Hit",
+      "slug": "turn_and_hit",
+      "embedUrl": "https://www.y8.com/embed/turn_and_hit",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406831/file/w180h135_webp-69f61d1f1a102c504f66041bbb967b10.webp",
+      "gamePage": "https://www.y8.com/games/turn_and_hit"
+    },
+    {
+      "name": "Block Link Puzzle 3d",
+      "slug": "block_link_puzzle_3d",
+      "embedUrl": "https://www.y8.com/embed/block_link_puzzle_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406803/file/w180h135_webp-1f2b482ba660da0cd3e5fe0bcf592266.webp",
+      "gamePage": "https://www.y8.com/games/block_link_puzzle_3d"
+    },
+    {
+      "name": "Draw Logic Puzzle",
+      "slug": "draw_logic_puzzle",
+      "embedUrl": "https://www.y8.com/embed/draw_logic_puzzle",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406551/file/w180h135_webp-5eca391036379f0c5457757751617ecd.webp",
+      "gamePage": "https://www.y8.com/games/draw_logic_puzzle"
+    },
+    {
+      "name": "Snake Puzzle 3d",
+      "slug": "snake_puzzle_3d",
+      "embedUrl": "https://www.y8.com/embed/snake_puzzle_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406557/file/w180h135_webp-737bf3b4d565aa2b7c4f77114d366b75.webp",
+      "gamePage": "https://www.y8.com/games/snake_puzzle_3d"
+    },
+    {
+      "name": "Pull The Ring 3d",
+      "slug": "pull_the_ring_3d",
+      "embedUrl": "https://www.y8.com/embed/pull_the_ring_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406543/file/w180h135_webp-7c0a2ff3f93d9127615b001f79bf3e42.webp",
+      "gamePage": "https://www.y8.com/games/pull_the_ring_3d"
+    },
+    {
+      "name": "Piano Tiles Beat",
+      "slug": "piano_tiles_beat",
+      "embedUrl": "https://www.y8.com/embed/piano_tiles_beat",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406539/file/w180h135_webp-46e31f77f68cbeb4645d4eed061cdbd6.webp",
+      "gamePage": "https://www.y8.com/games/piano_tiles_beat"
+    },
+    {
+      "name": "Monopoly",
+      "slug": "monopoly_webgl",
+      "embedUrl": "https://www.y8.com/embed/monopoly_webgl",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406421/file/w180h135_webp-8f7f3df9f621ca1fe77928af07acfb2f.webp",
+      "gamePage": "https://www.y8.com/games/monopoly_webgl"
+    },
+    {
+      "name": "Ball Rise",
+      "slug": "ball_rise",
+      "embedUrl": "https://www.y8.com/embed/ball_rise",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406563/file/w180h135_webp-8a681a530f0931a9c39c664da5d323d6.webp",
+      "gamePage": "https://www.y8.com/games/ball_rise"
+    },
     {
       "name": "Blonde Sofia Friendship Bracelet",
       "slug": "blonde_sofia_friendship_bracelet",
@@ -39,7 +158,7 @@
       "name": "Puppy Match Html5",
       "slug": "puppy_match_html5",
       "embedUrl": "https://www.y8.com/embed/puppy_match_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/405467/file/w180h135_webp-739daa44fdc805fdca2eb3daaabf8bac.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/405465/file/w180h135_webp-f49041b0606beade53e3e62efc2c7e2c.webp",
       "gamePage": "https://www.y8.com/games/puppy_match_html5"
     },
     {
@@ -172,7 +291,7 @@
       "name": "Flappy Shooter",
       "slug": "flappy_shooter_webgl",
       "embedUrl": "https://www.y8.com/embed/flappy_shooter_webgl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/401411/file/w180h135_webp-9892eb3a6659e5259adc0ba643ecd9a2.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/401413/file/w180h135_webp-a5e91c6f8fddbb441ffa158e647e2a81.webp",
       "gamePage": "https://www.y8.com/games/flappy_shooter_webgl"
     },
     {
@@ -459,7 +578,7 @@
       "name": "Color Bounce",
       "slug": "color_bounce_webgl",
       "embedUrl": "https://www.y8.com/embed/color_bounce_webgl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/397117/file/w180h135_webp-379819836f5ae52e652d45b61db15f60.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/397119/file/w180h135_webp-1dd2f86f188355f98c0645328db8971a.webp",
       "gamePage": "https://www.y8.com/games/color_bounce_webgl"
     },
     {
@@ -1047,77 +1166,77 @@
       "name": "Roxies Kitchen Chimichanga",
       "slug": "roxies_kitchen_chimichanga",
       "embedUrl": "https://www.y8.com/embed/roxies_kitchen_chimichanga",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/461/file/w180h135_webp-b21801d182190b3729ea03bbcaa3ffdf.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408611/file/w180h135_webp-d74c6dda0b89358bb004d39b3a48af63.webp",
       "gamePage": "https://www.y8.com/games/roxies_kitchen_chimichanga"
     },
     {
       "name": "Toddie Cute Bunny",
       "slug": "toddie_cute_bunny",
       "embedUrl": "https://www.y8.com/embed/toddie_cute_bunny",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/175/file/w180h135_webp-49fce55c631ccddd9a19e757b86b8598.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408603/file/w180h135_webp-23758ee6d22f06c020c2618203d9f392.webp",
       "gamePage": "https://www.y8.com/games/toddie_cute_bunny"
     },
     {
       "name": "Diary Maggie Ice Cream Waffle",
       "slug": "diary_maggie_ice_cream_waffle",
       "embedUrl": "https://www.y8.com/embed/diary_maggie_ice_cream_waffle",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/219/file/w180h135_webp-c767c10cc91ccffbd927dc1c41ec46f4.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/383373/file/w180h135_webp-ea414eec4859f285192ae11a297618c9.webp",
       "gamePage": "https://www.y8.com/games/diary_maggie_ice_cream_waffle"
     },
     {
       "name": "Toddie Colorful Classic",
       "slug": "toddie_colorful_classic",
       "embedUrl": "https://www.y8.com/embed/toddie_colorful_classic",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/179/file/w180h135_webp-576c6092f7c46a4ed58bff5eb8475053.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408605/file/w180h135_webp-0ff927ac19cf809cd0b64fad248c601d.webp",
       "gamePage": "https://www.y8.com/games/toddie_colorful_classic"
     },
     {
       "name": "Blonde Sofia Part Time Job",
       "slug": "blonde_sofia_part_time_job",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_part_time_job",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/177/file/w180h135_webp-9b9579bdb9e38528fa4f5ea26d3faf08.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407429/file/w180h135_webp-7d78206d77f149417c538e8167a0ae15.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_part_time_job"
     },
     {
       "name": "Blonde Sofia Mozaic Maker",
       "slug": "blonde_sofia_mozaic_maker",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_mozaic_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/181/file/w180h135_webp-35618fec404396f9800ac79c2fc0f586.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408607/file/w180h135_webp-b42677411d79f5bf1be87bd3ea34b9fa.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_mozaic_maker"
     },
     {
       "name": "Kiddo Twin Style",
       "slug": "kiddo_twin_style",
       "embedUrl": "https://www.y8.com/embed/kiddo_twin_style",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/155/file/w180h135_webp-5fd3d79f00ef5ea78815b7c3e943c4eb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408599/file/w180h135_webp-e09c9b58baa8821be4485476b96a2895.webp",
       "gamePage": "https://www.y8.com/games/kiddo_twin_style"
     },
     {
       "name": "Teen In Swimsuit",
       "slug": "teen_in_swimsuit",
       "embedUrl": "https://www.y8.com/embed/teen_in_swimsuit",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/173/file/w180h135_webp-24751d6225c255f32e00d8d5898ab777.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408601/file/w180h135_webp-a83f1b69452381badb079a22583bb938.webp",
       "gamePage": "https://www.y8.com/games/teen_in_swimsuit"
     },
     {
       "name": "Toddie After Playground",
       "slug": "toddie_after_playground",
       "embedUrl": "https://www.y8.com/embed/toddie_after_playground",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/153/file/w180h135_webp-68e5f84fc95e4c4aae3e18895dd71a76.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408589/file/w180h135_webp-06895c5c312a730271f735d4f8c3f2a6.webp",
       "gamePage": "https://www.y8.com/games/toddie_after_playground"
     },
     {
       "name": "Blonde Sofia Deep Clean House",
       "slug": "blonde_sofia_deep_clean_house",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_deep_clean_house",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5207/file/w180h135_webp-b308491ff025bfb24e7d448a9fb9982f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408609/file/w180h135_webp-ed0ef0ad1cc97ad3293a833978d5cdf8.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_deep_clean_house"
     },
     {
       "name": "Blonde Sofia Camp Time",
       "slug": "blonde_sofia_camp_time",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_camp_time",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4829/file/w180h135_webp-e8cbbdf8777396cac50500a3deb27636.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408583/file/w180h135_webp-5c99f421d498931585f9e5afd44459c2.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_camp_time"
     },
     {
@@ -1131,28 +1250,28 @@
       "name": "Teen Bold And Fun",
       "slug": "teen_bold_and_fun",
       "embedUrl": "https://www.y8.com/embed/teen_bold_and_fun",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4823/file/w180h135_webp-38e7f34c0959f70eff635ce5ac85e542.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408581/file/w180h135_webp-32d2446d1e012424810a24c736a9a891.webp",
       "gamePage": "https://www.y8.com/games/teen_bold_and_fun"
     },
     {
       "name": "Blonde Sofia Fruity Bingsu",
       "slug": "blonde_sofia_fruity_bingsu",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_fruity_bingsu",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4805/file/w180h135_webp-b12756ad3a78dd5f63684e4987bc6af8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408577/file/w180h135_webp-62c07689ce66b9c77673e846f2d879ed.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_fruity_bingsu"
     },
     {
       "name": "Decor My Pizza",
       "slug": "decor_my_pizza",
       "embedUrl": "https://www.y8.com/embed/decor_my_pizza",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5123/file/w180h135_webp-82130995f53ae866cf4c6ba5eda39f9f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408593/file/w180h135_webp-91e19eb18dfcac1aefad43540dab8110.webp",
       "gamePage": "https://www.y8.com/games/decor_my_pizza"
     },
     {
       "name": "Teen Kawaii Edgy",
       "slug": "teen_kawaii_edgy",
       "embedUrl": "https://www.y8.com/embed/teen_kawaii_edgy",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4817/file/w180h135_webp-fc4aff74a5b45c2436f0249db62b2bb9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408579/file/w180h135_webp-0b10179dadce3a059fa02bef130630ff.webp",
       "gamePage": "https://www.y8.com/games/teen_kawaii_edgy"
     },
     {
@@ -1166,7 +1285,7 @@
       "name": "Kiddo Tiny Courier",
       "slug": "kiddo_tiny_courier",
       "embedUrl": "https://www.y8.com/embed/kiddo_tiny_courier",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4799/file/w180h135_webp-b663a5c38201d264d573bbce267cc0aa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408575/file/w180h135_webp-e3dbb3b7c70178699efaee7dca110721.webp",
       "gamePage": "https://www.y8.com/games/kiddo_tiny_courier"
     },
     {
@@ -1180,7 +1299,7 @@
       "name": "Girly Fortune Teller",
       "slug": "girly_fortune_teller",
       "embedUrl": "https://www.y8.com/embed/girly_fortune_teller",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4707/file/w180h135_webp-2dfdff83eb934d9caba4ff917c705239.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408573/file/w180h135_webp-444b067e35973b529df9f58881133e22.webp",
       "gamePage": "https://www.y8.com/games/girly_fortune_teller"
     },
     {
@@ -1201,7 +1320,7 @@
       "name": "Girly Goddess Look",
       "slug": "girly_goddess_look",
       "embedUrl": "https://www.y8.com/embed/girly_goddess_look",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5129/file/w180h135_webp-97090f37d4df0b1e0df552c2b08420b4.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408595/file/w180h135_webp-71e4cd0b35991d5a98b10af1ae85ebdc.webp",
       "gamePage": "https://www.y8.com/games/girly_goddess_look"
     },
     {
@@ -1215,42 +1334,42 @@
       "name": "Kiddo Mariposa",
       "slug": "kiddo_mariposa",
       "embedUrl": "https://www.y8.com/embed/kiddo_mariposa",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5135/file/w180h135_webp-11e4b141bbc132c8c64d39817ac74e39.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408597/file/w180h135_webp-990fd86d99c847149eee32176fbb3b85.webp",
       "gamePage": "https://www.y8.com/games/kiddo_mariposa"
     },
     {
       "name": "Decor It Kitchen",
       "slug": "decor_it_kitchen",
       "embedUrl": "https://www.y8.com/embed/decor_it_kitchen",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4511/file/w180h135_webp-2d8f1fe772c8cc5673b336ab16f14cd0.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408643/file/w180h135_webp-5b3389e5fb2c6a92281c3179d50ad491.webp",
       "gamePage": "https://www.y8.com/games/decor_it_kitchen"
     },
     {
       "name": "Teen Space Idol",
       "slug": "teen_space_idol",
       "embedUrl": "https://www.y8.com/embed/teen_space_idol",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5111/file/w180h135_webp-986123e754784d58924a86c67954ced8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408587/file/w180h135_webp-aeab1bb7781ad04449805df7c3b20f9c.webp",
       "gamePage": "https://www.y8.com/games/teen_space_idol"
     },
     {
       "name": "Decor It Garage",
       "slug": "decor_it_garage",
       "embedUrl": "https://www.y8.com/embed/decor_it_garage",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5117/file/w180h135_webp-29c928946a2f2b623b181c9b7ebb5172.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408591/file/w180h135_webp-88f9c5e9842d366947c28bf37389587e.webp",
       "gamePage": "https://www.y8.com/games/decor_it_garage"
     },
     {
       "name": "Toddie Modern Chinese",
       "slug": "toddie_modern_chinese",
       "embedUrl": "https://www.y8.com/embed/toddie_modern_chinese",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5105/file/w180h135_webp-73ca19e934015a2be1a8ef7538f287d2.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408585/file/w180h135_webp-846f49a05ba3f57a3925db0b78f7600e.webp",
       "gamePage": "https://www.y8.com/games/toddie_modern_chinese"
     },
     {
       "name": "Kiddo Casual Suit",
       "slug": "kiddo_casual_suit",
       "embedUrl": "https://www.y8.com/embed/kiddo_casual_suit",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4701/file/w180h135_webp-24c53c9f598bae432532086c4bdaaaf2.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408651/file/w180h135_webp-5971e1565ac77d1422f69137b54ccae2.webp",
       "gamePage": "https://www.y8.com/games/kiddo_casual_suit"
     },
     {
@@ -1264,91 +1383,91 @@
       "name": "Decor My Diary",
       "slug": "decor_my_diary",
       "embedUrl": "https://www.y8.com/embed/decor_my_diary",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4695/file/w180h135_webp-cd57bca6866d3c3d1644ca25e7989130.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408649/file/w180h135_webp-c6d92ab645f98a8ca848c34afa063840.webp",
       "gamePage": "https://www.y8.com/games/decor_my_diary"
     },
     {
       "name": "Girly Quirky Look",
       "slug": "girly_quirky_look",
       "embedUrl": "https://www.y8.com/embed/girly_quirky_look",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4689/file/w180h135_webp-9412bb7f6bd8d561c9ce57dd140bed60.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408647/file/w180h135_webp-af2013b816dc78b3affd9190d9dcd6c4.webp",
       "gamePage": "https://www.y8.com/games/girly_quirky_look"
     },
     {
       "name": "Toddie Ladybug",
       "slug": "toddie_ladybug",
       "embedUrl": "https://www.y8.com/embed/toddie_ladybug",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4505/file/w180h135_webp-c8783e4e430f955f14fa9c84c5a98919.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408641/file/w180h135_webp-a894b446f669dba01449400efd628982.webp",
       "gamePage": "https://www.y8.com/games/toddie_ladybug"
     },
     {
       "name": "Baby Cathy Ep44 Fire Prevention",
       "slug": "baby_cathy_ep44_fire_prevention",
       "embedUrl": "https://www.y8.com/embed/baby_cathy_ep44_fire_prevention",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4177/file/w180h135_webp-12ce1ad543064206b3d08a0b590a60ea.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408633/file/w180h135_webp-dc99accabe1f30a12d177137bbe52d93.webp",
       "gamePage": "https://www.y8.com/games/baby_cathy_ep44_fire_prevention"
     },
     {
       "name": "Teen Arcadecore",
       "slug": "teen_arcadecore",
       "embedUrl": "https://www.y8.com/embed/teen_arcadecore",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3563/file/w180h135_webp-fa1557669cea028ef3112a2f997e6e12.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408617/file/w180h135_webp-77db06be3642631770615c0675de663c.webp",
       "gamePage": "https://www.y8.com/games/teen_arcadecore"
     },
     {
       "name": "Girly Arabian Night",
       "slug": "girly_arabian_night",
       "embedUrl": "https://www.y8.com/embed/girly_arabian_night",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4683/file/w180h135_webp-eee751be4c17e6c34e18d23ba2dc1990.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408645/file/w180h135_webp-247af9e537b386c04ffad2c99b0b33da.webp",
       "gamePage": "https://www.y8.com/games/girly_arabian_night"
     },
     {
       "name": "Toddie Vintage Babydoll",
       "slug": "toddie_vintage_babydoll",
       "embedUrl": "https://www.y8.com/embed/toddie_vintage_babydoll",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4499/file/w180h135_webp-71f2ab8115aa6d1579228a7740e9071b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408639/file/w180h135_webp-5ed78a3ac603adcc3e07adcd74de687e.webp",
       "gamePage": "https://www.y8.com/games/toddie_vintage_babydoll"
     },
     {
       "name": "Toddie Hanfu",
       "slug": "toddie_hanfu",
       "embedUrl": "https://www.y8.com/embed/toddie_hanfu",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4493/file/w180h135_webp-209516db354f9670cb4c6bde6f0439c5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408637/file/w180h135_webp-77f1a7104b8c4199d932be9407642404.webp",
       "gamePage": "https://www.y8.com/games/toddie_hanfu"
     },
     {
       "name": "Kiddo Rainbowcore",
       "slug": "kiddo_rainbowcore",
       "embedUrl": "https://www.y8.com/embed/kiddo_rainbowcore",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4183/file/w180h135_webp-3fd19bb8239e4688268da7bbc71369eb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408635/file/w180h135_webp-09706f236197c050e6db86caf162bfec.webp",
       "gamePage": "https://www.y8.com/games/kiddo_rainbowcore"
     },
     {
       "name": "Teen Mean Girls",
       "slug": "teen_mean_girls",
       "embedUrl": "https://www.y8.com/embed/teen_mean_girls",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4071/file/w180h135_webp-43019bacf9a6ef5eec3bdc6df6aa95c5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408625/file/w180h135_webp-1352cfbfc180a74b15645359de792be8.webp",
       "gamePage": "https://www.y8.com/games/teen_mean_girls"
     },
     {
       "name": "Pet Kawai Rei",
       "slug": "pet_kawai_rei",
       "embedUrl": "https://www.y8.com/embed/pet_kawai_rei",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4075/file/w180h135_webp-965f65109b06781f4923925d45a69d36.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408629/file/w180h135_webp-76ce7a4bcdef1c5f427f1db9027a02fe.webp",
       "gamePage": "https://www.y8.com/games/pet_kawai_rei"
     },
     {
       "name": "Teen Urban Glam",
       "slug": "teen_urban_glam",
       "embedUrl": "https://www.y8.com/embed/teen_urban_glam",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4171/file/w180h135_webp-9cbce8267831a6b9c48671a73e4d2a8c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408631/file/w180h135_webp-434a046984c086f397b8cc8fd239a57a.webp",
       "gamePage": "https://www.y8.com/games/teen_urban_glam"
     },
     {
       "name": "Roxie S Kitchen Jalapeno Popper",
       "slug": "roxie_s_kitchen_jalapeno_popper",
       "embedUrl": "https://www.y8.com/embed/roxie_s_kitchen_jalapeno_popper",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4165/file/w180h135_webp-44b1dd04fcbe6cf81c17948990f46034.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408627/file/w180h135_webp-285cdbeed953abf0c0257beae1a00b51.webp",
       "gamePage": "https://www.y8.com/games/roxie_s_kitchen_jalapeno_popper"
     },
     {
@@ -1362,28 +1481,28 @@
       "name": "Decor It Bedroom",
       "slug": "decor_it_bedroom",
       "embedUrl": "https://www.y8.com/embed/decor_it_bedroom",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4065/file/w180h135_webp-9021ab80a9c0a091efb85ae869b26697.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408623/file/w180h135_webp-6c45fc27e2eb61f5f4413b38dd2c8d50.webp",
       "gamePage": "https://www.y8.com/games/decor_it_bedroom"
     },
     {
       "name": "Pet Cute Look",
       "slug": "pet_cute_look",
       "embedUrl": "https://www.y8.com/embed/pet_cute_look",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/4057/file/w180h135_webp-802d319c1b0c0c52ddbb7268c8b4ef79.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408621/file/w180h135_webp-6855c62fb1e91ce301a46ed6e667243a.webp",
       "gamePage": "https://www.y8.com/games/pet_cute_look"
     },
     {
       "name": "Kiddo Magical Girl",
       "slug": "kiddo_magical_girl",
       "embedUrl": "https://www.y8.com/embed/kiddo_magical_girl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3569/file/w180h135_webp-9d20b5f7a41d239fa53fc7079c79b285.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408619/file/w180h135_webp-91da441c0a9eaa4c70e76a87704c6795.webp",
       "gamePage": "https://www.y8.com/games/kiddo_magical_girl"
     },
     {
       "name": "Kiddo Mermaid",
       "slug": "kiddo_mermaid",
       "embedUrl": "https://www.y8.com/embed/kiddo_mermaid",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3551/file/w180h135_webp-a8a3185df346037588e0c27e33c896a3.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408613/file/w180h135_webp-8a3ac764a2a64142d0c3587807fd1b7a.webp",
       "gamePage": "https://www.y8.com/games/kiddo_mermaid"
     },
     {
@@ -1397,7 +1516,7 @@
       "name": "Girly Concert Ootd",
       "slug": "girly_concert_ootd",
       "embedUrl": "https://www.y8.com/embed/girly_concert_ootd",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3557/file/w180h135_webp-396369affbc99c50a31a5e9a2ea356e3.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408615/file/w180h135_webp-daf20511810addc71b34388aa1bb1fc4.webp",
       "gamePage": "https://www.y8.com/games/girly_concert_ootd"
     },
     {
@@ -1488,7 +1607,7 @@
       "name": "Block Puzzle Y8",
       "slug": "block_puzzle_y8_webgl",
       "embedUrl": "https://www.y8.com/embed/block_puzzle_y8_webgl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/275569/file/w180h135_webp-4acf25257b05cb9ab14ee4ac742146fa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406927/file/w180h135_webp-c4132a062e647949aa836a31511933e3.webp",
       "gamePage": "https://www.y8.com/games/block_puzzle_y8_webgl"
     },
     {
@@ -1516,7 +1635,7 @@
       "name": "Kiddo In Braids",
       "slug": "kiddo_in_braids",
       "embedUrl": "https://www.y8.com/embed/kiddo_in_braids",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2917/file/w180h135_webp-9f1e53800e88af9dfb87082e9bc83777.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408663/file/w180h135_webp-7f6cc539aff44a28c6a6963bd0c2150b.webp",
       "gamePage": "https://www.y8.com/games/kiddo_in_braids"
     },
     {
@@ -1530,42 +1649,42 @@
       "name": "Infini Math Endless Math Puzzle",
       "slug": "infini_math_endless_math_puzzle",
       "embedUrl": "https://www.y8.com/embed/infini_math_endless_math_puzzle",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/275483/file/w180h135_webp-2474aab8be49be116c8b5366a39cd2c4.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406635/file/w180h135_webp-85e4703ef84f55545705cef3c828bbef.webp",
       "gamePage": "https://www.y8.com/games/infini_math_endless_math_puzzle"
     },
     {
       "name": "Roxie S Kitchen French Bread Pizza",
       "slug": "roxie_s_kitchen_french_bread_pizza",
       "embedUrl": "https://www.y8.com/embed/roxie_s_kitchen_french_bread_pizza",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2829/file/w180h135_webp-571543ac767000aa93026f650f706645.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408661/file/w180h135_webp-54060db235bf935b03d18c27e536e412.webp",
       "gamePage": "https://www.y8.com/games/roxie_s_kitchen_french_bread_pizza"
     },
     {
       "name": "Blonde Sofia Idol Wannabe",
       "slug": "blonde_sofia_idol_wannabe",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_idol_wannabe",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2923/file/w180h135_webp-e7ac8a51fa18302b6b003cb002292e3d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408665/file/w180h135_webp-f53b2cfa72ff984e89abcdc3941fb6d1.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_idol_wannabe"
     },
     {
       "name": "Decor It Living Room",
       "slug": "decor_it_living_room",
       "embedUrl": "https://www.y8.com/embed/decor_it_living_room",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2823/file/w180h135_webp-e74d83ae96a717b9a6b8a3967b5b3cfe.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408659/file/w180h135_webp-f0c39d5332cfeadff1d2065ffb62f7f8.webp",
       "gamePage": "https://www.y8.com/games/decor_it_living_room"
     },
     {
       "name": "Girly Foam Party",
       "slug": "girly_foam_party",
       "embedUrl": "https://www.y8.com/embed/girly_foam_party",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2817/file/w180h135_webp-acefed89524e31a7c4f479de28462216.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408657/file/w180h135_webp-b70a39a3f0aac5a99f7413608a3fe05e.webp",
       "gamePage": "https://www.y8.com/games/girly_foam_party"
     },
     {
       "name": "Girly Pretty Wicked",
       "slug": "girly_pretty_wicked",
       "embedUrl": "https://www.y8.com/embed/girly_pretty_wicked",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2811/file/w180h135_webp-659303727fe003e1fcf57dce10dcd8ae.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408655/file/w180h135_webp-92c173946b90a1dabf242c819a22446c.webp",
       "gamePage": "https://www.y8.com/games/girly_pretty_wicked"
     },
     {
@@ -1775,7 +1894,7 @@
       "name": "Block Puzzle Block Game",
       "slug": "block_puzzle_block_game",
       "embedUrl": "https://www.y8.com/embed/block_puzzle_block_game",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/274715/file/w180h135_webp-1d28e7c079a59f04607edfe5a7c28736.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406763/file/w180h135_webp-351f45b2584c0ef8837fdfeb5186f8af.webp",
       "gamePage": "https://www.y8.com/games/block_puzzle_block_game"
     },
     {
@@ -1887,7 +2006,7 @@
       "name": "Knee Case Simulator",
       "slug": "knee_case_simulator",
       "embedUrl": "https://www.y8.com/embed/knee_case_simulator",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/909/file/w180h135_webp-600865cb012d13c7bf610330ab4b7ee7.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407405/file/w180h135_webp-4414f5189302a590d7dab9f26ea7e781.webp",
       "gamePage": "https://www.y8.com/games/knee_case_simulator"
     },
     {
@@ -2328,21 +2447,21 @@
       "name": "Merge Number Woody",
       "slug": "merge_number_woody",
       "embedUrl": "https://www.y8.com/embed/merge_number_woody",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272551/file/w180h135_webp-268c35422b87ab71c9defb58e24454ac.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406911/file/w180h135_webp-4d2b774a30e7542a74863c04b2c12471.webp",
       "gamePage": "https://www.y8.com/games/merge_number_woody"
     },
     {
       "name": "Knife And Jems",
       "slug": "knife_and_jems",
       "embedUrl": "https://www.y8.com/embed/knife_and_jems",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272529/file/w180h135_webp-2e36902a97c6fed0e0fe9ac7c2f86707.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406639/file/w180h135_webp-c4f5a54ab58b6ee335cea83daf814048.webp",
       "gamePage": "https://www.y8.com/games/knife_and_jems"
     },
     {
       "name": "Woodland Slide",
       "slug": "woodland_slide",
       "embedUrl": "https://www.y8.com/embed/woodland_slide",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272525/file/w180h135_webp-b1f2085b160463a34c77c20b65e47287.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406885/file/w180h135_webp-7675adec564d6223596977baf42761b4.webp",
       "gamePage": "https://www.y8.com/games/woodland_slide"
     },
     {
@@ -2356,14 +2475,14 @@
       "name": "Juicy Shot",
       "slug": "juicy_shot",
       "embedUrl": "https://www.y8.com/embed/juicy_shot",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272479/file/w180h135_webp-6198b839563fdf2cdfacfb2945a3cf59.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406781/file/w180h135_webp-a98d0932b7617739cd3e9514283775f5.webp",
       "gamePage": "https://www.y8.com/games/juicy_shot"
     },
     {
       "name": "Animals Merge Html5",
       "slug": "animals_merge_html5",
       "embedUrl": "https://www.y8.com/embed/animals_merge_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272477/file/w180h135_webp-1f8b9821d4cf511601eb277ba276b540.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406903/file/w180h135_webp-d4c555c67810973c05a715c99985bd9c.webp",
       "gamePage": "https://www.y8.com/games/animals_merge_html5"
     },
     {
@@ -2398,7 +2517,7 @@
       "name": "Diary Maggie Diy Phonecase",
       "slug": "diary_maggie_diy_phonecase",
       "embedUrl": "https://www.y8.com/embed/diary_maggie_diy_phonecase",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/23761/file/w180h135_webp-84bd78a8013264bbf40f3bd89ae7ef19.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407407/file/w180h135_webp-fee89c747dda2fc6e161d0b8ffa8d305.webp",
       "gamePage": "https://www.y8.com/games/diary_maggie_diy_phonecase"
     },
     {
@@ -2552,7 +2671,7 @@
       "name": "Merge Cash",
       "slug": "merge_cash",
       "embedUrl": "https://www.y8.com/embed/merge_cash",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/271787/file/w180h135_webp-c5cb80b225aad5a7ae19b22d6d01d9af.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406901/file/w180h135_webp-f00a1ff8f25010a0d0116db2cd238152.webp",
       "gamePage": "https://www.y8.com/games/merge_cash"
     },
     {
@@ -2587,7 +2706,7 @@
       "name": "Diary Maggie Making Pancake",
       "slug": "diary_maggie_making_pancake",
       "embedUrl": "https://www.y8.com/embed/diary_maggie_making_pancake",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/21227/file/w180h135_webp-14903d1245bcfc75f20da75ef30fb6ae.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407409/file/w180h135_webp-e5bc7285e11fe3be0a9fe7d60d5f363d.webp",
       "gamePage": "https://www.y8.com/games/diary_maggie_making_pancake"
     },
     {
@@ -2615,14 +2734,14 @@
       "name": "Tetris Sand",
       "slug": "tetris_sand",
       "embedUrl": "https://www.y8.com/embed/tetris_sand",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/272273/file/w180h135_webp-66c9f81cf3bf84ddfa9cf7819afa84c3.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406881/file/w180h135_webp-ef29f7f08ebe6241698a484292bfe7d9.webp",
       "gamePage": "https://www.y8.com/games/tetris_sand"
     },
     {
       "name": "Monster Math Html5",
       "slug": "monster_math_html5",
       "embedUrl": "https://www.y8.com/embed/monster_math_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/271543/file/w180h135_webp-21019746f4c6fdc138b6caa463d7acb8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406641/file/w180h135_webp-04b9ca31999246d6d4f5d8c1541cebd2.webp",
       "gamePage": "https://www.y8.com/games/monster_math_html5"
     },
     {
@@ -2734,7 +2853,7 @@
       "name": "Lusy S Glam Galore",
       "slug": "lusy_s_glam_galore",
       "embedUrl": "https://www.y8.com/embed/lusy_s_glam_galore",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/21155/file/w180h135_webp-67e8e6ec97c1608fe5697160c64431aa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408121/file/w180h135_webp-c6723a3cf905a3e0a81306b8fe95d9e1.webp",
       "gamePage": "https://www.y8.com/games/lusy_s_glam_galore"
     },
     {
@@ -3035,7 +3154,7 @@
       "name": "Sky Assault",
       "slug": "sky_assault",
       "embedUrl": "https://www.y8.com/embed/sky_assault",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/269673/file/w180h135_webp-052290af19aa592c594b483a4ed0a888.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406783/file/w180h135_webp-2e3066fd0f43f051979c4ec74ad981f6.webp",
       "gamePage": "https://www.y8.com/games/sky_assault"
     },
     {
@@ -3049,7 +3168,7 @@
       "name": "Turbo Trails",
       "slug": "turbo_trails",
       "embedUrl": "https://www.y8.com/embed/turbo_trails",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/14631/file/w180h135_webp-ca9c413faf272603fa8575005c1a13fa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408127/file/w180h135_webp-d5ee0f82e058d4275f2a839dd5c4636b.webp",
       "gamePage": "https://www.y8.com/games/turbo_trails"
     },
     {
@@ -3147,14 +3266,14 @@
       "name": "Alien Onslaught",
       "slug": "alien_onslaught",
       "embedUrl": "https://www.y8.com/embed/alien_onslaught",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/1539/file/w180h135_webp-db443bbad6d2a292a67aa2699309eeb9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408135/file/w180h135_webp-1b49e6c97121a10c9ef423ab9ae29019.webp",
       "gamePage": "https://www.y8.com/games/alien_onslaught"
     },
     {
       "name": "Box Surfer",
       "slug": "box_surfer",
       "embedUrl": "https://www.y8.com/embed/box_surfer",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/269465/file/w180h135_webp-fc3a944b214ac55edc3547668659367d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406633/file/w180h135_webp-9612f8a9e737b01231a12823e925dac0.webp",
       "gamePage": "https://www.y8.com/games/box_surfer"
     },
     {
@@ -3217,7 +3336,7 @@
       "name": "Formula Car Stunt Racing",
       "slug": "formula_car_stunt_racing",
       "embedUrl": "https://www.y8.com/embed/formula_car_stunt_racing",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/268993/file/w180h135_webp-5b30fc30efa2e1abc47343ee6bfc2716.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406637/file/w180h135_webp-a3616b070d0cd326e081cb4b1c7d86f0.webp",
       "gamePage": "https://www.y8.com/games/formula_car_stunt_racing"
     },
     {
@@ -3273,7 +3392,7 @@
       "name": "Stacky Pet",
       "slug": "stacky_pet",
       "embedUrl": "https://www.y8.com/embed/stacky_pet",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/268905/file/w180h135_webp-33078cec0211e7fa2b081438d4c2513a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406773/file/w180h135_webp-eddeb022e0cca81ab9ba7beef69304fb.webp",
       "gamePage": "https://www.y8.com/games/stacky_pet"
     },
     {
@@ -3546,7 +3665,7 @@
       "name": "Grandma Recipe Ramen",
       "slug": "grandma_recipe_ramen",
       "embedUrl": "https://www.y8.com/embed/grandma_recipe_ramen",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5155/file/w180h135_webp-39a04957731383d107f2d85a73044ac9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407417/file/w180h135_webp-8b2d6927cbb1510fd392eae9eabf4414.webp",
       "gamePage": "https://www.y8.com/games/grandma_recipe_ramen"
     },
     {
@@ -3637,7 +3756,7 @@
       "name": "Blonde Sofia Eye Problem",
       "slug": "blonde_sofia_eye_problem",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_eye_problem",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/5119/file/w180h135_webp-7061070bdaed97fce3fbe94a5f1668bf.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407413/file/w180h135_webp-67276952e28ba1fe727570095a7f189a.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_eye_problem"
     },
     {
@@ -3686,7 +3805,7 @@
       "name": "Mecha Formers 3",
       "slug": "mecha_formers_3",
       "embedUrl": "https://www.y8.com/embed/mecha_formers_3",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/266905/file/w180h135_webp-56f3e2b1ec8a5ccae6604abc32c598c1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406899/file/w180h135_webp-82ca2b742d09b9c997ff43fb73042479.webp",
       "gamePage": "https://www.y8.com/games/mecha_formers_3"
     },
     {
@@ -3742,7 +3861,7 @@
       "name": "Roxie S Kitchen Japanese Curry",
       "slug": "roxie_s_kitchen_japanese_curry",
       "embedUrl": "https://www.y8.com/embed/roxie_s_kitchen_japanese_curry",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3799/file/w180h135_webp-bfd17940f8d37fb1c74e46faa86a8c74.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407415/file/w180h135_webp-c56ae091c91b7de183bdceb880f90d74.webp",
       "gamePage": "https://www.y8.com/games/roxie_s_kitchen_japanese_curry"
     },
     {
@@ -3889,7 +4008,7 @@
       "name": "Dead Hunter",
       "slug": "dead_hunter",
       "embedUrl": "https://www.y8.com/embed/dead_hunter",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/263435/file/w180h135_webp-02f88d51cd09c2e5a09c76884ee30522.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406779/file/w180h135_webp-7c64051c6437df1a5d62e928aa43c258.webp",
       "gamePage": "https://www.y8.com/games/dead_hunter"
     },
     {
@@ -4029,7 +4148,7 @@
       "name": "Blonde Sofia Dating Vinder",
       "slug": "blonde_sofia_dating_vinder",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_dating_vinder",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/23813/file/w180h135_webp-4ea2e008267171b8a20c7657eb2e60bb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407419/file/w180h135_webp-52e7e890be91f403603d5ce6384e1f07.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_dating_vinder"
     },
     {
@@ -4176,7 +4295,7 @@
       "name": "Rage Rocket",
       "slug": "rage_rocket",
       "embedUrl": "https://www.y8.com/embed/rage_rocket",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/22329/file/w180h135_webp-2220068a3b2e5e969cbf6f49ce2a9fec.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408129/file/w180h135_webp-9898bafdb448e4a21ff9dcc248f2e128.webp",
       "gamePage": "https://www.y8.com/games/rage_rocket"
     },
     {
@@ -4491,7 +4610,7 @@
       "name": "The Battle For Earth",
       "slug": "the_battle_for_earth",
       "embedUrl": "https://www.y8.com/embed/the_battle_for_earth",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/12975/file/w180h135_webp-0617bda7cb513b8292a06140013df6c9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408131/file/w180h135_webp-2bc8e42e2c99fea8787a33d9c35c15f6.webp",
       "gamePage": "https://www.y8.com/games/the_battle_for_earth"
     },
     {
@@ -4694,7 +4813,7 @@
       "name": "Car Wreck",
       "slug": "car_wreck",
       "embedUrl": "https://www.y8.com/embed/car_wreck",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/6353/file/w180h135_webp-a0af25d8ecddbec12e090fb48b8573de.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408117/file/w180h135_webp-7c1d35cdd72de3cb9b018821dff5eb8d.webp",
       "gamePage": "https://www.y8.com/games/car_wreck"
     },
     {
@@ -4771,7 +4890,7 @@
       "name": "World Conflict 2022",
       "slug": "world_conflict_2022",
       "embedUrl": "https://www.y8.com/embed/world_conflict_2022",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/2655/file/w180h135_webp-7030f2a73068f67a9601b30e6ec2b9a2.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408133/file/w180h135_webp-bfa439ae3e14e4a62e4fc4b9fcc0bbaa.webp",
       "gamePage": "https://www.y8.com/games/world_conflict_2022"
     },
     {
@@ -4792,7 +4911,7 @@
       "name": "Pick Match",
       "slug": "pick_match",
       "embedUrl": "https://www.y8.com/embed/pick_match",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/3869/file/w180h135_webp-7e68d3f4fe834c8c96fce0fd3056f4f6.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/3873/file/w180h135_webp-0d990ca7b1376d5584d53d9ea819c6d1.webp",
       "gamePage": "https://www.y8.com/games/pick_match"
     },
     {
@@ -5058,7 +5177,7 @@
       "name": "Nintendo Switch Repair",
       "slug": "nintendo_switch_repair",
       "embedUrl": "https://www.y8.com/embed/nintendo_switch_repair",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/32931/file/w180h135_webp-afbcfe2030aed97fb2697247783f6b86.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407423/file/w180h135_webp-fd1cf76d25ece8225a6ea1ebd6c3ff8d.webp",
       "gamePage": "https://www.y8.com/games/nintendo_switch_repair"
     },
     {
@@ -5093,7 +5212,7 @@
       "name": "Iphone 13 Repair",
       "slug": "iphone_13_repair",
       "embedUrl": "https://www.y8.com/embed/iphone_13_repair",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/32115/file/w180h135_webp-c512c945ccf0b537412adadbce253efb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407427/file/w180h135_webp-73f33feb2649262cfbcb371629c0077f.webp",
       "gamePage": "https://www.y8.com/games/iphone_13_repair"
     },
     {
@@ -5394,14 +5513,14 @@
       "name": "Princess Twins Babies Newborn",
       "slug": "princess_twins_babies_newborn",
       "embedUrl": "https://www.y8.com/embed/princess_twins_babies_newborn",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/12279/file/w180h135_webp-b9ff504e5b763f5c449adcd0eb87c0c8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407431/file/w180h135_webp-1e956095ca357c93b493b63d012e212c.webp",
       "gamePage": "https://www.y8.com/games/princess_twins_babies_newborn"
     },
     {
       "name": "Shape Switch",
       "slug": "shape_switch",
       "embedUrl": "https://www.y8.com/embed/shape_switch",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/12279/file/w180h135_webp-b9ff504e5b763f5c449adcd0eb87c0c8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407431/file/w180h135_webp-1e956095ca357c93b493b63d012e212c.webp",
       "gamePage": "https://www.y8.com/games/shape_switch"
     },
     {
@@ -5457,7 +5576,7 @@
       "name": "Roxie S Kitchen Korean Chicken",
       "slug": "roxie_s_kitchen_korean_chicken",
       "embedUrl": "https://www.y8.com/embed/roxie_s_kitchen_korean_chicken",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/37269/file/w180h135_webp-d6712ab3a8d78571b36227a447b95573.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407433/file/w180h135_webp-7e982afb3971ea7ec38bc41ca365e500.webp",
       "gamePage": "https://www.y8.com/games/roxie_s_kitchen_korean_chicken"
     },
     {
@@ -5646,7 +5765,7 @@
       "name": "Baby Cathy Ep20 Ear Problem",
       "slug": "baby_cathy_ep20_ear_problem",
       "embedUrl": "https://www.y8.com/embed/baby_cathy_ep20_ear_problem",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/29423/file/w180h135_webp-04a1f72aed3b8e1bf5bb70b25a4e6217.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407439/file/w180h135_webp-c04b96a44071ec416c4185ef5cb70179.webp",
       "gamePage": "https://www.y8.com/games/baby_cathy_ep20_ear_problem"
     },
     {
@@ -5814,7 +5933,7 @@
       "name": "Rooftop Battles",
       "slug": "rooftop_battles",
       "embedUrl": "https://www.y8.com/embed/rooftop_battles",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/242419/file/w180h135_webp-8c32ca2dfd9b334f9176f5584000c183.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406931/file/w180h135_webp-3a6d04e4493ff570fe9e8abeb319fd08.webp",
       "gamePage": "https://www.y8.com/games/rooftop_battles"
     },
     {
@@ -5828,7 +5947,7 @@
       "name": "Funny Shopping Supermarket",
       "slug": "funny_shopping_supermarket",
       "embedUrl": "https://www.y8.com/embed/funny_shopping_supermarket",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/18021/file/w180h135_webp-e048d60a856e92fa13f999fb85941890.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407441/file/w180h135_webp-2e2b2e716083bfaac38507a43b8faa30.webp",
       "gamePage": "https://www.y8.com/games/funny_shopping_supermarket"
     },
     {
@@ -5849,7 +5968,7 @@
       "name": "Y8 Drunken Wrestlers",
       "slug": "y8_drunken_wrestlers",
       "embedUrl": "https://www.y8.com/embed/y8_drunken_wrestlers",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/241891/file/w180h135_webp-a6d6530c2dcdee888e073526cbb77c4b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406495/file/w180h135_webp-ea4728ec66df4c188b8db918466306dd.webp",
       "gamePage": "https://www.y8.com/games/y8_drunken_wrestlers"
     },
     {
@@ -5919,7 +6038,7 @@
       "name": "Blonde Ashley Mask Design",
       "slug": "blonde_ashley_mask_design",
       "embedUrl": "https://www.y8.com/embed/blonde_ashley_mask_design",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/14967/file/w180h135_webp-500b13d2358e175ca1073c843ada3c66.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407443/file/w180h135_webp-7f24aeb9d993d705098995526c5db0ad.webp",
       "gamePage": "https://www.y8.com/games/blonde_ashley_mask_design"
     },
     {
@@ -5961,7 +6080,7 @@
       "name": "Y8 Rocket Simulator",
       "slug": "y8_rocket_simulator",
       "embedUrl": "https://www.y8.com/embed/y8_rocket_simulator",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/12229/file/w180h135_webp-8cf8d9bee83c1d2361b0890446d2a962.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407571/file/w180h135_webp-54345ac4d36a18a1e39fb3410fe07cf0.webp",
       "gamePage": "https://www.y8.com/games/y8_rocket_simulator"
     },
     {
@@ -5982,14 +6101,14 @@
       "name": "Blonde Sofia Haircut",
       "slug": "blonde_sofia_haircut",
       "embedUrl": "https://www.y8.com/embed/blonde_sofia_haircut",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/11187/file/w180h135_webp-1c72a77c2961746904de880e8bf14677.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407575/file/w180h135_webp-c35d5d4e795040833e0330e71500a8af.webp",
       "gamePage": "https://www.y8.com/games/blonde_sofia_haircut"
     },
     {
       "name": "Blonde Ashley Makeover",
       "slug": "blonde_ashley_makeover",
       "embedUrl": "https://www.y8.com/embed/blonde_ashley_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/240061/file/w180h135_webp-95fdc1e283c045f26a5a0bf992e27a91.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406611/file/w180h135_webp-865159a74b103134720cf720baa08fbd.webp",
       "gamePage": "https://www.y8.com/games/blonde_ashley_makeover"
     },
     {
@@ -6017,7 +6136,7 @@
       "name": "Baby Cathy Newborn",
       "slug": "baby_cathy_newborn",
       "embedUrl": "https://www.y8.com/embed/baby_cathy_newborn",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/239187/file/w180h135_webp-fe53c040cb91a0dbee0f23d082325942.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406599/file/w180h135_webp-3b392eb7d1d897c3735f30e296289c59.webp",
       "gamePage": "https://www.y8.com/games/baby_cathy_newborn"
     },
     {
@@ -6063,13 +6182,6 @@
       "gamePage": "https://www.y8.com/games/gardening_with_pop"
     },
     {
-      "name": "Melisa S Tree Planting",
-      "slug": "melisa_s_tree_planting",
-      "embedUrl": "https://www.y8.com/embed/melisa_s_tree_planting",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/88977/file/w180h135_webp-304f1fe4431a56cc1bd61bd8979d11a1.webp",
-      "gamePage": "https://www.y8.com/games/melisa_s_tree_planting"
-    },
-    {
       "name": "Homeschooling With Pop",
       "slug": "homeschooling_with_pop",
       "embedUrl": "https://www.y8.com/embed/homeschooling_with_pop",
@@ -6101,7 +6213,7 @@
       "name": "Man Haircut",
       "slug": "man_haircut",
       "embedUrl": "https://www.y8.com/embed/man_haircut",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/237687/file/w180h135_webp-76e0a31f5259ea3beff66e0ebacf004c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406501/file/w180h135_webp-ae9fdb2969285cfc3448db4c013c4345.webp",
       "gamePage": "https://www.y8.com/games/man_haircut"
     },
     {
@@ -6122,7 +6234,7 @@
       "name": "The Good Dentist",
       "slug": "the_good_dentist",
       "embedUrl": "https://www.y8.com/embed/the_good_dentist",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/86541/file/w180h135_webp-e7ff2ed2fd56b4e3992514c1abc1e9a4.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407577/file/w180h135_webp-342e4aa8ecfd34015cec259f616033c9.webp",
       "gamePage": "https://www.y8.com/games/the_good_dentist"
     },
     {
@@ -6262,7 +6374,7 @@
       "name": "Cute Hair Maker",
       "slug": "cute_hair_maker",
       "embedUrl": "https://www.y8.com/embed/cute_hair_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/79287/file/w180h135_webp-e860e614d2d77985aef73e47a0bbeb95.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407583/file/w180h135_webp-ae4a18690e05d493b7157a672f69f0fe.webp",
       "gamePage": "https://www.y8.com/games/cute_hair_maker"
     },
     {
@@ -6437,7 +6549,7 @@
       "name": "Mirrors",
       "slug": "mirrors",
       "embedUrl": "https://www.y8.com/embed/mirrors",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/231959/file/w180h135_webp-66d06c7275071d81e265f820fb7fa2ec.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406937/file/w180h135_webp-5352012bd658ff08dd8b5d954f040764.webp",
       "gamePage": "https://www.y8.com/games/mirrors"
     },
     {
@@ -6507,14 +6619,14 @@
       "name": "Cute Kitty Pregnant",
       "slug": "cute_kitty_pregnant",
       "embedUrl": "https://www.y8.com/embed/cute_kitty_pregnant",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/62813/file/w180h135_webp-02a19a16ed28edb9fd380a25e70a0495.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407587/file/w180h135_webp-24215fa521fbf7ac699d43c7310a35d6.webp",
       "gamePage": "https://www.y8.com/games/cute_kitty_pregnant"
     },
     {
       "name": "Cute Burger Maker",
       "slug": "cute_burger_maker",
       "embedUrl": "https://www.y8.com/embed/cute_burger_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/231601/file/w180h135_webp-e1c6cda69805b91fba429debc2c4eb71.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406933/file/w180h135_webp-f1fdcc0e794bdd1b3d8eff7696d7ea17.webp",
       "gamePage": "https://www.y8.com/games/cute_burger_maker"
     },
     {
@@ -6542,14 +6654,14 @@
       "name": "Puppy Whisperer",
       "slug": "puppy_whisperer",
       "embedUrl": "https://www.y8.com/embed/puppy_whisperer",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/58709/file/w180h135_webp-13f0f5a647834e67896e1ff022bbda0f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407585/file/w180h135_webp-6124bd855616941d108f5eefa3b7ff37.webp",
       "gamePage": "https://www.y8.com/games/puppy_whisperer"
     },
     {
       "name": "Swimming Pool Romance",
       "slug": "swimming_pool_romance",
       "embedUrl": "https://www.y8.com/embed/swimming_pool_romance",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/58455/file/w180h135_webp-1ec242f79418f5bc9fc5132ff2b82840.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407589/file/w180h135_webp-404615a9ef857bed19961064729ea70a.webp",
       "gamePage": "https://www.y8.com/games/swimming_pool_romance"
     },
     {
@@ -6584,7 +6696,7 @@
       "name": "Hotdog Maker",
       "slug": "hotdog_maker",
       "embedUrl": "https://www.y8.com/embed/hotdog_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/228971/file/w180h135_webp-f9c85f0a53e28672ffa3a9ce3d2c753a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406909/file/w180h135_webp-5406c0387c8e8fa2134b0081c986ca70.webp",
       "gamePage": "https://www.y8.com/games/hotdog_maker"
     },
     {
@@ -6668,14 +6780,14 @@
       "name": "Stickman Boxing Ko Champion",
       "slug": "stickman_boxing_ko_champion",
       "embedUrl": "https://www.y8.com/embed/stickman_boxing_ko_champion",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39713/file/w180h135_webp-3998b68a3e031ddba78e72a19150756b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407591/file/w180h135_webp-454e35018fad133c95eb444a47d7d3b7.webp",
       "gamePage": "https://www.y8.com/games/stickman_boxing_ko_champion"
     },
     {
       "name": "Block Painter",
       "slug": "block_painter",
       "embedUrl": "https://www.y8.com/embed/block_painter",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39713/file/w180h135_webp-3998b68a3e031ddba78e72a19150756b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407591/file/w180h135_webp-454e35018fad133c95eb444a47d7d3b7.webp",
       "gamePage": "https://www.y8.com/games/block_painter"
     },
     {
@@ -6724,7 +6836,7 @@
       "name": "Baby Olie Birthday Party",
       "slug": "baby_olie_birthday_party",
       "embedUrl": "https://www.y8.com/embed/baby_olie_birthday_party",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/78837/file/w180h135_webp-50d875f1fea55211d8751b84b028b305.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407593/file/w180h135_webp-f3a16283e79c1c8ac897936294c8d0da.webp",
       "gamePage": "https://www.y8.com/games/baby_olie_birthday_party"
     },
     {
@@ -6875,13 +6987,6 @@
       "gamePage": "https://www.y8.com/games/candy_monster_game"
     },
     {
-      "name": "Supra Drift 3d",
-      "slug": "supra_drift_3d",
-      "embedUrl": "https://www.y8.com/embed/supra_drift_3d",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/74101/file/w180h135_webp-0d1a2ab993d7d9984fbaad3a6fcc8684.webp",
-      "gamePage": "https://www.y8.com/games/supra_drift_3d"
-    },
-    {
       "name": "Snow Mobile Rush",
       "slug": "snow_mobile_rush",
       "embedUrl": "https://www.y8.com/embed/snow_mobile_rush",
@@ -6920,7 +7025,7 @@
       "name": "Zig Zig",
       "slug": "zig_zig",
       "embedUrl": "https://www.y8.com/embed/zig_zig",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/225135/file/w180h135_webp-227476eb5ed3b5fc8e67d4623672cbf6.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406811/file/w180h135_webp-3f145087b1b03f0e972e22c8fd2b0fb4.webp",
       "gamePage": "https://www.y8.com/games/zig_zig"
     },
     {
@@ -6973,10 +7078,17 @@
       "gamePage": "https://www.y8.com/games/yummy_word"
     },
     {
+      "name": "Slope Multiplayer",
+      "slug": "slope_multiplayer",
+      "embedUrl": "https://www.y8.com/embed/slope_multiplayer",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406799/file/w180h135_webp-b6a25144dfb129a1c0a69f450fd09f74.webp",
+      "gamePage": "https://www.y8.com/games/slope_multiplayer"
+    },
+    {
       "name": "Trollface Quest Horror 2",
       "slug": "trollface_quest_horror_2",
       "embedUrl": "https://www.y8.com/embed/trollface_quest_horror_2",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/72557/file/w180h135_webp-a6827fae174f584bdd1a4b98bac54248.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407599/file/w180h135_webp-9f7699e678c04e954a28ea8f44ec4d4a.webp",
       "gamePage": "https://www.y8.com/games/trollface_quest_horror_2"
     },
     {
@@ -6997,14 +7109,14 @@
       "name": "Cute Puppy Pregnant",
       "slug": "cute_puppy_pregnant",
       "embedUrl": "https://www.y8.com/embed/cute_puppy_pregnant",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/72253/file/w180h135_webp-53d0e8846c281c5aa1f2304c4e2ced33.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407607/file/w180h135_webp-0f068b99d0d857b528191d4db2b449c5.webp",
       "gamePage": "https://www.y8.com/games/cute_puppy_pregnant"
     },
     {
       "name": "Er Cute Puppy",
       "slug": "er_cute_puppy",
       "embedUrl": "https://www.y8.com/embed/er_cute_puppy",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/224923/file/w180h135_webp-1001cdf34eebc9436092d8962cdbe4e8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406503/file/w180h135_webp-50d910a8c70e7a37c3f0f64168a1ca82.webp",
       "gamePage": "https://www.y8.com/games/er_cute_puppy"
     },
     {
@@ -7053,35 +7165,35 @@
       "name": "Romantic Swimming Pool",
       "slug": "romantic_swimming_pool",
       "embedUrl": "https://www.y8.com/embed/romantic_swimming_pool",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/69027/file/w180h135_webp-4d98549744597314d40269b45124898d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407611/file/w180h135_webp-77b5c9fc6d1d63f50fb8a4988becbdcb.webp",
       "gamePage": "https://www.y8.com/games/romantic_swimming_pool"
     },
     {
       "name": "Coach Bus Simulator",
       "slug": "coach_bus_simulator",
       "embedUrl": "https://www.y8.com/embed/coach_bus_simulator",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66529/file/w180h135_webp-3f279bc2f54509d628eb92b313a0ea1b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407561/file/w180h135_webp-99d629ad5fe2e5f1b73fd3776851ec34.webp",
       "gamePage": "https://www.y8.com/games/coach_bus_simulator"
     },
     {
       "name": "Puppy House",
       "slug": "puppy_house",
       "embedUrl": "https://www.y8.com/embed/puppy_house",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/224189/file/w180h135_webp-f0079822ab61abdd76ee343acf9479bb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406597/file/w180h135_webp-c03ffc80a0f64d21ad68f582bd980d2b.webp",
       "gamePage": "https://www.y8.com/games/puppy_house"
     },
     {
       "name": "Sandwich Maker",
       "slug": "sandwich_maker",
       "embedUrl": "https://www.y8.com/embed/sandwich_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/68313/file/w180h135_webp-2fb4d84e45c51b7d7291df65e45ee2a9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407613/file/w180h135_webp-23726c32442bd9e21b41bb465b9655ce.webp",
       "gamePage": "https://www.y8.com/games/sandwich_maker"
     },
     {
       "name": "Princess Pregnant ",
       "slug": "princess_pregnant_",
       "embedUrl": "https://www.y8.com/embed/princess_pregnant_",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/68263/file/w180h135_webp-093bfc687a061dba56d86ba847d55af1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407615/file/w180h135_webp-501f21caed1a5b8c7bcc9d28d43aee57.webp",
       "gamePage": "https://www.y8.com/games/princess_pregnant_"
     },
     {
@@ -7207,7 +7319,7 @@
       "name": "Ludo Classic",
       "slug": "ludo_classic",
       "embedUrl": "https://www.y8.com/embed/ludo_classic",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66409/file/w180h135_webp-fd540677ccbd9837b59d725a21abce18.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407559/file/w180h135_webp-4366409f9c4149c8362c9d6999702c0b.webp",
       "gamePage": "https://www.y8.com/games/ludo_classic"
     },
     {
@@ -7228,7 +7340,7 @@
       "name": "Six Helix",
       "slug": "six_helix",
       "embedUrl": "https://www.y8.com/embed/six_helix",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66265/file/w180h135_webp-695ae5d164576d43a53bc47adf552dd1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407621/file/w180h135_webp-dc27b781676347f7bd1507cd304af7b5.webp",
       "gamePage": "https://www.y8.com/games/six_helix"
     },
     {
@@ -7358,13 +7470,6 @@
       "gamePage": "https://www.y8.com/games/zoo_run"
     },
     {
-      "name": "Boxes Physics",
-      "slug": "boxes_physics",
-      "embedUrl": "https://www.y8.com/embed/boxes_physics",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65797/file/w180h135_webp-ce362f7fdd408f290c31ee54dd95b864.webp",
-      "gamePage": "https://www.y8.com/games/boxes_physics"
-    },
-    {
       "name": "Best Baby Dress Up",
       "slug": "best_baby_dress_up",
       "embedUrl": "https://www.y8.com/embed/best_baby_dress_up",
@@ -7431,7 +7536,7 @@
       "name": "Pet Rescue",
       "slug": "pet_rescue",
       "embedUrl": "https://www.y8.com/embed/pet_rescue",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65541/file/w180h135_webp-e183a6aecf9a4b7a94f58eb9ccee798c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407623/file/w180h135_webp-212f9655c09a4010e63f194ff66776b3.webp",
       "gamePage": "https://www.y8.com/games/pet_rescue"
     },
     {
@@ -7487,7 +7592,7 @@
       "name": "Cute Dentist Emergency",
       "slug": "cute_dentist_emergency",
       "embedUrl": "https://www.y8.com/embed/cute_dentist_emergency",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/223143/file/w180h135_webp-b4b56dbbcc615afe9930c4b356442d04.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406917/file/w180h135_webp-ee0713a02a852817065c4ea0f2bfc412.webp",
       "gamePage": "https://www.y8.com/games/cute_dentist_emergency"
     },
     {
@@ -7522,7 +7627,7 @@
       "name": "Carol S Haircut Salon",
       "slug": "carol_s_haircut_salon",
       "embedUrl": "https://www.y8.com/embed/carol_s_haircut_salon",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/60139/file/w180h135_webp-190ff2e03b3a3e3a990ef2b56572a81d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407633/file/w180h135_webp-812128795fe444e57b2fcae53b72583a.webp",
       "gamePage": "https://www.y8.com/games/carol_s_haircut_salon"
     },
     {
@@ -7571,7 +7676,7 @@
       "name": "Cute Lips Plastic Surgery",
       "slug": "cute_lips_plastic_surgery",
       "embedUrl": "https://www.y8.com/embed/cute_lips_plastic_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/59101/file/w180h135_webp-af7b8e7b4b7751bb18926918f2556425.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407635/file/w180h135_webp-6e1a6e67c5fde1b7e881ae78b8ecf25c.webp",
       "gamePage": "https://www.y8.com/games/cute_lips_plastic_surgery"
     },
     {
@@ -7823,14 +7928,14 @@
       "name": "Loop Churros Ice Cream",
       "slug": "loop_churros_ice_cream",
       "embedUrl": "https://www.y8.com/embed/loop_churros_ice_cream",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/57355/file/w180h135_webp-e00ab2c59c3600a7f3baaabf425bb8b1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407641/file/w180h135_webp-4c802dc06d44319bc89da4c5c8c6ef08.webp",
       "gamePage": "https://www.y8.com/games/loop_churros_ice_cream"
     },
     {
       "name": "Ragdoll Physics 3",
       "slug": "ragdoll_physics_3",
       "embedUrl": "https://www.y8.com/embed/ragdoll_physics_3",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/57551/file/w180h135_webp-0bc83bcf08f0c1c6a93aa15bb8478c3f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407639/file/w180h135_webp-1900905a55949b95235691fe80ea56e4.webp",
       "gamePage": "https://www.y8.com/games/ragdoll_physics_3"
     },
     {
@@ -7893,7 +7998,7 @@
       "name": "Wind Mill",
       "slug": "wind_mill",
       "embedUrl": "https://www.y8.com/embed/wind_mill",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/221673/file/w180h135_webp-d6e0bfb30d2126a6a420e3f3dbd5f1d7.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406897/file/w180h135_webp-7ee4eb4cf0b606f4446e7f93a98f77dd.webp",
       "gamePage": "https://www.y8.com/games/wind_mill"
     },
     {
@@ -8012,7 +8117,7 @@
       "name": "Gravity Ball Y8",
       "slug": "gravity_ball_y8",
       "embedUrl": "https://www.y8.com/embed/gravity_ball_y8",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/221555/file/w180h135_webp-2f56a75f73ac62891253209722081a6e.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406785/file/w180h135_webp-aa7d411c63fad3a0468a1c7f9205711a.webp",
       "gamePage": "https://www.y8.com/games/gravity_ball_y8"
     },
     {
@@ -8114,13 +8219,6 @@
       "gamePage": "https://www.y8.com/games/slots_beach"
     },
     {
-      "name": "Stock Car Hero",
-      "slug": "stock_car_hero",
-      "embedUrl": "https://www.y8.com/embed/stock_car_hero",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/48523/file/w180h135_webp-384b57c47dc8889e3869e1f1f442f636.webp",
-      "gamePage": "https://www.y8.com/games/stock_car_hero"
-    },
-    {
       "name": "Save The Pilot",
       "slug": "save_the_pilot",
       "embedUrl": "https://www.y8.com/embed/save_the_pilot",
@@ -8166,7 +8264,7 @@
       "name": "Burger Kitty",
       "slug": "burger_kitty",
       "embedUrl": "https://www.y8.com/embed/burger_kitty",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/221465/file/w180h135_webp-46e88dbd90a716cee97675ae096e82ef.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406941/file/w180h135_webp-00c3d7fdaacaa240f18c7952247ec817.webp",
       "gamePage": "https://www.y8.com/games/burger_kitty"
     },
     {
@@ -8194,7 +8292,7 @@
       "name": "Heart Transplant Surgery",
       "slug": "heart_transplant_surgery",
       "embedUrl": "https://www.y8.com/embed/heart_transplant_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/54287/file/w180h135_webp-da3c649399efe5c21bf16589f1985daa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407647/file/w180h135_webp-fb4037db34905b747b98cceb422c07ed.webp",
       "gamePage": "https://www.y8.com/games/heart_transplant_surgery"
     },
     {
@@ -8208,7 +8306,7 @@
       "name": "Hill Climber",
       "slug": "hill_climber",
       "embedUrl": "https://www.y8.com/embed/hill_climber",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/53631/file/w180h135_webp-94444cec18e808092414e17de7f7ed7a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407649/file/w180h135_webp-dcaf963d377bb20b496943796249cfe2.webp",
       "gamePage": "https://www.y8.com/games/hill_climber"
     },
     {
@@ -8257,7 +8355,7 @@
       "name": "Dd Blue Block",
       "slug": "dd_blue_block",
       "embedUrl": "https://www.y8.com/embed/dd_blue_block",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220691/file/w180h135_webp-866e9a70fe6dca29aaaed8cc580d08dd.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406925/file/w180h135_webp-d825bf751de69e16da65b492fac45538.webp",
       "gamePage": "https://www.y8.com/games/dd_blue_block"
     },
     {
@@ -8285,14 +8383,14 @@
       "name": "Color Road",
       "slug": "color_road",
       "embedUrl": "https://www.y8.com/embed/color_road",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220641/file/w180h135_webp-c714251de0fcce1baf5dd919f85d7903.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406805/file/w180h135_webp-ccc95c3a81dc5971dbf48221b43c523b.webp",
       "gamePage": "https://www.y8.com/games/color_road"
     },
     {
       "name": "Face Ninja",
       "slug": "face_ninja",
       "embedUrl": "https://www.y8.com/embed/face_ninja",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220643/file/w180h135_webp-e8847d0314a75222317eba38533d91ca.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406887/file/w180h135_webp-ff0eefa97c45f48d56d82c249f354cec.webp",
       "gamePage": "https://www.y8.com/games/face_ninja"
     },
     {
@@ -8355,7 +8453,7 @@
       "name": "Princess Hips Surgery",
       "slug": "princess_hips_surgery",
       "embedUrl": "https://www.y8.com/embed/princess_hips_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220455/file/w180h135_webp-ceb846fef0bb538ccb1a0ab74faf8350.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406575/file/w180h135_webp-18c3a5440ded4caf676fe516d4e0ac49.webp",
       "gamePage": "https://www.y8.com/games/princess_hips_surgery"
     },
     {
@@ -8411,7 +8509,7 @@
       "name": "Solve Math",
       "slug": "solve_math",
       "embedUrl": "https://www.y8.com/embed/solve_math",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220325/file/w180h135_webp-4b831de65fa4d8fe08cc610d7e0c16c5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406777/file/w180h135_webp-a15f663d7d46011b0752ae3d9a34c3b2.webp",
       "gamePage": "https://www.y8.com/games/solve_math"
     },
     {
@@ -8460,7 +8558,7 @@
       "name": "Color Rush",
       "slug": "color_rush",
       "embedUrl": "https://www.y8.com/embed/color_rush",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220115/file/w180h135_webp-34adfb50db2c9fb5a9519b29cb3ecc1d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406801/file/w180h135_webp-2f10aa2a6d02bb65288a9120e0238174.webp",
       "gamePage": "https://www.y8.com/games/color_rush"
     },
     {
@@ -8516,7 +8614,7 @@
       "name": "Monster Ball Html5",
       "slug": "monster_ball_html5",
       "embedUrl": "https://www.y8.com/embed/monster_ball_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/220001/file/w180h135_webp-643e6286b787828b2c24b1bc334df808.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406891/file/w180h135_webp-51aac8789a9871a0efefb6e508f350d6.webp",
       "gamePage": "https://www.y8.com/games/monster_ball_html5"
     },
     {
@@ -8558,7 +8656,7 @@
       "name": "Princess Pup Rescue",
       "slug": "princess_pup_rescue",
       "embedUrl": "https://www.y8.com/embed/princess_pup_rescue",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/219865/file/w180h135_webp-989808cd3a395ee3e72cf3ef8dcb2af7.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406929/file/w180h135_webp-39a6c94de00654f7627af87bce6bc976.webp",
       "gamePage": "https://www.y8.com/games/princess_pup_rescue"
     },
     {
@@ -8572,7 +8670,7 @@
       "name": "Supercar Wash",
       "slug": "supercar_wash",
       "embedUrl": "https://www.y8.com/embed/supercar_wash",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/219869/file/w180h135_webp-34af74517f7710e36cceee9f410ba220.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406705/file/w180h135_webp-5013530a6de4d75c93c55dec95a7fa13.webp",
       "gamePage": "https://www.y8.com/games/supercar_wash"
     },
     {
@@ -8761,7 +8859,7 @@
       "name": "Miss Mechanic S Brain Surgery",
       "slug": "miss_mechanic_s_brain_surgery",
       "embedUrl": "https://www.y8.com/embed/miss_mechanic_s_brain_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/219673/file/w180h135_webp-57eff9fae0d9ca91cf78fef3c109b491.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406521/file/w180h135_webp-1ff7536995c3ad40421510cfc93a673b.webp",
       "gamePage": "https://www.y8.com/games/miss_mechanic_s_brain_surgery"
     },
     {
@@ -8929,14 +9027,14 @@
       "name": "Puppy Cupcake",
       "slug": "puppy_cupcake",
       "embedUrl": "https://www.y8.com/embed/puppy_cupcake",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/42769/file/w180h135_webp-a94423c8d7f0d8e626e2d2e3b0e92fab.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407655/file/w180h135_webp-bba016064b012ffb1f6d28562213e2e4.webp",
       "gamePage": "https://www.y8.com/games/puppy_cupcake"
     },
     {
       "name": "Princess Tattoo Work",
       "slug": "princess_tattoo_work",
       "embedUrl": "https://www.y8.com/embed/princess_tattoo_work",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/42755/file/w180h135_webp-570ff4e76b41372dacef7f8c20c0c323.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407657/file/w180h135_webp-d3bfa96f9f3ec705308c87c52a1e28f1.webp",
       "gamePage": "https://www.y8.com/games/princess_tattoo_work"
     },
     {
@@ -9265,7 +9363,7 @@
       "name": "Lab Accident Surgery",
       "slug": "lab_accident_surgery",
       "embedUrl": "https://www.y8.com/embed/lab_accident_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/218767/file/w180h135_webp-eb71d3fccc768526446855712b951de0.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406519/file/w180h135_webp-f755fe1b41a8ffc70da5bd41cab5511a.webp",
       "gamePage": "https://www.y8.com/games/lab_accident_surgery"
     },
     {
@@ -9300,7 +9398,7 @@
       "name": "Funny Nail Doctor",
       "slug": "funny_nail_doctor",
       "embedUrl": "https://www.y8.com/embed/funny_nail_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/107987/file/w180h135_webp-9f8605f5aae7a3a503d81ea4c55d3b55.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407659/file/w180h135_webp-cbc445d98c79e89cd4ee2a39ecf8bf84.webp",
       "gamePage": "https://www.y8.com/games/funny_nail_doctor"
     },
     {
@@ -9685,7 +9783,7 @@
       "name": "Stained Act 1",
       "slug": "stained_act_1",
       "embedUrl": "https://www.y8.com/embed/stained_act_1",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/104773/file/w180h135_webp-fc96c6e17d9db1a64188717622554013.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408271/file/w180h135_webp-798a1e71d277de8b239a71bc7b28a171.webp",
       "gamePage": "https://www.y8.com/games/stained_act_1"
     },
     {
@@ -9727,7 +9825,7 @@
       "name": "Lung Surgery",
       "slug": "lung_surgery",
       "embedUrl": "https://www.y8.com/embed/lung_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/104603/file/w180h135_webp-b51afef587beffbbdf57a63b9468d3ac.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408111/file/w180h135_webp-e1d8d10f11c0aa5e90e7b3c8fd8623eb.webp",
       "gamePage": "https://www.y8.com/games/lung_surgery"
     },
     {
@@ -9741,7 +9839,7 @@
       "name": "Princess Scoliosis Surgery",
       "slug": "princess_scoliosis_surgery",
       "embedUrl": "https://www.y8.com/embed/princess_scoliosis_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/104621/file/w180h135_webp-4d6ebc52c503b8fc54292ca6639f67ac.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408109/file/w180h135_webp-b924e97bc25ffa58526e08456aedc141.webp",
       "gamePage": "https://www.y8.com/games/princess_scoliosis_surgery"
     },
     {
@@ -9769,7 +9867,7 @@
       "name": "Princess Halloween Makeover",
       "slug": "princess_halloween_makeover",
       "embedUrl": "https://www.y8.com/embed/princess_halloween_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/104299/file/w180h135_webp-c0532a796fbce2915bf087e39e25b032.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408107/file/w180h135_webp-9a8520c9a3c203a9406bde5df71bce80.webp",
       "gamePage": "https://www.y8.com/games/princess_halloween_makeover"
     },
     {
@@ -9955,13 +10053,6 @@
       "gamePage": "https://www.y8.com/games/shot_pong"
     },
     {
-      "name": "Pregnant Princesses On The Catwalk",
-      "slug": "pregnant_princesses_on_the_catwalk",
-      "embedUrl": "https://www.y8.com/embed/pregnant_princesses_on_the_catwalk",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/103991/file/w180h135_webp-7c42e663576d82820d3728eb72f28003.webp",
-      "gamePage": "https://www.y8.com/games/pregnant_princesses_on_the_catwalk"
-    },
-    {
       "name": "Retro Speed 2",
       "slug": "retro_speed_2",
       "embedUrl": "https://www.y8.com/embed/retro_speed_2",
@@ -10049,7 +10140,7 @@
       "name": "Bartender The Wedding",
       "slug": "bartender_the_wedding",
       "embedUrl": "https://www.y8.com/embed/bartender_the_wedding",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/216113/file/w180h135_webp-310b5b8c7a9419f4341e6be7d28aaa73.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406617/file/w180h135_webp-3555b33027c474afae21da77447f9489.webp",
       "gamePage": "https://www.y8.com/games/bartender_the_wedding"
     },
     {
@@ -10686,7 +10777,7 @@
       "name": "Pixel Master",
       "slug": "pixel_master",
       "embedUrl": "https://www.y8.com/embed/pixel_master",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/101221/file/w180h135_webp-2a48023f30f63f73d21a79ed8aec77f8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408099/file/w180h135_webp-f77074cd0e3011bfa0f496ed32078bad.webp",
       "gamePage": "https://www.y8.com/games/pixel_master"
     },
     {
@@ -10975,13 +11066,6 @@
       "embedUrl": "https://www.y8.com/embed/flirting_masquerade",
       "thumbnail": "https://cdn2.y8.com/cloudimage/100121/file/w180h135_webp-74816e7d3ff9451a8bf1fe31f1e4af67.webp",
       "gamePage": "https://www.y8.com/games/flirting_masquerade"
-    },
-    {
-      "name": "Wow Words",
-      "slug": "wow_words",
-      "embedUrl": "https://www.y8.com/embed/wow_words",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/99729/file/w180h135_webp-aa8430b7bd60523680b66c9424ce09c1.webp",
-      "gamePage": "https://www.y8.com/games/wow_words"
     },
     {
       "name": "Dark Times",
@@ -11435,7 +11519,7 @@
       "name": "Emergency Surgery",
       "slug": "emergency_surgery",
       "embedUrl": "https://www.y8.com/embed/emergency_surgery",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/212967/file/w180h135_webp-e2b807257f0a932d3c9208c4d39eba91.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406935/file/w180h135_webp-0a02c2820b4c85d6dd4b1c7dabafc277.webp",
       "gamePage": "https://www.y8.com/games/emergency_surgery"
     },
     {
@@ -11470,7 +11554,7 @@
       "name": "Funny Nose Doctor",
       "slug": "funny_nose_doctor",
       "embedUrl": "https://www.y8.com/embed/funny_nose_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/94465/file/w180h135_webp-02266e59a16d45dd3f3b0e92c7afd62f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408097/file/w180h135_webp-ec994081de38337cf0e61f180518bc1a.webp",
       "gamePage": "https://www.y8.com/games/funny_nose_doctor"
     },
     {
@@ -11610,7 +11694,7 @@
       "name": "Funny Throat Doctor",
       "slug": "funny_throat_doctor",
       "embedUrl": "https://www.y8.com/embed/funny_throat_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/89981/file/w180h135_webp-baf77547e607e1f4d105c75ab8a650e1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408095/file/w180h135_webp-0aad3d9732583a88d22f6d9991023bda.webp",
       "gamePage": "https://www.y8.com/games/funny_throat_doctor"
     },
     {
@@ -11841,7 +11925,7 @@
       "name": "Robotex",
       "slug": "robotex",
       "embedUrl": "https://www.y8.com/embed/robotex",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/210771/file/w180h135_webp-57e1ec5801cc325224344236bc1b82a8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406613/file/w180h135_webp-c4a25e9817bc095f8bf46f9253d9ea12.webp",
       "gamePage": "https://www.y8.com/games/robotex"
     },
     {
@@ -12163,7 +12247,7 @@
       "name": "Soccer Kid Doctor",
       "slug": "soccer_kid_doctor",
       "embedUrl": "https://www.y8.com/embed/soccer_kid_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/78721/file/w180h135_webp-6f322573cd2307f8f38360599b9c413b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408093/file/w180h135_webp-dce0b0fd8866762d12df85229d5c7dac.webp",
       "gamePage": "https://www.y8.com/games/soccer_kid_doctor"
     },
     {
@@ -12191,7 +12275,7 @@
       "name": "Lost City Of Dragons",
       "slug": "lost_city_of_dragons",
       "embedUrl": "https://www.y8.com/embed/lost_city_of_dragons",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/73591/file/w180h135_webp-f0988e6bca70d46b011b9e82695b5210.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408269/file/w180h135_webp-8262c3e28e2af8f2715cb0fc145e2d20.webp",
       "gamePage": "https://www.y8.com/games/lost_city_of_dragons"
     },
     {
@@ -12212,7 +12296,7 @@
       "name": "Safe Haven",
       "slug": "safe_haven",
       "embedUrl": "https://www.y8.com/embed/safe_haven",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/73629/file/w180h135_webp-49a8344890ba40d308174e6afdf8163f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408267/file/w180h135_webp-74dc1bdc3b34b5ad51b38802b4ecc67d.webp",
       "gamePage": "https://www.y8.com/games/safe_haven"
     },
     {
@@ -12296,14 +12380,14 @@
       "name": "Knee Surgery Simulator",
       "slug": "knee_surgery_simulator",
       "embedUrl": "https://www.y8.com/embed/knee_surgery_simulator",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/71513/file/w180h135_webp-b2074cb7ea2b6739f627a08e9e3f24d6.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408091/file/w180h135_webp-96fe0440938c7761ea1aab11c067e73d.webp",
       "gamePage": "https://www.y8.com/games/knee_surgery_simulator"
     },
     {
       "name": "Cute Cake Baker",
       "slug": "cute_cake_baker",
       "embedUrl": "https://www.y8.com/embed/cute_cake_baker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/71145/file/w180h135_webp-fb3fcd77f89d1c01bced65773bf5a268.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408089/file/w180h135_webp-64ab100ca4f5ebf0cf93d3db91e52339.webp",
       "gamePage": "https://www.y8.com/games/cute_cake_baker"
     },
     {
@@ -12401,7 +12485,7 @@
       "name": "Attack On The Mothership",
       "slug": "attack_on_the_mothership",
       "embedUrl": "https://www.y8.com/embed/attack_on_the_mothership",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/68777/file/w180h135_webp-156492e83cf82403e485baca25d48eed.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408265/file/w180h135_webp-0bfaa05b50219e71d2fe53d5a5f8233e.webp",
       "gamePage": "https://www.y8.com/games/attack_on_the_mothership"
     },
     {
@@ -12877,7 +12961,7 @@
       "name": "Churros Ice Cream",
       "slug": "churros_ice_cream",
       "embedUrl": "https://www.y8.com/embed/churros_ice_cream",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/60867/file/w180h135_webp-0c9d81422dcb31c2861294a7bea44e0a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408087/file/w180h135_webp-aedf64cf4073d2d1c5372a461029395d.webp",
       "gamePage": "https://www.y8.com/games/churros_ice_cream"
     },
     {
@@ -13094,7 +13178,7 @@
       "name": "Kitty Fun Care",
       "slug": "kitty_fun_care",
       "embedUrl": "https://www.y8.com/embed/kitty_fun_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/49247/file/w180h135_webp-eb94a7f7caac3ef912815710398a4272.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408083/file/w180h135_webp-7fc83188bea8dd595305a794ba70fcc4.webp",
       "gamePage": "https://www.y8.com/games/kitty_fun_care"
     },
     {
@@ -13227,14 +13311,14 @@
       "name": "Fun Dentist",
       "slug": "fun_dentist",
       "embedUrl": "https://www.y8.com/embed/fun_dentist",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/201483/file/w180h135_webp-d70bdcba26123bcf452d29f868aca9ff.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406507/file/w180h135_webp-77458b7156d6e4ce1d900210d81974f3.webp",
       "gamePage": "https://www.y8.com/games/fun_dentist"
     },
     {
       "name": "Super Nanny Emma",
       "slug": "super_nanny_emma",
       "embedUrl": "https://www.y8.com/embed/super_nanny_emma",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/46091/file/w180h135_webp-a08f151d365520c6eaf9abfd5b3f95f7.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408077/file/w180h135_webp-66195ce43b54f3034e920ea3b21700cb.webp",
       "gamePage": "https://www.y8.com/games/super_nanny_emma"
     },
     {
@@ -13304,7 +13388,7 @@
       "name": "Tattoo Party",
       "slug": "tattoo_party",
       "embedUrl": "https://www.y8.com/embed/tattoo_party",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/200635/file/w180h135_webp-f8d2c237bc75dbcc3c9cc66d1858fb74.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406511/file/w180h135_webp-c7175319a2ba6ddf538df76d20cb91f9.webp",
       "gamePage": "https://www.y8.com/games/tattoo_party"
     },
     {
@@ -13325,7 +13409,7 @@
       "name": "Puppy Fun Care",
       "slug": "puppy_fun_care",
       "embedUrl": "https://www.y8.com/embed/puppy_fun_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/40807/file/w180h135_webp-c4c289639400375ed2a19f8f33a63e40.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408075/file/w180h135_webp-cf1a0736a95699133a2844b0f2976764.webp",
       "gamePage": "https://www.y8.com/games/puppy_fun_care"
     },
     {
@@ -13402,7 +13486,7 @@
       "name": "Fun Ear Doctor",
       "slug": "fun_ear_doctor",
       "embedUrl": "https://www.y8.com/embed/fun_ear_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39595/file/w180h135_webp-546d380c785a28776ea95b046d981aa0.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408073/file/w180h135_webp-654612afe8d962a15acfa77870db407c.webp",
       "gamePage": "https://www.y8.com/games/fun_ear_doctor"
     },
     {
@@ -13493,14 +13577,14 @@
       "name": "Coloring Book Animals",
       "slug": "coloring_book_animals",
       "embedUrl": "https://www.y8.com/embed/coloring_book_animals",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/200045/file/w180h135_webp-96d4015c67bb37347445f42f64540153.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406883/file/w180h135_webp-eef8ae8c39e8ed979b50b104ddc8a61f.webp",
       "gamePage": "https://www.y8.com/games/coloring_book_animals"
     },
     {
       "name": "Puzzle Deluxe",
       "slug": "puzzle_deluxe",
       "embedUrl": "https://www.y8.com/embed/puzzle_deluxe",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/199995/file/w180h135_webp-82513cbbde80eb2c1229c1c548e09550.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406879/file/w180h135_webp-63182a550b400800e69d889d24d1caab.webp",
       "gamePage": "https://www.y8.com/games/puzzle_deluxe"
     },
     {
@@ -13647,7 +13731,7 @@
       "name": "Restaurant Makeover",
       "slug": "restaurant_makeover",
       "embedUrl": "https://www.y8.com/embed/restaurant_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/199061/file/w180h135_webp-c3d0ec577e8605afc9669f8375c06806.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406615/file/w180h135_webp-bef76524e14601b3749653c60b3fcb5b.webp",
       "gamePage": "https://www.y8.com/games/restaurant_makeover"
     },
     {
@@ -13661,7 +13745,7 @@
       "name": "Girls Pajama Night",
       "slug": "girls_pajama_night",
       "embedUrl": "https://www.y8.com/embed/girls_pajama_night",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/198931/file/w180h135_webp-565c60635eb6af9b3662430d5f6122f5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406923/file/w180h135_webp-0d18ccd0163adb8f089690ab41c17374.webp",
       "gamePage": "https://www.y8.com/games/girls_pajama_night"
     },
     {
@@ -13934,7 +14018,7 @@
       "name": "Sniper 3d",
       "slug": "sniper_3d",
       "embedUrl": "https://www.y8.com/embed/sniper_3d",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/197097/file/w180h135_webp-ea75bdb51fa70fe933e36fd069edc2d9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406459/file/w180h135_webp-df3a0cf7609944afe63f4dd6536de813.webp",
       "gamePage": "https://www.y8.com/games/sniper_3d"
     },
     {
@@ -13990,7 +14074,7 @@
       "name": "Rolling Sky Trip",
       "slug": "rolling_sky_trip",
       "embedUrl": "https://www.y8.com/embed/rolling_sky_trip",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/196385/file/w180h135_webp-0dadaa5ce3fd1e8bfd3dc8632c78c70b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406461/file/w180h135_webp-a8007f293bac4b4bab7e73dcf7e18825.webp",
       "gamePage": "https://www.y8.com/games/rolling_sky_trip"
     },
     {
@@ -14053,7 +14137,7 @@
       "name": "Warzone Mercenaries",
       "slug": "warzone_mercenaries",
       "embedUrl": "https://www.y8.com/embed/warzone_mercenaries",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/196847/file/w180h135_webp-6d765828949ecf1ee78967c50a1a96c3.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406443/file/w180h135_webp-26c26cdcd514c1ca7d0368c01a367e62.webp",
       "gamePage": "https://www.y8.com/games/warzone_mercenaries"
     },
     {
@@ -14123,7 +14207,7 @@
       "name": "Superstar High School 3",
       "slug": "superstar_high_school_3",
       "embedUrl": "https://www.y8.com/embed/superstar_high_school_3",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/88663/file/w180h135_webp-08286ac260f36ef3309aa2cc6e5104ec.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408071/file/w180h135_webp-e1b7bb357465fc61228f007c48fa11ee.webp",
       "gamePage": "https://www.y8.com/games/superstar_high_school_3"
     },
     {
@@ -14207,7 +14291,7 @@
       "name": "Mother Daughter Waterpark",
       "slug": "mother_daughter_waterpark",
       "embedUrl": "https://www.y8.com/embed/mother_daughter_waterpark",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/82803/file/w180h135_webp-1bf713c2ac774e0d713013934573c667.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408069/file/w180h135_webp-80e36847815485ffbccfd96bdf808871.webp",
       "gamePage": "https://www.y8.com/games/mother_daughter_waterpark"
     },
     {
@@ -14249,14 +14333,14 @@
       "name": "Baby Mother S Surprise",
       "slug": "baby_mother_s_surprise",
       "embedUrl": "https://www.y8.com/embed/baby_mother_s_surprise",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/81437/file/w180h135_webp-16c216753b2c95c59e78123eecd5847b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407993/file/w180h135_webp-25bac7010842dbefba7be2c9c20712c5.webp",
       "gamePage": "https://www.y8.com/games/baby_mother_s_surprise"
     },
     {
       "name": "Princess Castle Wardrobe",
       "slug": "princess_castle_wardrobe",
       "embedUrl": "https://www.y8.com/embed/princess_castle_wardrobe",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/81477/file/w180h135_webp-97bc663af617bdfd9d0a98e063ca1595.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407995/file/w180h135_webp-8780cce63ff4070e802455c2eb3d6d33.webp",
       "gamePage": "https://www.y8.com/games/princess_castle_wardrobe"
     },
     {
@@ -14305,7 +14389,7 @@
       "name": "Emilia Spa Party",
       "slug": "emilia_spa_party",
       "embedUrl": "https://www.y8.com/embed/emilia_spa_party",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/75025/file/w180h135_webp-9c24c091ac61c9661f5f4862e244c9c1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408067/file/w180h135_webp-8bc62b19fba0496fe88f785dc661a8f9.webp",
       "gamePage": "https://www.y8.com/games/emilia_spa_party"
     },
     {
@@ -14333,7 +14417,7 @@
       "name": "Cute Panda Dentist Care",
       "slug": "cute_panda_dentist_care",
       "embedUrl": "https://www.y8.com/embed/cute_panda_dentist_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/190785/file/w180h135_webp-954e8871ad807f7a04271b4323861edb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406505/file/w180h135_webp-7010375bf817e1d5ef7e5c3820c0ebdd.webp",
       "gamePage": "https://www.y8.com/games/cute_panda_dentist_care"
     },
     {
@@ -14361,7 +14445,7 @@
       "name": "My First Crush Date",
       "slug": "my_first_crush_date",
       "embedUrl": "https://www.y8.com/embed/my_first_crush_date",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/190355/file/w180h135_webp-c0409d4871bfaf2001a28cf76512f54d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406939/file/w180h135_webp-e542802585f6b1aa60481891c756c1a5.webp",
       "gamePage": "https://www.y8.com/games/my_first_crush_date"
     },
     {
@@ -14417,14 +14501,14 @@
       "name": "Princess Anna Hand Doctor",
       "slug": "princess_anna_hand_doctor",
       "embedUrl": "https://www.y8.com/embed/princess_anna_hand_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/67651/file/w180h135_webp-cc8818df173d07445cbbd22496c22778.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407991/file/w180h135_webp-f9716392148b7970895381f04e797dbe.webp",
       "gamePage": "https://www.y8.com/games/princess_anna_hand_doctor"
     },
     {
       "name": "Cute Pet Dentist Salon",
       "slug": "cute_pet_dentist_salon",
       "embedUrl": "https://www.y8.com/embed/cute_pet_dentist_salon",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/341313/file/w180h135_webp-d150b8ca64671fb6570452e18860624c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406483/file/w180h135_webp-fad08689b30ece901cf63ec71729d3cc.webp",
       "gamePage": "https://www.y8.com/games/cute_pet_dentist_salon"
     },
     {
@@ -14452,14 +14536,14 @@
       "name": "Lena S Foot Treatment Care",
       "slug": "lena_s_foot_treatment_care",
       "embedUrl": "https://www.y8.com/embed/lena_s_foot_treatment_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/64319/file/w180h135_webp-92b0b768f556cee18e21022da16ed996.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407983/file/w180h135_webp-3262deb66cce6011488573ed4ffb55cb.webp",
       "gamePage": "https://www.y8.com/games/lena_s_foot_treatment_care"
     },
     {
       "name": "Clean Up Hair Salon",
       "slug": "clean_up_hair_salon",
       "embedUrl": "https://www.y8.com/embed/clean_up_hair_salon",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/63605/file/w180h135_webp-355021a3e3aafb9fdce0ae03315ec7dd.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407981/file/w180h135_webp-98bae82a1713b8f4e72c02827d8426d1.webp",
       "gamePage": "https://www.y8.com/games/clean_up_hair_salon"
     },
     {
@@ -14536,14 +14620,14 @@
       "name": "Lasagna Cooking",
       "slug": "lasagna_cooking",
       "embedUrl": "https://www.y8.com/embed/lasagna_cooking",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/339459/file/w180h135_webp-4657f5d2615521d65d8c452db20858d5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406703/file/w180h135_webp-75d15c56bc2e712319b30835605a3932.webp",
       "gamePage": "https://www.y8.com/games/lasagna_cooking"
     },
     {
       "name": "Tanks 3d Online",
       "slug": "tanks_3d_online",
       "embedUrl": "https://www.y8.com/embed/tanks_3d_online",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/339349/file/w180h135_webp-0c3a9152530c3ce1da17ef2035b02ea9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406465/file/w180h135_webp-100013fa1eb715db0e0fba3ff1687ba6.webp",
       "gamePage": "https://www.y8.com/games/tanks_3d_online"
     },
     {
@@ -14557,14 +14641,14 @@
       "name": "Princesses Selfie Battle",
       "slug": "princesses_selfie_battle",
       "embedUrl": "https://www.y8.com/embed/princesses_selfie_battle",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/54859/file/w180h135_webp-da05023123e1d8abc9a71e8c6585381a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407979/file/w180h135_webp-fbed33ea348c942b0635de2ff556f911.webp",
       "gamePage": "https://www.y8.com/games/princesses_selfie_battle"
     },
     {
       "name": "Mommy Twin Birth",
       "slug": "mommy_twin_birth",
       "embedUrl": "https://www.y8.com/embed/mommy_twin_birth",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/54679/file/w180h135_webp-ba5e9f71117e905bd0bd649e431e0b7a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407977/file/w180h135_webp-955dfab83c12a5bfd1b52d4b8bc2c50f.webp",
       "gamePage": "https://www.y8.com/games/mommy_twin_birth"
     },
     {
@@ -14585,7 +14669,7 @@
       "name": "Superstar High School",
       "slug": "superstar_high_school",
       "embedUrl": "https://www.y8.com/embed/superstar_high_school",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/53869/file/w180h135_webp-aa42a2cac845f2e5534b0b5e8480ee13.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407975/file/w180h135_webp-ba179763e85da60374a1201738662c7c.webp",
       "gamePage": "https://www.y8.com/games/superstar_high_school"
     },
     {
@@ -14606,14 +14690,14 @@
       "name": "Alba S Back Spa",
       "slug": "alba_s_back_spa",
       "embedUrl": "https://www.y8.com/embed/alba_s_back_spa",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/53353/file/w180h135_webp-1efdba2e1fe67fa390c71c36c4500bc1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407973/file/w180h135_webp-7eb7c4f5c08f62bc3f4dd60d216c046c.webp",
       "gamePage": "https://www.y8.com/games/alba_s_back_spa"
     },
     {
       "name": "Little Cupcake Maker",
       "slug": "little_cupcake_maker",
       "embedUrl": "https://www.y8.com/embed/little_cupcake_maker",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/52637/file/w180h135_webp-dea7e88b03078f8d6dea42df15ef3c6a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407971/file/w180h135_webp-d5e166f8f435b0d8bb6276e2f03c308b.webp",
       "gamePage": "https://www.y8.com/games/little_cupcake_maker"
     },
     {
@@ -14662,7 +14746,7 @@
       "name": "Famous Fashion Designer",
       "slug": "famous_fashion_designer",
       "embedUrl": "https://www.y8.com/embed/famous_fashion_designer",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/338459/file/w180h135_webp-b2f600575198bca5b417ba7381c3c1cc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406469/file/w180h135_webp-f64279d373498435057d5cc5981efcc5.webp",
       "gamePage": "https://www.y8.com/games/famous_fashion_designer"
     },
     {
@@ -14690,14 +14774,14 @@
       "name": "Boy And Girl Fashion Couple",
       "slug": "boy_and_girl_fashion_couple",
       "embedUrl": "https://www.y8.com/embed/boy_and_girl_fashion_couple",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/47713/file/w180h135_webp-711018c3e42d843a271e58b2d39f9f15.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407949/file/w180h135_webp-81b2d0f2d690f877c944d5dbe57ef1bc.webp",
       "gamePage": "https://www.y8.com/games/boy_and_girl_fashion_couple"
     },
     {
       "name": "Cute Girl Love Match",
       "slug": "cute_girl_love_match",
       "embedUrl": "https://www.y8.com/embed/cute_girl_love_match",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/47457/file/w180h135_webp-744028ad913a22d2672532c5389e8114.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407951/file/w180h135_webp-f032aedee81ee1d4f7e25adee29512c5.webp",
       "gamePage": "https://www.y8.com/games/cute_girl_love_match"
     },
     {
@@ -14725,7 +14809,7 @@
       "name": "Little Nails Problems",
       "slug": "little_nails_problems",
       "embedUrl": "https://www.y8.com/embed/little_nails_problems",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/44445/file/w180h135_webp-a8f09ffd63d9d40146423e04e603e81a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407957/file/w180h135_webp-df9e88fd53a14a3c2aaa29a82fab5e18.webp",
       "gamePage": "https://www.y8.com/games/little_nails_problems"
     },
     {
@@ -14823,7 +14907,7 @@
       "name": "Traffic Road",
       "slug": "traffic_road",
       "embedUrl": "https://www.y8.com/embed/traffic_road",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39299/file/w180h135_webp-4e3c867907c3ae67e4ea9736ccee2688.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408263/file/w180h135_webp-2703c524eedb337a8559eb2d5fd4ce3f.webp",
       "gamePage": "https://www.y8.com/games/traffic_road"
     },
     {
@@ -14893,7 +14977,7 @@
       "name": "My Love Story",
       "slug": "my_love_story",
       "embedUrl": "https://www.y8.com/embed/my_love_story",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/85157/file/w180h135_webp-d671d872bb3b870ffb774f4173eea1cf.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407953/file/w180h135_webp-ce830c66b2c176e38fbf534e62d8abae.webp",
       "gamePage": "https://www.y8.com/games/my_love_story"
     },
     {
@@ -14949,35 +15033,35 @@
       "name": "Allegras Beauty Care",
       "slug": "allegras_beauty_care",
       "embedUrl": "https://www.y8.com/embed/allegras_beauty_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/84777/file/w180h135_webp-3c0bf88cfdd6a965550be6b5d0bd9596.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407955/file/w180h135_webp-65f4aec6126c2fd98087ef4f5afb193d.webp",
       "gamePage": "https://www.y8.com/games/allegras_beauty_care"
     },
     {
       "name": "Aurelias Foot Injuring",
       "slug": "aurelias_foot_injuring",
       "embedUrl": "https://www.y8.com/embed/aurelias_foot_injuring",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/84739/file/w180h135_webp-a539820fa1119d2ec901f3e9bcf5970d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407959/file/w180h135_webp-d9902d5848f57d502c2af1073126bfeb.webp",
       "gamePage": "https://www.y8.com/games/aurelias_foot_injuring"
     },
     {
       "name": "Ariana S Pregnant Care",
       "slug": "ariana_s_pregnant_care",
       "embedUrl": "https://www.y8.com/embed/ariana_s_pregnant_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/83309/file/w180h135_webp-3c4a48ae9c2d67120cedb887df9de141.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407961/file/w180h135_webp-77e14ccc00d3ac991857b635609ec8bb.webp",
       "gamePage": "https://www.y8.com/games/ariana_s_pregnant_care"
     },
     {
       "name": "Camilles Eye Care",
       "slug": "camilles_eye_care",
       "embedUrl": "https://www.y8.com/embed/camilles_eye_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/83301/file/w180h135_webp-f29029a9bef009e80b5ef487c6986a84.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407965/file/w180h135_webp-dff7311a7676203df1184fda4833ca83.webp",
       "gamePage": "https://www.y8.com/games/camilles_eye_care"
     },
     {
       "name": "Cool Boys Makeover",
       "slug": "cool_boys_makeover",
       "embedUrl": "https://www.y8.com/embed/cool_boys_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/84627/file/w180h135_webp-a8562409e7a497d878c1461bd67460dc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407947/file/w180h135_webp-535effda126fa7599ece08061ab12b62.webp",
       "gamePage": "https://www.y8.com/games/cool_boys_makeover"
     },
     {
@@ -15110,7 +15194,7 @@
       "name": "Ice Princess Christmas",
       "slug": "ice_princess_christmas",
       "embedUrl": "https://www.y8.com/embed/ice_princess_christmas",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/79057/file/w180h135_webp-cbb42fba9a4f39ed44deba4bb7321126.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407945/file/w180h135_webp-773e1d64e54c543010edd29ead0399bc.webp",
       "gamePage": "https://www.y8.com/games/ice_princess_christmas"
     },
     {
@@ -15138,7 +15222,7 @@
       "name": "Brutal Wanderer 2",
       "slug": "brutal_wanderer_2",
       "embedUrl": "https://www.y8.com/embed/brutal_wanderer_2",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/334211/file/w180h135_webp-9ac495eaa203c21507c7affc71a7a4e4.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406451/file/w180h135_webp-8548e8401740685526f9681ff9fc3fd8.webp",
       "gamePage": "https://www.y8.com/games/brutal_wanderer_2"
     },
     {
@@ -15152,7 +15236,7 @@
       "name": "Chef Camilla S Delicious Rainbow Donut",
       "slug": "chef_camilla_s_delicious_rainbow_donut",
       "embedUrl": "https://www.y8.com/embed/chef_camilla_s_delicious_rainbow_donut",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/78179/file/w180h135_webp-0dbe8436bc9eabe62071ac88ba1066eb.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407943/file/w180h135_webp-dd963f84b0ce920b4902ddbf99edd88d.webp",
       "gamePage": "https://www.y8.com/games/chef_camilla_s_delicious_rainbow_donut"
     },
     {
@@ -15201,7 +15285,7 @@
       "name": "Dream House Designer",
       "slug": "dream_house_designer",
       "embedUrl": "https://www.y8.com/embed/dream_house_designer",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/76709/file/w180h135_webp-3fafcc5696ac7edcb12bf643872889b6.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407941/file/w180h135_webp-3a8aaf2cd295eed8066694f87ae8013b.webp",
       "gamePage": "https://www.y8.com/games/dream_house_designer"
     },
     {
@@ -15215,14 +15299,14 @@
       "name": "Banjo Panda",
       "slug": "banjo_panda",
       "embedUrl": "https://www.y8.com/embed/banjo_panda",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/333737/file/w180h135_webp-5ad493d4ac6b02e25b54c8d182f37130.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406905/file/w180h135_webp-ffa1ee40c4783f5768e59dd4c9f24234.webp",
       "gamePage": "https://www.y8.com/games/banjo_panda"
     },
     {
       "name": "My Dreamy Car Makeover",
       "slug": "my_dreamy_car_makeover",
       "embedUrl": "https://www.y8.com/embed/my_dreamy_car_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/333687/file/w180h135_webp-4ff425e7afafa280b8001366324fb8ec.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406525/file/w180h135_webp-ead44bcc9553dfccf69bdd924b111cc5.webp",
       "gamePage": "https://www.y8.com/games/my_dreamy_car_makeover"
     },
     {
@@ -15306,7 +15390,7 @@
       "name": "Naughty Dragons",
       "slug": "naughty_dragons",
       "embedUrl": "https://www.y8.com/embed/naughty_dragons",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/74951/file/w180h135_webp-650e7c64d32792533f3420d786971983.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408571/file/w180h135_webp-66840bc4b562a04a48a9725deba314d1.webp",
       "gamePage": "https://www.y8.com/games/naughty_dragons"
     },
     {
@@ -15383,28 +15467,28 @@
       "name": "Summer Vacation Makeover",
       "slug": "summer_vacation_makeover",
       "embedUrl": "https://www.y8.com/embed/summer_vacation_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/71425/file/w180h135_webp-9f86759fccc217049c196336b6eddfcf.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407939/file/w180h135_webp-15e2a1a860cc7ac5ec023d75d857241b.webp",
       "gamePage": "https://www.y8.com/games/summer_vacation_makeover"
     },
     {
       "name": "New Born Twins Baby Care",
       "slug": "new_born_twins_baby_care",
       "embedUrl": "https://www.y8.com/embed/new_born_twins_baby_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/332655/file/w180h135_webp-1deba4d3c218dd73c25c05aaae163f96.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406471/file/w180h135_webp-bee6fe1a5895a6e667588eb6d5558719.webp",
       "gamePage": "https://www.y8.com/games/new_born_twins_baby_care"
     },
     {
       "name": "Family Dressup",
       "slug": "family_dressup",
       "embedUrl": "https://www.y8.com/embed/family_dressup",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/71247/file/w180h135_webp-2423bd5034e43646ac8692c208c5a0bc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407937/file/w180h135_webp-e4e0ad9819f375a8f077ff799ab7c9a7.webp",
       "gamePage": "https://www.y8.com/games/family_dressup"
     },
     {
       "name": "Cute Camryn Nose Treatment",
       "slug": "cute_camryn_nose_treatment",
       "embedUrl": "https://www.y8.com/embed/cute_camryn_nose_treatment",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/332439/file/w180h135_webp-4585d8a530c963dceaf4427b5afc81b8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406699/file/w180h135_webp-94203fa1b68dfea7c1a0c3fc94a82150.webp",
       "gamePage": "https://www.y8.com/games/cute_camryn_nose_treatment"
     },
     {
@@ -15481,7 +15565,7 @@
       "name": "Glam Princess Salon",
       "slug": "glam_princess_salon",
       "embedUrl": "https://www.y8.com/embed/glam_princess_salon",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/67591/file/w180h135_webp-602abf5be6d495b68d67fbfd8166317b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407935/file/w180h135_webp-60a6fdc892f7099c951e92cd9928d3bb.webp",
       "gamePage": "https://www.y8.com/games/glam_princess_salon"
     },
     {
@@ -15537,7 +15621,7 @@
       "name": "Princess Hair Treatment",
       "slug": "princess_hair_treatment",
       "embedUrl": "https://www.y8.com/embed/princess_hair_treatment",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/67251/file/w180h135_webp-c71283eba6ffe520e46addf27371240b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407933/file/w180h135_webp-2432be82984a10c2f2a05cf7bb6cc384.webp",
       "gamePage": "https://www.y8.com/games/princess_hair_treatment"
     },
     {
@@ -15579,7 +15663,7 @@
       "name": "Urban Combat",
       "slug": "urban_combat",
       "embedUrl": "https://www.y8.com/embed/urban_combat",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66563/file/w180h135_webp-fa8304964385462b638d1faee0495144.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407931/file/w180h135_webp-5be7b6df557061b05b0cda8f0487e9f9.webp",
       "gamePage": "https://www.y8.com/games/urban_combat"
     },
     {
@@ -15607,14 +15691,14 @@
       "name": "Real Cosmetics Tattoo",
       "slug": "real_cosmetics_tattoo",
       "embedUrl": "https://www.y8.com/embed/real_cosmetics_tattoo",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66389/file/w180h135_webp-a7f67c00ec61ae315e366b9b4f243ec9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407929/file/w180h135_webp-140e65288a927234e5f36a1c5f35060e.webp",
       "gamePage": "https://www.y8.com/games/real_cosmetics_tattoo"
     },
     {
       "name": "Teen Couple Style",
       "slug": "teen_couple_style",
       "embedUrl": "https://www.y8.com/embed/teen_couple_style",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/66371/file/w180h135_webp-f3db828fa3019dc0a4c240d125a0a762.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407927/file/w180h135_webp-22f9d3f3420f19beff5187ff5143c50f.webp",
       "gamePage": "https://www.y8.com/games/teen_couple_style"
     },
     {
@@ -15628,28 +15712,28 @@
       "name": "Andrea Smile Award",
       "slug": "andrea_smile_award",
       "embedUrl": "https://www.y8.com/embed/andrea_smile_award",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65917/file/w180h135_webp-5b721f1c246bbe41625a8b17884dda46.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407925/file/w180h135_webp-19c389b59028d81d9ca005ebb5b4a7b4.webp",
       "gamePage": "https://www.y8.com/games/andrea_smile_award"
     },
     {
       "name": "Emergency Ambulance Doctor",
       "slug": "emergency_ambulance_doctor",
       "embedUrl": "https://www.y8.com/embed/emergency_ambulance_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65857/file/w180h135_webp-338ea0b42cc5ad6b0b1583867e408cb8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407851/file/w180h135_webp-755392574146362e594ec41408f64623.webp",
       "gamePage": "https://www.y8.com/games/emergency_ambulance_doctor"
     },
     {
       "name": "Baby Mary Goes Shopping",
       "slug": "baby_mary_goes_shopping",
       "embedUrl": "https://www.y8.com/embed/baby_mary_goes_shopping",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65749/file/w180h135_webp-0b7fd20b0e802335218c28e8a848f2ac.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407849/file/w180h135_webp-214c1882bd7267b3d158d5bc3780da99.webp",
       "gamePage": "https://www.y8.com/games/baby_mary_goes_shopping"
     },
     {
       "name": "The Best Fashion Designer",
       "slug": "the_best_fashion_designer",
       "embedUrl": "https://www.y8.com/embed/the_best_fashion_designer",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/65897/file/w180h135_webp-674e8d7de0eb4cc929773fd1e08d08a9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407847/file/w180h135_webp-78f5d0fc3459f0af70aba1029e3b086a.webp",
       "gamePage": "https://www.y8.com/games/the_best_fashion_designer"
     },
     {
@@ -15670,7 +15754,7 @@
       "name": "My Prom Accident",
       "slug": "my_prom_accident",
       "embedUrl": "https://www.y8.com/embed/my_prom_accident",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/331415/file/w180h135_webp-e92651957bec108a63b582d4886b957a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406907/file/w180h135_webp-ae132a5433d155bf25f7473e386f0b9b.webp",
       "gamePage": "https://www.y8.com/games/my_prom_accident"
     },
     {
@@ -15712,7 +15796,7 @@
       "name": "Abandoned Island",
       "slug": "abandoned_island",
       "embedUrl": "https://www.y8.com/embed/abandoned_island",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/404957/file/w180h135_webp-d216d555cd1c76ca687c7a086097821c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/386987/file/w180h135_webp-ab7efd21ef16b8e26742d0c3c9461905.webp",
       "gamePage": "https://www.y8.com/games/abandoned_island"
     },
     {
@@ -15768,7 +15852,7 @@
       "name": "Barbecue Chicken Sandwich",
       "slug": "barbecue_chicken_sandwich",
       "embedUrl": "https://www.y8.com/embed/barbecue_chicken_sandwich",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/62835/file/w180h135_webp-f18087e396ea5b3125f98b4bedf6801a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407843/file/w180h135_webp-6b73b376735d286fc9f62fe28b787166.webp",
       "gamePage": "https://www.y8.com/games/barbecue_chicken_sandwich"
     },
     {
@@ -15782,7 +15866,7 @@
       "name": "Summer Birthday Party",
       "slug": "summer_birthday_party",
       "embedUrl": "https://www.y8.com/embed/summer_birthday_party",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/62463/file/w180h135_webp-174e3572317f543e281ecf8565204088.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407845/file/w180h135_webp-8fde324671b831bffd83b009afe46bcd.webp",
       "gamePage": "https://www.y8.com/games/summer_birthday_party"
     },
     {
@@ -15810,7 +15894,7 @@
       "name": "Lily Slacking Office",
       "slug": "lily_slacking_office",
       "embedUrl": "https://www.y8.com/embed/lily_slacking_office",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/62169/file/w180h135_webp-a6fe6f3032e10d155581c09d9cd5350a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407841/file/w180h135_webp-411cbfb7bc9b7f30b7abff97983abe43.webp",
       "gamePage": "https://www.y8.com/games/lily_slacking_office"
     },
     {
@@ -15831,7 +15915,7 @@
       "name": "Ella Pretty In Pink",
       "slug": "ella_pretty_in_pink",
       "embedUrl": "https://www.y8.com/embed/ella_pretty_in_pink",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/61883/file/w180h135_webp-799fa8bac0631710f619fa3f8ea0f502.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407839/file/w180h135_webp-bd9d4d379dd3b76a489e509e85704422.webp",
       "gamePage": "https://www.y8.com/games/ella_pretty_in_pink"
     },
     {
@@ -15845,14 +15929,14 @@
       "name": "Baby Hospital Doctor",
       "slug": "baby_hospital_doctor",
       "embedUrl": "https://www.y8.com/embed/baby_hospital_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/61615/file/w180h135_webp-2cd4a503055813559c7f8ca15c1c59a8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407837/file/w180h135_webp-ecda16c30fb8d358b112315ca6d5c61b.webp",
       "gamePage": "https://www.y8.com/games/baby_hospital_doctor"
     },
     {
       "name": "Angel With Wings",
       "slug": "angel_with_wings",
       "embedUrl": "https://www.y8.com/embed/angel_with_wings",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/61655/file/w180h135_webp-129bf69e9665ddf66fc557d64ff87e9d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407835/file/w180h135_webp-cfd71d6a704a06691a05ad8802b13adf.webp",
       "gamePage": "https://www.y8.com/games/angel_with_wings"
     },
     {
@@ -15873,14 +15957,14 @@
       "name": "Fashion Pet Doctor",
       "slug": "fashion_pet_doctor",
       "embedUrl": "https://www.y8.com/embed/fashion_pet_doctor",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/61453/file/w180h135_webp-7c3a07f7a81508bb48c866cf24d9f225.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407833/file/w180h135_webp-1b8135568266622bfa1334f7e149c3bf.webp",
       "gamePage": "https://www.y8.com/games/fashion_pet_doctor"
     },
     {
       "name": "Fashion Planner Girl",
       "slug": "fashion_planner_girl",
       "embedUrl": "https://www.y8.com/embed/fashion_planner_girl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/61473/file/w180h135_webp-afeb5c305b031a2950b6e66df1cbd9ee.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407831/file/w180h135_webp-418c1b5da7a89a7651be72e03a08d4ae.webp",
       "gamePage": "https://www.y8.com/games/fashion_planner_girl"
     },
     {
@@ -15894,7 +15978,7 @@
       "name": "Army Recoup Island 3",
       "slug": "army_recoup_island_3",
       "embedUrl": "https://www.y8.com/embed/army_recoup_island_3",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/330427/file/w180h135_webp-05e9f8f6f4aedc8b6c588f6f6cc79a4a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406445/file/w180h135_webp-8231f7028d80d03807e2b9c3815d42d7.webp",
       "gamePage": "https://www.y8.com/games/army_recoup_island_3"
     },
     {
@@ -15950,21 +16034,21 @@
       "name": "Prom Night At High School",
       "slug": "prom_night_at_high_school",
       "embedUrl": "https://www.y8.com/embed/prom_night_at_high_school",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/60661/file/w180h135_webp-78fe8d394f63a5c92d53250434d7408a.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407829/file/w180h135_webp-46f6fdc54610daef808371ca62e5a34f.webp",
       "gamePage": "https://www.y8.com/games/prom_night_at_high_school"
     },
     {
       "name": "Bradley And Baby Royal Superstars Like",
       "slug": "bradley_and_baby_royal_superstars_like",
       "embedUrl": "https://www.y8.com/embed/bradley_and_baby_royal_superstars_like",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/60641/file/w180h135_webp-aa86ff329630645f6415e19f198ff687.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407827/file/w180h135_webp-6d26f661e477a7195a39a18f38cbdbd6.webp",
       "gamePage": "https://www.y8.com/games/bradley_and_baby_royal_superstars_like"
     },
     {
       "name": "Princess Hairdo",
       "slug": "princess_hairdo",
       "embedUrl": "https://www.y8.com/embed/princess_hairdo",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/330359/file/w180h135_webp-1ba32e5ebb1503c7f1daea79530da6c9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406701/file/w180h135_webp-5a2ef9664de33e037dea3d74465ce62d.webp",
       "gamePage": "https://www.y8.com/games/princess_hairdo"
     },
     {
@@ -16006,7 +16090,7 @@
       "name": "Dream Baby Care",
       "slug": "dream_baby_care",
       "embedUrl": "https://www.y8.com/embed/dream_baby_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/59531/file/w180h135_webp-10d2c51d94559abcb9f1c3854c4fa4cf.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407825/file/w180h135_webp-4112640bb24650ec50ccb3adbc3cb2eb.webp",
       "gamePage": "https://www.y8.com/games/dream_baby_care"
     },
     {
@@ -16041,14 +16125,14 @@
       "name": "Flirting Makeover",
       "slug": "flirting_makeover",
       "embedUrl": "https://www.y8.com/embed/flirting_makeover",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/329301/file/w180h135_webp-89469ff4e2fcf7ec8d82bc0e70aa5149.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406915/file/w180h135_webp-4fea424b86035212a269cfb2604b155d.webp",
       "gamePage": "https://www.y8.com/games/flirting_makeover"
     },
     {
       "name": "Flirting Makeover Mobile",
       "slug": "flirting_makeover_mobile",
       "embedUrl": "https://www.y8.com/embed/flirting_makeover_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/329283/file/w180h135_webp-2f09e06291ea1714f99932a4fc6d214d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406529/file/w180h135_webp-179a728827402880f4255bd073ca12d9.webp",
       "gamePage": "https://www.y8.com/games/flirting_makeover_mobile"
     },
     {
@@ -16062,21 +16146,21 @@
       "name": "Lily Slacking School Mobile",
       "slug": "lily_slacking_school_mobile",
       "embedUrl": "https://www.y8.com/embed/lily_slacking_school_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/329299/file/w180h135_webp-26d54ef0f3b2f34a9105e31f985a61ca.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406491/file/w180h135_webp-1a1788b1ab81bf30b01e34f44a2ac5d0.webp",
       "gamePage": "https://www.y8.com/games/lily_slacking_school_mobile"
     },
     {
       "name": "Children Laundry",
       "slug": "children_laundry",
       "embedUrl": "https://www.y8.com/embed/children_laundry",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/329229/file/w180h135_webp-ea8011fa04ba347e0c1f86ab9285269c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406527/file/w180h135_webp-369b4aec42c7d5f38a2bd317e8a7868d.webp",
       "gamePage": "https://www.y8.com/games/children_laundry"
     },
     {
       "name": "Lily Slacking Dating Mobile",
       "slug": "lily_slacking_dating_mobile",
       "embedUrl": "https://www.y8.com/embed/lily_slacking_dating_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/329263/file/w180h135_webp-8af1dd800fe78b77a07f5bec09539ee8.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406591/file/w180h135_webp-e0d235890b10e26d19c2121f9fda2777.webp",
       "gamePage": "https://www.y8.com/games/lily_slacking_dating_mobile"
     },
     {
@@ -16160,7 +16244,7 @@
       "name": "Rina Ent Ache Problems",
       "slug": "rina_ent_ache_problems",
       "embedUrl": "https://www.y8.com/embed/rina_ent_ache_problems",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/51041/file/w180h135_webp-49caa767fab6d3c11c874c00940ec0b0.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407823/file/w180h135_webp-8dac4d5944fd418c964ce66bfc787dc7.webp",
       "gamePage": "https://www.y8.com/games/rina_ent_ache_problems"
     },
     {
@@ -16230,14 +16314,14 @@
       "name": "Camp With Pop",
       "slug": "camp_with_pop",
       "embedUrl": "https://www.y8.com/embed/camp_with_pop",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/49089/file/w180h135_webp-58cff5421a1942a0495e0284367a6e19.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407819/file/w180h135_webp-066586b0d4138b045778f0e21d2415b9.webp",
       "gamePage": "https://www.y8.com/games/camp_with_pop"
     },
     {
       "name": "Dracula On Milk Red Cake",
       "slug": "dracula_on_milk_red_cake",
       "embedUrl": "https://www.y8.com/embed/dracula_on_milk_red_cake",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/49079/file/w180h135_webp-4abb7d1e64d5b4394bf7473e7cf34530.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407821/file/w180h135_webp-0c8b7445e043e0277c713f681ceeac48.webp",
       "gamePage": "https://www.y8.com/games/dracula_on_milk_red_cake"
     },
     {
@@ -16251,49 +16335,49 @@
       "name": "Baby Mary Care",
       "slug": "baby_mary_care",
       "embedUrl": "https://www.y8.com/embed/baby_mary_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/327839/file/w180h135_webp-55cceb259be67cbe8a6bb4f9d02adf96.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406913/file/w180h135_webp-66c6f4cccf3f578640690908be165b2a.webp",
       "gamePage": "https://www.y8.com/games/baby_mary_care"
     },
     {
       "name": "Stray Puppy Care",
       "slug": "stray_puppy_care",
       "embedUrl": "https://www.y8.com/embed/stray_puppy_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/327837/file/w180h135_webp-f3a5a7988c15a4042309949d539fb462.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406509/file/w180h135_webp-b795470e7aaca0c65227e23b8e2f4951.webp",
       "gamePage": "https://www.y8.com/games/stray_puppy_care"
     },
     {
       "name": "Hair Makeover Dating",
       "slug": "hair_makeover_dating",
       "embedUrl": "https://www.y8.com/embed/hair_makeover_dating",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/327841/file/w180h135_webp-ea2c73fd21d5ce9e098e55dd87f5f9d5.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406607/file/w180h135_webp-18ebad7022b7bb8e75eb02be5a60d110.webp",
       "gamePage": "https://www.y8.com/games/hair_makeover_dating"
     },
     {
       "name": "Stray Kitty Care",
       "slug": "stray_kitty_care",
       "embedUrl": "https://www.y8.com/embed/stray_kitty_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/48041/file/w180h135_webp-99ab0f051f9fdaf223a377467b222dc2.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407817/file/w180h135_webp-f449a97d43c362bebc4e29bdc891e9a3.webp",
       "gamePage": "https://www.y8.com/games/stray_kitty_care"
     },
     {
       "name": "Baby Emily Little House Guardian",
       "slug": "baby_emily_little_house_guardian",
       "embedUrl": "https://www.y8.com/embed/baby_emily_little_house_guardian",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/47993/file/w180h135_webp-2a89cab2c7c1012e214a4ef2701feb07.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408761/file/w180h135_webp-30057da58b5f5f8c6761d8061e99a8f5.webp",
       "gamePage": "https://www.y8.com/games/baby_emily_little_house_guardian"
     },
     {
       "name": "Toys Repair Shop",
       "slug": "toys_repair_shop",
       "embedUrl": "https://www.y8.com/embed/toys_repair_shop",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/47955/file/w180h135_webp-a7d72ce3e051088ac4cf48fdaeb036cc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408763/file/w180h135_webp-167b6b50df90e9644850e69130502a77.webp",
       "gamePage": "https://www.y8.com/games/toys_repair_shop"
     },
     {
       "name": "Newborn Baby",
       "slug": "newborn_baby",
       "embedUrl": "https://www.y8.com/embed/newborn_baby",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/327823/file/w180h135_webp-7ca7cd8c57a99048f7690c317b338762.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406489/file/w180h135_webp-a9748589685a0bda1081b349d7f02712.webp",
       "gamePage": "https://www.y8.com/games/newborn_baby"
     },
     {
@@ -16335,7 +16419,7 @@
       "name": "Cute Moe Dressup 3d",
       "slug": "cute_moe_dressup_3d",
       "embedUrl": "https://www.y8.com/embed/cute_moe_dressup_3d",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/45517/file/w180h135_webp-e501f0aab08f975aeb476d9c6d807906.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408261/file/w180h135_webp-94519cda3c7b034c1c2fa592141ac780.webp",
       "gamePage": "https://www.y8.com/games/cute_moe_dressup_3d"
     },
     {
@@ -16370,28 +16454,28 @@
       "name": "Under Bed Monster Care",
       "slug": "under_bed_monster_care",
       "embedUrl": "https://www.y8.com/embed/under_bed_monster_care",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/43723/file/w180h135_webp-ee1aee8148de46ae4771d916c1489a76.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408767/file/w180h135_webp-d4f77f6185f2d426d2e78488feccb1d5.webp",
       "gamePage": "https://www.y8.com/games/under_bed_monster_care"
     },
     {
       "name": "Traffic Rescue",
       "slug": "traffic_rescue",
       "embedUrl": "https://www.y8.com/embed/traffic_rescue",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/43741/file/w180h135_webp-d5c1a1aaa63d305f597eaeb624a312ba.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408769/file/w180h135_webp-32bfa4c44c56e2358ec6d04571e79277.webp",
       "gamePage": "https://www.y8.com/games/traffic_rescue"
     },
     {
       "name": "Lost Puppy",
       "slug": "lost_puppy",
       "embedUrl": "https://www.y8.com/embed/lost_puppy",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/43713/file/w180h135_webp-006aaa96921983d728275bd901ef59b9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408771/file/w180h135_webp-64c807a42da0710f727124afb97b4513.webp",
       "gamePage": "https://www.y8.com/games/lost_puppy"
     },
     {
       "name": "How To Be A Royal Princess",
       "slug": "how_to_be_a_royal_princess",
       "embedUrl": "https://www.y8.com/embed/how_to_be_a_royal_princess",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/43705/file/w180h135_webp-909fed92e41b2dd04c5d6d0d19718cad.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408773/file/w180h135_webp-46432069523a2aa89c260dc159d7e3fe.webp",
       "gamePage": "https://www.y8.com/games/how_to_be_a_royal_princess"
     },
     {
@@ -16412,14 +16496,14 @@
       "name": "Happy Dino Jungle Mobile",
       "slug": "happy_dino_jungle_mobile",
       "embedUrl": "https://www.y8.com/embed/happy_dino_jungle_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/42649/file/w180h135_webp-50ace006e02d37e3184326df38b66213.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408775/file/w180h135_webp-e16c216f6b88f285510d31a58e90f650.webp",
       "gamePage": "https://www.y8.com/games/happy_dino_jungle_mobile"
     },
     {
       "name": "Happy Dino Jungle",
       "slug": "happy_dino_jungle",
       "embedUrl": "https://www.y8.com/embed/happy_dino_jungle",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/42641/file/w180h135_webp-becf4b048bd8918126752ecc203e5e98.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407815/file/w180h135_webp-8c159bac87af7887b9a60cfe87a08e08.webp",
       "gamePage": "https://www.y8.com/games/happy_dino_jungle"
     },
     {
@@ -16447,28 +16531,28 @@
       "name": "Master Moves",
       "slug": "master_moves",
       "embedUrl": "https://www.y8.com/embed/master_moves",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/40169/file/w180h135_webp-05f93117e621ef54c44355d45fcc80ff.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/40159/file/w180h135_webp-224dcd50ec64a1c1326f9ed679a84d2d.webp",
       "gamePage": "https://www.y8.com/games/master_moves"
     },
     {
       "name": "My Little Puppy Cleaning Home Mobile",
       "slug": "my_little_puppy_cleaning_home_mobile",
       "embedUrl": "https://www.y8.com/embed/my_little_puppy_cleaning_home_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39955/file/w180h135_webp-b3832cb03aada1ee0c1100924d87f0fc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408783/file/w180h135_webp-ac7972c7ccf5e7e1ade365e2c8e18976.webp",
       "gamePage": "https://www.y8.com/games/my_little_puppy_cleaning_home_mobile"
     },
     {
       "name": "Dragon Home Cleaning Mobile",
       "slug": "dragon_home_cleaning_mobile",
       "embedUrl": "https://www.y8.com/embed/dragon_home_cleaning_mobile",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39931/file/w180h135_webp-9766d33ffc31d9c1644c78bdc958e998.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408777/file/w180h135_webp-cf525af216fb28c7f82ead5adf06f6e3.webp",
       "gamePage": "https://www.y8.com/games/dragon_home_cleaning_mobile"
     },
     {
       "name": "My Cute Bunny Dressup",
       "slug": "my_cute_bunny_dressup",
       "embedUrl": "https://www.y8.com/embed/my_cute_bunny_dressup",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/39911/file/w180h135_webp-69054fbdc27c29eefb398ba094beaa86.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408779/file/w180h135_webp-191bbb7ee9dfb84c727dd36068c2a738.webp",
       "gamePage": "https://www.y8.com/games/my_cute_bunny_dressup"
     },
     {
@@ -16489,7 +16573,7 @@
       "name": "Christmas Dentist",
       "slug": "christmas_dentist",
       "embedUrl": "https://www.y8.com/embed/christmas_dentist",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/119033/file/w180h135_webp-dc04a5c79ca7db18f53fb2bba2bfe794.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408259/file/w180h135_webp-d1bd810b556384496c2aea15b90714e1.webp",
       "gamePage": "https://www.y8.com/games/christmas_dentist"
     },
     {
@@ -16503,7 +16587,7 @@
       "name": "Carnival Mania Collection",
       "slug": "carnival_mania_collection",
       "embedUrl": "https://www.y8.com/embed/carnival_mania_collection",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/118325/file/w180h135_webp-538e7e0e138ebe3e9a4eb17798fa42c6.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407813/file/w180h135_webp-15ede28964244d89cdc8dc585dfb3bf1.webp",
       "gamePage": "https://www.y8.com/games/carnival_mania_collection"
     },
     {
@@ -16524,70 +16608,70 @@
       "name": "Little Squirrel",
       "slug": "little_squirrel",
       "embedUrl": "https://www.y8.com/embed/little_squirrel",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116795/file/w180h135_webp-880aa6b9110431e51da9f311a7bdf548.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408781/file/w180h135_webp-50e46dcc5e703227776e8b9549d5f7af.webp",
       "gamePage": "https://www.y8.com/games/little_squirrel"
     },
     {
       "name": "Pet Walking Emma",
       "slug": "pet_walking_emma",
       "embedUrl": "https://www.y8.com/embed/pet_walking_emma",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116799/file/w180h135_webp-474b30ba7b2f7ba8cf39648f744466a9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408785/file/w180h135_webp-eb0547c16211e3ec75473a639c5701b8.webp",
       "gamePage": "https://www.y8.com/games/pet_walking_emma"
     },
     {
       "name": "Your Little Dragon",
       "slug": "your_little_dragon",
       "embedUrl": "https://www.y8.com/embed/your_little_dragon",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116791/file/w180h135_webp-ba5ec75aceda63dde118022668250677.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408787/file/w180h135_webp-7397fe3fe8d0308789a38e87518776be.webp",
       "gamePage": "https://www.y8.com/games/your_little_dragon"
     },
     {
       "name": "Mermaid Makeup Stella",
       "slug": "mermaid_makeup_stella",
       "embedUrl": "https://www.y8.com/embed/mermaid_makeup_stella",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116509/file/w180h135_webp-3b4d332ff8ea42edcf055f374321a60b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407809/file/w180h135_webp-a69408c9d4d5df2930b9b3a3057feebe.webp",
       "gamePage": "https://www.y8.com/games/mermaid_makeup_stella"
     },
     {
       "name": "My Little Puppy",
       "slug": "my_little_puppy",
       "embedUrl": "https://www.y8.com/embed/my_little_puppy",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116505/file/w180h135_webp-986be39d998076748e5a55cb89bff4aa.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408789/file/w180h135_webp-02c747444539cb25530fbf2c67335bd2.webp",
       "gamePage": "https://www.y8.com/games/my_little_puppy"
     },
     {
       "name": "My Little Kitten",
       "slug": "my_little_kitten",
       "embedUrl": "https://www.y8.com/embed/my_little_kitten",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116089/file/w180h135_webp-a4193bc2aca683dbdf46012585c8c63d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408791/file/w180h135_webp-0c1dab887a2846420ab90fa167046fa5.webp",
       "gamePage": "https://www.y8.com/games/my_little_kitten"
     },
     {
       "name": "Crime City 3d",
       "slug": "crime_city_3d",
       "embedUrl": "https://www.y8.com/embed/crime_city_3d",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116089/file/w180h135_webp-a4193bc2aca683dbdf46012585c8c63d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408791/file/w180h135_webp-0c1dab887a2846420ab90fa167046fa5.webp",
       "gamePage": "https://www.y8.com/games/crime_city_3d"
     },
     {
       "name": "Father S Day Matching Outfits",
       "slug": "father_s_day_matching_outfits",
       "embedUrl": "https://www.y8.com/embed/father_s_day_matching_outfits",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/115399/file/w180h135_webp-187306ccaccc093395894acf3f187efc.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408797/file/w180h135_webp-a697d07a5e7bfaa8eaecd215c3334934.webp",
       "gamePage": "https://www.y8.com/games/father_s_day_matching_outfits"
     },
     {
       "name": "Falco Sky",
       "slug": "falco_sky",
       "embedUrl": "https://www.y8.com/embed/falco_sky",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/324149/file/w180h135_webp-850aa4900bb5e498948f7b8b161bc001.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409141/file/w180h135_webp-09dcd8f32b43fef39fff1225b795976d.webp",
       "gamePage": "https://www.y8.com/games/falco_sky"
     },
     {
       "name": "Gods Of Arena",
       "slug": "gods_of_arena",
       "embedUrl": "https://www.y8.com/embed/gods_of_arena",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/115557/file/w180h135_webp-a283ba5dbbaaed9b6bf75606b5228fc9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407811/file/w180h135_webp-d1369acf5fdb34f64541dbda1d1c915b.webp",
       "gamePage": "https://www.y8.com/games/gods_of_arena"
     },
     {
@@ -16608,7 +16692,7 @@
       "name": "Ojello",
       "slug": "ojello",
       "embedUrl": "https://www.y8.com/embed/ojello",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/113529/file/w180h135_webp-e4cc7a8104a4fd22629308d503e1ea42.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408793/file/w180h135_webp-1a8a69c2dff81f119184b379f2dfdb24.webp",
       "gamePage": "https://www.y8.com/games/ojello"
     },
     {
@@ -16636,7 +16720,7 @@
       "name": "Barbarian Hunter Html5",
       "slug": "barbarian_hunter_html5",
       "embedUrl": "https://www.y8.com/embed/barbarian_hunter_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/111069/file/w180h135_webp-a350e1590928c9fdc0688739797a683d.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408795/file/w180h135_webp-4b6c0e35dd4e0209168a2de3cb06cb77.webp",
       "gamePage": "https://www.y8.com/games/barbarian_hunter_html5"
     },
     {
@@ -16720,21 +16804,21 @@
       "name": "Masquerade Makeup Liliana",
       "slug": "masquerade_makeup_liliana",
       "embedUrl": "https://www.y8.com/embed/masquerade_makeup_liliana",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/102533/file/w180h135_webp-dcc4541c3e6313253fe0e9f88e257e2f.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407807/file/w180h135_webp-80629b9b3865eef440d5107a4df40f75.webp",
       "gamePage": "https://www.y8.com/games/masquerade_makeup_liliana"
     },
     {
       "name": "St Patricks Day Makeup Audrey",
       "slug": "st_patricks_day_makeup_audrey",
       "embedUrl": "https://www.y8.com/embed/st_patricks_day_makeup_audrey",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/102161/file/w180h135_webp-468aaeefd5b26e0c848e38e69930c07b.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408801/file/w180h135_webp-9cb9270685539831d17451a56be72015.webp",
       "gamePage": "https://www.y8.com/games/st_patricks_day_makeup_audrey"
     },
     {
       "name": "Fairy Makeup Lily",
       "slug": "fairy_makeup_lily",
       "embedUrl": "https://www.y8.com/embed/fairy_makeup_lily",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/104291/file/w180h135_webp-01a46c7ce7fa33df24957444072de73c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407805/file/w180h135_webp-3f2951dd210d039d99a812f208bbb398.webp",
       "gamePage": "https://www.y8.com/games/fairy_makeup_lily"
     },
     {
@@ -16762,7 +16846,7 @@
       "name": "Dwarfs Journey",
       "slug": "dwarfs_journey",
       "embedUrl": "https://www.y8.com/embed/dwarfs_journey",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/103101/file/w180h135_webp-0a0f93dac2708289e4258b1d5f53aa40.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/408799/file/w180h135_webp-b6a505bd95ed2162f47be5e98fb20efe.webp",
       "gamePage": "https://www.y8.com/games/dwarfs_journey"
     },
     {
@@ -16860,7 +16944,7 @@
       "name": "Idnet Browserquest",
       "slug": "idnet_browserquest",
       "embedUrl": "https://www.y8.com/embed/idnet_browserquest",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/116133/file/w180h135_webp-6ccfc31737725a46a67caace07a20768.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407663/file/w180h135_webp-2a83690183d3b66fd546fd5445a947c6.webp",
       "gamePage": "https://www.y8.com/games/idnet_browserquest"
     },
     {
@@ -16883,20 +16967,6 @@
       "embedUrl": "https://www.y8.com/embed/head_hunter_reborn",
       "thumbnail": "https://cdn2.y8.com/cloudimage/384647/file/w180h135_webp-a9a0bbc14f4a7dbec57709af26856a48.webp",
       "gamePage": "https://www.y8.com/games/head_hunter_reborn"
-    },
-    {
-      "name": "Fireboy And Watergirl Forest Temple",
-      "slug": "fireboy_and_watergirl_forest_temple",
-      "embedUrl": "https://www.y8.com/embed/fireboy_and_watergirl_forest_temple",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/185909/file/w180h135_webp-5963c8840737a957fc3b95f021a9a63b.webp",
-      "gamePage": "https://www.y8.com/games/fireboy_and_watergirl_forest_temple"
-    },
-    {
-      "name": "Sprinter",
-      "slug": "sprinter",
-      "embedUrl": "https://www.y8.com/embed/sprinter",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/153225/file/w180h135_webp-7ab24d475c978a1b24e5685645f7d3b3.webp",
-      "gamePage": "https://www.y8.com/games/sprinter"
     },
     {
       "name": "Bartender The Right Mix",

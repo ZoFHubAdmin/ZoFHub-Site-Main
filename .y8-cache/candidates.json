@@ -14590,5 +14590,11 @@
     "name": "Perfect Shot",
     "thumbnail": "https://cdn2.y8.com/cloudimage/408211/file/w180h135_webp-97395a8f573f441dc4c82e23b2d8f3a1.webp",
     "source": "directory"
+  },
+  "circle_jump_html5": {
+    "slug": "circle_jump_html5",
+    "name": "Circle Jump",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408945/file/w180h135_webp-ef22cd90da37148cd36bfa38caf65d23.webp",
+    "source": "directory"
   }
 }
