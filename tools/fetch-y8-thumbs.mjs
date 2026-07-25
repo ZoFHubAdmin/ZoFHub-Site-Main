@@ -149,7 +149,19 @@ for (const g of targets) {
   // 2) Self-host: download it and store the LOCAL path instead of the remote URL.
   let finalUrl = src;
   if (SELF_HOST) {
-    const local = await downloadTo(src, g.slug);
+    let local = await downloadTo(src, g.slug);
+    // Self-heal: y8 rotates its cloudimage IDs, so a thumbnail URL we stored
+    // earlier can start returning 403 even though the game still has a perfectly
+    // good image. When the first download fails, re-resolve the CURRENT image
+    // straight from the game's y8 page (og:image) and download that instead.
+    if (!local) {
+      const p = pageUrl(g.game_url);
+      if (p) {
+        const fresh = await fetchThumbUrl(p);
+        await sleep(400);
+        if (fresh && fresh !== src) { local = await downloadTo(fresh, g.slug); if (local) src = fresh; }
+      }
+    }
     if (!local) { failed.push(g); console.log(`  ✗ download ${g.slug}`); continue; }
     finalUrl = local;
     await sleep(200);
