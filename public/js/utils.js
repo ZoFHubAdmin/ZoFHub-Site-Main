@@ -38,7 +38,7 @@ export function buildFallback(ds) {
   const t = (ds && ds.title) || 'Game';
   let h = 0;
   for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
-  const palette = ['#ff4d8d','#7c3aed','#22d3ee','#34d399','#f59e0b','#ef4444','#a855f7','#0ea5e9','#10b981','#ec4899'];
+  const palette = ['#242a34','#2a303b','#1f242d','#2d333e','#232833','#282e39','#20262f','#2b3240'];
   div.style.setProperty('--c1', palette[h % palette.length]);
   div.style.setProperty('--c2', palette[(h >> 8) % palette.length]);
   div.textContent = t.split(/\s+/).slice(0, 2).map(s => s[0] || '').join('').toUpperCase() || 'G';

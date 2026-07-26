@@ -32,18 +32,18 @@
     overflow-x: hidden;
     overscroll-behavior: contain;               /* rail scroll won't chain to the page */
     scrollbar-width: thin;
-    scrollbar-color: rgba(125,170,255,.22) transparent;
+    scrollbar-color: rgba(255,255,255,.22) transparent;
   }
   .cat-sidebar::-webkit-scrollbar { width: 8px; }
   .cat-sidebar::-webkit-scrollbar-track { background: transparent; }
   .cat-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(125,170,255,.16);
+    background: rgba(255,255,255,.16);
     border-radius: 8px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   .cat-sidebar:hover::-webkit-scrollbar-thumb {
-    background: rgba(125,170,255,.34);
+    background: rgba(255,255,255,.34);
     background-clip: content-box;
   }
 }
@@ -74,7 +74,7 @@
   letter-spacing: .04em;
 }
 .cat-item:hover {
-  background: rgba(125,170,255,.10);
+  background: rgba(255,255,255,.10);
   border-color: var(--line);
   color: var(--text);
 }
@@ -82,7 +82,7 @@
 .cat-item.active {
   background: var(--brand);
   color: var(--brand-ink);
-  box-shadow: 0 4px 14px rgba(255,224,0,.28);
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
 }
 .cat-item.active svg { color: var(--brand-ink); }
 .cat-item.active .cat-count { color: rgba(26,11,61,.7); }
@@ -136,7 +136,7 @@ body.is-searching #allRow {
   border: 1px solid rgba(255, 224, 0, .18);
   border-radius: 18px;
   background:
-    radial-gradient(130% 160% at 0% 0%, rgba(124, 58, 237, .14), transparent 55%),
+    radial-gradient(130% 160% at 0% 0%, rgba(255, 255, 255, .04), transparent 55%),
     rgba(255, 255, 255, .02);
   box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
   animation: spotlightIn .22s ease both;
@@ -193,19 +193,19 @@ body.is-searching #allRowTitle::before {
 .hero-tile::before {
   /* Soft single-tone glow on hover — sits below the image (no rainbow). */
   content: ""; position: absolute; inset: -3px;
-  background: radial-gradient(60% 80% at 50% 20%, rgba(255,224,0,.5), transparent 72%);
+  background: radial-gradient(60% 80% at 50% 20%, rgba(255,212,38,.22), transparent 72%);
   border-radius: 20px;
   opacity: 0;
-  filter: blur(16px);
+  filter: blur(18px);
   z-index: -1;
   transition: opacity .25s;
 }
 .hero-tile:first-child { flex: 0 0 480px; }
 .hero-tile:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 26px 56px rgba(0,0,0,.6), 0 0 0 2px rgba(255,224,0,.5);
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,212,38,.55);
 }
-.hero-tile:hover::before { opacity: .75; }
+.hero-tile:hover::before { opacity: .6; }
 .hero-tile img {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover;
@@ -248,9 +248,9 @@ body.is-searching #allRowTitle::before {
   background: var(--brand);
   color: var(--brand-ink);
   transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
-  box-shadow: 0 6px 16px rgba(255,224,0,.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,.45);
 }
-.hero-tile:hover .hero-tile-play { transform: scale(1.1); box-shadow: 0 8px 22px rgba(255,224,0,.55); }
+.hero-tile:hover .hero-tile-play { transform: scale(1.08); box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 
 /* ============ Standard game grid ============ */
 .game-grid {
@@ -290,15 +290,15 @@ body.is-searching #allRowTitle::before {
      cleaner, more deliberate look. */
   content: ""; position: absolute; inset: -3px;
   border-radius: 16px;
-  background: radial-gradient(70% 70% at 50% 28%, rgba(255,224,0,.55), transparent 72%);
+  background: radial-gradient(70% 70% at 50% 28%, rgba(255,212,38,.22), transparent 72%);
   opacity: 0;
   z-index: -1;
-  filter: blur(12px);
+  filter: blur(14px);
   transition: opacity .25s;
 }
 .game-tile:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 30px rgba(0,0,0,.55), 0 0 0 2px rgba(255,224,0,.55);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(0,0,0,.5), 0 0 0 1px rgba(255,212,38,.5);
 }
 .game-tile:hover::before { opacity: .7; }
 .game-tile img {
@@ -379,9 +379,9 @@ body.is-searching #allRowTitle::before {
   letter-spacing: .06em; text-transform: uppercase;
   background: var(--brand); color: var(--brand-ink);
 }
-.game-tile-badge.new { background: var(--accent); color: #fff; box-shadow: 0 0 12px rgba(255,59,107,.6); }
-.game-tile-badge.hot { background: linear-gradient(135deg, #ff6b35, #ff2a7f); color: #fff; box-shadow: 0 0 12px rgba(255,107,53,.5); }
-.game-tile-badge.ai  { background: linear-gradient(135deg, #29d3ff, #2f7bff); color: #06122b; box-shadow: 0 0 12px rgba(41,211,255,.5); }
+.game-tile-badge.new { background: var(--brand); color: var(--brand-ink); }
+.game-tile-badge.hot { background: var(--danger); color: #fff; }
+.game-tile-badge.ai  { background: var(--brand); color: var(--brand-ink); }
 
 /* When a tile has a live-pill visible (positioned bottom-left), bump the
    label so they don't collide. */
@@ -396,7 +396,7 @@ body.is-searching #allRowTitle::before {
   font-family: 'Lilita One', 'Inter', sans-serif;
   font-size: 28px;
   text-shadow: 0 4px 16px rgba(0,0,0,.5);
-  background: linear-gradient(135deg, var(--c1,#ff4d8d) 0%, var(--c2,#7c3aed) 100%);
+  background: linear-gradient(140deg, var(--c1,#232833) 0%, var(--c2,#14171d) 100%);
 }
 
 /* ============ Skeleton ============ */
@@ -439,7 +439,7 @@ body.is-searching #allRowTitle::before {
   font-weight: 800;
   border-radius: 12px;
   font-size: 14px;
-  box-shadow: 0 6px 20px rgba(255,224,0,.25);
+  box-shadow: 0 2px 10px rgba(0,0,0,.4);
   transition: transform .14s, filter .14s;
 }
 .load-more:hover { filter: brightness(1.05); transform: translateY(-1px); }

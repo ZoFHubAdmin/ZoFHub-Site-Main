@@ -8,7 +8,7 @@
 }
 
 .legal-hero {
-  border-bottom: 1px solid var(--line, rgba(125,170,255,.12));
+  border-bottom: 1px solid var(--line, rgba(255,255,255,.12));
   padding-bottom: 22px;
   margin-bottom: 12px;
 }
@@ -47,15 +47,15 @@
 .legal-body ul, .legal-body ol { margin: 0 0 14px; padding-left: 22px; }
 .legal-body li { margin: 0 0 7px; }
 .legal-body a {
-  color: var(--accent-2, #29d3ff);
+  color: var(--accent-2, #ffd426);
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
 .legal-body a:hover { border-bottom-color: currentColor; }
 .legal-body strong { color: var(--text, #eaf1ff); }
 .legal-body code {
-  background: rgba(125,170,255,.10);
-  border: 1px solid var(--line, rgba(125,170,255,.12));
+  background: rgba(255,255,255,.10);
+  border: 1px solid var(--line, rgba(255,255,255,.12));
   border-radius: 6px;
   padding: 1px 6px;
   font-size: 14px;
@@ -64,8 +64,8 @@
 /* Callout box for important notices (e.g. "this is not legal advice"). */
 .legal-note {
   background: var(--surface, #122a52);
-  border: 1px solid var(--line-2, rgba(125,170,255,.22));
-  border-left: 4px solid var(--brand, #ffe000);
+  border: 1px solid var(--line-2, rgba(255,255,255,.22));
+  border-left: 4px solid var(--brand, #ffd426);
   border-radius: var(--radius-sm, 10px);
   padding: 14px 18px;
   margin: 18px 0;
@@ -77,7 +77,7 @@
 .legal-contact {
   margin-top: 36px;
   background: var(--surface, #122a52);
-  border: 1px solid var(--line, rgba(125,170,255,.12));
+  border: 1px solid var(--line, rgba(255,255,255,.12));
   border-radius: var(--radius, 14px);
   padding: 20px 22px;
 }
@@ -90,7 +90,7 @@
   gap: 10px;
   margin-top: 30px;
   padding-top: 22px;
-  border-top: 1px solid var(--line, rgba(125,170,255,.12));
+  border-top: 1px solid var(--line, rgba(255,255,255,.12));
 }
 .legal-related a {
   font-size: 14px;
@@ -98,10 +98,10 @@
   color: var(--text-dim, #a7bce0);
   text-decoration: none;
   padding: 8px 14px;
-  border: 1px solid var(--line-2, rgba(125,170,255,.22));
+  border: 1px solid var(--line-2, rgba(255,255,255,.22));
   border-radius: 999px;
 }
 .legal-related a:hover {
   color: var(--text, #eaf1ff);
-  border-color: var(--brand, #ffe000);
+  border-color: var(--brand, #ffd426);
 }

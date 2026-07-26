@@ -38,7 +38,7 @@
     "audit-licensing": "node --use-system-ca tools/audit-licensing.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "@mercuryworkshop/bare-mux": "^2.1.7",

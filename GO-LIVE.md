@@ -1,18 +1,14 @@
 # ZoFHub — Go-Live Checklist
 
-The strategy: **Both, separated.** One codebase, deployed twice via env vars.
+The strategy: **one always-on proxy site, deployed once.** ZoFHub always runs the
+web proxy (GUST/Ultraviolet/Scramjet/Wisp), so it is both the games hub and the
+"unblocked at school" site on the **same** domain.
 
-| | Hub domain (money) | Proxy domain (school audience) |
-|---|---|---|
-| Example | `zofhub.com` | `zofhub-play.com` (rotate when blocked) |
-| `SITE_MODE` | `hub` (web proxy OFF) | `full` (web proxy ON) |
-| Ads | AdSense/Ezoic + in-game | in-game ads only |
-| Audience | open web / home | schools / filtered networks |
-| Apply to ad networks? | YES | NO |
-
-Why split: ad networks reject/ban proxy-anonymizer sites, and school filters block
-them; you can't have one domain be both monetizable *and* unblockable. Separating
-keeps the hub clean for revenue and lets the proxy domain rotate freely.
+Because the proxy is always on, **Google AdSense/Ezoic can't be used** — they ban
+proxy/anonymizer domains at the account level. Monetization is entirely via
+**proxy-friendly ad networks** (Adsterra / HilltopAds / Monetag) plus the in-game
+ads the game publishers already run. If a domain gets filtered at schools, rotate
+to a new domain — the code is unchanged.
 
 ---
 
@@ -35,48 +31,47 @@ or a VPS.
 - [ ] Copy the project URL + anon key + **service-role** key for env vars below.
 
 ## 3. Environment variables (set in the host dashboard — never commit)
-| Var | Hub | Proxy | Notes |
-|---|---|---|---|
-| `SITE_MODE` | `hub` | `full` | the only behavioral difference |
-| `SUPABASE_URL` | ✓ | ✓ | |
-| `SUPABASE_ANON_KEY` | ✓ | ✓ | |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | ✓ | server-only; bypasses RLS |
-| `SCORE_SECRET` | ✓ | ✓ | random 32+ chars; stable so score tokens survive restarts |
-| `ADSENSE_CLIENT` | ✓ `ca-pub-…` | — | lights up ad units **and** `/ads.txt` |
-| `POLLINATIONS_REFERRER` | your domain | your domain | AI attribution |
-| `CRON_SECRET` | ✓ | ✓ | protects `/healthz`; set the SAME value in your uptime monitor |
-| `NODE_ENV` | `production` | `production` | |
+| Var | Required | Notes |
+|---|---|---|
+| `SUPABASE_URL` | ✓ | |
+| `SUPABASE_ANON_KEY` | ✓ | public/browser key (`SUPABASE_PUBLISHABLE_KEY` accepted too) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | server-only; bypasses RLS |
+| `SCORE_SECRET` | ✓ | random 32+ chars; stable so score tokens survive restarts |
+| `PROXY_AD_SCRIPTS` | — | comma-separated proxy-friendly ad loader script URL(s); Google URLs auto-rejected. Blank = ad-free |
+| `PROXY_BANNER_TAG` | — | optional single footer banner tag |
+| `POLLINATIONS_REFERRER` | — | your domain (bare hostname), for AI attribution |
+| `CRON_SECRET` | ✓ | protects `/healthz`; set the SAME value in your uptime monitor |
+| `NODE_ENV` | `production` | |
 
-## 4. Ad networks (do this only for the HUB domain)
-Best money for a games hub, in order:
-1. **In-game ads — already wired.** Register your hub domain in your
-   **GameMonetize** and **GameDistribution** publisher dashboards so their
-   in-game ad revenue is attributed to you. This is your biggest, most reliable
-   earner and needs no AdSense approval.
-2. **Ezoic** — best first display network: no traffic minimum, gives Google AdX
-   access, higher RPM than plain AdSense.
-3. **AdSense** — easy to apply; lower RPM; may scrutinize a games hub. Fine as a
-   starter. Set `ADSENSE_CLIENT` and the units + `/ads.txt` populate automatically.
-4. **Playwire / Snigel / AdinPlay** — gaming-specialized, highest RPM; apply once
-   you have real traffic (tens-to-hundreds of thousands of views/month).
-- [ ] `/ads.txt` shows your publisher line (auto from `ADSENSE_CLIENT`).
-- [ ] Keep ads OFF the proxy — already enforced in `ads.js`.
+## 4. Ad networks (proxy-friendly only)
+Google AdSense/Ezoic are **not** an option here (they ban proxy sites). Best money
+for an always-proxy games hub, in order:
+1. **In-game ads — already wired.** Register your domain in your **GameMonetize**
+   and **GameDistribution** publisher dashboards so their in-game ad revenue is
+   attributed to you. This is your biggest, most reliable earner and needs no
+   approval process.
+2. **Proxy-friendly display/pop networks** — **Adsterra**, **HilltopAds**,
+   **Monetag**. Sign up, get your page-level loader script(s), and set them in
+   `PROXY_AD_SCRIPTS` (comma-separated). Add one footer banner via
+   `PROXY_BANNER_TAG` if you want. These are the only display networks that accept
+   proxy traffic.
+- [ ] `PROXY_AD_SCRIPTS` set (or intentionally blank to run ad-free).
+- [ ] Any accidental Google/AdSense tag is auto-stripped server-side — nothing to do.
 
 ## 5. Pre-launch QA
 - [ ] `/api/health` returns 200.
 - [ ] Home loads; click a game → it plays without a refresh; Fullscreen on one line.
 - [ ] Mobile: hamburger menu works; layout fits phone + iPad.
 - [ ] Leaderboard: submit a score in a game → appears on `/leaderboard`.
-- [ ] Hub build: visiting `/browser` redirects to `/`; `/api/site-config` shows
-      `"proxy": false`. Proxy build: `/browser` loads; `"proxy": true`.
+- [ ] `/browser` loads and `/api/site-config` shows `"proxy": true` (always-on proxy).
 
 ## 6. Domain & DNS
-- [ ] Point the hub domain at the hub service; the proxy domain at the proxy service.
+- [ ] Point your domain at the service; if a domain gets filtered, add a fresh one.
 - [ ] HTTPS (the host provisions certs automatically).
-- [ ] `POLLINATIONS_REFERRER` + GameMonetize/GD referrer = your real hub domain.
+- [ ] `POLLINATIONS_REFERRER` + GameMonetize/GD referrer = your real domain.
 
 ## 7. Honest expectations
 A brand-new low-traffic games site earns little at first (games display RPMs are
 often ~$1–5 per 1,000 views, and embedded-game ad value is shared with the game
-publisher). Revenue grows with traffic. Self-hosted/original games keep 100% and
-earn more per play than embeds.
+publisher). Proxy-friendly networks generally pay lower RPMs than mainstream
+display networks, so revenue is modest until traffic grows.

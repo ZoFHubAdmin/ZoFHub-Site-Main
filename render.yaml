@@ -5,18 +5,22 @@
 # WebSocket tunnel for the proxy. Vercel's serverless functions can't do any of
 # those. Use a persistent host: Render (this file), Railway, Fly.io, or a VPS.
 #
-# The "Both, separated" strategy = deploy this repo TWICE:
-#   1) HUB domain   → service "zofhub-hub"   (SITE_MODE=hub,  ADSENSE_CLIENT set)
-#   2) PROXY domain → service "zofhub-proxy" (SITE_MODE=full, no ADSENSE_CLIENT)
-# Both share the same code; only env vars differ.
+# ZoFHub is ALWAYS a proxy site — the web proxy (GUST / Ultraviolet / Scramjet /
+# Wisp) is always on. There is NO separate hub / Google-AdSense mode: Google bans
+# proxy / anonymizer domains at the account level, so monetization is solely via
+# proxy-friendly ad networks (Adsterra / HilltopAds / Monetag) configured through
+# PROXY_AD_SCRIPTS + PROXY_BANNER_TAG. This is ONE service, deployed once.
 #
 # NOTE: the FREE plan SLEEPS when idle, which stops the cron jobs + live presence.
 # Use the cheapest always-on paid plan ("starter") for real use. Render injects
 # PORT automatically; server.js reads process.env.PORT.
+#
+# SCALING: if you ever run more than one replica, they share ONE database, so set
+# CRON_DISABLED=1 on EVERY replica except one (otherwise every cron write runs N
+# times). A single instance — the default below — needs no such flag.
 services:
-  # ── 1) Monetizable games hub (apply to AdSense / Ezoic with THIS one) ────────
   - type: web
-    name: zofhub-hub
+    name: zofhub
     runtime: node
     plan: starter
     buildCommand: npm ci
@@ -28,8 +32,6 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: SITE_MODE
-        value: hub                 # web proxy OFF → ad-network-approvable
       - key: SCORE_SECRET
         generateValue: true        # stable HMAC secret for score tokens
       # --- set these as SECRETS in the Render dashboard (never commit them) ---
@@ -39,43 +41,13 @@ services:
         sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: ADSENSE_CLIENT
-        sync: false                # ca-pub-XXXXXXXXXXXXXXXX (lights up ads + ads.txt)
+      # Proxy-friendly ad loaders (comma-separated). Google/AdSense URLs are
+      # auto-rejected server-side. Leave unset to run ad-free.
+      - key: PROXY_AD_SCRIPTS
+        sync: false
+      - key: PROXY_BANNER_TAG
+        sync: false                # optional single footer banner tag
       - key: POLLINATIONS_REFERRER
-        sync: false                # your hub domain, for AI attribution
-      - key: CRON_SECRET
-        sync: false                # protects /healthz; set the SAME value in your uptime monitor
-
-  # ── 2) Proxy domain (in-game ads only; rotate the domain when filtered) ──────
-  - type: web
-    name: zofhub-proxy
-    runtime: node
-    plan: starter
-    buildCommand: npm ci
-    startCommand: node server.js
-    healthCheckPath: /api/health
-    autoDeploy: true
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      - key: NODE_ENV
-        value: production
-      - key: SITE_MODE
-        value: full                # web proxy ON; do NOT set ADSENSE_CLIENT here
-      - key: CRON_DISABLED
-        value: "1"                 # cron (link-check/grow/y8-sync) runs on the HUB only.
-                                   # Both services share ONE database, so running the
-                                   # crons here too would just duplicate every write.
-                                   # Set this on EVERY scaled replica except one.
-      - key: SCORE_SECRET
-        generateValue: true
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: POLLINATIONS_REFERRER
-        sync: false
+        sync: false                # your domain (bare hostname), for AI attribution
       - key: CRON_SECRET
         sync: false                # protects /healthz; set the SAME value in your uptime monitor

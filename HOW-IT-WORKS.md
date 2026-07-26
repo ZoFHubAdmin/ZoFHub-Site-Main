@@ -87,14 +87,19 @@ When you click a tile you go to `/play/<game>`. The game shows inside an
 - `browser.html` + the `gust/`, `/uv/`, `/scram/`, `/wisp` pieces let a user
   browse other sites through your server. This is the "unblocked at school"
   feature. It's powered by open-source proxies (credited in `CREDITS.md`).
-- It's the part ad networks reject, so it only runs on the **proxy deployment**
-  (see deploy modes below), never on the money-making hub.
+- Mainstream ad networks (like Google AdSense) reject anonymizer/proxy sites,
+  which is why ZoFHub monetizes only via **proxy-friendly networks** (see Ads
+  below) — the proxy is always on, so those are the only networks it can use.
 
 ### 8. Ads
-- `js/ads.js` fills ad slots with **Google AdSense** when you set your publisher
-  id. It refuses to run on the proxy pages (ad-network rule). `/ads.txt` lists
-  your ad seller automatically. (In-game ads inside the games are handled by the
-  game makers — GameMonetize/GameDistribution — and pay you separately.)
+- ZoFHub is a proxy site, so **Google AdSense is never used** (it bans proxy
+  domains at the account level) — any Google/AdSense ad code is stripped
+  server-side. Instead you wire **proxy-friendly networks** (Adsterra / HilltopAds
+  / Monetag / …) through two env vars: `PROXY_AD_SCRIPTS` (comma-separated
+  page-level loader scripts — popunder/push) and `PROXY_BANNER_TAG` (one optional
+  footer banner). Pages reserve clean blank space for banners — no labels, no
+  boxes. Leave both unset to run ad-free. (In-game ads inside the games are handled
+  by the game makers — GameMonetize/GameDistribution — and pay you separately.)
 
 ### 9. The background jobs (`lib/cron-jobs.mjs`) — the night shift
 Seven tasks the server runs on a schedule, so the catalog stays healthy without
@@ -108,13 +113,13 @@ you touching it:
   never hits its inactivity pause.
 - **health** + **rec-cleanup** — housekeeping.
 
-### 10. Two deployments from one codebase (the "separated" strategy)
-One env variable, `SITE_MODE`, flips the build:
-- **`SITE_MODE=hub`** → web proxy OFF, ads ON. This is the money site you submit
-  to AdSense. (`/browser` etc. redirect home; `/api/site-config` says proxy:false.)
-- **`SITE_MODE=full`** → web proxy ON, no ads. The "unblocked at school" site on a
-  separate, rotating domain.
-Same code, different env. See `render.yaml` and `GO-LIVE.md`.
+### 10. One deployment — always a proxy site
+ZoFHub deploys **once**, as a single always-on proxy site (the web proxy is never
+turned off). There is no hub/AdSense mode: because the proxy is always running,
+Google/AdSense can't be used, and monetization is entirely via the proxy-friendly
+networks in section 8. If you ever scale to more than one replica, they share one
+database, so set `CRON_DISABLED=1` on every replica except one. See `render.yaml`
+and `GO-LIVE.md`.
 
 ---
 

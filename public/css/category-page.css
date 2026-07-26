@@ -30,7 +30,7 @@
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255,224,0,.15);
+  background: rgba(255,212,38,.15);
   color: var(--brand);
   margin-left: 8px;
   vertical-align: middle;
@@ -58,7 +58,7 @@
 .page-btn:hover { background: var(--surface-2); border-color: var(--line-2); }
 .page-btn.active {
   background: var(--brand);
-  color: #1a0b3d;
+  color: #14171d;
   border-color: var(--brand);
   cursor: default;
 }

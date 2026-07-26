@@ -100,16 +100,13 @@ All configuration is via environment variables in `.env`. The essentials:
 - `PORT` — server port (default `8080`)
 - `HOST` — bind address (default `0.0.0.0`)
 - `NODE_ENV` — `development` / `production`
-- `SITE_MODE` — `full` (default: proxy **on** + proxy-friendly ads) or `hub`
-  (AdSense-only, proxy off)
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_PUBLISHABLE_KEY` (a.k.a. anon key) — browser-safe, RLS-protected
 - `SUPABASE_SERVICE_ROLE_KEY` — **server-only**, bypasses RLS for cron + writes
   (never expose to the browser or commit it)
 - `SCORE_SECRET` — signs the proof-of-play leaderboard tokens
-- `PROXY_AD_SCRIPTS` — proxy-friendly ad-network loader script(s) (proxy build)
-- `PROXY_BANNER_TAG` — optional footer display-banner tag (proxy build)
-- `ADSENSE_CLIENT` — Google AdSense id (hub build only)
+- `PROXY_AD_SCRIPTS` — proxy-friendly ad-network loader script(s), comma-separated
+- `PROXY_BANNER_TAG` — optional footer display-banner tag
 - `CRON_SECRET` — protects `/healthz`; set the same value in your uptime monitor
 - `CRON_DISABLED` — set `1` to disable the scheduled jobs
 
@@ -195,22 +192,22 @@ ZoFHub/
 - **Built-in AI** — text + image generation, browser-direct and keyless, plus a
   "Vibe Finder" that recommends games from the user's mood.
 - **Proxy browser** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines.
-- **One codebase, two modes** — `SITE_MODE=full` (proxy) or `SITE_MODE=hub`
-  (AdSense-only).
+- **Always-on proxy site** — the web proxy is always enabled; there is no separate
+  hub/AdSense mode.
 - Automated cron jobs handle link checking, catalog growth, score pruning, etc.
 
 ## Monetization
 
-The **proxy build** (`SITE_MODE=full`, the default) uses proxy-friendly ad networks
-(Monetag, Adsterra, HilltopAds) instead of Google AdSense, which bans proxy /
-anonymizer sites at the account level. Ad configuration is entirely via environment
-variables (Google ad code is auto-stripped so AdSense can never load on the proxy):
+ZoFHub is always a proxy site, so it uses proxy-friendly ad networks (Monetag,
+Adsterra, HilltopAds) instead of Google AdSense, which bans proxy / anonymizer
+sites at the account level. Ad configuration is entirely via environment variables
+(Google ad code is auto-stripped so AdSense can never load):
 
 - `PROXY_AD_SCRIPTS` — page-level ad scripts (comma-separated for multiple networks)
 - `PROXY_BANNER_TAG` — optional footer display banner (728×90)
 
-The **hub build** (`SITE_MODE=hub`) uses standard Google AdSense via the
-`ADSENSE_CLIENT` variable.
+In-game ads served by the game publishers (GameMonetize / GameDistribution) pay
+separately and need no configuration beyond registering your domain with them.
 
 ---
 

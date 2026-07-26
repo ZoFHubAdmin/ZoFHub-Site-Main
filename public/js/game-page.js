@@ -385,7 +385,7 @@ function buildTile(g) {
     wireThumbFallback(a.querySelector('img'));
   } else {
     let h = 0; for (let i = 0; i < g.title.length; i++) h = (h * 31 + g.title.charCodeAt(i)) >>> 0;
-    const palette = ['#ff4d8d','#7c3aed','#22d3ee','#34d399','#f59e0b','#ef4444','#a855f7'];
+    const palette = ['#242a34','#2a303b','#1f242d','#2d333e','#232833','#282e39','#20262f'];
     const c1 = palette[h % palette.length], c2 = palette[(h >> 8) % palette.length];
     const initials = g.title.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase();
     a.innerHTML = `<div class="game-tile-fallback" style="--c1:${c1};--c2:${c2}">${initials}</div>`;

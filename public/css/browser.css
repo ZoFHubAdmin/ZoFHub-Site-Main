@@ -54,12 +54,12 @@
   border-radius: 10px;
   transition: border-color .15s, box-shadow .15s;
 }
-.br-urlbar:focus-within { border-color: rgba(41,211,255,.55); box-shadow: 0 0 0 3px rgba(41,211,255,.14); }
+.br-urlbar:focus-within { border-color: rgba(255,212,38,.55); box-shadow: 0 0 0 3px rgba(255,212,38,.14); }
 .br-urlbar svg { color: var(--text-mute, #8a94a6); flex: 0 0 auto; }
 .br-urlbar input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text, #fff); font: inherit; font-size: 13.5px; }
 
 .br-note { font-size: 12.5px; color: var(--text-mute, #8a94a6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.br-note-link { color: #29d3ff; text-decoration: none; font-weight: 700; }
+.br-note-link { color: #ffd426; text-decoration: none; font-weight: 700; }
 .br-note-link:hover { text-decoration: underline; }
 
 /* Fullscreen button sits IN the toolbar (not floating). */
@@ -99,7 +99,7 @@
   display: flex; align-items: center; justify-content: center; text-align: center;
   padding: 28px; overflow-y: auto;
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(41,211,255,.12), transparent 60%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255,212,38,.12), transparent 60%),
     linear-gradient(160deg, #141a24 0%, #0d0f12 70%);
 }
 .br-start[hidden] { display: none; }
@@ -114,7 +114,7 @@
   color: var(--text-dim, #cbd5e1); font: inherit; font-size: 13px; font-weight: 600;
   transition: transform .15s, border-color .15s, color .15s, background .15s;
 }
-.br-quicklinks button:hover { transform: translateY(-2px); color: var(--text, #fff); border-color: rgba(41,211,255,.5); background: var(--surface-2, rgba(255,255,255,.09)); }
+.br-quicklinks button:hover { transform: translateY(-2px); color: var(--text, #fff); border-color: rgba(255,212,38,.5); background: var(--surface-2, rgba(255,255,255,.09)); }
 .br-offline {
   margin-top: 20px; padding: 14px 16px; text-align: left;
   background: rgba(248,179,77,.1); border: 1px solid rgba(248,179,77,.32); border-radius: 12px;
@@ -133,7 +133,7 @@
 .loader-caption { font-size: 12.5px; color: #b8c4d0; margin: 0; }
 .spinner {
   width: 38px; height: 38px; border-radius: 50%;
-  border: 3px solid rgba(255,255,255,.12); border-top-color: #29d3ff;
+  border: 3px solid rgba(255,255,255,.12); border-top-color: #ffd426;
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -173,7 +173,7 @@
 }
 .br-error-btn:hover { background: var(--surface-2, rgba(255,255,255,.1)); transform: translateY(-1px); }
 .br-error-btn[hidden] { display: none; }
-.br-error-btn.primary { background: linear-gradient(135deg, #29d3ff, #7c4dff); border: 0; color: #0b0f24; }
+.br-error-btn.primary { background: linear-gradient(135deg, #ffd426, #242a34); border: 0; color: #0b0f24; }
 
 @media (max-width: 720px) {
   .gust-shell { padding: 6px 6px 8px; }

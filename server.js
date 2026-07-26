@@ -935,7 +935,13 @@ function aiFetch(url, opts = {}) {
 // keyless ~1 req/15s limit to the Seed tier (~1 req/5s) and removes watermarks;
 // a referrer attributes requests to this app. Both are read from .env if present.
 const POLLINATIONS_TOKEN = (process.env.POLLINATIONS_TOKEN || '').trim();
-const POLLINATIONS_REFERRER = (process.env.POLLINATIONS_REFERRER || 'zofhub.app').trim();
+// Canonicalize to a BARE hostname: the code prepends "https://" itself (line
+// below) and passes it as a referrer query param elsewhere, so a value that
+// already includes a scheme (e.g. someone pastes "https://mydomain.com" from
+// .env.example) would otherwise produce a doubled "https://https://…/". Strip any
+// leading scheme and trailing slashes so it's correct regardless of input format.
+const POLLINATIONS_REFERRER = (process.env.POLLINATIONS_REFERRER || 'zofhub.app')
+  .trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
 function pollinationsHeaders(extra = {}) {
   const h = { Referer: `https://${POLLINATIONS_REFERRER}/`, ...extra };
   if (POLLINATIONS_TOKEN) h.Authorization = `Bearer ${POLLINATIONS_TOKEN}`;
@@ -2725,20 +2731,21 @@ app.get('/play/:gameSlug', async (req, res) => {
   const proxySrc = `/embed/${game.slug}`;
 
   // ── Load-path routing ────────────────────────────────────────────────────
-  // Two goals pull in opposite directions, so routing is per-BUILD + per-HOST:
+  // ZoFHub is always a proxy site (PROXY_ENABLED is always true), so games load
+  // SAME-ORIGIN through /embed by default — a network filter only ever sees THIS
+  // domain, never the game CDN. Routing is per-HOST because a few publishers need
+  // special handling:
   //
-  //  1) HUB build (SITE_MODE=hub, ads on) → load games the FAST, reliable way:
-  //     GameDistribution/GameMonetize DIRECT (their SDK does origin/referrer
-  //     checks that FAIL when re-served through our proxy → black screen; direct
-  //     is also their intended, ad-supported method). Y8 stays proxied because
-  //     it needs the injected fit-to-frame CSS (see Y8_FIT_CSS).
-  //
-  //  2) PROXY build (SITE_MODE=full, the "unblock at school" domain) → load
-  //     games SAME-ORIGIN through /embed so a network filter only ever sees THIS
-  //     domain, never the game CDN. EXCEPTION: GameDistribution + GameMonetize
-  //     stay DIRECT even here — proxying black-screens them, and their assets
-  //     come from generic HTML5 game CDNs that content filters almost never
-  //     block, so a direct embed still loads behind a school filter.
+  //  • GameDistribution + GameMonetize → always DIRECT. Their SDK does
+  //    origin/referrer checks that FAIL when re-served through our proxy (black
+  //    screen), and their assets come from generic HTML5 game CDNs that content
+  //    filters almost never block, so a direct embed still loads behind a school
+  //    filter. (isSdkDirectOnly below.)
+  //  • Y8 / HTMLGames / Famobi → always PROXIED, even though they could embed
+  //    direct: Y8 needs the injected fit-to-frame CSS (Y8_FIT_CSS); HTMLGames
+  //    ship relative assets that need a corrected <base href>; Famobi's Play
+  //    button uses window.open and needs the EMBED_GUARD to stay in-frame.
+  //  • Everything else safe to proxy → SAME-ORIGIN /embed.
   //
   // ?direct=1 / ?proxy=1 force a path (per-game escape hatch).
   let embedHost = '';
@@ -3042,7 +3049,23 @@ function kickThumbnailFetch() {
   } catch (e) { console.warn('[zofhub] thumbnail fetch skipped:', e.message); }
 }
 
-function startListening(host) {
+// Some environments disable IPv6; fall back to IPv4 if a dual-stack bind fails.
+// Each attempt registers its OWN one-time 'error' handler BEFORE calling listen(),
+// so the IPv4 fallback is covered too. (A single top-level .once() would fire on
+// the IPv6 failure and be consumed — leaving the fallback attempt's 'error' with
+// no listener, which Node routes to uncaughtException. Because our uncaughtException
+// handler deliberately does NOT exit, that used to leave a zombie process running
+// but listening on nothing. `isFallback` guarantees we retry at most once.)
+function startListening(host, isFallback = false) {
+  httpServer.once('error', (e) => {
+    if (!isFallback && HOST === '::' && (e.code === 'EAFNOSUPPORT' || e.code === 'EADDRNOTAVAIL')) {
+      console.warn('[zofhub] IPv6 bind failed — falling back to 0.0.0.0 (IPv4).');
+      startListening('0.0.0.0', true);
+    } else {
+      console.error(`[zofhub] listen error on ${host}:${PORT} — ${e.code ? e.code + ' ' : ''}${e.message}. Exiting.`);
+      process.exit(1);
+    }
+  });
   httpServer.listen(PORT, host, () => {
     const enabled = Object.entries(proxyStatus).filter(([, v]) => v).map(([k]) => k);
     const url = `http://localhost:${PORT}`;
@@ -3054,16 +3077,5 @@ function startListening(host) {
     openInBrowser(url);
   });
 }
-// Some environments disable IPv6; fall back to IPv4 if dual-stack bind fails.
-httpServer.once('error', (e) => {
-  if (HOST === '::' && (e.code === 'EAFNOSUPPORT' || e.code === 'EADDRNOTAVAIL')) {
-    console.warn('[zofhub] IPv6 bind failed — falling back to 0.0.0.0 (IPv4).');
-    httpServer.removeAllListeners('error');
-    startListening('0.0.0.0');
-  } else {
-    console.error('[zofhub] listen error:', e.message);
-    process.exit(1);
-  }
-});
 startListening(HOST);
 kickThumbnailFetch();   // grab any missing Y8 thumbnails from the web on every boot

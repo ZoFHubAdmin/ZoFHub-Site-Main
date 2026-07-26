@@ -12,7 +12,6 @@ jobs:
   startup-check:
     runs-on: ubuntu-latest
     env:
-      SITE_MODE: hub
       CRON_DISABLED: "1"     # don't run the background cron jobs during the check
       PORT: "8099"
     steps:

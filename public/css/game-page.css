@@ -67,15 +67,13 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   display: inline-flex; flex: 0 0 auto;
   padding: 4px 11px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(255,224,0,.2), rgba(255,224,0,.1));
+  background: rgba(255,212,38,.12);
   color: var(--brand);
   font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700;
-  box-shadow: 0 0 12px rgba(255,224,0,.2);
-  transition: all .3s ease;
+  transition: background .2s ease, transform .2s ease;
 }
 .play-cat:hover {
-  background: linear-gradient(135deg, rgba(255,224,0,.3), rgba(255,224,0,.15));
-  box-shadow: 0 0 20px rgba(255,224,0,.35);
+  background: rgba(255,212,38,.18);
   transform: translateY(-1px);
 }
 /* Action bar — NEVER wraps to a second row (that's the "Fullscreen on the next
@@ -94,27 +92,19 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  /* Enhanced branded backdrop with more vibrant gradients */
-  background:
-    radial-gradient(140% 100% at 50% 0%, rgba(124,58,237,.35), rgba(41,211,255,.15) 50%, transparent 70%),
-    radial-gradient(120% 90% at 50% 0%, rgba(255,224,0,.12), transparent 60%),
-    linear-gradient(160deg, #160a33 0%, #0b0620 60%, #07040f 100%);
+  /* Neutral stage backdrop — shows only briefly while the game iframe loads. */
+  background: linear-gradient(160deg, #191d24 0%, #14171d 60%, #0f1216 100%);
   border-radius: 16px;
   overflow: hidden;
-  /* Enhanced premium stage with animated glow */
   box-shadow:
-    0 0 0 1px var(--line-2),
-    0 0 0 2px rgba(255,224,0,.08),
-    0 24px 64px rgba(0,0,0,.55),
-    0 0 40px rgba(124,58,237,.15);
+    0 0 0 1px var(--line),
+    0 24px 64px rgba(0,0,0,.5);
   transition: box-shadow .3s ease;
 }
 .frame-box:hover {
   box-shadow:
     0 0 0 1px var(--line-2),
-    0 0 0 2px rgba(255,224,0,.15),
-    0 32px 80px rgba(0,0,0,.65),
-    0 0 60px rgba(124,58,237,.25);
+    0 28px 72px rgba(0,0,0,.6);
 }
 .frame-box[data-orientation="portrait"] {
   aspect-ratio: 9 / 16;
@@ -187,7 +177,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   /* Translucent branded gradient (not a flat dark block) so the blurred game
      art behind it shows through — loading looks intentional, never "broken". */
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(124,58,237,.30), transparent 60%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.30), transparent 60%),
     linear-gradient(160deg, rgba(26,12,61,.72) 0%, rgba(11,6,32,.80) 60%, rgba(7,4,15,.86) 100%);
   color: var(--text-dim);
   z-index: 3;
@@ -228,7 +218,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .game-loader.mini p { font-size: 12px; margin: 0; white-space: nowrap; color: rgba(255,255,255,.82); }
 .loader-proxy-link {
   pointer-events: auto;
-  color: var(--brand, #ffe000);
+  color: var(--brand, #ffd426);
   text-decoration: underline;
   cursor: pointer;
   font-weight: 600;
@@ -276,7 +266,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .play-notice-btn {
   flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 9px; cursor: pointer;
-  background: linear-gradient(135deg, #ffe000, #ff9d00); color: #1a0b02;
+  background: linear-gradient(135deg, #ffd426, #ff9d00); color: #1a0b02;
   border: 0; font: inherit; font-size: 12.5px; font-weight: 800;
   transition: filter .2s ease, transform .2s ease;
 }
@@ -297,7 +287,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .score-panel .row-title svg { color: var(--brand); }
 .score-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .score-row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.03); }
-.score-row.top { background: linear-gradient(90deg, rgba(255,224,0,.14), rgba(255,224,0,.02)); }
+.score-row.top { background: linear-gradient(90deg, rgba(255,212,38,.14), rgba(255,212,38,.02)); }
 .score-rank { font-family: 'Lilita One', sans-serif; color: var(--brand); text-align: center; }
 .score-pname { font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .score-val { font-weight: 800; color: #6ee7b7; }
@@ -309,7 +299,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 }
 .score-form input#scoreName { flex: 1; min-width: 120px; }
 .score-form input#scoreValue { width: 130px; }
-.score-form input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(255,224,0,.18); }
+.score-form input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(255,212,38,.18); }
 .score-note { margin: 9px 0 0; font-size: 11.5px; color: var(--text-mute); }
 
 /* Related */
