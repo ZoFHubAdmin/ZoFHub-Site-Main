@@ -560,6 +560,1376 @@
       "set": {
         "thumbnail_url": "/thumbs/hero-inc-2-online.jpg"
       }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 2.11MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "space-stairwell"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/space-stairwell.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 2.10MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "hidden-word-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/hidden-word-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 1.82MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ballon-shooting-creepy"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ballon-shooting-creepy.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 1.80MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "skybound-adventure"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/skybound-adventure.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 1.79MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "snaily-braver-europe-adventure"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/snaily-braver-europe-adventure.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 1.79MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "the-maze"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/the-maze.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 1.07MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "build-a-skyscraper"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/build-a-skyscraper.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.97MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "zombie-age-dead-jungle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zombie-age-dead-jungle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.96MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "zombie-city-rescue"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zombie-city-rescue.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.94MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "rambo-metal-slug-attack"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/rambo-metal-slug-attack.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.94MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "gumball-penalty-kick"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/gumball-penalty-kick.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.92MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "mystic-flower-match"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/mystic-flower-match.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.92MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ben-10-world-rescue-evolution"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ben-10-world-rescue-evolution.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.91MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ben-10-omnitrix-shooting"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ben-10-omnitrix-shooting.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.90MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "monkey-swing"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/monkey-swing.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.89MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "baby-dino-planet"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/baby-dino-planet.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.89MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "hummer-lady-queen"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/hummer-lady-queen.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.89MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "cave-crawl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/cave-crawl.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.88MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "spidey-halloween-jump"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/spidey-halloween-jump.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.88MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "galaxy-brick-breaker"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/galaxy-brick-breaker.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.88MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "flower-magnet"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/flower-magnet.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.88MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "dark-sprint"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dark-sprint.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.86MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "piggys-forest-panic"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/piggys-forest-panic.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.86MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "santas-snowy-sprint"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/santas-snowy-sprint.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.85MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "fish-pot"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/fish-pot.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.85MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "pj-masks-howling-havoc"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pj-masks-howling-havoc.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.85MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sketer-bear-jump"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sketer-bear-jump.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.85MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "drago-sky-quest"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/drago-sky-quest.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.84MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "spidey-swing"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/spidey-swing.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.84MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "pj-masks-pick-up-power-up"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pj-masks-pick-up-power-up.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.84MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "reverse-gravity-shoot"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/reverse-gravity-shoot.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.83MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ball-connect"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ball-connect.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.83MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "carnival-shooter"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/carnival-shooter.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.83MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "titan-amp-rsquo-s-journey"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/titan-amp-rsquo-s-journey.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.82MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "gravity-climb-girl"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/gravity-climb-girl.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.82MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "pirate-treasure-island"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pirate-treasure-island.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.82MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "stealthy-heist"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/stealthy-heist.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.82MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "fire-ring"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/fire-ring.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.79MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "word-maze"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/word-maze.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.79MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "emralds-forest-shoot"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/emralds-forest-shoot.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.78MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "magic-tiles-piano-squid"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/magic-tiles-piano-squid.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.78MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "planetary-plunge"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/planetary-plunge.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.78MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "underwater-aim"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/underwater-aim.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.77MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "number-order"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/number-order.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.77MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "simon-runner"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/simon-runner.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.76MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "kitten-connections"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/kitten-connections.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.75MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "samurai-cow-man"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/samurai-cow-man.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.74MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "merge-master-merge-poppy"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/merge-master-merge-poppy.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.73MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "slugterra-speed-heroes"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/slugterra-speed-heroes.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.73MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "crash-course"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/crash-course.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.73MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "halloween-hide-amp-seek"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/halloween-hide-amp-seek.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.72MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "merge-poppy-master"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/merge-poppy-master.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.72MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sploop-io"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sploop-io.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.71MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sweet-monster-pull-out-pin"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sweet-monster-pull-out-pin.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.71MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sprint-club-nitro"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sprint-club-nitro.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.71MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ricky-zoom-room-with-a-zoom"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ricky-zoom-room-with-a-zoom.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.69MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "spatial-danger-star-and-marco"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/spatial-danger-star-and-marco.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.69MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ricky-zoom-junior-zoom-mechanic"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ricky-zoom-junior-zoom-mechanic.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.68MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "pj-masks-sticky-splat-soccer"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pj-masks-sticky-splat-soccer.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.67MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "zhu-zhu-pets-tube-racers"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zhu-zhu-pets-tube-racers.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.45MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "cod-duty-call-fps"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/cod-duty-call-fps.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.45MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "candy-crush-blast"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/candy-crush-blast.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.44MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ocean-blast-block-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ocean-blast-block-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.44MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "scoop-tower"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/scoop-tower.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.43MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "urban-riot-blaster"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/urban-riot-blaster.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.42MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sweet-screw-factory"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sweet-screw-factory.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.42MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "merge-factory-idle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/merge-factory-idle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.42MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "bounce-blast"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/bounce-blast.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.41MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ultra-kick-goal-crazy"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ultra-kick-goal-crazy.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.40MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "springle-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/springle-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.40MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "crystal-cave-sort"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/crystal-cave-sort.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.40MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "happy-corals"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/happy-corals.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.39MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "moto-road-rash-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/moto-road-rash-3d.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.39MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "police-escape-jumper"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/police-escape-jumper.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.39MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "animal-merge-zoo-drop"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/animal-merge-zoo-drop.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.39MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ball-chain-blast"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ball-chain-blast.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.38MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "basket-fill-ball-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/basket-fill-ball-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.38MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "velocity-breaker"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/velocity-breaker.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.38MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "hold-up-the-ball"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/hold-up-the-ball.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.38MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ultra-shot"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ultra-shot.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.37MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "street-traffic-racer"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/street-traffic-racer.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.37MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sport-sort-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sport-sort-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.37MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "street-mayhem-driver"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/street-mayhem-driver.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.37MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "bubble-shooter-vale"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/bubble-shooter-vale.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.36MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "destroy-godzillas-3d-shooter"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/destroy-godzillas-3d-shooter.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.36MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "happy-fruit-link"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/happy-fruit-link.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.36MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "bubble-shooter-crystal-hunt"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/bubble-shooter-crystal-hunt.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.36MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sweet-merge-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sweet-merge-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.35MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "torn-pieces"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/torn-pieces.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.35MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "terrifying-zombies-tower-defense-ii"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/terrifying-zombies-tower-defense-ii.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.35MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "candy-merge-sort"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/candy-merge-sort.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "oil-tanker-truck-parking-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/oil-tanker-truck-parking-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "harbor-breakout"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/harbor-breakout.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "wool-sort-yarn-color-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/wool-sort-yarn-color-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "dino-game-unblocked"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dino-game-unblocked.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "space-diamond-miner"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/space-diamond-miner.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "water-sort-puzzle-master"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/water-sort-puzzle-master.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.34MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "zombie-day"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zombie-day.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.33MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "extreme-stunt-car"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/extreme-stunt-car.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.33MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "rescue-master"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/rescue-master.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.33MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "baby-merge-puzzle-master"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/baby-merge-puzzle-master.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.33MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "guns-simulator-destroy-all"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/guns-simulator-destroy-all.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.33MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "block-party-blast"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/block-party-blast.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "blocky-gangster-warfare-2022"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/blocky-gangster-warfare-2022.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "click-to-control-chaos"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/click-to-control-chaos.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "football-soccer-penalties"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/football-soccer-penalties.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "crazy-neon-square-rush"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/crazy-neon-square-rush.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "terrifying-zombies-tower-defense-1-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/terrifying-zombies-tower-defense-1-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "word-search-universe-easter"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/word-search-universe-easter.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "travel-mahjong-deluxe"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/travel-mahjong-deluxe.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "spherix"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/spherix.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "power-shift-arena"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/power-shift-arena.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "deer-hunting-jungle-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/deer-hunting-jungle-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.32MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "spot-the-difference-wild-west"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/spot-the-difference-wild-west.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.31MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "commando-shooting"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/commando-shooting.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.31MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "defend-the-planet"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/defend-the-planet.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.31MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "color-bridge-builder-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/color-bridge-builder-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.31MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "raft-evolution"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/raft-evolution.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.31MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "forest-archer"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/forest-archer.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "fashion-show-makeup"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/fashion-show-makeup.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "sugar-rush-tower"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sugar-rush-tower.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "zombiecrash"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/zombiecrash.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "summer-triple-mahjong"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/summer-triple-mahjong.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "ninja-robo-hero"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/ninja-robo-hero.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "neonroll"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/neonroll.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "school-bus-driving-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/school-bus-driving-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "death-race-2"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/death-race-2.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "coloring-books"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/coloring-books.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "basketball-2024"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/basketball-2024.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "brainrot-click-to-hatch"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/brainrot-click-to-hatch.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "crazy-fast-food-crash"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/crazy-fast-food-crash.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "dream-football-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dream-football-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.30MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "dirt-bus-simulation-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dirt-bus-simulation-game.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.29MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "reckless-getaway-2-car-chase"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/reckless-getaway-2-car-chase.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.29MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "gem-sort-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/gem-sort-puzzle.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.29MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "collect-brainrot-arena"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/collect-brainrot-arena.jpg"
+      }
+    },
+    {
+      "_source": "normalize_thumbnails",
+      "_note": "Upstream thumbnail was 0.29MB; self-hosted at 512x384.",
+      "match": {
+        "slug": "car-and-truck-parking-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/car-and-truck-parking-game.jpg"
+      }
     }
   ],
   "add": [

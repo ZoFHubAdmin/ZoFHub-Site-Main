@@ -31,6 +31,7 @@
     "mood-index": "python tools/build-mood-index.py",
     "fix-missing-thumbs": "python tools/fetch_thumbnails.py",
     "scrape-thumbs": "python tools/scrape_thumbnails.py",
+    "normalize-thumbs": "python tools/normalize_thumbnails.py",
     "purge-eduame": "node --use-system-ca tools/purge-eduame.mjs",
     "y8-scrape": "node --use-system-ca scrape-y8.js",
     "y8-harvest": "node --use-system-ca y8-harvest.js",
