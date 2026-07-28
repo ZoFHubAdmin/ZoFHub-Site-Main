@@ -38,7 +38,12 @@ database.sqlite
 
 
 # YOUR config
-config.toml
+# config.toml
+# ^ Deliberately NOT ignored in this fork. The parent ZoFHub repo is a PRIVATE
+# full-machine backup ("nothing is excluded"), and without this file Nebula
+# aborts at startup with `ENOENT: config.toml` — so a fresh clone would have a
+# fully built Nebula that still can't run. It holds no secrets: sqlite, no
+# postgres credentials, marketplace + masqr disabled. Keep the repo private.
 
 # Goofy PNPM problem
 ~/

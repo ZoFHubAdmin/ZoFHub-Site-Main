@@ -1,0 +1,33 @@
+[marketplace]
+enabled = false # Turn on or off the marketplace entirely
+psk = "zofhub-local-only-marketplace-disabled" # Unused while marketplace.enabled = false
+level = 1
+
+[seo]
+enabled = false
+domain = "https://nebulaproxy.io"
+
+[db]
+name = "database" # Your database name
+username = "username" # The username of your DB (SQLITE just ignores this)
+password = "password" # The password to your DB (SQLITE ignores this)
+postgres = false # sqlite — no external database needed for local dev
+
+[postgres] # Unused while db.postgres = false
+domain = ""
+port = 5432
+
+[server.server]
+# 8094 matches PORTS.nebula in tools/proxies.mjs. The launcher passes PORT=8094
+# in the environment and server.ts prefers process.env.PORT over this value, so
+# this only applies if you start Nebula by hand — in which case 8080 (the
+# upstream default) would collide with the ZoFHub server itself.
+port = 8094
+wisp = true
+logging = true # Disable for the tons & tons of logs to go away (useful for debugging but otherwise eh)
+
+[masqr]
+enabled = false
+failed = "failed.html" # Default masqr failed page. For per-site failed pages, create a folder named "Masqrd" and create DOMAIN.TLD.html
+whitelisted = ["https://nebulaservices.org"] # List of domains to skip masqr
+url = "" # Masqr license URL

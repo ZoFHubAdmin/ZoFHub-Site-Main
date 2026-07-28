@@ -5,7 +5,12 @@ node_modules/
 *.lockb
 *-lock.yaml
 dist/
-config.js
+# config.js
+# ^ Deliberately NOT ignored in this fork. The parent ZoFHub repo is a PRIVATE
+# full-machine backup ("nothing is excluded"), and DayDream refuses to start
+# without it — so a fresh clone would have a built DayDream that can't run.
+# The marketplace psk in it is a random local-dev value for a 127.0.0.1-bound
+# service. Keep the repo private; rotate the psk if it is ever exposed.
 database.sqlite
 .VSCodeCounter/
 plus-backend/

@@ -1,3 +1,16 @@
+# pnpm 10+ refuses to run dependency build scripts unless they're approved here.
+# These were left as pnpm's literal "set this to true or false" placeholders,
+# so every install aborted with ERR_PNPM_IGNORED_BUILDS and Nebula could never
+# be built. All six genuinely need a native/postinstall step (sqlite3 + sharp +
+# bufferutil compile bindings; esbuild and biome unpack a platform binary).
+allowBuilds:
+  '@biomejs/biome': true
+  '@mercuryworkshop/scramjet': true
+  bufferutil: true
+  esbuild: true
+  sharp: true
+  sqlite3: true
+  utf-8-validate: true
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@mercuryworkshop/scramjet'

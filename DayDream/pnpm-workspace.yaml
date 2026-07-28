@@ -1,3 +1,20 @@
+# pnpm 10+ refuses to run dependency build scripts unless they're approved here,
+# and these were left as pnpm's literal "set this to true or false" placeholders,
+# so every install aborted with ERR_PNPM_IGNORED_BUILDS. All six genuinely need a
+# native/postinstall step: sqlite3 + bufferutil compile bindings, esbuild unpacks
+# a platform binary, ttf2woff2 builds its font converter, and scramjet assembles
+# its proxy bundle.
+allowBuilds:
+  '@heroui/shared-utils': true
+  '@mercuryworkshop/scramjet': true
+  bufferutil: true
+  esbuild: true
+  sqlite3: true
+  ttf2woff2: true
 onlyBuiltDependencies:
+  - '@heroui/shared-utils'
+  - '@mercuryworkshop/scramjet'
   - bufferutil
   - esbuild
+  - sqlite3
+  - ttf2woff2

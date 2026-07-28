@@ -9,6 +9,7 @@ import { refluxPath } from "@nightnetwork/reflux";
 import { enigmaPath } from "@nightnetwork/enigma/path";
 import { baremuxPath as bmworkerPath } from "@nightnetwork/bm-plusworker/path";
 import path from "path";
+import fs from "fs";
 
 export const routePaths = {
   epoxy: "epoxy",
@@ -136,21 +137,34 @@ function generateStaticCopyTargets(map: typeof copyMap) {
 
   for (const key in map) {
     const entry = map[key as keyof typeof copyMap];
-    const basePath = entry.path;
+    // These become GLOB patterns for vite-plugin-static-copy, and its matcher
+    // treats "\" as an escape character — so on Windows the native absolute
+    // paths these packages export never match anything and the build dies with
+    // "No file was found to copy on ...\dist/*". Forward slashes work on every
+    // platform, so normalising here is a no-op on POSIX.
+    const basePath = String(entry.path).replace(/\\/g, "/");
     const files = entry.files;
+
+    // vite-plugin-static-copy FAILS THE WHOLE BUILD if any target matches zero
+    // files. Several of these lists are hard-coded against upstream packages
+    // whose published contents have since changed (@nightnetwork/night-auth no
+    // longer ships assets/nightloginflow.css or the night-login-frame.* files),
+    // so one drifted optional asset killed an otherwise complete build. Skip
+    // literal filenames that aren't on disk and log them; glob patterns ("*")
+    // are passed through untouched so a genuinely empty package still errors.
+    const keep = (src: string) => {
+      if (src.includes("*") || fs.existsSync(src)) return true;
+      console.log(`[copy] skipping missing optional asset: ${src}`);
+      return false;
+    };
 
     for (const file of files) {
       if (typeof file === "string") {
-        targets.push({
-          src: `${basePath}/${file}`,
-          dest: entry.dest,
-        });
+        const src = `${basePath}/${file}`;
+        if (keep(src)) targets.push({ src, dest: entry.dest });
       } else {
-        targets.push({
-          src: `${basePath}/${file.name}`,
-          dest: entry.dest,
-          rename: file.rename,
-        });
+        const src = `${basePath}/${file.name}`;
+        if (keep(src)) targets.push({ src, dest: entry.dest, rename: file.rename });
       }
     }
   }

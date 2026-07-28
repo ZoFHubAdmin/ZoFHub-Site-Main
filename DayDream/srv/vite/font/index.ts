@@ -123,12 +123,15 @@ export function fontObfuscationPlugin() {
           visibleChars.length = inputChars.length;
         }
 
-        const baseFont: any = await new Promise((resolve, reject) => {
-          (opentype as any).load(fontConfig.path, (err: any, font: any) => {
-            if (err) reject(err);
-            else resolve(font);
-          });
-        });
+        // opentype.js 1.3.5 DEPRECATED the callback form of load(): it prints
+        // "DEPRECATED! migrate to: opentype.parse(...)" and never invokes the
+        // callback, so this Promise never settled and `pnpm run build` hung
+        // here forever at 0% CPU (no error, no output — it just stopped).
+        // opentype.parse() on the file buffer is the replacement the
+        // deprecation notice itself prescribes.
+        const baseFont: any = (opentype as any).parse(
+          fs.readFileSync(fontConfig.path),
+        );
 
         const notdefGlyph = new opentype.Glyph({
           name: ".notdef",
