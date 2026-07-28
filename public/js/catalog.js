@@ -11,6 +11,19 @@ import { rankGames, suggestions, highlightTerms } from './search.js?v=20260727';
 // dupes / gaps). The server reads &seed= and does the weighted shuffle.
 const SEED = Math.random().toString(36).slice(2, 10);
 
+// First page only — small + fast so the homepage paints almost immediately.
+// 120 covers the Featured/Trending/New rows + the first 2 pages of "All".
+// (Was 600 ≈ 237 KB; 120 ≈ 48 KB — ~5× less data before first paint.)
+//
+// MUST be declared above the init() IIFE below. It used to sit next to
+// loadFirst(), further down the file, which put it in the temporal dead zone at
+// the moment init() calls loadFirst(): that call happens during module
+// evaluation, and `${INITIAL_LOAD}` is read synchronously before the first
+// await. So EVERY page load threw "Cannot access 'INITIAL_LOAD' before
+// initialization" on attempt 1 and only painted after the 400ms retry — the
+// retry loop hid a guaranteed failure behind what looked like a flaky network.
+const INITIAL_LOAD = 120;
+
 // Per-slug live count badges on tiles.  We keep a Map<slug, Set<HTMLElement>>
 // so when a snapshot arrives we update only the tiles currently rendered.
 const liveBadges = new Map();
@@ -151,10 +164,6 @@ async function loadCategoryNav() {
   } catch (e) { console.warn('nav:', e); }
 }
 
-// First page only — small + fast so the homepage paints almost immediately.
-// 120 covers the Featured/Trending/New rows + the first 2 pages of "All".
-// (Was 600 ≈ 237 KB; 120 ≈ 48 KB — ~5× less data before first paint.)
-const INITIAL_LOAD = 120;
 async function loadFirst() {
   state.all = [];
   let lastErr;
