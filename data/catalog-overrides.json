@@ -1930,6 +1930,15 @@
       "set": {
         "thumbnail_url": "/thumbs/car-and-truck-parking-game.jpg"
       }
+    },
+    {
+      "_note": "Bloxd.io: replaced onlinegames.io's hotlinked art (competitor CDN, unlicensed, serves a WAF challenge) with Bloxd LTD's OWN og:image, self-hosted at 512x384. Their ToS (checked 2026-07-28, rev 2025-07-15) has no anti-embed, no commercial-use and no public-display clause, and they set no X-Frame-Options / frame-ancestors.",
+      "match": {
+        "slug": "bloxd-io"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/bloxd-io.jpg"
+      }
     }
   ],
   "add": [

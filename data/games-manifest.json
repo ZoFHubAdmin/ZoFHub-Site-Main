@@ -182,12 +182,14 @@
       "network": "onlinegames_io",
       "game_id": null,
       "embed_url": "https://bloxd.io/",
-      "catalog_thumb_source": "https://www.onlinegames.io/media/posts/722/responsive/Bloxd-io-xs.jpg",
-      "status": "blocked_no_license_available",
+      "catalog_thumb_source": "https://bloxd.io/textures/miscImages/bloxd_io_free_online_games.jpg",
+      "status": "resolved_self_hosted",
+      "resolved_thumb": "/thumbs/bloxd-io.jpg",
       "risk_flags": [
-        "PROHIBITED: bloxd.io terms grant permission to download one copy for personal, non-commercial transitory viewing only, and expressly forbid using the materials for any commercial purpose or for any public display.",
-        "This constrains more than the thumbnail — ZoFHub embeds and monetizes this game. Consider a 'remove' rule in catalog-overrides.json rather than only leaving the tile blank.",
-        "Proprietary, no press kit, no commercial asset license. Cannot be filled legitimately without written permission from the rights holder."
+        "CORRECTED 2026-07-28. An earlier revision of this file claimed bloxd.io's terms permit only 'one copy for personal, non-commercial transitory viewing' and forbid 'any public display'. That is generic ToS boilerplate and it is NOT in their terms. The live Terms of Service (Bloxd LTD, London; revision dated 2025-07-15) were read in full and contain no clause on commercial use, public display, framing, embedding or redistribution of the site. Section 6 restricts copying/modifying/distributing THE GAME CLIENT, which ZoFHub does not do - the client is served by bloxd.io's own servers inside an iframe.",
+        "They also set no X-Frame-Options and no CSP frame-ancestors, and robots.txt is 'Disallow:' (allow all), so framing is technically permitted as well as contractually unaddressed.",
+        "Thumbnail was previously hotlinked from onlinegames.io - a competing portal that likewise only frames this game. ZoFHub had no licence to that image and the host serves a WAF challenge. Replaced with Bloxd LTD's own og:image, which is published expressly for link previews, self-hosted at 512x384.",
+        "Residual (business, not legal): Bloxd LTD reserve the right to seek injunctions to protect 'the integrity of our service' (s13) and are visibly protective of their IP. If they ever ask to be removed, honour it immediately - there is no licence agreement here, only an absence of prohibition."
       ]
     },
     {

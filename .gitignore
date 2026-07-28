@@ -13,3 +13,7 @@
 
 # Server-side thumbnail proxy cache (regenerated on demand, never commit)
 .cache/
+
+# Python bytecode cache (never useful in the repo; version-specific)
+__pycache__/
+*.pyc
