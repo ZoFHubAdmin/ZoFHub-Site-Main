@@ -1,0 +1,207 @@
+{
+  "_meta": {
+    "generated": "2026-07-27",
+    "games": 14,
+    "note": "Licensing/risk register + thumbnail-recovery manifest for the games whose thumbnails fell back to the initials tile. Consumed by tools/fetch_thumbnails.py. Match on game_id, NEVER on title (Vex 3/9/X3M are the same series by the same author).",
+    "verification": "Re-verified 2026-07-27 from an UNRESTRICTED network against the live ZoFHub catalog. This supersedes an earlier pass whose sandbox denied egress to every relevant host (x-deny-reason: host_not_allowed) and therefore could not test any URL.",
+    "root_cause": "Not a licensing gate. The stored GameDistribution URLs use the extension '-512x384.jpeg', which returns HTTP 403 AccessDenied from their S3 bucket. The SAME asset at '-512x384.jpg' returns a real JPEG. A one-character extension difference accounted for 7 of the 13 broken thumbnails.",
+    "referer_finding": "GameDistribution's img CDN is NOT referer-protected: identical requests with no Referer, a google.com Referer, and a zofhub.com Referer all behave the same. The 403 is per-object (AccessDenied on missing keys), not hotlink protection. onlinegames.io IS protected — it returns a ~17.5KB WAF challenge page on every path shape.",
+    "policy": "Recovered art is DOWNLOADED AND SELF-HOSTED to public/thumbs/, never hotlinked. Self-hosting is what removes the referer dependency, the silent-deletion failure, and the ad-blocker breakage on img.gamemonetize.com."
+  },
+
+  "networks": {
+    "gamedistribution": {
+      "feed_builder": "https://acc.gamedistribution.com/rss-builder",
+      "cost": "free",
+      "license_basis": "Publisher agreement grants a non-exclusive, limited, non-sublicensable, non-transferable sublicense to make Games available on Publisher Properties, conditional on continuously meeting the agreement terms.",
+      "public_catalog_api": false,
+      "thumb_url_patterns": [
+        "https://img.gamedistribution.com/{id}-512x384.jpg",
+        "https://img.gamedistribution.com/{id}.jpg",
+        "https://img.gamedistribution.com/{id}-512x512.jpg",
+        "https://img.gamedistribution.com/{id}-280x210.jpg"
+      ],
+      "_pattern_note": "Ordered best-first. '.jpeg' variants are dead across the board; keep '.jpg'. If GD rotates the scheme again, add the new shape here — the tool probes this list in order and validates real image bytes."
+    },
+    "gamemonetize": {
+      "feed_builder": "https://gamemonetize.com/rss-builder",
+      "feed_endpoint": "https://rss.gamemonetize.com/rssfeed.php?format=json&num=All",
+      "cost": "free",
+      "revenue_share": "45% publisher share, NET30",
+      "public_catalog_api": true,
+      "thumb_url_patterns": [
+        "https://img.gamemonetize.com/{id}/512x384.jpg"
+      ],
+      "_feed_note": "Feed is genuinely public — verified 200, ~4.2MB, 5001 items, no auth. Its 'id' field is a NUMERIC id (e.g. 35616), NOT the embed hash; the hash appears only inside the 'url'/'thumb' fields, so the tool indexes by hash extracted from the URL."
+    },
+    "y8": {
+      "publisher_program": "https://www.y8.com/games_for_your_website",
+      "cost": "free",
+      "license_basis": "Y8 offers games for hosting on publisher websites at no cost; feed exposes a thumbs object (graphic_288x192, screenshotPath) plus iframeUrl.",
+      "public_catalog_api": false,
+      "_note": "ZoFHub already self-hosts 28 y8 thumbnails; tools/fetch-y8-thumbs.mjs re-resolves them from each game page's og:image when a stored URL goes stale."
+    },
+    "onlinegames_io": {
+      "public_catalog_api": false,
+      "_note": "Hotlink/WAF protected — every media path returns a ~17.5KB challenge page instead of an image. There is no unauthenticated route to this art. ZoFHub already treats this host as fully blocked for recommendations."
+    }
+  },
+
+  "games": [
+    {
+      "slug": "vex-9",
+      "title": "Vex 9",
+      "network": "gamedistribution",
+      "game_id": "8d034584a63642dcb89fa3d24ed6e1b1",
+      "embed_url": "https://html5.gamedistribution.com/8d034584a63642dcb89fa3d24ed6e1b1/",
+      "status": "recoverable",
+      "verified_bytes": 55605,
+      "risk_flags": []
+    },
+    {
+      "slug": "vex-3",
+      "title": "Vex 3",
+      "network": "gamedistribution",
+      "game_id": "762c932b4db74c6da0c1d101b2da8be6",
+      "embed_url": "https://html5.gamedistribution.com/762c932b4db74c6da0c1d101b2da8be6/",
+      "status": "recoverable",
+      "verified_bytes": 28807,
+      "risk_flags": ["title_collision: match on game_id only, never on title - Vex 3/9/X3M are same series, same author"]
+    },
+    {
+      "slug": "vex-x3m",
+      "title": "Vex X3M",
+      "network": "gamedistribution",
+      "game_id": "8fe53e6e4e564e5d927c78fd8e3daebc",
+      "embed_url": "https://html5.gamedistribution.com/8fe53e6e4e564e5d927c78fd8e3daebc/",
+      "status": "upstream_art_missing",
+      "risk_flags": [
+        "title_collision: match on game_id only, never on title",
+        "Every known URL pattern returns AccessDenied while the game embed itself returns 200 — the thumbnail object is absent from GD's bucket, not blocked. A licensed GD feed would supply the authoritative URL; until then this game keeps the fallback tile."
+      ]
+    },
+    {
+      "slug": "run-3d",
+      "title": "Run 3D",
+      "network": "gamedistribution",
+      "game_id": "e103db40071a4af38aab2061bf799455",
+      "embed_url": "https://html5.gamedistribution.com/e103db40071a4af38aab2061bf799455/",
+      "status": "recoverable",
+      "verified_bytes": 49929,
+      "risk_flags": []
+    },
+    {
+      "slug": "fruit-ninja",
+      "title": "Fruit Ninja",
+      "network": "gamedistribution",
+      "game_id": "a186dc9ac7f548f884db8ff54df6dd9f",
+      "embed_url": "https://html5.gamedistribution.com/a186dc9ac7f548f884db8ff54df6dd9f/",
+      "status": "recoverable",
+      "verified_bytes": 34404,
+      "risk_flags": [
+        "TRADEMARK: Halfbrick Studios holds registered FRUIT NINJA marks covering computer game software and actively enforces them. This GD title is near-certainly not Halfbrick's. Exposure attaches to the NAME on a monetized site independent of artwork - consider renaming the tile."
+      ]
+    },
+    {
+      "slug": "rooftop-run",
+      "title": "Rooftop Run",
+      "network": "gamedistribution",
+      "game_id": "cee36dd2c4f34d5797921a49bb1d4b83",
+      "embed_url": "https://html5.gamedistribution.com/cee36dd2c4f34d5797921a49bb1d4b83/",
+      "status": "recoverable",
+      "verified_bytes": 207032,
+      "risk_flags": []
+    },
+    {
+      "slug": "magic-tiles-3",
+      "title": "Magic Tiles 3",
+      "network": "gamedistribution",
+      "game_id": "58deefb8f63943dcbc5093070b9b5777",
+      "embed_url": "https://html5.gamedistribution.com/58deefb8f63943dcbc5093070b9b5777/",
+      "status": "recoverable",
+      "verified_bytes": 88305,
+      "risk_flags": ["Magic Tiles 3 is an Amanotes title; verify the GD listing is the licensed original before display"]
+    },
+    {
+      "slug": "red-light-green-light",
+      "title": "Red Light Green Light",
+      "network": "gamedistribution",
+      "game_id": "788f89d325d840f391139ce0e1212c46",
+      "embed_url": "https://html5.gamedistribution.com/788f89d325d840f391139ce0e1212c46/",
+      "status": "recoverable",
+      "verified_bytes": 195274,
+      "risk_flags": ["IP: derived from Squid Game. Netflix enforces on that property. Art or naming echoing the series raises exposure on a monetized site."]
+    },
+    {
+      "slug": "attractive",
+      "title": "Attractive",
+      "network": "gamemonetize",
+      "game_id": "52r5o13q586xapqfkofvculcmv23te84",
+      "embed_url": "https://html5.gamemonetize.co/52r5o13q586xapqfkofvculcmv23te84/",
+      "status": "upstream_art_removed",
+      "risk_flags": ["Present in the public feed, but the referenced asset is a 343-byte 2-bit-colormap PNG placeholder, not artwork."]
+    },
+    {
+      "slug": "purple-clicker-game",
+      "title": "Purple Clicker Game",
+      "network": "gamemonetize",
+      "game_id": "jayv1ip186ga9nfzx9z5nm2f5tjkycfs",
+      "embed_url": "https://html5.gamemonetize.co/jayv1ip186ga9nfzx9z5nm2f5tjkycfs/",
+      "status": "upstream_art_removed",
+      "risk_flags": ["In the public feed; asset is a 931-byte placeholder JPEG."]
+    },
+    {
+      "slug": "green-clicker-game",
+      "title": "Green Clicker Game",
+      "network": "gamemonetize",
+      "game_id": "li1n6uejdfkd0gm7s25mptf2la2h4ar0",
+      "embed_url": "https://html5.gamemonetize.co/li1n6uejdfkd0gm7s25mptf2la2h4ar0/",
+      "status": "upstream_art_removed",
+      "risk_flags": ["Absent from the public feed entirely; its CDN path still 200s with a 931-byte placeholder."]
+    },
+    {
+      "slug": "suroi",
+      "title": "Suroi",
+      "network": "onlinegames_io",
+      "game_id": null,
+      "embed_url": "https://suroi.io/",
+      "catalog_thumb_source": "https://www.onlinegames.io/media/posts/844/responsive/suroi-io-xs.jpg",
+      "status": "self_host_only",
+      "risk_flags": [
+        "ZoFHub sources this tile from onlinegames.io, which is WAF-blocked — no unauthenticated fetch succeeds.",
+        "The game is GPL-3.0 (github.com/HasangerGames/suroi): commercial use permitted, but you must preserve copyright notices and license terms.",
+        "MIXED ASSET PROVENANCE: repo credits show art from many contributors plus third-party sources (Forest Camo body is a Freepik vector whose redistribution terms do not cleanly inherit GPL).",
+        "No 4:3 gameplay art exists in the repo - only logos and favicons.",
+        "Do NOT hotlink raw.githubusercontent.com: violates GitHub ToS on CDN use and is not a stable URL.",
+        "Cleanest route: self-host your own gameplay screenshot from the GPL build into public/thumbs/suroi.jpg."
+      ]
+    },
+    {
+      "slug": "bloxd-io",
+      "title": "Bloxd.io",
+      "network": "onlinegames_io",
+      "game_id": null,
+      "embed_url": "https://bloxd.io/",
+      "catalog_thumb_source": "https://www.onlinegames.io/media/posts/722/responsive/Bloxd-io-xs.jpg",
+      "status": "blocked_no_license_available",
+      "risk_flags": [
+        "PROHIBITED: bloxd.io terms grant permission to download one copy for personal, non-commercial transitory viewing only, and expressly forbid using the materials for any commercial purpose or for any public display.",
+        "This constrains more than the thumbnail — ZoFHub embeds and monetizes this game. Consider a 'remove' rule in catalog-overrides.json rather than only leaving the tile blank.",
+        "Proprietary, no press kit, no commercial asset license. Cannot be filled legitimately without written permission from the rights holder."
+      ]
+    },
+    {
+      "slug": "slope",
+      "title": "Slope",
+      "network": "y8",
+      "game_id": "slope",
+      "embed_url": "https://www.y8.com/games/slope",
+      "status": "not_in_catalog",
+      "risk_flags": [
+        "/play/slope returns 404 — there is no catalog entry with this slug. The Slope users actually see is the GameDistribution 'slope-rolling' entry, already renamed to 'Slope' and already pointed at the self-hosted /thumbs/slope.png by an existing catalog-overrides patch rule. Nothing to fix.",
+        "Created by Rob Kay in 2014; now developed and published by Y8 Games - Y8 holds distribution rights, not Rob Kay.",
+        "Many slope*.com sites are unauthorized mirrors - do not source art from them."
+      ]
+    }
+  ]
+}

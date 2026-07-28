@@ -321,6 +321,245 @@
       "set": {
         "title": "Shoot 'Em Up"
       }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 9).",
+      "match": {
+        "slug": "vex-9"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/vex-9.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 9). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "8d034584a63642dcb89fa3d24ed6e1b1"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/vex-9.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 3).",
+      "match": {
+        "slug": "vex-3"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/vex-3.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 3). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "762c932b4db74c6da0c1d101b2da8be6"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/vex-3.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Run 3D).",
+      "match": {
+        "slug": "run-3d"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/run-3d.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Run 3D). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "e103db40071a4af38aab2061bf799455"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/run-3d.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Fruit Ninja).",
+      "match": {
+        "slug": "fruit-ninja"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/fruit-ninja.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Fruit Ninja). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "a186dc9ac7f548f884db8ff54df6dd9f"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/fruit-ninja.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Rooftop Run).",
+      "match": {
+        "slug": "rooftop-run"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/rooftop-run.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Rooftop Run). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "cee36dd2c4f34d5797921a49bb1d4b83"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/rooftop-run.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Magic Tiles 3).",
+      "match": {
+        "slug": "magic-tiles-3"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/magic-tiles-3.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Magic Tiles 3). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "58deefb8f63943dcbc5093070b9b5777"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/magic-tiles-3.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Red Light Green Light).",
+      "match": {
+        "slug": "red-light-green-light"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/red-light-green-light.jpg"
+      }
+    },
+    {
+      "_source": "fetch_thumbnails",
+      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Red Light Green Light). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "788f89d325d840f391139ce0e1212c46"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/red-light-green-light.jpg"
+      }
+    },
+    {
+      "_source": "scrape_thumbnails",
+      "_note": "Thumbnail scraped by tools/scrape_thumbnails.py via L4 screenshot (Attractive).",
+      "match": {
+        "slug": "attractive"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/attractive.jpg"
+      }
+    },
+    {
+      "_source": "scrape_thumbnails",
+      "_note": "Thumbnail scraped by tools/scrape_thumbnails.py via L4 screenshot (Attractive). Matched by distributor id.",
+      "match": {
+        "urlIncludes": "52r5o13q586xapqfkofvculcmv23te84"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/attractive.jpg"
+      }
+    },
+    {
+      "_note": "slope-unblocked's stored thumbnail is a Git-Bash-mangled Windows path (C:/Users/.../Programs/Git/thumbs/slope.png) that the browser tries to load as file:/// and always fails. Point it at the real self-hosted asset.",
+      "match": {
+        "slug": "slope-unblocked"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/slope.png"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 8.6MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "escape-wednesday"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/escape-wednesday.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 12.1MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "safari-story-mahjong"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/safari-story-mahjong.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 1.8MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "space-surfer"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/space-surfer.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 0.2MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "liquid-sort-deluxe"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/liquid-sort-deluxe.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 0.3MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "crazy-mechanic"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/crazy-mechanic.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 22.8MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "stickman-dismount-simulator"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/stickman-dismount-simulator.jpg"
+      }
+    },
+    {
+      "_source": "oversized_thumbs",
+      "_note": "Upstream thumbnail was 0.2MB and timed out under load; self-hosted at 512x384 instead.",
+      "match": {
+        "slug": "hero-inc-2-online"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/hero-inc-2-online.jpg"
+      }
     }
   ],
   "add": [
@@ -433,5 +672,14 @@
     {
       "slug": "stickman-parkour-3"
     }
+  ],
+  "featured": [
+    "neon-ball-slope",
+    "super-subway-hero-stack",
+    "stickman-hook-pro",
+    "monster-paper-io",
+    "driftsea",
+    "smash-karts",
+    "basket-random"
   ]
 }

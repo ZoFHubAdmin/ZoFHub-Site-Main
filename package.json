@@ -22,7 +22,6 @@
     "clean-fakes": "node tools/clean-fake-gd-hashes.mjs",
     "link-check": "node --use-system-ca tools/link-checker.mjs",
     "link-check:full": "node --use-system-ca tools/linkcheck-full.mjs",
-    "fix-links": "node --use-system-ca tools/link-checker.mjs",
     "export-games": "node --use-system-ca tools/export-games.mjs",
     "restore-games": "node --use-system-ca tools/restore-games.mjs",
     "fix-thumbnails": "node --use-system-ca tools/fetch-y8-thumbs.mjs",
@@ -30,12 +29,17 @@
     "add-slope": "node --use-system-ca tools/add-slope.mjs",
     "add-game": "node --use-system-ca tools/add-game.mjs",
     "mood-index": "python tools/build-mood-index.py",
+    "fix-missing-thumbs": "python tools/fetch_thumbnails.py",
+    "scrape-thumbs": "python tools/scrape_thumbnails.py",
     "purge-eduame": "node --use-system-ca tools/purge-eduame.mjs",
     "y8-scrape": "node --use-system-ca scrape-y8.js",
     "y8-harvest": "node --use-system-ca y8-harvest.js",
     "y8-sync": "node --use-system-ca lib/y8-ingest.mjs",
     "audit-thumbnails": "node --use-system-ca tools/audit-thumbnails.mjs",
-    "audit-licensing": "node --use-system-ca tools/audit-licensing.mjs"
+    "audit-licensing": "node --use-system-ca tools/audit-licensing.mjs",
+    "build-merged": "node --use-system-ca tools/build-merged.mjs",
+    "cleanup-ip": "node --use-system-ca tools/cleanup-ip.mjs",
+    "build-curated": "node --use-system-ca tools/build-curated.mjs"
   },
   "engines": {
     "node": ">=22"
