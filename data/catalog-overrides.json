@@ -1939,6 +1939,36 @@
       "set": {
         "thumbnail_url": "/thumbs/bloxd-io.jpg"
       }
+    },
+    {
+      "_source": "gm_screenshot_recovery",
+      "_note": "GameMonetize published no thumbnail for this game at any size (probed 8 variants, all 404/HTML). Game itself verified alive. Recovered by screenshotting the game and VISUALLY reviewing the result: title screen (tank + logo). Reviewed 2026-07-28.",
+      "match": {
+        "slug": "tank-tempur"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/tank-tempur.jpg"
+      }
+    },
+    {
+      "_source": "gm_screenshot_recovery",
+      "_note": "GameMonetize published no thumbnail for this game at any size (probed 8 variants, all 404/HTML). Game itself verified alive. Recovered by screenshotting the game and VISUALLY reviewing the result: title screen (car). Reviewed 2026-07-28.",
+      "match": {
+        "slug": "mobil-mania"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/mobil-mania.jpg"
+      }
+    },
+    {
+      "_source": "gm_screenshot_recovery",
+      "_note": "GameMonetize published no thumbnail for this game at any size (probed 8 variants, all 404/HTML). Game itself verified alive. Recovered by screenshotting the game and VISUALLY reviewing the result: the game's own tutorial screen. Reviewed 2026-07-28.",
+      "match": {
+        "slug": "macet"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/macet.jpg"
+      }
     }
   ],
   "add": [

@@ -44,6 +44,23 @@ TWO DELIBERATE LIMITS
    terms forbid.
 Both are enforced in one small class you can read and adjust in a minute.
 
+⚠ LAYER 4 OUTPUT MUST BE REVIEWED BY EYE BEFORE IT SHIPS (learned 2026-07-28).
+The near-flat/stddev gate only proves "this image is not blank". It does NOT prove
+the image is gameplay. Screenshotting ad-supported games (GameMonetize especially)
+produced, in one 7-game run: two full-screen ad creatives (one a "Click Here To
+C0ntinue" scam unit) and two *advertiser landing pages* - the synthetic click meant
+to dismiss a title screen landed on an ad overlay and navigated the whole page. All
+four sailed through the stddev check, because ads have plenty of contrast. Shipping
+one of those as a game tile is strictly worse than the initials fallback.
+
+Two hard-won rules:
+  - Never click blind to "start" a game. Use the keyboard, and after the shot assert
+    the game id is still in page.url - if it isn't, you captured an advertiser.
+  - Blocking the ad networks does NOT fix this. Many GameMonetize titles wait on the
+    ad SDK before booting, so with ads blocked the canvas stays permanently blank
+    (stddev 0.0) and you recover nothing. Ads on = you may capture an ad; ads off =
+    you capture nothing. There is no automated way out, so a human look is the gate.
+
 Requires: pip install requests Pillow beautifulsoup4 lxml
 Optional (layers 3-4): pip install playwright && python -m playwright install chromium
 """
