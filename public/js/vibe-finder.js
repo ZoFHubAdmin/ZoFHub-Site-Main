@@ -34,18 +34,18 @@ function injectStyles() {
   .vibe-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;
     flex:0 0 auto;align-self:center;cursor:pointer;border:0;position:relative;
     height:30px;padding:0 14px;margin-left:12px;
-    background:linear-gradient(135deg,#7c4dff,#ff4d8d);color:#fff;
+    background:linear-gradient(135deg,#ffd426,#f5c518);color:#241a00;
     border-radius:999px;font-size:12.5px;font-weight:700;font-family:inherit;line-height:1;letter-spacing:.01em;
-    white-space:nowrap;box-shadow:0 2px 10px rgba(124,77,255,.45),inset 0 1px 0 rgba(255,255,255,.22);
+    white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.22);
     transition:filter .15s ease,box-shadow .15s ease,transform .1s ease}
   /* thin divider separating the chip from the input */
   .vibe-trigger::before{content:'';position:absolute;left:-7px;top:50%;transform:translateY(-50%);
     width:1px;height:18px;background:rgba(255,255,255,.16)}
-  .vibe-trigger:hover{filter:brightness(1.08);box-shadow:0 5px 16px rgba(124,77,255,.6),inset 0 1px 0 rgba(255,255,255,.3)}
+  .vibe-trigger:hover{filter:brightness(1.08);box-shadow:0 5px 16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.3)}
   .vibe-trigger:active{transform:translateY(1px)}
-  .vibe-trigger:focus-visible{outline:2px solid #ffe000;outline-offset:2px}
-  .vibe-trigger svg{width:14px;height:14px;flex:0 0 14px;color:#ffe000;
-    filter:drop-shadow(0 0 3px rgba(255,224,0,.65));animation:vibeSparkle 2.6s ease-in-out infinite}
+  .vibe-trigger:focus-visible{outline:2px solid #ffd426;outline-offset:2px}
+  .vibe-trigger svg{width:14px;height:14px;flex:0 0 14px;color:#ffd426;
+    filter:drop-shadow(0 0 3px rgba(255,212,38,.65));animation:vibeSparkle 2.6s ease-in-out infinite}
   @keyframes vibeSparkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.82;transform:scale(1.14)}}
   /* On small screens collapse to a round icon-only button so it never crowds the input. */
   @media (max-width:760px){.vibe-trigger span{display:none}.vibe-trigger{padding:0;width:30px;gap:0;margin-left:8px}
@@ -56,31 +56,31 @@ function injectStyles() {
      UA [hidden]{display:none}. This explicit rule makes close() actually close it. */
   .vibe-back[hidden]{display:none!important}
   @keyframes vibeIn{from{opacity:0}to{opacity:1}}
-  .vibe-card{width:min(680px,100%);background:#0e2247;border:1px solid rgba(125,170,255,.24);border-radius:18px;
+  .vibe-card{width:min(680px,100%);background:#0e2247;border:1px solid rgba(255,255,255,.24);border-radius:18px;
     box-shadow:0 30px 80px rgba(0,0,0,.6);padding:20px;font-family:Inter,system-ui,sans-serif;max-height:82vh;display:flex;flex-direction:column}
   .vibe-head{display:flex;align-items:center;gap:9px;margin:0 0 4px}
-  .vibe-head h2{margin:0;font-size:19px;color:#eaf1ff;display:flex;align-items:center;gap:8px}
-  .vibe-head h2 svg{color:#ffe000}
-  .vibe-card p.sub{margin:0 0 14px;font-size:12.5px;color:#a7bce0}
+  .vibe-head h2{margin:0;font-size:19px;color:#f7f4ff;display:flex;align-items:center;gap:8px}
+  .vibe-head h2 svg{color:#ffd426}
+  .vibe-card p.sub{margin:0 0 14px;font-size:12.5px;color:#c3b6ee}
   .vibe-close{margin-left:auto;cursor:pointer;background:transparent;border:0;color:#8aa2cf;font-size:24px;line-height:1}
   .vibe-form{display:flex;gap:8px}
-  .vibe-form input{flex:1;padding:12px 14px;border-radius:12px;background:#0a1a38;border:1px solid rgba(125,170,255,.24);color:#eaf1ff;font-size:14px;outline:0}
-  .vibe-form input:focus{border-color:rgba(255,224,0,.55)}
-  .vibe-form button{cursor:pointer;border:0;border-radius:12px;padding:0 18px;font-size:14px;font-weight:800;color:#07142b;background:linear-gradient(135deg,#ffe000,#ffb800)}
+  .vibe-form input{flex:1;padding:12px 14px;border-radius:12px;background:#0a1a38;border:1px solid rgba(255,255,255,.24);color:#f7f4ff;font-size:14px;outline:0}
+  .vibe-form input:focus{border-color:rgba(255,212,38,.55)}
+  .vibe-form button{cursor:pointer;border:0;border-radius:12px;padding:0 18px;font-size:14px;font-weight:800;color:#241a00;background:linear-gradient(135deg,#ffd426,#ffb800)}
   .vibe-form button:disabled{opacity:.6;cursor:default}
   .vibe-chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 2px}
-  .vibe-chips button{cursor:pointer;border:1px solid rgba(125,170,255,.26);background:transparent;color:#cbd9f4;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600}
-  .vibe-chips button:hover{border-color:rgba(255,224,0,.5);color:#fff}
+  .vibe-chips button{cursor:pointer;border:1px solid rgba(255,255,255,.26);background:transparent;color:#cbd9f4;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600}
+  .vibe-chips button:hover{border-color:rgba(255,212,38,.5);color:#fff}
   .vibe-kw{font-size:11.5px;color:#7f96c2;margin:10px 0 0;min-height:14px}
-  .vibe-kw b{color:#a7bce0;font-weight:600}
+  .vibe-kw b{color:#c3b6ee;font-weight:600}
   .vibe-results{margin-top:10px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
-  .vibe-tile{display:block;text-decoration:none;border-radius:12px;overflow:hidden;background:#0a1a38;border:1px solid rgba(125,170,255,.16);transition:.12s}
-  .vibe-tile:hover{border-color:rgba(255,224,0,.5);transform:translateY(-2px)}
-  .vibe-tile .vt-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:linear-gradient(135deg,#1a2f5c,#0f1f44)}
-  .vibe-tile .vt-fallback{width:100%;aspect-ratio:4/3;display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;background:linear-gradient(135deg,#7c4dff,#ff4d8d)}
-  .vibe-tile span{display:block;padding:7px 8px;font-size:11.5px;color:#dbe6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .vibe-status{margin-top:16px;font-size:13px;color:#a7bce0;text-align:center;padding:12px}
-  .vibe-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#ffe000;border-radius:50%;animation:vibeSpin .8s linear infinite;vertical-align:-3px;margin-right:8px}
+  .vibe-tile{display:block;text-decoration:none;border-radius:12px;overflow:hidden;background:#0a1a38;border:1px solid rgba(255,255,255,.16);transition:.12s}
+  .vibe-tile:hover{border-color:rgba(255,212,38,.5);transform:translateY(-2px)}
+  .vibe-tile .vt-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:linear-gradient(135deg,#392a80,#241a55)}
+  .vibe-tile .vt-fallback{width:100%;aspect-ratio:4/3;display:grid;place-items:center;font-weight:800;font-size:20px;color:#f7f4ff;background:linear-gradient(135deg,#3a2a7a,#241a55)}
+  .vibe-tile span{display:block;padding:7px 8px;font-size:11.5px;color:#c3b6ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vibe-status{margin-top:16px;font-size:13px;color:#c3b6ee;text-align:center;padding:12px}
+  .vibe-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#ffd426;border-radius:50%;animation:vibeSpin .8s linear infinite;vertical-align:-3px;margin-right:8px}
   @keyframes vibeSpin{to{transform:rotate(360deg)}}
   @media (max-width:560px){.vibe-back{padding:5vh 10px 10px}}`;
   document.head.appendChild(s);

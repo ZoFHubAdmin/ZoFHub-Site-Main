@@ -179,7 +179,10 @@ function bindScores() {
         return;
       }
       session = null; ensureSession();   // session was consumed — start the next one
-      if (j.pending) toast('Score submitted — pending review 🕵️', 'ok');
+      // `pending` = quarantined as an outlier. This message is only honest
+      // because there is now a real review path (the private /admin console);
+      // unreviewed scores are no longer auto-deleted. See db/community-scores-review.sql.
+      if (j.pending) toast('Unusually high — held for review before it appears 🕵️', 'ok');
       else toast(j.updated ? 'New personal best! 🏆' : (j.created ? 'Score submitted! 🏆' : 'Your best score is kept 🏆'), 'ok');
       if ($('#scoreValue')) $('#scoreValue').value = '';
       load();
@@ -385,7 +388,7 @@ function buildTile(g) {
     wireThumbFallback(a.querySelector('img'));
   } else {
     let h = 0; for (let i = 0; i < g.title.length; i++) h = (h * 31 + g.title.charCodeAt(i)) >>> 0;
-    const palette = ['#242a34','#2a303b','#1f242d','#2d333e','#232833','#282e39','#20262f'];
+    const palette = ['#3a2a7a','#442f8c','#33246b','#4a3596','#382874','#402d84','#2e2160'];
     const c1 = palette[h % palette.length], c2 = palette[(h >> 8) % palette.length];
     const initials = g.title.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase();
     a.innerHTML = `<div class="game-tile-fallback" style="--c1:${c1};--c2:${c2}">${initials}</div>`;

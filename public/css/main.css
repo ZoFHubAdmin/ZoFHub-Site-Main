@@ -1,7 +1,8 @@
 /* ============================================================
-   ZoFHub · main.css — refined dark identity
-   Neutral-charcoal base, a single ZoFHub-yellow accent used sparingly,
-   hairline borders, restrained shadows. No neon, no glow soup.
+   ZoFHub · main.css — vibrant arcade identity
+   Deep indigo/violet ground (colourful, never grey), yellow for action,
+   and a meaning-driven accent set: pink = hot, lime = new, cyan = links,
+   green = live. Bright and energetic, but every colour earns its place.
    ============================================================ */
 
 /* ============================================================
@@ -34,45 +35,47 @@ body:not(.zad-on):not(.zad-preview) :is(
 }
 
 :root {
-  /* ZoFHub — refined dark. A calm neutral-charcoal base with ONE accent (the
-     ZoFHub yellow), used sparingly. No neon, no glow soup, no gradient text —
-     hierarchy comes from spacing, weight, and restrained contrast. Semantic
-     colors (live/ok/warn/danger) are kept but muted. */
-  --bg:        #0d0f13;   /* app background — flat near-black charcoal */
-  --bg-2:      #101318;
-  --bg-grad-from: #0f1216;
-  --bg-grad-to:   #0b0d10;
-  --surface:   #14171d;   /* cards / panels */
-  --surface-2: #191d24;   /* raised panels, inputs */
-  --surface-hi:#20252e;   /* hover / active surface */
-  --line:      rgba(255,255,255,.07);   /* hairline borders */
-  --line-2:    rgba(255,255,255,.13);   /* stronger divider / focus ring base */
-  --text:      #f3f5f8;   /* primary text */
-  --text-dim:  #a6adba;   /* secondary text */
-  --text-mute: #6c7480;   /* meta / tertiary */
-  --brand:     #ffd426;   /* the single accent — ZoFHub yellow */
-  --brand-2:   #f5c518;   /* slightly deeper yellow for gradients/hover */
-  --brand-ink: #1a1508;   /* dark ink for text ON the yellow accent */
-  --accent:    #ffd426;   /* alias → brand: one-accent system */
-  --accent-2:  #ffd426;   /* was cyan — unified to the single accent */
-  --accent-3:  #ffd426;   /* was lime — unified to the single accent */
-  --live:      #43c493;   /* presence "online" — muted green (semantic) */
-  --ok:        #43c493;
-  --warn:      #d9a441;
-  --danger:    #e05541;
+  /* ZoFHub — vibrant arcade. A DEEP INDIGO/VIOLET base (colourful darkness, not
+     grey or black) that makes game art and the yellow CTA pop. Colour is used
+     SYSTEMATICALLY, not randomly: yellow = action/brand, pink = hot/trending,
+     lime = new, cyan = links/info, green = live. Because every accent carries a
+     meaning, the page reads bright and energetic instead of noisy. */
+  --bg:        #171034;   /* deep indigo — the "colourful dark" ground */
+  --bg-2:      #1d1443;
+  --bg-grad-from: #201650;
+  --bg-grad-to:   #120c29;
+  --surface:   #241a55;   /* cards / panels — violet-tinted, never grey */
+  --surface-2: #2c2065;   /* raised panels, inputs */
+  --surface-hi:#392a80;   /* hover / active surface */
+  --line:      rgba(170,140,255,.18);   /* violet hairline borders */
+  --line-2:    rgba(170,140,255,.34);
+  --text:      #f7f4ff;   /* primary text */
+  --text-dim:  #c3b6ee;   /* secondary text */
+  --text-mute: #8f81c8;   /* meta / tertiary */
+  --brand:     #ffd426;   /* ACTION — buttons, play, active nav. Pops on violet. */
+  --brand-2:   #ffb800;   /* deeper amber for pressed/gradient pairing */
+  --brand-ink: #241a00;   /* dark ink for text ON yellow */
+  --accent:    #ff3d8b;   /* HOT / trending / favourite — vivid pink */
+  --accent-2:  #22d3ee;   /* links / info — cyan */
+  --accent-3:  #a3e635;   /* NEW — lime */
+  --violet:    #a855f7;   /* secondary decoration / category colour */
+  --orange:    #ff8a3d;   /* category colour / warm highlight */
+  --live:      #22e06a;   /* presence "online" — bright, legible green */
+  --ok:        #22e06a;
+  --warn:      #ffb020;
+  --danger:    #ff4d5e;
   --radius:    12px;
   --radius-sm: 9px;
   --header-h:  64px;
-  /* Shadows: subtle depth only — no colored neon. */
-  --shadow-card: 0 2px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.45);
-  --shadow-pop:  0 16px 44px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
-  /* Legacy "glow" tokens kept so existing rules resolve, but de-neoned to plain
-     subtle depth. Deliberate accent emphasis is applied per-component instead. */
-  --shadow-glow-brand:  0 2px 10px rgba(0,0,0,.4);
-  --shadow-glow-accent: 0 2px 10px rgba(0,0,0,.4);
-  --shadow-glow-purple: 0 2px 10px rgba(0,0,0,.4);
+  /* Shadows are violet-tinted (not black) so cards sit IN the indigo world
+     instead of looking punched out of it. */
+  --shadow-card: 0 3px 10px rgba(12,6,38,.5), 0 1px 2px rgba(12,6,38,.6);
+  --shadow-pop:  0 18px 50px rgba(10,4,32,.62), 0 2px 10px rgba(10,4,32,.5);
+  --shadow-glow-brand:  0 4px 14px rgba(12,6,38,.5);
+  --shadow-glow-accent: 0 4px 14px rgba(12,6,38,.5);
+  --shadow-glow-purple: 0 4px 14px rgba(12,6,38,.5);
   /* Subtle, INTENTIONAL accent ring — used only on the primary CTA + logo. */
-  --ring-brand: 0 0 0 1px rgba(255,212,38,.35);
+  --ring-brand: 0 0 0 1px rgba(255,212,38,.45);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -87,10 +90,11 @@ html {
   scrollbar-color: rgba(255,255,255,.55) rgba(255,255,255,.07);
 }
 body {
-  /* Calm, flat charcoal — a single, barely-perceptible top vignette gives depth
-     without the old triple-radial "glow soup". */
+  /* Two soft, widely-separated colour washes over the indigo ground read as
+     ambient stage lighting — depth and warmth without a flat grey page. */
   background:
-    radial-gradient(1200px 520px at 50% -10%, rgba(255,255,255,.025), transparent 70%),
+    radial-gradient(1100px 560px at 8% -10%, rgba(168,85,247,.28), transparent 60%),
+    radial-gradient(900px 520px at 94% 2%, rgba(34,211,238,.16), transparent 58%),
     linear-gradient(180deg, var(--bg-grad-from), var(--bg-grad-to));
   background-attachment: fixed;
   color: var(--text);
@@ -141,7 +145,7 @@ kbd {
 .site-header {
   position: sticky; top: 0; z-index: 50;
   height: var(--header-h);
-  background: rgba(13,15,19,.82);
+  background: rgba(23,16,52,.82);
   backdrop-filter: blur(10px) saturate(1.2);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
   border-bottom: 1px solid var(--line);
@@ -273,22 +277,25 @@ kbd {
   padding: 10px 16px;
   background: var(--brand);
   color: var(--brand-ink);
-  font-weight: 700; font-size: 13.5px;
+  font-weight: 800; font-size: 13.5px;
   border-radius: 10px;
   transition: transform .12s, filter .15s, box-shadow .15s;
-  box-shadow: 0 1px 2px rgba(0,0,0,.4);
+  /* Inset top highlight = a physical, pressable button rather than a flat swatch. */
+  box-shadow: 0 2px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 5px 12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.45); }
+.btn-primary:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.25); transition-duration: .06s; }
 .btn-ghost {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 14px;
   background: rgba(255,255,255,.08);
   border: 1px solid var(--line-2);
   border-radius: 10px;
-  font-size: 13.5px; color: var(--text);
-  transition: background .12s, border-color .12s;
+  font-size: 13.5px; font-weight: 600; color: var(--text);
+  transition: background .12s, border-color .12s, transform .12s;
 }
-.btn-ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+.btn-ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); transform: translateY(-1px); }
+.btn-ghost:active { transform: translateY(0); transition-duration: .06s; }
 .btn-sm { padding: 6px 10px; font-size: 12.5px; }
 .btn-danger {
   display:inline-flex; align-items:center; gap:8px;
@@ -484,8 +491,8 @@ kbd {
 .live-total {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 12px 6px 10px;
-  background: linear-gradient(180deg, rgba(67,196,147,.16), rgba(67,196,147,.06));
-  border: 1px solid rgba(67,196,147,.45);
+  background: linear-gradient(180deg, rgba(47,214,115,.16), rgba(47,214,115,.06));
+  border: 1px solid rgba(47,214,115,.45);
   border-radius: 999px;
   font-size: 12.5px; font-weight: 700;
   color: #e6fff2;
@@ -499,13 +506,13 @@ kbd {
 .live-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--live);
-  box-shadow: 0 0 0 0 rgba(67,196,147,.7);
+  box-shadow: 0 0 0 0 rgba(47,214,115,.7);
   animation: livePulse 1.8s cubic-bezier(.4,0,.6,1) infinite;
 }
 @keyframes livePulse {
-  0%   { box-shadow: 0 0 0 0   rgba(67,196,147,.7); }
-  70%  { box-shadow: 0 0 0 10px rgba(67,196,147,0); }
-  100% { box-shadow: 0 0 0 0   rgba(67,196,147,0); }
+  0%   { box-shadow: 0 0 0 0   rgba(47,214,115,.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(47,214,115,0); }
+  100% { box-shadow: 0 0 0 0   rgba(47,214,115,0); }
 }
 @media (max-width: 540px) {
   .live-total-label { display: none; }
@@ -522,7 +529,7 @@ kbd {
   font-size: 10.5px; font-weight: 700;
   color: #e6fff2;
   background: rgba(0,0,0,.72);
-  border: 1px solid rgba(67,196,147,.55);
+  border: 1px solid rgba(47,214,115,.55);
   border-radius: 999px;
   backdrop-filter: blur(4px);
   letter-spacing: .01em;
@@ -546,7 +553,7 @@ kbd {
 .frame-error {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  background: radial-gradient(ellipse at center, rgba(20,23,29,.92), rgba(11,13,16,.98));
+  background: radial-gradient(ellipse at center, rgba(36,26,85,.92), rgba(18,12,41,.98));
   z-index: 8;
   animation: scaleIn .22s ease both;
   padding: 24px;
@@ -583,7 +590,7 @@ kbd {
 .count-flash { animation: countFlash 700ms cubic-bezier(.2,.7,.2,1) 1; }
 @keyframes countFlash {
   0%   { transform: scale(1);    color: var(--live);  text-shadow: 0 0 0 transparent; }
-  20%  { transform: scale(1.18); color: #fff;          text-shadow: 0 0 14px rgba(67,196,147,.95); }
+  20%  { transform: scale(1.18); color: #fff;          text-shadow: 0 0 14px rgba(47,214,115,.95); }
   100% { transform: scale(1);    color: var(--live);  text-shadow: 0 0 0 transparent; }
 }
 .live-pill.on { animation: pillIn .25s ease both; }
@@ -715,18 +722,18 @@ body { letter-spacing: -0.005em; }
   position: fixed; right: 18px; bottom: 18px; z-index: 9000;
   display: inline-flex; align-items: center; gap: 7px;
   padding: 8px 14px 8px 11px; border: 0; cursor: pointer; border-radius: 999px;
-  font-weight: 800; font-size: 12.5px; letter-spacing: .05em; color: #14171d;
+  font-weight: 800; font-size: 12.5px; letter-spacing: .05em; color: #241a55;
   background: linear-gradient(135deg, var(--brand, #ffd426), #f5c518);
   box-shadow: 0 8px 22px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.25);
   opacity: .92; transition: transform .16s ease, opacity .16s ease;
 }
 .ai-restore:hover { transform: translateY(-2px); opacity: 1; }
 .ai-restore[hidden] { display: none; }
-.ai-restore-dot { width: 8px; height: 8px; border-radius: 50%; background: #14171d; box-shadow: 0 0 8px rgba(20,23,29,.6); }
+.ai-restore-dot { width: 8px; height: 8px; border-radius: 50%; background: #241a55; box-shadow: 0 0 8px rgba(36,26,85,.6); }
 .ai-orb-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .ai-orb-msg { font-size: 13.5px; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 92%; word-wrap: break-word; }
 .ai-orb-msg.ai { background: var(--surface, #2b1670); color: var(--text, #fff); align-self: flex-start; border-bottom-left-radius: 4px; }
-.ai-orb-msg.user { background: linear-gradient(135deg, var(--brand, #ffd426), #f5c518); color: #14171d; font-weight: 600; align-self: flex-end; border-bottom-right-radius: 4px; }
+.ai-orb-msg.user { background: linear-gradient(135deg, var(--brand, #ffd426), #f5c518); color: #241a55; font-weight: 600; align-self: flex-end; border-bottom-right-radius: 4px; }
 .ai-orb-msg.ai a { color: var(--accent-2, #ffd426); }
 .ai-orb-msg.ai p { margin: 0 0 6px; } .ai-orb-msg.ai p:last-child { margin: 0; }
 .ai-orb-msg.ai ul, .ai-orb-msg.ai ol { margin: 4px 0 6px; padding-left: 18px; }
@@ -737,8 +744,8 @@ body { letter-spacing: -0.005em; }
 @keyframes ai-orb-bounce { 0%,60%,100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
 .ai-orb-quick {
   margin: 0 14px 8px; padding: 10px; border: 0; border-radius: 12px; cursor: pointer;
-  font-weight: 700; font-size: 13.5px; color: #14171d;
-  background: linear-gradient(135deg, var(--brand, #ffd426), #ff7f00);
+  font-weight: 700; font-size: 13.5px; color: #241a55;
+  background: linear-gradient(135deg, var(--brand, #ffd426), #f5c518);
   transition: transform .15s ease, filter .15s ease;
 }
 .ai-orb-quick:hover { transform: translateY(-1px); filter: brightness(1.06); }
@@ -757,7 +764,7 @@ body { letter-spacing: -0.005em; }
   transition: transform .12s ease, filter .15s ease, background .15s ease;
 }
 .ai-help-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
-.ai-help-btn svg { color: #1a1508; }
+.ai-help-btn svg { color: #241a00; }
 /* Per-game suggested-question chips inside the assistant panel. */
 .ai-orb-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 14px 2px; }
 .ai-orb-chip {
@@ -776,7 +783,7 @@ body { letter-spacing: -0.005em; }
 .ai-orb-form input:focus { border-color: var(--brand, #ffd426); }
 .ai-orb-send {
   flex: 0 0 auto; width: 40px; border: 0; border-radius: 10px; cursor: pointer;
-  display: grid; place-items: center; color: #14171d;
+  display: grid; place-items: center; color: #241a55;
   background: var(--brand, #ffd426); transition: filter .15s ease;
 }
 .ai-orb-send:hover { filter: brightness(1.08); }

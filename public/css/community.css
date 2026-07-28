@@ -88,7 +88,7 @@
 .modal-backdrop[hidden] { display: none; }
 .modal-card {
   position: relative; width: 100%; max-width: 460px;
-  background: #191d24; border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
+  background: #2c2065; border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
   padding: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
 }
 .modal-card h3 { margin: 0 0 6px; font-size: 20px; color: var(--brand); }
@@ -116,7 +116,7 @@
 }
 .modal-form select option,
 .modal-form select optgroup {
-  background: #191d24; color: #fff;
+  background: #2c2065; color: #fff;
 }
 .modal-form input:focus, .modal-form select:focus, .modal-form textarea:focus {
   outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(255,212,38,.18);

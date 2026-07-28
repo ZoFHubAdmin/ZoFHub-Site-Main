@@ -105,10 +105,25 @@ function recCard(r) {
 // ---------------------------------------------------------------------------
 // Leaderboard
 // ---------------------------------------------------------------------------
+// Keep only the highest score per (player_name + slug) — the SAME rule
+// leaderboard.js applies. Kept as defense-in-depth: the database now enforces
+// one visible row per player per game (db/community-scores-unique.sql), but this
+// widget and /leaderboard must never disagree about the same data, and rows
+// created before that migration ran can still be duplicated.
+function dedupeBest(raw) {
+  const best = new Map();
+  for (const s of raw) {
+    const key = `${(s.player_name || 'Player').toLowerCase()}::${s.slug}`;
+    const prev = best.get(key);
+    if (!prev || Number(s.score) > Number(prev.score)) best.set(key, s);
+  }
+  return [...best.values()].sort((a, b) => Number(b.score) - Number(a.score));
+}
+
 async function loadLeaderboard() {
   try {
     const data = await fetchJson('/api/scores?limit=20');
-    const scores = data.scores || [];
+    const scores = dedupeBest(data.scores || []);
     lbList.innerHTML = '';
     if (data.setup) console.info('[community] leaderboard backend not ready:', data.setup);
     if (!scores.length) {
@@ -194,11 +209,17 @@ function openPlay(r) {
   $('#playModalTitle').textContent = r.title || 'Game';
   const frame = $('#playModalFrame');
   frame.innerHTML = '';
+  // Load through OUR /embed proxy (same-origin), exactly like catalog games, so
+  // community picks get the per-publisher render fixes AND stay unblockable on
+  // filtered networks. Falls back to the raw URL only if the id is missing.
   const iframe = el('iframe', {
-    src: r.embed_url,
+    src: r.id ? `/embed/rec/${encodeURIComponent(r.id)}` : r.embed_url,
     title: r.title || 'Game',
     allow: 'autoplay; fullscreen; gamepad; clipboard-write; encrypted-media',
-    sandbox: 'allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-orientation-lock',
+    // Matches game.html's catalog sandbox. allow-popups is DELIBERATELY omitted
+    // (it let embedded ads/games open new tabs); the proxy's EMBED_GUARD already
+    // rewrites window.open/target=_blank to stay in-frame.
+    sandbox: 'allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-presentation allow-modals',
     referrerpolicy: 'strict-origin-when-cross-origin',
   });
   iframe.setAttribute('allowfullscreen', '');

@@ -48,7 +48,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 // --curated: migrate ONLY the high-priority, mostly-tested sources
 // (top_games.json + api/games.json + ai_gaming_hub_final.json) — ~800 games.
 // The bulk-scraped sources (master_games / somethingrandom / everygame) are
-// left to the 36-hour auto-grow cron, which HEAD-probes each candidate for
+// left to the 3-day auto-grow cron, which HEAD-probes each candidate for
 // liveness before inserting — so untested games never reach the live site.
 const CURATED = process.argv.includes('--curated');
 // Spec section 2: multi-row bulk inserts of 1000 rows.

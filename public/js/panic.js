@@ -72,30 +72,30 @@ function injectStyles() {
   s.id = 'panic-css';
   s.textContent = `
   .panic-panel{position:fixed;z-index:10000;top:58px;right:12px;width:min(360px,calc(100vw - 20px));
-    background:#0e2247;color:#eaf1ff;border:1px solid rgba(125,170,255,.24);border-radius:16px;
+    background:#0e2247;color:#f7f4ff;border:1px solid rgba(255,255,255,.24);border-radius:16px;
     box-shadow:0 28px 70px rgba(0,0,0,.62);padding:16px;font-family:Inter,system-ui,sans-serif;
     animation:panicIn .18s ease both}
   @keyframes panicIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   .panic-panel h2{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px}
-  .panic-panel .panic-sub{margin:0 0 12px;font-size:12px;line-height:1.5;color:#a7bce0}
+  .panic-panel .panic-sub{margin:0 0 12px;font-size:12px;line-height:1.5;color:#c3b6ee}
   .panic-panel label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:#8aa2cf;margin:12px 0 5px}
   .panic-panel select,.panic-panel input[type=url]{width:100%;box-sizing:border-box;padding:9px 10px;
-    background:#0a1a38;color:#eaf1ff;border:1px solid rgba(125,170,255,.24);border-radius:9px;font-size:13px}
-  .panic-panel select option,.panic-panel select optgroup{background:#0a1a38;color:#eaf1ff}
+    background:#0a1a38;color:#f7f4ff;border:1px solid rgba(255,255,255,.24);border-radius:9px;font-size:13px}
+  .panic-panel select option,.panic-panel select optgroup{background:#0a1a38;color:#f7f4ff}
   .panic-key{display:flex;align-items:center;gap:8px}
-  .panic-key kbd{flex:1;display:inline-block;padding:8px 10px;background:#0a1a38;border:1px solid rgba(125,170,255,.24);
+  .panic-key kbd{flex:1;display:inline-block;padding:8px 10px;background:#0a1a38;border:1px solid rgba(255,255,255,.24);
     border-radius:9px;font-size:13px;font-family:inherit;text-align:center;letter-spacing:.02em}
-  .panic-key kbd.recording{border-color:#ffe000;color:#ffe000;animation:panicPulse 1s ease infinite}
+  .panic-key kbd.recording{border-color:#ffd426;color:#ffd426;animation:panicPulse 1s ease infinite}
   @keyframes panicPulse{50%{opacity:.55}}
   .panic-row-check{display:flex;align-items:center;justify-content:space-between;gap:10px;
     font-size:12.5px;color:#cbd9f4;text-transform:none;letter-spacing:0;font-weight:500;margin-top:12px}
   .panic-btns{display:flex;gap:8px;margin-top:14px}
   .panic-btns button{flex:1;cursor:pointer;border-radius:10px;padding:10px;font-size:13px;font-weight:700;
-    border:1px solid rgba(125,170,255,.30);background:transparent;color:#eaf1ff}
-  .panic-btns button:hover{border-color:rgba(125,170,255,.6)}
+    border:1px solid rgba(255,255,255,.30);background:transparent;color:#f7f4ff}
+  .panic-btns button:hover{border-color:rgba(255,255,255,.6)}
   .panic-now{width:100%;cursor:pointer;border:0;border-radius:11px;padding:12px;font-size:14px;font-weight:800;
-    color:#07142b;background:linear-gradient(135deg,#ffe000,#ffb800);margin-bottom:4px}
+    color:#241a00;background:linear-gradient(135deg,#ffd426,#ffb800);margin-bottom:4px}
   .panic-now:hover{filter:brightness(1.05)}
   .panic-mini{font-size:11px;color:#7f96c2;margin:8px 0 0;line-height:1.45}
   .panic-overlay{position:fixed;inset:0;z-index:99998;background:#0b0f1a}
@@ -120,7 +120,7 @@ function buildPanel() {
     <label>Hotkey</label>
     <div class="panic-key">
       <kbd id="panicKey" tabindex="0">${prettyKey(cfg.key)}</kbd>
-      <button class="panic-rec-btn" id="panicRec" type="button" style="cursor:pointer;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;border:1px solid rgba(125,170,255,.3);background:transparent;color:#eaf1ff">Change</button>
+      <button class="panic-rec-btn" id="panicRec" type="button" style="cursor:pointer;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.3);background:transparent;color:#f7f4ff">Change</button>
     </div>
 
     <label>When triggered</label>
@@ -141,7 +141,7 @@ function buildPanel() {
 
     <div class="panic-btns">
       <button id="panicClose" type="button">Close</button>
-      <button id="panicSave" type="button" style="background:rgba(125,170,255,.14);border-color:rgba(125,170,255,.4)">Save</button>
+      <button id="panicSave" type="button" style="background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.4)">Save</button>
     </div>`;
   document.body.appendChild(panelEl);
 

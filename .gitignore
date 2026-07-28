@@ -10,3 +10,6 @@
 #  up here, but on a fresh Windows machine it may restore as broken stubs — if
 #  Nebula misbehaves after a clone, just run `pnpm install` inside Nebula.
 # ═══════════════════════════════════════════════════════════════════════════
+
+# Server-side thumbnail proxy cache (regenerated on demand, never commit)
+.cache/

@@ -2,7 +2,7 @@
 import { $, $$, el, debounce, fetchJson, toast, escapeHtml, buildFallback, wireThumbFallback } from './utils.js';
 import { store } from './storage.js';
 import { presence, fmtCount, paintCount } from './presence.js';
-import { rankGames, suggestions, highlightTerms } from './search.js';
+import { rankGames, suggestions, highlightTerms } from './search.js?v=20260727';
 
 // Per-visit shuffle seed — minted FRESH on each page load, so the running order
 // (ranked by popularity, but weighted-random) is different every time you open
@@ -315,7 +315,7 @@ const PLAY_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentC
 function tileFallbackHtml(title) {
   let h = 0;
   for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
-  const palette = ['#242a34','#2a303b','#1f242d','#2d333e','#232833','#282e39','#20262f','#2b3240'];
+  const palette = ['#3a2a7a','#442f8c','#33246b','#4a3596','#382874','#402d84','#2e2160','#4d38a0'];
   const c1 = palette[h % palette.length];
   const c2 = palette[(h >> 8) % palette.length];
   const initials = title.split(/\s+/).slice(0, 2).map(s => s[0] || '').join('').toUpperCase() || 'G';
@@ -368,7 +368,19 @@ function tile(game, opts = {}) {
 function renderFeatured() {
   const grid = $('#heroGrid'); if (!grid) return;
   let list = state.all.filter(g => g.is_featured).slice(0, 12);
-  if (list.length < 12) list = list.concat(state.all.slice(0, 12 - list.length));
+  // Pad up to 12 with non-featured games. MUST exclude what's already in `list`:
+  // featured games get a popularity bump server-side, so they sort toward the
+  // front of state.all — a naive slice(0, N) would re-add the very games we just
+  // picked and show them twice in the carousel.
+  if (list.length < 12) {
+    const seen = new Set(list.map(g => g.slug));
+    for (const g of state.all) {
+      if (list.length >= 12) break;
+      if (seen.has(g.slug)) continue;
+      seen.add(g.slug);
+      list.push(g);
+    }
+  }
   const frag = document.createDocumentFragment();
   list.forEach(g => {
     const t = el('a', { class: 'hero-tile', href: `/play/${g.slug}`, 'aria-label': `Play ${g.title}` });

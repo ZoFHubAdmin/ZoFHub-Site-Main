@@ -158,7 +158,7 @@ function initials(t) {
 
 // Deterministic two-color gradient per title — same palette as the homepage so
 // fallback tiles look intentional and varied (never a plain blank box).
-const FALLBACK_PALETTE = ['#242a34','#2a303b','#1f242d','#2d333e','#232833','#282e39','#20262f','#2b3240'];
+const FALLBACK_PALETTE = ['#3a2a7a','#442f8c','#33246b','#4a3596','#382874','#402d84','#2e2160','#4d38a0'];
 function fallbackColors(title) {
   const t = title || 'Game';
   let h = 0;

@@ -11,15 +11,15 @@ const CSS = `
 .gotd-row{margin:0 0 14px}
 .gotd{position:relative;display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:0;
   border-radius:20px;overflow:hidden;text-decoration:none;isolation:isolate;
-  background:linear-gradient(135deg,#191d24 0%,#14171d 60%,#101318 100%);
+  background:linear-gradient(135deg,#2c2065 0%,#241a55 60%,#1d1443 100%);
   border:1px solid rgba(255,255,255,.28);box-shadow:0 20px 55px rgba(0,0,0,.5);
   transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
 .gotd:hover{transform:translateY(-3px);border-color:rgba(255,212,38,.5);box-shadow:0 26px 66px rgba(0,0,0,.62)}
 .gotd:focus-visible{outline:2px solid #ffd426;outline-offset:3px}
-.gotd-media{position:relative;min-height:190px;background:linear-gradient(135deg,#242a34,#14171d)}
+.gotd-media{position:relative;min-height:190px;background:linear-gradient(135deg,#3a2a7a,#241a55)}
 .gotd-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .gotd-media::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,rgba(13,15,19,0) 55%,rgba(13,15,19,.9) 100%)}
+  background:linear-gradient(90deg,rgba(23,16,52,0) 55%,rgba(23,16,52,.9) 100%)}
 .gotd-fallback{position:absolute;inset:0;display:grid;place-items:center;
   font-family:'Lilita One',Inter,sans-serif;font-size:52px;color:rgba(255,255,255,.92)}
 .gotd-body{display:flex;flex-direction:column;justify-content:center;gap:9px;padding:22px 26px}
@@ -31,17 +31,17 @@ const CSS = `
   font-size:clamp(22px,3.2vw,34px);line-height:1.05;color:#f4f0ff;
   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .gotd-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#b7c3e8}
-.gotd-cat{padding:3px 10px;border-radius:8px;background:rgba(124,77,255,.22);border:1px solid rgba(255,255,255,.32);
+.gotd-cat{padding:3px 10px;border-radius:8px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.32);
   color:#d9ccff;font-weight:700;text-transform:capitalize}
 .gotd-play{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;margin-top:4px;
-  padding:11px 22px;border-radius:12px;font-size:14px;font-weight:800;color:#0b0f24;
-  background:linear-gradient(135deg,#29d3ff,#242a34);box-shadow:0 6px 18px rgba(41,120,255,.45)}
+  padding:11px 22px;border-radius:12px;font-size:14px;font-weight:800;color:#241a00;
+  background:#ffd426;box-shadow:0 3px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.4)}
 .gotd-play svg{width:16px;height:16px}
 .gotd:hover .gotd-play{filter:brightness(1.06)}
 @media (max-width:720px){
   .gotd{grid-template-columns:1fr}
   .gotd-media{min-height:150px}
-  .gotd-media::after{background:linear-gradient(180deg,rgba(13,15,19,0) 40%,rgba(13,15,19,.92) 100%)}
+  .gotd-media::after{background:linear-gradient(180deg,rgba(23,16,52,0) 40%,rgba(23,16,52,.92) 100%)}
   .gotd-body{padding:16px 18px 20px}
 }`;
 
@@ -73,8 +73,11 @@ async function init() {
 
   const title = esc(g.title);
   const initials = String(g.title || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  // No inline onerror="…" here: our CSP sets script-src-attr 'none', so inline
+  // event handlers never execute. The failure handler is wired below with
+  // addEventListener instead.
   const media = g.thumbnail
-    ? `<img src="${esc(g.thumbnail)}" alt="${title}" loading="eager" onerror="this.remove()"/>`
+    ? `<img src="${esc(g.thumbnail)}" alt="${title}" loading="eager"/>`
     : `<div class="gotd-fallback">${esc(initials)}</div>`;
 
   hero.href = `/play/${encodeURIComponent(g.slug)}`;
@@ -86,6 +89,19 @@ async function init() {
       <div class="gotd-meta"><span class="gotd-cat">${esc(g.category_label || g.category || 'Arcade')}</span></div>
       <span class="gotd-play">${PLAY} Play now</span>
     </div>`;
+
+  // If the hero image fails, drop it AND reveal the initials tile sitting behind
+  // it. Simply removing the <img> was not enough: that fallback is rendered at
+  // opacity:0/z-index:-1 whenever a thumbnail exists, so it stayed invisible and
+  // the hero showed an empty box.
+  const heroImg = hero.querySelector('.gotd-media img');
+  if (heroImg) {
+    heroImg.addEventListener('error', () => {
+      const fb = hero.querySelector('.gotd-media .gotd-fallback');
+      if (fb) { fb.style.opacity = '1'; fb.style.zIndex = 'auto'; }
+      heroImg.remove();
+    }, { once: true });
+  }
   row.hidden = false;
 }
 

@@ -114,22 +114,32 @@ function buildTile(g) {
 
   const thumb = g.thumbnail_url || g.thumbnail || '/default-placeholder.svg';
 
-  // The onerror handler is the key piece from the spec — if a publisher's
-  // CDN starts 404'ing thumbnails, the tile silently swaps to the local
-  // placeholder instead of showing the browser's broken-image icon.
-  // onerror=null on the swap prevents an infinite loop if the placeholder
-  // itself is missing.
+  // If a publisher's CDN starts 404'ing thumbnails, the tile silently swaps to
+  // the local placeholder instead of showing the browser's broken-image icon.
+  //
+  // This MUST be attached with addEventListener, not an inline onerror="…"
+  // attribute: our CSP sets script-src-attr 'none', which blocks inline event
+  // handlers outright. As an attribute it never fired, so every broken
+  // thumbnail rendered as a broken-image icon — the exact thing this guard
+  // exists to prevent. (ai.js already learned this; these tiles had not.)
   a.innerHTML = `
     <div class="tile-thumb">
       <img
         loading="lazy"
         decoding="async"
         src="${escapeAttr(thumb)}"
-        alt="${safeTitle}"
-        onerror="this.onerror=null;this.src='/default-placeholder.svg';">
+        alt="${safeTitle}">
     </div>
     <span class="game-tile-label">${safeTitle}</span>
   `;
+  const img = a.querySelector('img');
+  if (img) {
+    img.addEventListener('error', function onImgError() {
+      // Detach first so a missing placeholder can't loop forever.
+      img.removeEventListener('error', onImgError);
+      img.src = '/default-placeholder.svg';
+    });
+  }
   return a;
 }
 

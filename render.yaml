@@ -47,6 +47,11 @@ services:
         sync: false
       - key: PROXY_BANNER_TAG
         sync: false                # optional single footer banner tag
+      # The DMCA / privacy / terms contact shown on every legal page. Without it
+      # those pages state that no contact address has been published — set this
+      # so rights-holders and users actually have a way to reach you.
+      - key: CONTACT_EMAIL
+        sync: false
       - key: POLLINATIONS_REFERRER
         sync: false                # your domain (bare hostname), for AI attribution
       - key: CRON_SECRET

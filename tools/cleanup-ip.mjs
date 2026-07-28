@@ -10,8 +10,15 @@
 // "battle royale") are kept.  Inspired-by clones that don't say the IP's
 // name in the title are kept.
 //
-// Run:  node tools/cleanup-ip.mjs
-// Then: node tools/build-supabase.mjs
+// Run:  node tools/cleanup-ip.mjs      (rewrites the three source catalogs in place)
+// Then, depending on what you're refreshing:
+//   • the LIVE catalog  →  npm run migrate        (tools/migrate-to-supabase.mjs)
+//       It reads exactly the three files this script rewrites and upserts them
+//       into Supabase, which is the source of truth the site actually serves.
+//       Preview first with `npm run migrate:dry`.
+//   • the bundled offline fallback (api/games.json)  →  npm run build-curated
+// (The old comment here pointed at tools/build-supabase.mjs, which has never
+//  existed in this repo — following it was a dead end.)
 
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

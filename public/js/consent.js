@@ -5,43 +5,30 @@
 // It records the visitor's choice in localStorage and exposes it as
 // window.ZOFHUB_CONSENT ('accepted' | 'declined') plus a 'zofhub:consent' event.
 //
-// IMPORTANT — for legal EEA/UK/Swiss ad-consent you must ALSO enable Google's
-// own certified consent message in the AdSense dashboard
-// (AdSense → Privacy & messaging → GDPR). That certified CMP does the
-// geographically-gated, IAB-TCF consent that Google REQUIRES before serving
-// personalised ads in those regions. THIS banner is the friendly, site-wide
-// disclosure notice — it does not replace Google's CMP, it complements it.
-// We also set Google Consent Mode v2 defaults to 'denied' and flip them to
-// 'granted' on accept, which is the recommended low-risk pattern.
+// NOTE — the Google Consent Mode v2 shim that used to live here was REMOVED.
+// It pushed ad_storage / ad_user_data / ad_personalization signals into a
+// dataLayer for a gtag.js that this site never loads: ZoFHub is a proxy site, so
+// Google's ad programs aren't available to it and no Google ad code is served
+// (see server.js's site-config filter, proxy-ads.js and footer-ad.js). Signalling
+// consent to a tag that doesn't exist did nothing except imply, in code and in
+// the legal pages, that Google advertising was active here. If a Google-
+// compatible network is ever added, re-add the shim together with Google's own
+// certified CMP — not on its own.
+//
+// This banner remains what it always really was: a site-wide disclosure notice
+// for the Terms and cookie use.
 // ---------------------------------------------------------------------------
 
 const KEY = 'zofhub:consent:v1';
 const isProxyArea = /^\/(uv|scram|gust|epoxy|baremux)\//.test(location.pathname);
 
-// ── Google Consent Mode v2 defaults (queued even before gtag.js loads) ──────
-window.dataLayer = window.dataLayer || [];
-function gtag() { window.dataLayer.push(arguments); }
-function applyConsentMode(granted) {
-  const v = granted ? 'granted' : 'denied';
-  gtag('consent', granted ? 'update' : 'default', {
-    ad_storage: v,
-    ad_user_data: v,
-    ad_personalization: v,
-    analytics_storage: v,
-    ...(granted ? {} : { wait_for_update: 500 }),
-  });
-}
-
 let stored = null;
 try { stored = localStorage.getItem(KEY); } catch {}
-// Default to denied until the visitor chooses (no-op if they already accepted).
-applyConsentMode(stored === 'accepted');
 window.ZOFHUB_CONSENT = stored || 'unset';
 
 function persist(choice) {
   try { localStorage.setItem(KEY, choice); } catch {}
   window.ZOFHUB_CONSENT = choice;
-  applyConsentMode(choice === 'accepted');
   document.dispatchEvent(new CustomEvent('zofhub:consent', { detail: choice }));
 }
 
@@ -60,20 +47,20 @@ function injectStyles() {
   s.id = 'zofhub-consent-css';
   s.textContent = `
   .zh-consent{position:fixed;z-index:9999;left:50%;bottom:16px;transform:translateX(-50%);
-    width:min(720px,calc(100vw - 24px));background:#122a52;color:#eaf1ff;
-    border:1px solid rgba(125,170,255,.22);border-radius:16px;
+    width:min(720px,calc(100vw - 24px));background:#2c2065;color:#f7f4ff;
+    border:1px solid rgba(255,255,255,.22);border-radius:16px;
     box-shadow:0 24px 60px rgba(0,0,0,.6);padding:16px 18px;
     display:flex;gap:14px;align-items:center;flex-wrap:wrap;
     font-family:Inter,system-ui,sans-serif;animation:zhConsentIn .35s ease both}
   @keyframes zhConsentIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
-  .zh-consent__text{flex:1 1 320px;font-size:14px;line-height:1.55;color:#a7bce0;margin:0}
-  .zh-consent__text a{color:#29d3ff;text-decoration:none}
+  .zh-consent__text{flex:1 1 320px;font-size:14px;line-height:1.55;color:#c3b6ee;margin:0}
+  .zh-consent__text a{color:#ffd426;text-decoration:none}
   .zh-consent__text a:hover{text-decoration:underline}
   .zh-consent__btns{display:flex;gap:10px;flex:0 0 auto}
   .zh-consent__btn{cursor:pointer;border-radius:10px;padding:10px 16px;font-size:14px;
-    font-weight:700;border:1px solid rgba(125,170,255,.30);background:transparent;color:#eaf1ff}
-  .zh-consent__btn:hover{border-color:rgba(125,170,255,.6)}
-  .zh-consent__btn--primary{background:#ffe000;color:#07142b;border-color:#ffe000}
+    font-weight:700;border:1px solid rgba(255,255,255,.30);background:transparent;color:#f7f4ff}
+  .zh-consent__btn:hover{border-color:rgba(255,255,255,.6)}
+  .zh-consent__btn--primary{background:#ffd426;color:#241a00;border-color:#ffd426}
   .zh-consent__btn--primary:hover{filter:brightness(1.05)}
   @media (max-width:560px){.zh-consent{flex-direction:column;align-items:stretch}
     .zh-consent__btns{justify-content:flex-end}}`;

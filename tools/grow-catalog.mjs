@@ -1,6 +1,6 @@
 // tools/grow-catalog.mjs
 //
-// Manually run ONE catalog-grow cycle — the same code the 36-hour cron uses.
+// Manually run ONE catalog-grow cycle — the same code the 3-day (72-hour) cron uses.
 // Every game it adds is render-verified (liveness + framing + soft-404 +
 // trusted host + not-a-fake-hash) so it can't introduce a black screen.
 //
@@ -9,7 +9,7 @@
 //   node tools/grow-catalog.mjs --dry-run        # verify only, write nothing
 //   node tools/grow-catalog.mjs --target=10      # add up to 10
 //
-// Unlike the cron, the CLI ignores the 36-hour gate — it always runs now.
+// Unlike the cron, the CLI ignores the 3-day gate — it always runs now.
 
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';

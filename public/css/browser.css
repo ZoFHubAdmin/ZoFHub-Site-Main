@@ -173,7 +173,7 @@
 }
 .br-error-btn:hover { background: var(--surface-2, rgba(255,255,255,.1)); transform: translateY(-1px); }
 .br-error-btn[hidden] { display: none; }
-.br-error-btn.primary { background: linear-gradient(135deg, #ffd426, #242a34); border: 0; color: #0b0f24; }
+.br-error-btn.primary { background: var(--brand, #ffd426); border: 0; color: var(--brand-ink, #241a00); font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
 
 @media (max-width: 720px) {
   .gust-shell { padding: 6px 6px 8px; }
