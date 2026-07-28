@@ -6,10 +6,12 @@
 //     auto-open a homepage so a real page renders ("the browser pops up"). Type
 //     any URL in the address bar to browse; it's encoded and loaded in-frame.
 //   • GUST — self-contained proxy app at /gust/ (its own address bar).
-//   • Interstellar / Nebula — standalone companion apps on their own port. Shown
-//     only when reachable (probed via /api/proxies); offline ones are DISABLED so
-//     you can never pick a dead engine. They load cross-origin, so if one refuses
-//     to be embedded you get an "Open in new tab" fallback.
+//   • Companions (NautilusOS, Interstellar, DayDream, Nebula) — standalone apps
+//     on their own port. WHICH ones exist is decided entirely by the server:
+//     /api/proxies returns exactly those with a PROXY_<ID>_URL set, and this
+//     file lists whatever it's given. Only reachable ones are shown, so you can
+//     never pick a dead engine. They load cross-origin, so if one refuses to be
+//     embedded you get an "Open in new tab" fallback.
 // Everything is BOUNDED + surfaces a clear error with Reload — it can never just
 // spin or silently blank out.
 // -----------------------------------------------------------------------------
@@ -37,7 +39,7 @@ const errSub   = $('#brErrSub');
 const errReload= $('#brErrReload');
 const errOpen  = $('#brErrOpen');
 
-// The always-available in-app engines + the two standalone companions.
+// The always-available in-app engines (companions come from /api/proxies).
 // Order matters: the first entry shows on top. Scramjet is the default.
 const IN_APP = [
   { id: 'scramjet', label: 'Scramjet',    kind: 'sw' },
@@ -45,9 +47,14 @@ const IN_APP = [
   { id: 'gust',     label: 'GUST',        kind: 'app', url: '/gust/' },
 ];
 const DEFAULT_ENGINE = 'scramjet';
-const HOME = 'https://www.google.com/';            // homepage auto-loaded on SW select
-const COMPANION_IDS = ['interstellar', 'nebula'];
-let companions = [];   // [{ id, label, url, up }] from /api/proxies (filtered to COMPANION_IDS)
+// Homepage auto-loaded when you pick a service-worker engine. This MUST be a
+// proxy-tolerant site: it's the very first page a new visitor sees, so if it
+// blocks proxied/embedded access the engine looks broken when it isn't.
+// (Google is the worst offender here — it was the old default and reliably
+// failed straight into the error overlay.) DuckDuckGo is what the address bar
+// already uses for search queries, so this also makes the two consistent.
+const HOME = 'https://duckduckgo.com/';
+let companions = [];   // [{ id, label, url, up, kind:'companion' }] straight from /api/proxies
 
 const LAST_KEY = 'zofhub:browser:engine:v2';
 const engineById = (id) => IN_APP.find(e => e.id === id) || companions.find(c => c.id === id);
@@ -98,7 +105,13 @@ async function awaitActive(reg) {
 async function registerUVServiceWorker() {
   if (!('serviceWorker' in navigator) || !self.__uv$config) return false;
   try {
-    const reg = await navigator.serviceWorker.register('/uv/uv.sw.js', { scope: self.__uv$config.prefix });
+    // MUST be sw.js, NOT uv.sw.js. uv.sw.js is the Ultraviolet LIBRARY — its
+    // first statement is `self.Ultraviolet`, which is undefined until something
+    // importScripts the bundle, so registering it directly always died with
+    // "ServiceWorker script evaluation failed" and Ultraviolet never worked at
+    // all. sw.js is the stock entry point that importScripts bundle + config +
+    // library, constructs UVServiceWorker and binds the fetch handler.
+    const reg = await navigator.serviceWorker.register('/uv/sw.js', { scope: self.__uv$config.prefix });
     return await awaitActive(reg);
   } catch (e) { console.warn('[browser] UV sw registration failed:', e); return false; }
 }
@@ -156,15 +169,23 @@ function buildDropdown() {
   if (cur && select.querySelector(`option[value="${cur}"]`)) select.value = cur;
 }
 
+// The SERVER is the single source of truth for which companions exist: it only
+// returns ones whose PROXY_<ID>_URL is actually set. So we take its list as-is
+// rather than re-filtering against a hard-coded id list here — that list drifts
+// (it used to omit NautilusOS and DayDream entirely, which silently made
+// PROXY_NAUTILUS_URL and PROXY_DAYDREAM_URL do nothing at all).
 async function loadCompanions() {
   try {
     const data = await fetchJson('/api/proxies');
-    companions = (data.engines || []).filter(e => COMPANION_IDS.includes(e.id));
+    // Normalise `kind` client-side too: a cached copy of this file may be
+    // talking to a server that predates kind being sent, and every branch
+    // below now switches on it explicitly.
+    companions = (data.engines || []).map(e => ({ ...e, kind: e.kind || 'companion' }));
   } catch { companions = []; }
   buildDropdown();
   // If the currently-selected companion just came online, launch it now.
   const sel = engineById(select.value);
-  if (sel && sel.kind !== 'sw' && sel.kind !== 'app' && sel.up) selectEngine(select.value);
+  if (sel && sel.kind === 'companion' && sel.up) selectEngine(select.value);
 }
 
 // ── Loader + error overlays ──────────────────────────────────────────────────
@@ -210,16 +231,24 @@ function showStart(title, sub) {
   frame.hidden = true;
   hideLoader();
 }
+// First-time setup command per companion, keyed by id so adding an engine never
+// means editing an inline conditional. NautilusOS is pure static — nothing to
+// install. DayDream and Nebula are pnpm projects (npm there produces a broken
+// tree) and both also need a config file copied from their .example.
+const SETUP_HINT = {
+  interstellar: 'cd Interstellar &amp;&amp; npm install',
+  daydream:     'cd DayDream &amp;&amp; pnpm install &amp;&amp; pnpm run build',
+  nebula:       'cd Nebula &amp;&amp; pnpm install &amp;&amp; pnpm run build',
+};
 function showOffline(label, id) {
   hideError();
   startTitle.textContent = `${label} isn't running`;
   startSub.textContent = 'This browser runs as its own service. Start it, then reopen this page.';
   offlineBox.hidden = false;
+  const hint = SETUP_HINT[id];
   offlineBox.innerHTML =
     `<code>npm run proxies</code> in the ZoFHub folder starts <b>${label}</b>` +
-    (id === 'nebula' || id === 'interstellar'
-      ? ` (first time: <code>cd ${label} &amp;&amp; npm install${id === 'nebula' ? ' &amp;&amp; npm run build' : ''}</code>).`
-      : '.') +
+    (hint ? ` (first time: <code>${hint}</code>).` : '.') +
     ` Or set <code>PROXY_${id.toUpperCase()}_URL</code> to a deployed instance.`;
   startPage.hidden = false;
   frame.hidden = true;
@@ -240,7 +269,10 @@ function selectEngine(id) {
   select.value = id;
   try { localStorage.setItem(LAST_KEY, id); } catch {}
 
-  const driving = e.kind !== 'sw';          // apps/companions have their OWN address bar
+  // Every branch below switches on `kind` EXPLICITLY. It used to lean on
+  // companions having no kind at all (`undefined !== 'sw'`), which was only
+  // right by accident and broke the moment anything compared === 'companion'.
+  const driving = e.kind === 'app' || e.kind === 'companion';   // has its OWN address bar
   shell.classList.toggle('is-driving', driving);
   const online = e.kind === 'sw' || e.kind === 'app' || !!e.up;
   dot.classList.toggle('off', !online);
@@ -253,7 +285,7 @@ function selectEngine(id) {
   } else if (e.kind === 'app') {
     note.textContent = `${e.label} — use its own address bar inside the page.`;
     loadApp(e.url, e.label);                 // same-origin (/gust/), no new-tab fallback needed
-  } else {
+  } else if (e.kind === 'companion') {
     // companion (separate server, cross-origin). Embedding can be silently
     // refused (X-Frame-Options), so ALWAYS offer a new-tab escape hatch.
     if (e.up) {
@@ -358,11 +390,13 @@ function toggleFullscreen() {
 
   let saved = DEFAULT_ENGINE;
   try { saved = localStorage.getItem(LAST_KEY) || DEFAULT_ENGINE; } catch {}
-  if (!IN_APP.some(e => e.id === saved) && !COMPANION_IDS.includes(saved)) saved = DEFAULT_ENGINE;
-  // Never boot straight into a companion (may be offline) — start on the default.
-  if (COMPANION_IDS.includes(saved)) saved = DEFAULT_ENGINE;
+  // Boot ONLY into a built-in engine. Companions aren't known yet at this point
+  // (loadCompanions runs below) and may be offline, so anything that isn't
+  // built-in — a companion, or a stale id from an older build — falls back to
+  // the default rather than starting on a dead engine.
+  if (!IN_APP.some(e => e.id === saved)) saved = DEFAULT_ENGINE;
   select.value = saved;
   selectEngine(saved);
 
-  loadCompanions();   // fill in Interstellar/Nebula online-state (background)
+  loadCompanions();   // fill in companion online-state (background)
 })();

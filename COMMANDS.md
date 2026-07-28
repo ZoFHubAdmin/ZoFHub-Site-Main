@@ -20,7 +20,7 @@ there is no Google AdSense and no separate "hub" mode.
 | `npm run dev` | Start with `--watch` (auto-restarts when you edit a file). Auto-fetches missing thumbnails on boot. |
 | `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
-| `npm run proxies` | Launch the optional standalone companion proxy browsers (Interstellar/Nebula) on their own ports. |
+| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · Interstellar · DayDream · Nebula) on their own ports. Prints why it skipped any that aren't ready. |
 | `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
 > **About the auto-thumbnails:** EVERY start command fetches missing Y8 thumbnails

@@ -6,7 +6,7 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { exec, spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -122,6 +122,34 @@ function coerceEmbedUrl(url) {
   return m ? `https://cdn.htmlgames.com/${m[1]}/index.html` : url;
 }
 
+// ========================================================================
+// Thumbnail proxying — why this exists
+// ------------------------------------------------------------------------
+// Most of the catalog's thumbnails live on publisher CDNs whose DOMAINS are on
+// ad-blocker filter lists. The big one is img.gamemonetize.com (GameMonetize is
+// an ad-monetization company, so uBlock Origin / AdGuard / Brave block the host
+// outright) — that's ~60% of the catalog. A blocked image is indistinguishable
+// from a broken one, so those tiles fell back to the initials placeholder for
+// any visitor running a blocker. Self-hosting every image would mean committing
+// ~500 MB of files; instead we re-serve them from OUR origin under a neutral
+// /thumb path, which no filter list can match.
+//
+// Only known game-CDN hosts are proxied; anything else is left untouched (so
+// this can never be used as a general-purpose open image proxy).
+const THUMB_PROXY_HOSTS = /(^|\.)(gamemonetize\.(com|co)|gamedistribution\.com|famobi\.com|htmlgames\.com|onlinegames\.io|y8\.com|gameflare\.com|gamezop\.com|poki\.com|cloudimage\.io)$/i;
+
+// Rewrite a remote thumbnail URL to the same-origin proxy. Local paths
+// (/thumbs/…, already self-hosted) and unknown hosts pass through unchanged.
+function thumbUrl(u) {
+  if (!u) return '';
+  const s = String(u).trim();
+  if (!/^https?:\/\//i.test(s)) return s;          // already local / relative
+  try {
+    if (!THUMB_PROXY_HOSTS.test(new URL(s).hostname)) return s;
+    return '/thumb?u=' + encodeURIComponent(s);
+  } catch { return s; }
+}
+
 // Normalize a raw entry from any source file into the bundled-catalog shape.
 // Accepts both snake_case (embed_url) and camelCase (embedUrl) fields, and
 // auto-generates a slug if one isn't provided. Returns null if unusable.
@@ -138,7 +166,7 @@ function normalizeRuntimeEntry(g) {
     slug,
     title,
     embed_url: game_url,
-    thumbnail: g.thumbnail || g.thumbnail_url || g.thumbnailUrl || g.image || g.imageUrl || '',
+    thumbnail: thumbUrl(g.thumbnail || g.thumbnail_url || g.thumbnailUrl || g.image || g.imageUrl || ''),
     category:  (g.category || g.type || g.genre || 'arcade').toString().toLowerCase(),
     category_label: g.category_label,
     platform:  g.platform,
@@ -184,7 +212,10 @@ function canonCategory(raw) {
 }
 
 function loadCatalog() {
-  // Primary source: api/games.json (built by build-curated.mjs from data/top_games.json).
+  // Primary source: api/games.json — the DEPLOYED file was produced by
+  // tools/build-mvp.mjs (it carries "source": "mvp-curated" and that tool's
+  // hardcoded 170-game MVP list). tools/build-curated.mjs is a different,
+  // unused-in-production builder with a different output shape.
   let games = [];
   const f = join(__dirname, 'api', 'games.json');
   if (!existsSync(f)) {
@@ -329,6 +360,15 @@ function setCatalog(games, source) {
   // so the homepage grid, category pages, /play, search and counts are all
   // consistent — no DB write required. See lib/catalog-overrides.mjs.
   games = applyCatalogOverrides(games);
+  // Single choke point for thumbnail proxying: every catalog path (bundled JSON,
+  // Supabase refresh, finalgames merge, override `add`/`set` rules) ends up here,
+  // so routing ad-blocked publisher CDNs through /thumb once here covers them all.
+  // thumbUrl() is idempotent — an already-proxied or local path passes through.
+  for (const g of games) {
+    if (!g) continue;
+    if (g.thumbnail)     g.thumbnail     = thumbUrl(g.thumbnail);
+    if (g.thumbnail_url) g.thumbnail_url = thumbUrl(g.thumbnail_url);
+  }
   // Interleave Y8 games evenly so a big batch doesn't dominate the first pages.
   games = spreadCatalog(games);
   CATALOG = { games, generatedAt: new Date().toISOString(), source };
@@ -359,6 +399,12 @@ function setCatalog(games, source) {
   cachedCategoriesPayload = null;
   // Old per-seed orderings point at the previous game objects — drop them.
   orderCache.clear();
+  // Game of the Day was keyed ONLY on the calendar date, so it survived catalog
+  // rebuilds. The hourly link-check can mark today's pick is_working=false at any
+  // hour; the next refresh then drops it from `bySlug`, but the cached payload
+  // kept promoting it — leaving the homepage hero linking to a /play/<slug> that
+  // 404s for the rest of the day. Dropping it here re-picks from the live set.
+  gotdCache = { day: '', payload: null };
 }
 
 // ========================================================================
@@ -454,7 +500,7 @@ function orderedList(cat, seed) {
 
 // ------------------------------------------------------------------------
 // Refresh the in-memory catalog FROM Supabase (the scalable write store the
-// 36-hour grow cron feeds). This is what makes auto-grown games actually
+// 3-day grow cron feeds). This is what makes auto-grown games actually
 // appear on the homepage + category pages, which read the in-memory CATALOG.
 //
 // Scale note: this runs at boot + every CATALOG_REFRESH_MS — NOT per request.
@@ -510,7 +556,7 @@ async function refreshCatalogFromSupabase() {
       slug: g.slug,
       title: g.title,
       embed_url: coerceEmbedUrl(g.game_url),
-      thumbnail: g.thumbnail_url || '',
+      thumbnail: thumbUrl(g.thumbnail_url || ''),
       category: (g.category || 'arcade').toString().toLowerCase(),
       orientation: 'landscape',
       is_new: i < NEW_COUNT,
@@ -869,15 +915,21 @@ app.head(['/healthz', '/ping'], (req, res) => {
 // online right now and should appear in the engine dropdown.  Results are
 // cached briefly so a page refresh doesn't re-probe every service.
 const companionCache = { at: 0, data: null };
+// `kind` is sent explicitly so every consumer can branch on it instead of
+// inferring "no kind means companion" — the browser page's built-in engines
+// carry kind 'sw'/'app', and its reload path compares === 'companion' to decide
+// whether to offer the "open in a new tab" escape hatch (cross-origin embedding
+// can be refused invisibly). Without this field that check was always false.
 async function probeCompanion(e) {
+  const base = { id: e.id, label: e.label, url: e.url, kind: 'companion' };
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 1500);
     const r = await fetch(e.url, { method: 'GET', redirect: 'manual', signal: ctrl.signal });
     clearTimeout(timer);
-    return { id: e.id, label: e.label, url: e.url, up: r.status < 500 };
+    return { ...base, up: r.status < 500 };
   } catch {
-    return { id: e.id, label: e.label, url: e.url, up: false };
+    return { ...base, up: false };
   }
 }
 app.get('/api/proxies', async (req, res) => {
@@ -929,7 +981,19 @@ const AI_TIMEOUT_MS = 30_000;
 function aiFetch(url, opts = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || AI_TIMEOUT_MS);
-  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+  // Chain any caller-supplied signal into ours. Without this the caller's signal
+  // was silently discarded (we always overwrote `signal`), so a caller-side
+  // timeout could never actually cancel the upstream request.
+  const outer = opts.signal;
+  const onOuterAbort = () => ctrl.abort();
+  if (outer) {
+    if (outer.aborted) ctrl.abort();
+    else outer.addEventListener('abort', onOuterAbort, { once: true });
+  }
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => {
+    clearTimeout(t);
+    if (outer) outer.removeEventListener('abort', onOuterAbort);
+  });
 }
 // Optional Pollinations auth (all FREE). A token (auth.pollinations.ai) lifts the
 // keyless ~1 req/15s limit to the Seed tier (~1 req/5s) and removes watermarks;
@@ -970,15 +1034,24 @@ async function pollinationsText(promptUrl, timeoutMs = AI_TIMEOUT_MS) {
 // prompt better than the GET path, and returns the reasoning trace separately so
 // `content` is already clean. Used as the primary on the server shield; the GET
 // endpoint above is the internal fallback. Same 429/5xx backoff.
-async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS) {
+// `opts.model`  — resolved model id (from resolveModels()). Falls back to
+//   'openai-fast' only if the caller didn't resolve one. Previously this was
+//   HARDCODED, so if Pollinations retired that model the primary chat path burned
+//   its full 3-attempt retry/backoff before anything could fall back — defeating
+//   the point of the model registry the secondary path already consults.
+// `opts.signal` — caller's AbortSignal, so a caller-side timeout genuinely
+//   CANCELS the upstream request instead of abandoning it to run for ~90s.
+async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS, opts = {}) {
+  const model = opts.model || 'openai-fast';
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (opts.signal?.aborted) throw new Error('aborted');
     const r = await aiFetch('https://text.pollinations.ai/openai', {
-      method: 'POST', timeoutMs,
+      method: 'POST', timeoutMs, signal: opts.signal,
       headers: pollinationsHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
-      // 'openai-fast' (= gpt-oss-20b, a reasoning model) is the only keyless model
-      // left; reasoning_effort:'low' cuts its time-to-first-token from ~20s to ~1.5s.
-      body: JSON.stringify({ model: 'openai-fast', messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
+      // 'openai-fast' (= gpt-oss-20b, a reasoning model) is the keyless default;
+      // reasoning_effort:'low' cuts its time-to-first-token from ~20s to ~1.5s.
+      body: JSON.stringify({ model, messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
     });
     if (r.ok) {
       const j = await r.json().catch(() => null);
@@ -1283,9 +1356,21 @@ app.post('/api/ai/echo', async (req, res) => {
 // (phishing / malware / NSFW). Text fields are length-capped here and HTML-
 // escaped on render in the browser.
 // ========================================================================
+// NOTE (future work): this is the THIRD independently hand-maintained host list
+// in the repo — the others are TRUSTED_HOST_SUFFIXES in lib/cron-jobs.mjs and the
+// active/`.disabled` rules in data/catalog-overrides.json. Keeping them in sync by
+// hand is the root cause of a recurring class of bug (this issue, and the
+// gamezop/gameflare grow-job issue before it). They should be derived from ONE
+// shared module exporting the canonical "currently embeddable hosts" set.
+//
+// onlinegames.io and htmlgames.com are DELIBERATELY absent: both have ACTIVE
+// full-host blocks in data/catalog-overrides.json because they don't render when
+// framed on ZoFHub (onlinegames.io black-screens / Unity "couldn't load the
+// content"; htmlgames.com frame-busts via GameLib/ThirdParty.js). Accepting them
+// here would publish community picks that are guaranteed dead for every visitor.
 const REC_TRUSTED_HOSTS = [
-  'gamedistribution.com', 'onlinegames.io', 'gamemonetize.com',
-  'gamemonetize.co', 'htmlgames.com', 'y8.com',
+  'gamedistribution.com', 'gamemonetize.com',
+  'gamemonetize.co', 'y8.com',
 ];
 function recHostOk(rawUrl) {
   try {
@@ -1479,6 +1564,11 @@ async function ensureStatusCap(supa) {
   return scoresStatusCol;
 }
 
+// Is the atomic submit_score() upsert available? (db/community-scores-unique.sql)
+// null = not probed yet, true = use it, false = fall back to the legacy path.
+let submitScoreFn = null;
+const missingFn = (e) => /could not find the function|PGRST202|does not exist/i.test(e?.message || e?.code || '');
+
 // --- POST /api/scores/session  { slug, token } -----------------------------
 // Mint a one-time play session. Gated by the static per-page token so only a
 // real page-load can start one. The clock starts NOW (MIN_PLAY_MS is measured
@@ -1546,6 +1636,33 @@ app.post('/api/scores', async (req, res) => {
 
     // Keep ONE row per (game, player) — the player's BEST score. This stops a
     // single identity flooding the board and keeps the leaderboard clean.
+    //
+    // PREFERRED PATH: submit_score() does the whole keep-best rule as a single
+    // INSERT ... ON CONFLICT inside the database, so two concurrent submissions
+    // for the same (slug, player_name) can no longer both "see no existing row"
+    // and both insert. Requires db/community-scores-unique.sql; if that hasn't
+    // been run yet we fall back to the original (racy) select-then-branch below,
+    // so the endpoint keeps working either way.
+    if (submitScoreFn !== false) {
+      const { data, error } = await supa.rpc('submit_score', {
+        p_slug: slug, p_player: name, p_score: score,
+      });
+      if (!error) {
+        submitScoreFn = true;
+        const r = Array.isArray(data) ? data[0] : data;
+        if (r) {
+          const best = Number(r.best);
+          if (r.created) return res.json({ ok: true, best, created: true });
+          return res.json({ ok: true, best, updated: !!r.updated });
+        }
+      } else if (missingFn(error)) {
+        submitScoreFn = false;
+        console.warn('[scores] submit_score() not found — using the non-atomic fallback. Run db/community-scores-unique.sql to make "one row per player per game" race-proof.');
+      } else {
+        throw error;
+      }
+    }
+
     let exQ = supa.from('scores').select('id, score').eq('slug', slug).eq('player_name', name);
     if (hasStatus) exQ = exQ.eq('status', 'ok');
     const { data: existing, error: selErr } = await exQ.order('score', { ascending: false }).limit(1).maybeSingle();
@@ -1592,6 +1709,294 @@ app.get('/api/scores', async (req, res) => {
 });
 
 // ========================================================================
+// PRIVATE ADMIN REVIEW  (/admin — noindex, secret-gated)
+// ------------------------------------------------------------------------
+// Two jobs:
+//   1. Review submitted game requests, each annotated with whether that game is
+//      ALREADY in the catalog (matched by embed URL first, then by title) so
+//      duplicates are obvious at a glance.
+//   2. Review quarantined ("flagged") scores and approve or reject them. This is
+//      what makes the player-facing "pending review" promise actually true —
+//      before this there was no code path anywhere that could un-flag a score,
+//      so flagged scores were invisible and then silently deleted.
+//
+// Auth FAILS CLOSED: with no ADMIN_SECRET set the routes return 503 and do
+// nothing. (Contrast with /healthz, which fails open on purpose.)
+// ========================================================================
+const ADMIN_SECRET = (process.env.ADMIN_SECRET || '').trim();
+
+function adminAuthorized(req) {
+  if (!ADMIN_SECRET) return false;                       // fail CLOSED
+  const bearer   = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const provided = bearer || req.get('x-admin-secret') || req.query.key || '';
+  const a = Buffer.from(String(provided));
+  const b = Buffer.from(ADMIN_SECRET);
+  return a.length === b.length && timingSafeEqual(a, b); // constant-time
+}
+function requireAdmin(req, res) {
+  if (adminAuthorized(req)) return true;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!ADMIN_SECRET) {
+    res.status(503).json({ ok: false, error: 'ADMIN_SECRET is not set — admin review is disabled. Add it to .env (and your host) to enable /admin.' });
+  } else {
+    res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  return false;
+}
+
+// Normalize an embed URL so the same game submitted with http/https, a www
+// prefix, a trailing slash or tracking params still matches the catalog copy.
+function normEmbed(u) {
+  try {
+    const x = new URL(String(u));
+    return (x.host.replace(/^www\./i, '') + x.pathname.replace(/\/+$/, '')).toLowerCase();
+  } catch { return String(u || '').trim().toLowerCase(); }
+}
+const normTitle = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// Is this submitted game already in the live catalog? Keys are prefixed with
+// `matched…` so spreading this over the recommendation row can never clobber the
+// submission's own `title`/`slug`.
+function catalogMatch(rec) {
+  const url = normEmbed(rec.embed_url);
+  const title = normTitle(rec.title);
+  for (const g of CATALOG.games) {
+    if (url && normEmbed(g.embed_url) === url) return { inCatalog: true, matchedBy: 'url', matchedSlug: g.slug, matchedTitle: g.title };
+  }
+  for (const g of CATALOG.games) {
+    if (title && normTitle(g.title) === title) return { inCatalog: true, matchedBy: 'title', matchedSlug: g.slug, matchedTitle: g.title };
+  }
+  return { inCatalog: false, matchedBy: null, matchedSlug: null, matchedTitle: null };
+}
+
+// --- GET /api/admin/recommendations -----------------------------------------
+app.get('/api/admin/recommendations', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabase();
+  if (!supa) return res.json({ ok: true, recommendations: [], note: 'Supabase not configured.' });
+  try {
+    const { data, error } = await supa.from('recommendations')
+      .select('id, title, embed_url, note, author, category, views, is_visible, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    const recommendations = (data || []).map(r => ({ ...r, ...catalogMatch(r) }));
+    return res.json({
+      ok: true,
+      counts: {
+        total: recommendations.length,
+        alreadyInCatalog: recommendations.filter(r => r.inCatalog).length,
+        newToAdd: recommendations.filter(r => !r.inCatalog).length,
+      },
+      recommendations,
+    });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
+    return res.status(500).json({ ok: false, error: 'Could not load recommendations.' });
+  }
+});
+
+// --- POST /api/admin/recommendations/:id/hide  (and /show) -------------------
+app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.params.action !== 'hide' && req.params.action !== 'show') {
+    return res.status(400).json({ ok: false, error: 'action must be hide or show' });
+  }
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
+  const supa = getSupabase();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase not configured.' });
+  try {
+    const { error } = await supa.from('recommendations')
+      .update({ is_visible: req.params.action === 'show' }).eq('id', id);
+    if (error) throw error;
+    return res.json({ ok: true, id, is_visible: req.params.action === 'show' });
+  } catch { return res.status(500).json({ ok: false, error: 'Update failed.' }); }
+});
+
+// --- GET /api/admin/scores/flagged ------------------------------------------
+app.get('/api/admin/scores/flagged', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabase();
+  if (!supa) return res.json({ ok: true, scores: [], note: 'Supabase not configured.' });
+  try {
+    if (!(await ensureStatusCap(supa))) {
+      return res.json({ ok: true, scores: [], note: 'The `status` column is missing — run db/community-scores-integrity.sql.' });
+    }
+    const { data, error } = await supa.from('scores')
+      .select('id, slug, player_name, score, status, flag_reason, created_at')
+      .eq('status', 'flagged')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    // Show the current public best for context, so "is this plausible?" is easy.
+    const out = [];
+    for (const s of (data || [])) {
+      const { data: top } = await supa.from('scores')
+        .select('score').eq('slug', s.slug).eq('status', 'ok')
+        .order('score', { ascending: false }).limit(1).maybeSingle();
+      out.push({ ...s, currentBest: top?.score ?? 0 });
+    }
+    return res.json({ ok: true, scores: out, count: out.length });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
+    return res.status(500).json({ ok: false, error: 'Could not load flagged scores.' });
+  }
+});
+
+// --- POST /api/admin/scores/:id/approve | /reject ---------------------------
+app.post('/api/admin/scores/:id/:action', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.params.action !== 'approve' && req.params.action !== 'reject') {
+    return res.status(400).json({ ok: false, error: 'action must be approve or reject' });
+  }
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
+  const supa = getSupabase();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase not configured.' });
+  const approve = req.params.action === 'approve';
+  try {
+    // Approving makes the score public. The UNIQUE (slug, player_name) WHERE
+    // status='ok' index (db/community-scores-unique.sql) means a player who
+    // already has a visible row would collide — so fold it into their best.
+    if (approve) {
+      const { data: row, error: rowErr } = await supa.from('scores')
+        .select('id, slug, player_name, score').eq('id', id).maybeSingle();
+      if (rowErr) throw rowErr;
+      if (!row) return res.status(404).json({ ok: false, error: 'not found' });
+      const { data: existing } = await supa.from('scores')
+        .select('id, score').eq('slug', row.slug).eq('player_name', row.player_name)
+        .eq('status', 'ok').maybeSingle();
+      if (existing) {
+        if (row.score > existing.score) {
+          const { error } = await supa.from('scores')
+            .update({ score: row.score, created_at: new Date().toISOString() }).eq('id', existing.id);
+          if (error) throw error;
+        }
+        await supa.from('scores').delete().eq('id', id);   // fold the flagged row away
+        return res.json({ ok: true, id, action: 'approve', merged: true });
+      }
+    }
+    const { error } = await supa.from('scores')
+      .update(approve ? { status: 'ok', flag_reason: null } : { status: 'rejected', flag_reason: 'rejected by admin' })
+      .eq('id', id);
+    if (error) throw error;
+    return res.json({ ok: true, id, action: req.params.action });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: 'Update failed.' });
+  }
+});
+
+// A tiny self-contained console. The secret is typed in, kept only in
+// sessionStorage, and sent as a header — it is never part of a URL or the page.
+const ADMIN_HTML = `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>ZoFHub · Admin</title>
+<style>
+ :root{--bg:#171034;--surface:#241a55;--surface2:#2c2065;--line:rgba(170,140,255,.28);
+   --text:#f7f4ff;--dim:#c3b6ee;--brand:#ffd426;--ok:#22e06a;--bad:#ff4d5e;--cyan:#22d3ee}
+ *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
+   font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px}
+ h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--dim);margin:0 0 20px;font-size:13.5px}
+ .wrap{max-width:1000px;margin:0 auto}
+ .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+ input,button{font:inherit}
+ input{background:var(--surface2);border:1px solid var(--line);color:var(--text);
+   border-radius:9px;padding:9px 12px;min-width:240px}
+ button{background:var(--surface2);border:1px solid var(--line);color:var(--text);
+   border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600}
+ button:hover{border-color:var(--brand)}
+ button.p{background:var(--brand);color:#241a00;border-color:var(--brand);font-weight:800}
+ .tabs{display:flex;gap:8px;margin-bottom:14px}
+ .tab{padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:700;color:var(--dim);
+   background:var(--surface);border:1px solid var(--line)}
+ .tab.on{background:var(--brand);color:#241a00;border-color:var(--brand)}
+ .row{background:var(--surface);border:1px solid var(--line);border-radius:11px;
+   padding:12px 14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+ .row .main{flex:1;min-width:220px}
+ .t{font-weight:700}.m{color:var(--dim);font-size:12.5px;word-break:break-all}
+ .pill{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+   padding:3px 8px;border-radius:6px;white-space:nowrap}
+ .dup{background:var(--bad);color:#fff}.new{background:var(--ok);color:#0b2c16}
+ .num{font-variant-numeric:tabular-nums;font-weight:800}
+ .msg{padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);color:var(--dim)}
+ .counts{color:var(--dim);font-size:13px;margin-bottom:12px}
+</style></head><body><div class="wrap">
+<h1>ZoFHub · private admin</h1>
+<p class="sub">Only you can see this. Nothing here is public or indexed.</p>
+<div class="bar">
+  <input id="k" type="password" placeholder="ADMIN_SECRET" autocomplete="current-password">
+  <button class="p" id="go">Unlock</button>
+  <button id="out">Forget</button>
+</div>
+<div class="tabs">
+  <div class="tab on" data-t="recs">Game requests</div>
+  <div class="tab" data-t="scores">Flagged scores</div>
+</div>
+<div id="counts" class="counts"></div>
+<div id="list"><div class="msg">Enter your ADMIN_SECRET to load.</div></div>
+</div><script>
+const $=s=>document.querySelector(s);let tab="recs";
+const key=()=>sessionStorage.getItem("zh_admin")||"";
+const H=()=>({"x-admin-secret":key()});
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));}
+async function api(u,o){const r=await fetch(u,Object.assign({headers:H()},o||{}));return r.json().catch(()=>({ok:false,error:"bad response"}));}
+async function load(){
+  const L=$("#list"),C=$("#counts");
+  if(!key()){L.innerHTML='<div class="msg">Enter your ADMIN_SECRET to load.</div>';C.textContent="";return;}
+  L.innerHTML='<div class="msg">Loading…</div>';C.textContent="";
+  if(tab==="recs"){
+    const d=await api("/api/admin/recommendations");
+    if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
+    const r=d.recommendations||[];
+    C.textContent=r.length+" submitted · "+d.counts.alreadyInCatalog+" already in catalog · "+d.counts.newToAdd+" new";
+    L.innerHTML=r.length?r.map(x=>'<div class="row">'
+      +'<span class="pill '+(x.inCatalog?"dup":"new")+'">'+(x.inCatalog?"Already in catalog":"New")+'</span>'
+      +'<div class="main"><div class="t">'+esc(x.title)+'</div>'
+      +'<div class="m">'+esc(x.embed_url)+'</div>'
+      +'<div class="m">by '+esc(x.author)+' · '+esc(x.category)+' · '+x.views+' views'
+      +(x.inCatalog?' · matches <b>'+esc(x.matchedTitle||x.matchedSlug||"")+'</b> (by '+esc(x.matchedBy)+')':'')
+      +(x.is_visible?'':' · <b>hidden</b>')+'</div></div>'
+      +'<button data-rec="'+x.id+'" data-act="'+(x.is_visible?"hide":"show")+'">'+(x.is_visible?"Hide":"Show")+'</button>'
+      +'</div>').join(""):'<div class="msg">No submissions yet.</div>';
+  }else{
+    const d=await api("/api/admin/scores/flagged");
+    if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
+    const s=d.scores||[];
+    C.textContent=(d.note?d.note+" · ":"")+s.length+" awaiting review";
+    L.innerHTML=s.length?s.map(x=>'<div class="row">'
+      +'<div class="main"><div class="t">'+esc(x.player_name)+' — <span class="num">'+Number(x.score).toLocaleString()+'</span></div>'
+      +'<div class="m">'+esc(x.slug)+' · current public best <span class="num">'+Number(x.currentBest).toLocaleString()+'</span> · '+esc(x.flag_reason||"")+'</div></div>'
+      +'<button class="p" data-sc="'+x.id+'" data-act="approve">Approve</button>'
+      +'<button data-sc="'+x.id+'" data-act="reject">Reject</button>'
+      +'</div>').join(""):'<div class="msg">Nothing flagged. 🎉</div>';
+  }
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest(".tab"); if(t){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));tab=t.dataset.t;load();return;}
+  const sc=e.target.closest("[data-sc]");
+  if(sc){sc.disabled=true;await api("/api/admin/scores/"+sc.dataset.sc+"/"+sc.dataset.act,{method:"POST"});load();return;}
+  const rc=e.target.closest("[data-rec]");
+  if(rc){rc.disabled=true;await api("/api/admin/recommendations/"+rc.dataset.rec+"/"+rc.dataset.act,{method:"POST"});load();return;}
+});
+$("#go").onclick=()=>{sessionStorage.setItem("zh_admin",$("#k").value.trim());$("#k").value="";load();};
+$("#k").addEventListener("keydown",e=>{if(e.key==="Enter")$("#go").click();});
+$("#out").onclick=()=>{sessionStorage.removeItem("zh_admin");load();};
+if(key())load();
+</script></body></html>`;
+
+// --- GET /admin — a tiny private console for the two queues above -----------
+app.get('/admin', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.type('html').send(ADMIN_HTML);
+});
+
+// ========================================================================
 // Live presence — total visitors + per-game player counts
 // ------------------------------------------------------------------------
 // Honest, ZoFHub-only counts.  No simulation.  A session is anyone who has
@@ -1615,7 +2020,11 @@ const PRESENCE_SWEEP_MS     = 1_500;
 const PRESENCE_BROADCAST_MS = 1_200;
 const PRESENCE_MAX_SESSIONS = 20_000;
 
-const presence = new Map();          // sessionId -> { slug, lastSeen, ip }
+// sessionId -> { slug, lastSeen }. Deliberately NO ip: the comment used to claim
+// one was stored, but nothing ever set it. Abuse is handled by the writeAllow()
+// gate on the beat/leave handlers instead, so there's no reason to hold visitor
+// IPs in memory on a site whose privacy policy promises minimal collection.
+const presence = new Map();
 const sseClients = new Set();        // res objects subscribed to the stream
 
 function presenceSnapshot() {
@@ -1677,6 +2086,14 @@ function recordBeat(sessionId, slug) {
 }
 
 app.post('/api/presence/beat', (req, res) => {
+  // Rate-limited like every other mutating endpoint. Without this, anyone could
+  // POST a flood of fresh random sessionIds at a real slug to inflate its
+  // "N playing" badge, or push the map toward PRESENCE_MAX_SESSIONS to evict
+  // genuine sessions via the oldest-first sweep. Sized well above the client's
+  // real cadence (BEAT_MS = 2s in public/js/presence.js): 10 per 5s.
+  if (!writeAllow(req.ip || 'unknown', 10, 5000)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
+  }
   const { sessionId, slug, action } = req.body || {};
   let mutated = false;
   if (action === 'leave' && sessionId && presence.has(sessionId)) {
@@ -1697,6 +2114,9 @@ app.post('/api/presence/beat', (req, res) => {
 // object, which threw → the session was never deleted → leaves only dropped via
 // the 8s TTL. THAT was the "count takes ~11s to show 1 after closing tabs" bug.)
 app.post('/api/presence/leave', express.text({ type: '*/*', limit: '4kb' }), (req, res) => {
+  // Same gate as /beat. 204 (not 429) on trip: this is a fire-and-forget beacon
+  // the client never reads, and the session still expires via the 8s TTL.
+  if (!writeAllow(req.ip || 'unknown', 10, 5000)) return res.status(204).end();
   let sessionId;
   const b = req.body;
   if (b && typeof b === 'object') sessionId = b.sessionId;
@@ -1763,7 +2183,10 @@ async function loadCatalogPage(page, limit, offset, cacheKey, cache) {
     if (error) throw error;
     // Same in-repo display overrides as the in-memory catalog (rename / hide).
     // Only inject `add` games on page 1 so they aren't duplicated across pages.
-    const games = applyCatalogOverrides(data || [], { injectAdds: page === 1 });
+    const games = applyCatalogOverrides(data || [], { injectAdds: page === 1 })
+      // Route ad-blocked publisher CDNs through the same-origin /thumb proxy.
+      // Done BEFORE the cache write so cached pages carry the proxied URLs too.
+      .map(g => (g && g.thumbnail_url) ? { ...g, thumbnail_url: thumbUrl(g.thumbnail_url) } : g);
     const payload = { games, page, limit, total: count || 0, source: 'supabase' };
     // Best-effort cache write — failure logged but doesn't block the response.
     cache.set(cacheKey, payload, 3600).catch(e =>
@@ -1824,7 +2247,9 @@ app.get('/api/games', async (req, res) => {
   // -------- Mode 2: in-memory, popularity-ranked + per-visit shuffle --------
   const limit  = Math.min(parseInt(req.query.limit) || 200, 1000);
   const offset = parseInt(req.query.offset) || 0;
-  const cat    = req.query.category;
+  // Canonicalized for the same reason as /category/:catSlug — an alias spelling
+  // would otherwise compare against already-canonical stored values and return [].
+  const cat    = req.query.category ? canonCategory(String(req.query.category).toLowerCase()) : req.query.category;
   const q      = (req.query.q || '').toLowerCase();
   // `seed` makes the order popularity-WEIGHTED-RANDOM and stable for this visit;
   // sanitized to a short token. Absent → deterministic popularity order.
@@ -1939,7 +2364,10 @@ function vibeKeywords(text) {
   const out = new Set();
   let matched = 0;   // how many mood buckets fired — lets the route skip the AI when the local map already nailed it
   for (const b of VIBE_BUCKETS) {
-    if (b.t.some(tr => new RegExp('\\b' + tr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(t))) {
+    // Anchor BOTH ends. A leading \b only meant "starts a word", so "car" fired on
+    // cartoon/career/cardboard and "cry" fired on crystal — pulling whole moods
+    // into the wrong bucket.
+    if (b.t.some(tr => new RegExp('\\b' + tr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(t))) {
       matched += 1;
       b.k.forEach(k => out.add(k));
     }
@@ -2003,23 +2431,41 @@ function rankCatalogByKeywords(keywords, limit = 18) {
   for (let i = top.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [top[i], top[j]] = [top[j], top[i]]; }
   return top.slice(0, limit).map(({ g }) => ({
     slug: g.slug, title: g.title,
-    thumbnail: g.thumbnail || g.thumbnail_url || '',
+    thumbnail: thumbUrl(g.thumbnail || g.thumbnail_url || ''),
     category: g.category || 'arcade',
   }));
 }
 
-async function vibeKeywordsFromAI(text) {
-  const messages = [
-    { role: 'system', content: 'You translate a player\'s mood into video-game genres. Reply with ONLY comma-separated keywords chosen from the allowed list — no sentences, no extra words.' },
-    { role: 'user', content: `Allowed keywords: ${VIBE_ALLOWED.join(', ')}\nMood: "${String(text).slice(0, 200)}"\nPick the 4-8 best-matching keywords from the allowed list:` },
-  ];
-  // Tight budget — the curated mood map is the source of truth, so the AI is a
-  // quick optional refinement, never something the user waits on. 2.5s keeps the
-  // whole request snappy even when Pollinations is slow.
-  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('ai-timeout')), 2500));
-  const reply = await Promise.race([pollinationsChat(messages), timeout]);
-  const allow = new Set(VIBE_ALLOWED);
-  return (reply || '').toLowerCase().replace(/[^a-z, ]/g, ' ').split(/[,\s]+/).map(s => s.trim()).filter(w => allow.has(w));
+// `ip` is used for the same rate/concurrency gates every other AI call goes
+// through — this was the one outbound AI path with NO throttling at all.
+async function vibeKeywordsFromAI(text, ip = 'unknown') {
+  // Gate first: unthrottled, this fired an outbound Pollinations request on every
+  // mood search that missed the local bucket map.
+  if (!ipAllow(ip)) throw new Error('rate-limited');
+  if (!aiGateEnter()) throw new Error('ai-busy');
+  try {
+    const messages = [
+      { role: 'system', content: 'You translate a player\'s mood into video-game genres. Reply with ONLY comma-separated keywords chosen from the allowed list — no sentences, no extra words.' },
+      { role: 'user', content: `Allowed keywords: ${VIBE_ALLOWED.join(', ')}\nMood: "${String(text).slice(0, 200)}"\nPick the 4-8 best-matching keywords from the allowed list:` },
+    ];
+    // Tight budget — the curated mood map is the source of truth, so the AI is a
+    // quick optional refinement, never something the user waits on. The abort
+    // controller makes the 2.5s budget REAL: the old Promise.race just stopped
+    // waiting and left the upstream call running (up to ~90s) with no throttle.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const { text: model } = await resolveModels().catch(() => ({ text: undefined }));
+    let reply;
+    try {
+      reply = await pollinationsChat(messages, 2500, { model, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    const allow = new Set(VIBE_ALLOWED);
+    return (reply || '').toLowerCase().replace(/[^a-z, ]/g, ' ').split(/[,\s]+/).map(s => s.trim()).filter(w => allow.has(w));
+  } finally {
+    aiGateLeave();
+  }
 }
 
 app.get('/api/vibe', async (req, res) => {
@@ -2035,7 +2481,7 @@ app.get('/api/vibe', async (req, res) => {
   // the fix for "Vibe Finder takes too long / times out".
   if (!matched) {
     try {
-      const ai = await vibeKeywordsFromAI(q);
+      const ai = await vibeKeywordsFromAI(q, req.ip || 'unknown');
       if (ai.length) { keywords = [...new Set([...ai, ...local])]; source = 'ai'; }
     } catch { /* AI slow/down → built-in mood map carries it */ }
   }
@@ -2101,7 +2547,7 @@ function gameOfTheDay() {
       date: day,
       game: {
         slug: g.slug, title: g.title,
-        thumbnail: g.thumbnail || g.thumbnail_url || '',
+        thumbnail: thumbUrl(g.thumbnail || g.thumbnail_url || ''),
         category: g.category || 'arcade',
         category_label: g.category_label || g.category || 'Arcade',
         plays: g.plays || 0,
@@ -2316,11 +2762,11 @@ function embedCacheSet(key, html, status) {
   }
 }
 
-app.get('/embed/:slug', async (req, res) => {
-  const game = bySlug.get(req.params.slug);
-  if (!game) return res.status(404).type('html').send('Game not found');
-
-  const upstreamUrl = game.embed_url;
+// Shared implementation for BOTH embed routes (catalog games and community
+// recommendations) so community picks get identical treatment: same-origin
+// delivery, the injected <base href>, the fit-to-frame CSS and the EMBED_GUARD.
+// `cacheKeyBase` just namespaces the rewritten-HTML cache.
+async function serveEmbed(req, res, upstreamUrl, cacheKeyBase) {
   let upstream;
   try { upstream = new URL(upstreamUrl); } catch { return res.status(400).send('Invalid embed URL'); }
 
@@ -2370,7 +2816,7 @@ app.get('/embed/:slug', async (req, res) => {
   const uaPick = Math.max(0, Math.min(UA_POOL.length - 1, parseInt(req.query.ua) || 0));
 
   // Fast path: serve the rewritten HTML straight from cache.
-  const cacheKey = `${req.params.slug}|${uaPick}`;
+  const cacheKey = `${cacheKeyBase}|${uaPick}`;
   const cached = embedCacheGet(cacheKey);
   if (cached) {
     res.status(cached.status);
@@ -2444,6 +2890,41 @@ app.get('/embed/:slug', async (req, res) => {
       <a href="${htmlEscape(upstreamUrl)}" target="_blank" rel="noopener" style="color:#ffe000;font-weight:700;border:1px solid rgba(255,224,0,.45);padding:10px 16px;border-radius:10px;text-decoration:none">Open directly →</a>
     </body></html>`
   );
+}
+
+// Community-recommended game, proxied exactly like a catalog game.
+// Registered BEFORE /embed/:slug for clarity (the extra path segment already
+// keeps them from colliding). Without this route the Community "Play" modal
+// iframed the publisher URL directly, which (a) skipped the per-publisher render
+// fixes catalog games rely on and (b) exposed the game's real CDN to network
+// filters — breaking the same-origin "unblock at school" guarantee for exactly
+// the games a visitor contributed.
+app.get('/embed/rec/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).type('html').send('Bad recommendation id');
+  const supa = getSupabase();
+  if (!supa) return res.status(503).type('html').send('Community backend unavailable');
+  let rec;
+  try {
+    const { data, error } = await supa.from('recommendations')
+      .select('id, embed_url, is_visible').eq('id', id).maybeSingle();
+    if (error) throw error;
+    rec = data;
+  } catch { return res.status(503).type('html').send('Community backend unavailable'); }
+  if (!rec || !rec.is_visible) return res.status(404).type('html').send('Recommendation not found');
+  // Re-validate at SERVE time, not just at submit time: the trusted-host list
+  // changes (onlinegames.io / htmlgames.com were removed after being proven to
+  // black-screen), and rows submitted under the old list must not still render.
+  if (!recHostOk(rec.embed_url)) {
+    return res.status(403).type('html').send('This game is no longer from a supported embeddable source.');
+  }
+  return serveEmbed(req, res, rec.embed_url, `rec:${id}`);
+});
+
+app.get('/embed/:slug', async (req, res) => {
+  const game = bySlug.get(req.params.slug);
+  if (!game) return res.status(404).type('html').send('Game not found');
+  return serveEmbed(req, res, game.embed_url, req.params.slug);
 });
 
 // ========================================================================
@@ -2495,6 +2976,63 @@ function isInternalHost(host) {
 // large Unity game, so their data file never downloaded and the game surfaced an
 // "unfixable" JavaScript loading error. Smaller HTML5 games stayed under 25 MB,
 // which is exactly why ONLY Unity games were affected.)
+// ---- Same-origin thumbnail proxy (see THUMB_PROXY_HOSTS near the top) ------
+// Fetches a publisher-CDN thumbnail server-side and re-serves it from our own
+// origin, so ad-blockers can't block it. Results are cached on disk so we hit
+// each upstream image once, not once per visitor.
+const THUMB_CACHE_DIR = join(__dirname, '.cache', 'thumbs');
+const THUMB_MAX_BYTES = 5 * 1024 * 1024;
+const thumbInFlight = new Map();   // url -> Promise<{buf, type}>
+
+async function fetchThumb(target) {
+  const key = createHash('sha1').update(target).digest('hex');
+  const ext = (target.match(/\.(webp|png|jpe?g|gif|avif)(?:$|[?#])/i) || [])[1] || 'img';
+  const file = join(THUMB_CACHE_DIR, `${key}.${ext.toLowerCase()}`);
+  if (existsSync(file)) {
+    try { return { buf: readFileSync(file), type: mimeForExt(ext) }; } catch {}
+  }
+  if (thumbInFlight.has(target)) return thumbInFlight.get(target);
+  const work = (async () => {
+    const r = await fetchAsBrowser(target, { ua: UA_POOL[0], timeoutMs: 12_000, accept: 'image/avif,image/webp,image/*,*/*' });
+    if (!r.ok) throw new Error('upstream ' + r.status);
+    const type = r.headers.get('content-type') || '';
+    if (!/^image\//i.test(type)) throw new Error('not an image');
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > THUMB_MAX_BYTES) throw new Error('bad size');
+    try { mkdirSync(THUMB_CACHE_DIR, { recursive: true }); writeFileSync(file, buf); } catch {}
+    return { buf, type };
+  })();
+  thumbInFlight.set(target, work);
+  try { return await work; } finally { thumbInFlight.delete(target); }
+}
+function mimeForExt(e) {
+  e = String(e).toLowerCase();
+  return e === 'png' ? 'image/png' : e === 'gif' ? 'image/gif' : e === 'webp' ? 'image/webp'
+       : e === 'avif' ? 'image/avif' : e === 'img' ? 'application/octet-stream' : 'image/jpeg';
+}
+
+app.get('/thumb', async (req, res) => {
+  const raw = req.query.u;
+  if (!raw || typeof raw !== 'string') return res.status(400).type('text').send('missing ?u=');
+  let target;
+  try { target = new URL(raw); } catch { return res.status(400).type('text').send('bad url'); }
+  if (target.protocol !== 'https:' && target.protocol !== 'http:') return res.status(400).type('text').send('http(s) only');
+  if (isInternalHost(target.hostname)) return res.status(403).type('text').send('blocked host');
+  // Never a general-purpose image proxy: only the known game CDNs.
+  if (!THUMB_PROXY_HOSTS.test(target.hostname)) return res.redirect(302, target.toString());
+  try {
+    const { buf, type } = await fetchThumb(target.toString());
+    res.setHeader('content-type', type);
+    res.setHeader('cache-control', 'public, max-age=604800, immutable');   // 7 days
+    res.setHeader('cross-origin-resource-policy', 'cross-origin');
+    return res.end(buf);
+  } catch {
+    // Upstream dead/blocked us — fall back to the original URL so the browser
+    // still gets its chance (and the tile's own fallback handles a real miss).
+    return res.redirect(302, target.toString());
+  }
+});
+
 const ASSET_MAX_BYTES = 100 * 1024 * 1024;
 
 app.get('/asset', async (req, res) => {
@@ -2850,7 +3388,6 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /scram/',
     'Disallow: /epoxy/',
     'Disallow: /baremux/',
-    'Disallow: /bare/',
     'Disallow: /wisp/',
   ];
   // Advertise the sitemap so search engines discover the games catalog (the
@@ -2931,11 +3468,17 @@ app.get('/leaderboard',(req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.
 // Always served — legal pages (privacy / terms / DMCA / cookies) are required.
 // ========================================================================
 const LEGAL_DIR = join(__dirname, 'legal');
-const REPO_URL  = 'https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub';
 const contactEmail = (process.env.CONTACT_EMAIL || '').trim();
+// The fallback used to link this repo's GitHub Issues page. That link is dead by
+// DESIGN — the repo is intentionally private — so a rights-holder trying to file
+// a DMCA notice, or any user with a privacy/terms question, hit a 404 on every
+// deploy that didn't set CONTACT_EMAIL (which render.yaml never did). Saying
+// plainly that no address is published yet is worse-looking but honest, and it
+// doesn't send someone chasing a link that can never work.
+// → Set CONTACT_EMAIL in the host dashboard to replace this everywhere.
 const CONTACT_HTML = contactEmail
   ? `<a href="mailto:${htmlEscape(contactEmail)}">${htmlEscape(contactEmail)}</a>`
-  : `<a href="${REPO_URL}/issues" target="_blank" rel="noopener">our GitHub Issues page</a>`;
+  : `<strong>a contact address has not been published yet</strong>`;
 const SITE_URL_HTML = (process.env.SITE_URL || '').trim()
   ? htmlEscape(process.env.SITE_URL.trim())
   : 'this website';
@@ -2963,7 +3506,11 @@ for (const [route, file] of Object.entries(LEGAL_PAGES)) {
 // ========================================================================
 const CATEGORY_TEMPLATE = readFileSync(join(PUBLIC_DIR, 'category.html'), 'utf8');
 app.get('/category/:catSlug', (req, res) => {
-  const slug = String(req.params.catSlug).toLowerCase();
+  // Canonicalize the INCOMING slug too. Stored categories are already run through
+  // canonCategory(), so a bookmarked/hand-typed alias spelling (/category/puzzles,
+  // /category/car, /category/sandbox) would string-compare against canonical data
+  // and 404 despite the category existing.
+  const slug = canonCategory(String(req.params.catSlug).toLowerCase());
   const matching = CATALOG.games.filter(g => g.category === slug);
   if (!matching.length) return send404(req, res);
   const label = matching[0].category_label

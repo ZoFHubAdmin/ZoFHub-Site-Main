@@ -62,9 +62,21 @@ habit, since it repairs anything that didn't copy cleanly.)
    Open http://localhost:8080 — your catalog loads straight from Supabase because
    `.env` is already there. No secret-restoring step needed.
 
-5. **(Only if you want the companion browsers locally)** each has its own deps —
-   install per folder as needed, e.g. `cd Interstellar && npm install`. The main
-   site does **not** need these; it uses the built-in Scramjet/UV/GUST engines.
+5. **(Only if you want the companion browsers locally)** each has its own deps.
+   The main site does **not** need any of these — it uses the built-in
+   Scramjet/UV/GUST engines. Per companion:
+
+   | Companion | Setup | Port |
+   |---|---|---|
+   | **NautilusOS** | none — pure static | 8091 |
+   | **Interstellar** | `cd Interstellar && npm install` | 8092 |
+   | **DayDream** | `cd DayDream && pnpm install && pnpm run build`, then copy `config.example.js` → `config.js` | 8093 |
+   | **Nebula** | `cd Nebula && pnpm install && pnpm run build`, then copy `config.example.toml` → `config.toml` | 8094 |
+
+   Then `npm run dev:all` starts the site **and** every companion that's ready,
+   and points the server at all four so they show up in the `/browser` dropdown.
+   `npm run proxies` prints exactly what it started and, for anything it
+   skipped, the precise reason and the command that fixes it.
 
 That's it. Your live site on Render is unaffected by any laptop change — it
 deploys from GitHub, not your machine.

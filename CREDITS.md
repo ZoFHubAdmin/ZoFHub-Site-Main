@@ -35,13 +35,28 @@ changes would be kept in this repository. To request the source for a specific
 deployed build, ask in the official **ZoFHub Discord server** — the invite is
 linked from the footer of the live site.
 
-## Companion standalone browsers (optional, NOT included in this repository)
+## Companion standalone browsers (optional, vendored into this private repo)
 
 These are complete proxy‑browser apps that run as their own services. They are
-**copyleft (AGPL‑3.0 / GPL‑3.0)** and are **not bundled in this repository** —
-they're large upstream clones that cannot be relicensed under the ZoFHub License.
-Install them separately if you want those engines; ZoFHub's core does not depend
-on them and simply hides them from the engine list when they're not running.
+**copyleft (AGPL‑3.0 / GPL‑3.0)** and are **not covered by the ZoFHub License** —
+they're large upstream clones that cannot be relicensed. ZoFHub's core does not
+depend on them and simply hides them from the engine list when they aren't
+running.
+
+**Where they live:** their full source trees are committed into this repository
+(`NautilusOS/`, `Interstellar/`, `DayDream/`, `Nebula/`) because it doubles as a
+private full-machine backup. That is fine while the repo stays **private** — the
+copyleft obligations below are triggered by *distribution* and by *offering the
+software over a network*, neither of which a private backup does. They are **not
+deployed with the live site**; the deployed ZoFHub uses only its three built-in
+same-origin engines.
+
+**Local modifications:** DayDream and Nebula have been modified here so they can
+actually build — each had a dependency pinned to a GitHub release asset that
+upstream has since deleted (repointed to the same version on npm), unapproved
+pnpm build scripts, and a missing `terser` dependency in DayDream. Under
+AGPL‑3.0 these changes must be published **if** you ever serve either app over a
+network. They are currently local-dev only.
 
 | Project | Repository | License |
 |---|---|---|

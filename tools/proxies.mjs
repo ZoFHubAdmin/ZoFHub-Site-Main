@@ -111,9 +111,10 @@ function serveStatic(dir, port, name) {
 }
 
 // Run a child Node app (its own server) with PORT set, inheriting stdio so its
-// logs are visible.  Returns true if it was launched.
-function runNode(cwd, entry, port, name, env = {}) {
-  const child = spawn(process.execPath, [entry], {
+// logs are visible.  `extraArgs` lets a companion be launched through a runner
+// (DayDream's entry point is TypeScript, so it goes through tsx).
+function runNode(cwd, entry, port, name, env = {}, extraArgs = []) {
+  const child = spawn(process.execPath, [entry, ...extraArgs], {
     cwd, stdio: 'inherit',
     env: { ...process.env, PORT: String(port), ...env },
   });
@@ -124,7 +125,7 @@ function runNode(cwd, entry, port, name, env = {}) {
     }
   });
   children.push(child);
-  started.push(`${name.padEnd(13)} http://localhost:${port}/   (node ${entry})`);
+  started.push(`${name.padEnd(13)} http://localhost:${port}/   (node ${extraArgs.length ? extraArgs.join(' ') : entry})`);
   console.log(`[proxies] ${name} starting → http://localhost:${port}/`);
   return child;
 }
@@ -152,20 +153,49 @@ if (existsSync(join(interDir, 'node_modules'))) {
   skipped.push('Interstellar — folder/index.js missing.');
 }
 
-// ---- DayDream — needs a build (vite) ------------------------------------
+// ---- DayDream — needs deps + a vite build + config.js --------------------
+// Each precondition is reported SEPARATELY. A single "not built" catch-all
+// couldn't tell you whether deps were missing, the build hadn't run, or a
+// config file was absent — so you'd re-run the wrong command and still be
+// stuck. index.ts is TypeScript, so it's launched through tsx.
 const ddDir = join(ROOT, 'DayDream');
-if (existsSync(join(ddDir, 'dist')) && existsSync(join(ddDir, 'node_modules'))) {
-  runNode(ddDir, 'index.ts', PORTS.daydream, 'DayDream');
+// NOTE: the build check targets dist/index.html, not just dist/. The vite build
+// writes dist/ early (static assets are copied first) and index.html LAST, so a
+// bare existsSync('dist') is true while a build is still running or after one
+// that died halfway — and DayDream would then launch and serve 404s to a
+// dropdown entry that looked healthy.
+const ddMissing = [
+  !existsSync(join(ddDir, 'node_modules'))          && 'deps not installed (cd DayDream && pnpm install)',
+  !existsSync(join(ddDir, 'dist', 'index.html'))    && 'not built (cd DayDream && pnpm run build)',
+  !existsSync(join(ddDir, 'config.js'))             && 'config.js missing (copy config.example.js → config.js and set a real marketplace psk)',
+].filter(Boolean);
+if (!existsSync(join(ddDir, 'index.ts'))) {
+  skipped.push('DayDream     — folder/index.ts missing.');
+} else if (ddMissing.length) {
+  skipped.push(`DayDream     — ${ddMissing.join('; ')}.`);
 } else {
-  skipped.push('DayDream     — not built.  Run:  cd DayDream && npm install && npm run build   (heavy; optional).');
+  runNode(ddDir, join('node_modules', 'tsx', 'dist', 'cli.mjs'), PORTS.daydream, 'DayDream', {}, ['index.ts']);
 }
 
-// ---- Nebula — needs a build (astro + sqlite) ----------------------------
+// ---- Nebula — needs deps + BOTH halves of its build ----------------------
+// Nebula is a pnpm project (npm install produces a broken tree) and its build
+// has two halves: `build:server` compiles server/server.ts → server/server.js,
+// and `build:client` produces dist/server/entry.mjs, which server.js imports at
+// startup. Checking only server/server.js used to silently skip Nebula forever
+// while saying nothing about WHY, and the advice it printed (npm) was wrong.
 const nebDir = join(ROOT, 'Nebula');
-if (existsSync(join(nebDir, 'server', 'server.js')) && existsSync(join(nebDir, 'node_modules'))) {
-  runNode(nebDir, join('server', 'server.js'), PORTS.nebula, 'Nebula');
+const nebMissing = [
+  !existsSync(join(nebDir, 'node_modules'))                  && 'deps not installed (cd Nebula && pnpm install)',
+  !existsSync(join(nebDir, 'server', 'server.js'))           && 'server not compiled (cd Nebula && pnpm run build:server)',
+  !existsSync(join(nebDir, 'dist', 'server', 'entry.mjs'))   && 'client not built (cd Nebula && pnpm run build:client)',
+  !existsSync(join(nebDir, 'config.toml'))                   && 'config.toml missing (copy config.example.toml → config.toml)',
+].filter(Boolean);
+if (!existsSync(join(nebDir, 'package.json'))) {
+  skipped.push('Nebula       — folder missing.');
+} else if (nebMissing.length) {
+  skipped.push(`Nebula       — ${nebMissing.join('; ')}.`);
 } else {
-  skipped.push('Nebula       — not built.  Run:  cd Nebula && npm install && npm run build   (heavy; optional).');
+  runNode(nebDir, join('server', 'server.js'), PORTS.nebula, 'Nebula');
 }
 
 // ---- summary ------------------------------------------------------------
