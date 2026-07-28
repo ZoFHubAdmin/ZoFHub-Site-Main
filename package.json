@@ -40,7 +40,8 @@
     "audit-licensing": "node --use-system-ca tools/audit-licensing.mjs",
     "build-merged": "node --use-system-ca tools/build-merged.mjs",
     "cleanup-ip": "node --use-system-ca tools/cleanup-ip.mjs",
-    "build-curated": "node --use-system-ca tools/build-curated.mjs"
+    "build-curated": "node --use-system-ca tools/build-curated.mjs",
+    "upgrade-y8-thumbs": "python tools/upgrade_y8_thumbs.py"
   },
   "engines": {
     "node": ">=22"

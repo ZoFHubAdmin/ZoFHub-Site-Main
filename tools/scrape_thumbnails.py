@@ -281,12 +281,17 @@ def validate(buf):
     return im, detail
 
 
-def normalize(im):
-    """Cover-crop to EXACTLY 512x384 with LANCZOS, return JPEG bytes.
+def normalize(im, fmt="JPEG"):
+    """Cover-crop to EXACTLY 512x384 with LANCZOS, return encoded bytes.
 
     Scale-to-fill then centre-crop, rather than a blind resize: source art is a
     mix of 4:3 and 3:2, and stretching every tile to one ratio visibly distorts
     faces and logos on half the grid. Output dimensions are still exactly 512x384.
+
+    `fmt` exists so a caller REPLACING a file in place can keep that file's
+    existing extension honest. Writing JPEG bytes into a .webp filename makes
+    express.static advertise `image/webp` over a JPEG body - browsers mostly
+    sniff past it, but it is a lie that costs nothing to avoid.
     """
     im = im.convert("RGB")
     tw, th = TARGET
@@ -296,7 +301,10 @@ def normalize(im):
     left, top = (nw - tw) // 2, (nh - th) // 2
     im = im.crop((left, top, left + tw, top + th))
     out = io.BytesIO()
-    im.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)
+    if str(fmt).upper() == "WEBP":
+        im.save(out, "WEBP", quality=JPEG_QUALITY, method=6)
+    else:
+        im.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)
     return out.getvalue()
 
 
