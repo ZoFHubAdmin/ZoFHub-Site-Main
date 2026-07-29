@@ -114,7 +114,11 @@ function mountFooter() {
     <div class="footer-main">
       <div class="footer-brand">
         <a class="footer-logo" href="/">
-          <img src="/assets/favicon.png" alt="ZoFHub" width="36" height="36" decoding="async" />
+          <!-- logo-72.png, not favicon.png: this renders at 36 CSS px, and the
+               256x256 favicon was 73KB to draw a 36px mark. 72px covers 2x
+               retina and costs 7.6KB — the same picture, 65KB lighter, on every
+               page of the site. -->
+          <img src="/assets/logo-72.png" alt="ZoFHub" width="36" height="36" loading="lazy" decoding="async" />
           <span>ZoFHub</span>
         </a>
         <p class="footer-tagline">Instant browser games, a free AI assistant, and a smart proxy browser — all in one hub. No downloads, no sign-up.</p>
