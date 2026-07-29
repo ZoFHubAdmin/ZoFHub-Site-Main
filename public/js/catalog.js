@@ -183,7 +183,31 @@ async function loadFirst() {
     }
   }
   console.error('[zofhub] catalog load failed after retries:', lastErr);
-  if (!state.all.length) toast('Couldn’t load games — try a hard refresh (Ctrl+Shift+R).', 'err');
+  if (!state.all.length) {
+    // Flag it so renderAll() can show a PERSISTENT error state. The toast alone
+    // used to be the only signal, and it disappears after ~3s — after which the
+    // page reads exactly like "no games matched your search", so a visitor who
+    // looked away could not tell a broken site from an empty result.
+    state.loadFailed = true;
+    state.loadError = lastErr?.message || String(lastErr || 'network error');
+    toast('Couldn’t load games — try a hard refresh (Ctrl+Shift+R).', 'err');
+  }
+}
+
+// Re-run the initial load from the error state's Retry button.
+async function retryLoad() {
+  state.loadFailed = false;
+  state.loadError = '';
+  renderAll();                       // clears the error box while we retry
+  await loadFirst();
+  if (!state.loadFailed) {
+    recomputeCounts();
+    renderSidebar();
+    renderFeatured(); renderTrending(); renderNew(); renderRunners();
+    renderFavoritesRow(); renderForYouRow(); renderRecentRow();
+    loadRest();
+  }
+  applyFilter();
 }
 
 // Stream the REST of the catalog in the background (after first paint) so
@@ -562,9 +586,21 @@ function renderAll() {
   // Pass the active query so matched text is highlighted in each tile label.
   paintGrid(grid, slice, { adsEvery: 12, highlight: state.searchQuery });
   if (empty) {
-    if (slice.length > 0) empty.hidden = true;
-    else {
+    if (slice.length > 0) { empty.hidden = true; empty.classList.remove('is-error'); }
+    else if (state.loadFailed) {
+      // Distinct from "no results": the catalog never arrived. Stays on screen
+      // until it succeeds, and offers a way out that isn't a full page reload.
       empty.hidden = false;
+      empty.classList.add('is-error');
+      empty.innerHTML = `
+        <strong>Couldn’t load the games.</strong>
+        <span>This is a connection problem on our side, not an empty search —
+              your filters are fine.</span>
+        <button type="button" class="btn-primary btn-sm" id="catalogRetry">Try again</button>`;
+      empty.querySelector('#catalogRetry')?.addEventListener('click', retryLoad, { once: true });
+    } else {
+      empty.hidden = false;
+      empty.classList.remove('is-error');
       empty.innerHTML = state.searchQuery
         ? `No games match “${escapeHtml(state.q)}”. Try fewer or different words.`
         : 'No games match.';

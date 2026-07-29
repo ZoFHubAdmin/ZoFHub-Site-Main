@@ -429,6 +429,19 @@ body.is-searching #allRowTitle::before {
   color: var(--text-mute);
   text-align: center; font-size: 13.5px;
 }
+/* "The catalog failed to load" — deliberately NOT the same as "no games matched
+   your search". A dashed grey box reads as an ordinary empty result, so a
+   visitor whose connection dropped would blame their own filters. Solid red
+   border, a heading and a retry button say clearly that something broke. */
+.grid-empty.is-error {
+  border: 1px solid rgba(239,68,68,.55);
+  border-style: solid;
+  background: rgba(239,68,68,.07);
+  color: var(--text);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.grid-empty.is-error strong { font-size: 15px; }
+.grid-empty.is-error span { color: var(--text-mute); max-width: 46ch; line-height: 1.55; }
 .load-more {
   display: block;
   margin: 24px auto 4px;
