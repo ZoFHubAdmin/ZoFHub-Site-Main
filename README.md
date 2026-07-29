@@ -36,7 +36,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 | Layer | Choice |
 |---|---|
-| Server | Node.js (≥18) + Express, ES modules, **no build step** |
+| Server | Node.js (≥22) + Express, ES modules, **no build step** |
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework) |
 | Database | Supabase (Postgres) — accessed via PostgREST |
 | AI | Pollinations (browser-direct, keyless — no server proxying) |
@@ -47,7 +47,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 ## 🚀 Quick start
 
-**Prerequisites:** Node.js **18+** and Git. Supabase is optional for local dev — without it the app serves a bundled fallback catalog.
+**Prerequisites:** Node.js **22+** and Git. Supabase is optional for local dev — without it the app serves a bundled fallback catalog.
 
 ```bash
 git clone https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
@@ -73,6 +73,7 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Public Supabase access (optional locally). |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Server-only.** Bypasses RLS for cron + writes. Never expose to the browser or commit it. |
 | `SCORE_SECRET` | Signs the proof-of-play leaderboard tokens. Keep it stable. |
+| `ADMIN_SECRET` | Unlocks `/admin`, where you review the scores the anti-cheat layer flagged or quarantined. Unset = the panel and `/api/admin/*` fail closed, and flagged scores stay hidden with nobody able to release them. |
 | `PROXY_AD_SCRIPTS` | Proxy-friendly ad-network loader script(s), comma-separated (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
 | `PROXY_BANNER_TAG` | Optional footer display-banner tag (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
@@ -191,7 +192,7 @@ docker run -p 8080:8080 --env-file .env zofhub
 ZoFHub/
 ├── server.js            # the entire app: pages, API, game/AI/web proxies (entry point)
 ├── render.yaml          # Render blueprint (hub + proxy services)
-├── Dockerfile           # container image (Node 20-alpine, port 8080)
+├── Dockerfile           # container image (Node 22-alpine, port 8080)
 ├── api/                 # bundled catalog JSON (fallback when Supabase is down)
 ├── data/                # catalog-overrides.json, score-limits.json, game data manifests
 ├── db/                  # Supabase SQL: schema, community, integrity, loaders, ALL-IN-ONE

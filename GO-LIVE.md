@@ -37,6 +37,7 @@ or a VPS.
 | `SUPABASE_ANON_KEY` | ✓ | public/browser key (`SUPABASE_PUBLISHABLE_KEY` accepted too) |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✓ | server-only; bypasses RLS |
 | `SCORE_SECRET` | ✓ | random 32+ chars; stable so score tokens survive restarts |
+| `ADMIN_SECRET` | ✓ | random 32+ chars; unlocks `/admin` to review scores the anti-cheat layer flagged/quarantined. Without it the panel fails closed and flagged scores can never be released |
 | `PROXY_AD_SCRIPTS` | — | comma-separated proxy-friendly ad loader script URL(s); Google URLs auto-rejected. Blank = ad-free |
 | `PROXY_BANNER_TAG` | — | optional single footer banner tag |
 | `POLLINATIONS_REFERRER` | — | your domain (bare hostname), for AI attribution |

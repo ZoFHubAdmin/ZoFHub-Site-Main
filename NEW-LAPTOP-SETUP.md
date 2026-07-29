@@ -42,7 +42,7 @@ habit, since it repairs anything that didn't copy cleanly.)
 
 ## 🚀 Setting up on the NEW laptop (step by step)
 
-1. **Install the basics:** [Node.js 18+](https://nodejs.org) and [Git](https://git-scm.com).
+1. **Install the basics:** [Node.js 22+](https://nodejs.org) and [Git](https://git-scm.com).
 
 2. **Clone your repo** (this brings down everything, including `.env`):
    ```bash
