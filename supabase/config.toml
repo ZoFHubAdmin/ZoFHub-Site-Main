@@ -1,0 +1,47 @@
+# =============================================================================
+# ZoFHub · Supabase CLI / branching config
+# -----------------------------------------------------------------------------
+# Consumed by the Supabase GitHub integration
+# (Dashboard → Project Settings → Integrations → GitHub).
+#
+# WORKING DIRECTORY: this file lives at <repo root>/supabase/, so the
+# integration's "working directory" field must be exactly:
+#
+#     .
+#
+# (The field wants the path from the repo root to the folder CONTAINING
+# `supabase/` — not the path to `supabase/` itself. `.` is correct here. You
+# would only enter something like `apps/web` for a monorepo whose layout is
+# `apps/web/supabase/`.)
+#
+# WHAT RUNS: every file in supabase/migrations/ is applied, in filename order,
+# to each preview branch and — once you merge to your production branch — to
+# production. supabase/seed.sql runs on preview branches only.
+#
+# The migrations here are the SCHEMA only. The catalog's data lives in
+# db/load-*.sql (~14 MB of INSERTs) and is deliberately NOT wired in: a preview
+# branch does not need 16,818 games to prove a schema change is sound, and
+# re-running that on every branch would be slow and pointless.
+# =============================================================================
+
+# Your project ref — the subdomain in SUPABASE_URL
+# (https://jfflnuvqjlrcuqzyglnn.supabase.co). Not a secret: it is in every
+# public API URL the browser already sends.
+project_id = "jfflnuvqjlrcuqzyglnn"
+
+[db]
+# Match your project's Postgres major version. Supabase free tier is 15 unless
+# you explicitly created a 17 project — check Dashboard → Settings → Database
+# and correct this if it disagrees, otherwise `supabase start` runs a local
+# Postgres that differs from production.
+major_version = 15
+
+[db.migrations]
+# Applied in lexicographic filename order, so the leading timestamps are what
+# actually enforce dependency order. That matters here: the `status` column has
+# to exist before the review and uniqueness migrations reference it.
+enabled = true
+
+# No Edge Functions and no custom storage buckets in this project. Both sections
+# are intentionally absent rather than empty-but-declared, so the integration
+# has nothing to try to deploy.

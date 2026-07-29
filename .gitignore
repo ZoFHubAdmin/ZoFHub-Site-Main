@@ -17,3 +17,7 @@
 # Python bytecode cache (never useful in the repo; version-specific)
 __pycache__/
 *.pyc
+
+# Supabase CLI local state (regenerated; never part of the repo)
+supabase/.temp/
+supabase/.branches/
