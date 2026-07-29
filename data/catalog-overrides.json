@@ -4563,6 +4563,26 @@
       "set": {
         "thumbnail_url": "/thumbs/dog-amp-duck.png"
       }
+    },
+    {
+      "_source": "manual-blank-thumb",
+      "_note": "GameMonetize serves a 931-byte SOLID MAGENTA 512x384 rectangle for this game (verified: 1 distinct colour, 100% of pixels) — its \"no artwork published\" placeholder. It returns HTTP 200 with a valid image/jpeg, so the tile's load-failure fallback never fires and the visitor sees a blank magenta block. Clearing the URL lets tileFallbackHtml() render the branded initials tile instead. Remove this rule if real art is ever published.",
+      "match": {
+        "slug": "purple-clicker-game"
+      },
+      "set": {
+        "thumbnail_url": ""
+      }
+    },
+    {
+      "_source": "manual-blank-thumb",
+      "_note": "GameMonetize serves a 931-byte SOLID MAGENTA 512x384 rectangle for this game (verified: 1 distinct colour, 100% of pixels) — its \"no artwork published\" placeholder. It returns HTTP 200 with a valid image/jpeg, so the tile's load-failure fallback never fires and the visitor sees a blank magenta block. Clearing the URL lets tileFallbackHtml() render the branded initials tile instead. Remove this rule if real art is ever published.",
+      "match": {
+        "slug": "green-clicker-game"
+      },
+      "set": {
+        "thumbnail_url": ""
+      }
     }
   ],
   "add": [

@@ -22,7 +22,8 @@ Everything that matters is committed and comes down with `git clone`:
 
 - **All your code** — server, frontend, tools, SQL.
 - **`.env`** — your real Supabase + Pollinations keys. *(Committed on purpose because this repo is private.)*
-- **Every companion app's files** — Interstellar, Nebula, NautilusOS, DayDream, scramjet.
+- **The companion apps' files** — Interstellar, NautilusOS, DayDream, scramjet.
+  *(Nebula is the one exception — see below.)*
 - **All data files** — catalogs, audits, caches, state.
 
 ## 📦 Everything — including `node_modules` — is committed
@@ -31,12 +32,24 @@ This repo now backs up **literally everything**, including every `node_modules`
 folder, so nothing at all is left out. After cloning you already have all the
 downloaded packages.
 
-**One caveat:** `Nebula/node_modules` is a pnpm store built from symlinks. It's
-backed up, but on a fresh Windows machine git may restore those as broken stubs.
-If Nebula misbehaves after a clone, just run `pnpm install` inside the `Nebula`
-folder to fix it. (The **main website** uses the root `node_modules`, which
-restores fine — but running `npm install` once after cloning is still the safe
-habit, since it repairs anything that didn't copy cleanly.)
+**One exception — Nebula is no longer in the tree.** It was 520 MB across 33,360
+files for a companion that only ever ran locally (the deployed site serves GUST,
+Ultraviolet and Scramjet, and never offers a companion because `render.yaml` sets
+no `PROXY_*_URL`). Its pnpm `node_modules` was a symlink store that restored as
+broken stubs on a fresh Windows clone anyway. A clone will **not** bring it down.
+
+Nothing was lost — it's still in history:
+
+```bash
+git checkout 07a2a6f7 -- Nebula      # restore it exactly as it was
+```
+
+`npm run proxies` detects the folder and starts Nebula automatically if it's
+present and built; if it's absent it just says so and launches the other three.
+
+(The **main website** uses the root `node_modules`, which restores fine — but
+running `npm install` once after cloning is still the safe habit, since it
+repairs anything that didn't copy cleanly.)
 
 ---
 
@@ -71,10 +84,14 @@ habit, since it repairs anything that didn't copy cleanly.)
    | **NautilusOS** | none — pure static | 8091 |
    | **Interstellar** | `cd Interstellar && npm install` | 8092 |
    | **DayDream** | `cd DayDream && pnpm install && pnpm run build`, then copy `config.example.js` → `config.js` | 8093 |
-   | **Nebula** | `cd Nebula && pnpm install && pnpm run build`, then copy `config.example.toml` → `config.toml` | 8094 |
+   | **Nebula** | *not in the repo* — restore with `git checkout 07a2a6f7 -- Nebula` first, then `cd Nebula && pnpm install && pnpm run build` and copy `config.example.toml` → `config.toml` | 8094 |
 
    Then `npm run dev:all` starts the site **and** every companion that's ready,
-   and points the server at all four so they show up in the `/browser` dropdown.
+   and points the server at each so they show up in the `/browser` dropdown.
+   This is a **local-only** convenience: the deployed site never offers a
+   companion, because `render.yaml` sets no `PROXY_*_URL` and `COMPANION_ENGINES`
+   filters out any entry without one. Live, you always get exactly the three
+   same-origin engines — GUST, Ultraviolet and Scramjet.
    `npm run proxies` prints exactly what it started and, for anything it
    skipped, the precise reason and the command that fixes it.
 
