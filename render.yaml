@@ -24,9 +24,23 @@ services:
     runtime: node
     plan: starter
     buildCommand: npm ci
-    startCommand: node server.js
+    # `npm start` on purpose, so there is ONE definition of how this server
+    # starts. This used to be a literal `node server.js` while package.json's
+    # start script was `node --use-system-ca server.js` — meaning the process
+    # running in production was not the process anyone tested locally, and any
+    # future flag added to the start script would silently not apply here.
+    startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
+    # ── HOW ENV RESOLVES HERE (this bit is genuinely surprising) ─────────────
+    # .env is COMMITTED in this repo, and server.js loads it at boot. Render's
+    # own variables still win — process.loadEnvFile() never overwrites a value
+    # already in the environment — but anything NOT declared below silently
+    # falls back to whatever is in the committed .env. That is how a production
+    # secret ends up being sourced from git without anyone deciding it should
+    # be. So every secret the app reads is declared here, even the optional
+    # ones; server.js also logs, in production, exactly which keys came from
+    # the file instead of from this host.
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -34,6 +48,13 @@ services:
         value: production
       - key: SCORE_SECRET
         generateValue: true        # stable HMAC secret for score tokens
+      # Unlocks /admin + /api/admin/scores/* so quarantined scores can be
+      # reviewed. Auth FAILS CLOSED, so without it those routes 503 and flagged
+      # scores pile up unreviewable (community-scores-review.sql deliberately
+      # stops auto-deleting them). Generated here so it is NOT the value sitting
+      # in the committed .env.
+      - key: ADMIN_SECRET
+        generateValue: true
       # --- set these as SECRETS in the Render dashboard (never commit them) ---
       - key: SUPABASE_URL
         sync: false
@@ -56,3 +77,33 @@ services:
         sync: false                # your domain (bare hostname), for AI attribution
       - key: CRON_SECRET
         sync: false                # protects /healthz; set the SAME value in your uptime monitor
+      # Extra script origins for the Content-Security-Policy. The origins of
+      # PROXY_AD_SCRIPTS / PROXY_BANNER_TAG are allowlisted automatically; set
+      # this only when a network chains to a domain you never pasted. Without an
+      # allowlist entry the BROWSER refuses the script — no error, no revenue,
+      # and it looks exactly like the network not paying out. `npm run check-ads`
+      # reports this before you find out the slow way.
+      - key: PROXY_AD_ORIGINS
+        sync: false
+      - key: ADS_TXT_EXTRA
+        sync: false                # only if a network hands you an ads.txt line
+      # Public site URL (https://…). Without it the legal pages say "this
+      # website" instead of naming the site, which reads badly on a DMCA policy.
+      - key: SITE_URL
+        sync: false
+      # Free public pk_ key from enter.pollinations.ai — lifts the anonymous
+      # per-IP limit on the AI chat. PUBLIC by design (it reaches the browser);
+      # never put a secret sk_ key here.
+      - key: POLLINATIONS_PUBLIC_KEY
+        sync: false
+      # Optional Redis. Unset = a bounded in-process LRU, which is fine for ONE
+      # instance but is not shared, so each replica would cache separately.
+      - key: REDIS_URL
+        sync: false
+      # Optional tuning. SCORES_KEEP_PER_GAME defaults to 200.
+      - key: SCORES_KEEP_PER_GAME
+        sync: false
+      # Set to 1 on EVERY replica except one if you ever scale past a single
+      # instance — otherwise every cron write runs once per replica.
+      - key: CRON_DISABLED
+        sync: false

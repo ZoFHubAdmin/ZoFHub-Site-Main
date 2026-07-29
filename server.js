@@ -37,19 +37,48 @@ process.on('uncaughtException', (err) => {
 // because Node 20+'s `--env-file=` flag isn't applied by the start script.
 // `process.loadEnvFile()` is the Node 20.6+ built-in equivalent.
 // ========================================================================
+// process.loadEnvFile() does NOT overwrite variables already present in the real
+// environment — verified, not assumed. So a host's dashboard values always win
+// and a file can only FILL GAPS. Two consequences worth being explicit about:
+//
+//   1. .env is committed in this repo (deliberately — see .gitignore). On a host
+//      it therefore acts as a silent fallback for anything the dashboard didn't
+//      set. That is convenient and also how a secret quietly ends up sourced
+//      from git, so in production we log exactly which keys came from the file.
+//   2. .env.example is a LAST RESORT (e.g. Docker, where .dockerignore excludes
+//      .env). It ships placeholders like "change-me-to-a-long-random-string".
+//      Letting those through would mean ADMIN_SECRET is literally the string
+//      "change-me-…" — a documented password, i.e. no password at all. So
+//      placeholder values are stripped rather than used, which makes each
+//      feature take its own safe path: admin auth fails CLOSED, Supabase reports
+//      unconfigured, SCORE_SECRET falls back to a random per-boot value.
+const PLACEHOLDER = /^(change-me|your-|YOUR_|<|\.\.\.|https:\/\/your-|sb_publishable_your)/;
+const envFileKeys = [];
 for (const f of ['.env', '.env.example']) {
   const p = join(__dirname, f);
-  if (existsSync(p) && typeof process.loadEnvFile === 'function') {
-    try {
-      process.loadEnvFile(p);
-      console.log(`[zofhub] loaded env from ${f}`);
-      if (f === '.env.example') {
-        console.warn('[zofhub] WARNING: no .env found — reading .env.example. Copy .env.example → .env for production.');
-      }
-      break;
-    } catch (e) {
-      console.warn(`[zofhub] failed to load ${f}:`, e.message);
+  if (!existsSync(p) || typeof process.loadEnvFile !== 'function') continue;
+  const before = new Set(Object.keys(process.env));
+  try {
+    process.loadEnvFile(p);
+    for (const k of Object.keys(process.env)) {
+      if (before.has(k)) continue;                       // real environment supplied it
+      if (PLACEHOLDER.test(String(process.env[k] ?? '').trim())) { delete process.env[k]; continue; }
+      envFileKeys.push(k);
     }
+    console.log(`[zofhub] loaded env from ${f}`);
+    if (f === '.env.example') {
+      console.warn('[zofhub] WARNING: no .env found — reading .env.example. Placeholder values are ignored. Copy .env.example → .env and fill it in.');
+    }
+    break;
+  } catch (e) {
+    console.warn(`[zofhub] failed to load ${f}:`, e.message);
+  }
+}
+if (process.env.NODE_ENV === 'production' && envFileKeys.length) {
+  const SECRETISH = envFileKeys.filter(k => /SECRET|KEY|TOKEN|PASSWORD/i.test(k));
+  console.warn(`[zofhub] ${envFileKeys.length} env var(s) came from the committed env file, not from this host: ${envFileKeys.join(', ')}`);
+  if (SECRETISH.length) {
+    console.warn(`[zofhub] ${SECRETISH.length} of those are SECRETS (${SECRETISH.join(', ')}). Set them in your host's dashboard so rotating one is not a git commit.`);
   }
 }
 
