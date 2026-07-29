@@ -680,6 +680,63 @@ const companionFrameOrigins = (() => {
   return [...set];
 })();
 
+// ---------------------------------------------------------------------------
+// Ad-network script origins, DERIVED FROM YOUR ENV — not a hardcoded list.
+// ---------------------------------------------------------------------------
+// The CSP below allowlists script-src. Until this existed, PROXY_AD_SCRIPTS /
+// PROXY_BANNER_TAG could be filled in correctly and still earn NOTHING: the
+// server happily served the URLs, proxy-ads.js happily injected them, and the
+// browser then refused every one. Verified against the real loader domains
+// Adsterra, HilltopAds and Monetag hand out — all four blocked, while an
+// allowlisted CDN loaded fine. The only symptom is a console message, so the
+// natural conclusion would have been "the ad network isn't paying out".
+//
+// A hardcoded list of network domains would rot: these networks rotate loader
+// domains constantly (that is how they stay ahead of blocklists). So instead
+// the allowlist is derived from whatever YOU configured — declare an ad script,
+// and its origin is permitted; declare nothing and nothing is permitted. The
+// allowlist can never drift from the config because it IS the config.
+//
+// Networks usually CHAIN (the loader pulls more scripts from sibling hosts), so
+// each configured host also contributes a wildcard for its registrable domain —
+// but only when the suffix is a plain single-label TLD. Skipping that check
+// would turn a network on "ads.example.co.uk" into a wildcard for ALL of
+// "*.co.uk". Anything else the chain needs goes in PROXY_AD_ORIGINS by hand.
+const AD_ORIGINS = (() => {
+  const set = new Set();
+  const GENERIC_TLDS = new Set(['com','net','org','io','co','xyz','online','site','top','pro','info','biz','app','dev','cloud','live','media','digital','space','fun','click','link','shop','store']);
+  const BANNED = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
+
+  const add = (raw) => {
+    const s = String(raw || '').trim();
+    if (!/^https:\/\//i.test(s) || BANNED.test(s)) return;   // https only; never Google's ad stack
+    let u; try { u = new URL(s); } catch { return; }
+    set.add(u.origin);
+    const parts = u.hostname.split('.');
+    if (parts.length > 2 && GENERIC_TLDS.has(parts[parts.length - 1])) {
+      set.add(`https://*.${parts.slice(-2).join('.')}`);
+    }
+  };
+
+  for (const s of (process.env.PROXY_AD_SCRIPTS || '').split(',')) add(s);
+  // The banner is a raw HTML tag, so pull any src="…" / src=… out of it.
+  for (const m of String(process.env.PROXY_BANNER_TAG || '').matchAll(/src\s*=\s*["']?(https:\/\/[^"'\s>]+)/gi)) add(m[1]);
+  // Escape hatch: extra origins (wildcards allowed) for hosts the network's own
+  // chain pulls in. Written through verbatim — still never Google's ad stack.
+  for (const raw of (process.env.PROXY_AD_ORIGINS || '').split(',')) {
+    const s = raw.trim();
+    if (!s || !/^https:\/\//i.test(s) || BANNED.test(s)) continue;
+    set.add(s);
+    // A CSP wildcard does NOT cover its own apex: "https://*.foo.com" permits
+    // cdn.foo.com but still blocks foo.com itself. Nobody writing this by hand
+    // expects that, and the resulting failure is invisible (a console line and
+    // no revenue), so accept the obvious intent and allow the apex too.
+    if (s.startsWith('https://*.')) set.add('https://' + s.slice('https://*.'.length));
+  }
+  return [...set];
+})();
+if (AD_ORIGINS.length) console.log(`[ads] CSP allows ${AD_ORIGINS.length} ad origin(s): ${AD_ORIGINS.join(' ')}`);
+
 const CSP_DIRECTIVES = {
   defaultSrc: ["'self'"],
   scriptSrc: [
@@ -687,10 +744,16 @@ const CSP_DIRECTIVES = {
     // even on browsers that no longer accept plain 'unsafe-eval' for wasm.
     "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
+    // Google's ad stack is allowed here for PROXIED GAMES ONLY. A game served
+    // same-origin through /embed runs under THIS policy, and many of them show
+    // in-game GPT/AdSense units. ZoFHub itself never loads Google ad code — it
+    // is stripped from PROXY_AD_SCRIPTS, PROXY_BANNER_TAG and AD_ORIGINS above,
+    // because AdSense on a proxy domain is an account-level ban.
     'https://*.googlesyndication.com', 'https://*.google.com', 'https://*.googletagmanager.com',
     'https://*.adsafeprotected.com', 'https://*.playwire.com',
     'https://*.poki.com', 'https://*.y8.com',
-    'https://*.supabase.co'
+    'https://*.supabase.co',
+    ...AD_ORIGINS
   ],
   styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
   fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'data:'],
