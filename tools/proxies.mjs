@@ -177,12 +177,18 @@ if (!existsSync(join(ddDir, 'index.ts'))) {
   runNode(ddDir, join('node_modules', 'tsx', 'dist', 'cli.mjs'), PORTS.daydream, 'DayDream', {}, ['index.ts']);
 }
 
-// ---- Nebula — needs deps + BOTH halves of its build ----------------------
-// Nebula is a pnpm project (npm install produces a broken tree) and its build
-// has two halves: `build:server` compiles server/server.ts → server/server.js,
-// and `build:client` produces dist/server/entry.mjs, which server.js imports at
-// startup. Checking only server/server.js used to silently skip Nebula forever
-// while saying nothing about WHY, and the advice it printed (npm) was wrong.
+// ---- Nebula — OPTIONAL, and not in the working tree by default ------------
+// Nebula/ was removed from the repo: 520 MB across 33,360 files for an engine
+// that only ever ran locally (companions need PROXY_*_URL, which the deployed
+// site never sets). It's still in git history and this launcher picks it back
+// up automatically the moment the folder reappears — see .gitignore for how.
+//
+// If you do restore it: Nebula is a pnpm project (npm install produces a broken
+// tree) and its build has two halves — `build:server` compiles
+// server/server.ts → server/server.js, and `build:client` produces
+// dist/server/entry.mjs, which server.js imports at startup. Checking only
+// server/server.js used to silently skip Nebula forever while saying nothing
+// about WHY, and the advice it printed (npm) was wrong.
 const nebDir = join(ROOT, 'Nebula');
 const nebMissing = [
   !existsSync(join(nebDir, 'node_modules'))                  && 'deps not installed (cd Nebula && pnpm install)',
@@ -191,7 +197,7 @@ const nebMissing = [
   !existsSync(join(nebDir, 'config.toml'))                   && 'config.toml missing (copy config.example.toml → config.toml)',
 ].filter(Boolean);
 if (!existsSync(join(nebDir, 'package.json'))) {
-  skipped.push('Nebula       — folder missing.');
+  skipped.push('Nebula       — not installed (removed from the repo; see .gitignore to restore).');
 } else if (nebMissing.length) {
   skipped.push(`Nebula       — ${nebMissing.join('; ')}.`);
 } else {

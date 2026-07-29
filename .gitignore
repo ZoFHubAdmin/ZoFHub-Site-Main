@@ -6,10 +6,24 @@
 #  ⚠  KEEP THIS REPOSITORY PRIVATE. It contains your Supabase service-role key.
 #     If it ever becomes public, rotate that key in Supabase → Settings → API.
 #
-#  Note: Nebula/node_modules is a pnpm store built from symlinks. It IS backed
-#  up here, but on a fresh Windows machine it may restore as broken stubs — if
-#  Nebula misbehaves after a clone, just run `pnpm install` inside Nebula.
+#  ONE exception: Nebula/ (see below). It is the only thing deliberately left
+#  out of the snapshot, and it is still recoverable from history.
 # ═══════════════════════════════════════════════════════════════════════════
+
+# Nebula — the one companion proxy NOT kept in the working tree.
+# It was 520 MB across 33,360 files (an Astro app whose pnpm node_modules is a
+# symlink store that restores as broken stubs on a fresh Windows clone anyway),
+# and it never shipped: companions only appear when PROXY_*_URL is set, which
+# render.yaml never does, so the live site has always been GUST + Ultraviolet +
+# Scramjet. Carrying half a gigabyte at HEAD to support a local-only engine
+# wasn't worth it.
+#
+# Nothing is lost — every file is still in git history:
+#     git checkout 07a2a6f7 -- Nebula
+# Or fetch it fresh:  git clone https://github.com/NebulaServices/Nebula
+# then `cd Nebula && pnpm install && pnpm run build`. tools/proxies.mjs detects
+# the folder and starts it automatically if it's present and built.
+Nebula/
 
 # Server-side thumbnail proxy cache (regenerated on demand, never commit)
 .cache/
@@ -21,3 +35,4 @@ __pycache__/
 # Supabase CLI local state (regenerated; never part of the repo)
 supabase/.temp/
 supabase/.branches/
+node_modules
