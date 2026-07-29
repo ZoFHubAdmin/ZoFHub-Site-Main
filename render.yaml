@@ -60,6 +60,13 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
+      # PREFERRED: the new-style secret key (sb_secret_…) from Settings → API
+      # Keys. Bypasses RLS exactly like the legacy service_role JWT, which
+      # Supabase retires at the end of 2026 and which can no longer be rotated.
+      # Set THIS one; when both are present the secret key wins.
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # LEGACY fallback — still works until Supabase turns it off.
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       # Proxy-friendly ad loaders (comma-separated). Google/AdSense URLs are

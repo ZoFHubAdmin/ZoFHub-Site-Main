@@ -71,7 +71,8 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 | Variable | Purpose |
 |---|---|
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Public Supabase access (optional locally). |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only.** Bypasses RLS for cron + writes. Never expose to the browser or commit it. |
+| `SUPABASE_SECRET_KEY` | **Server-only, preferred.** The new-style `sb_secret_…` key. Bypasses RLS for cron + writes. Never expose to the browser. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only, legacy.** The old `eyJ…` JWT. Still works, but Supabase retires it end of 2026 and it can't be rotated — prefer the secret key above. |
 | `SCORE_SECRET` | Signs the proof-of-play leaderboard tokens. Keep it stable. |
 | `ADMIN_SECRET` | Unlocks `/admin`, where you review the scores the anti-cheat layer flagged or quarantined. Unset = the panel and `/api/admin/*` fail closed, and flagged scores stay hidden with nobody able to release them. |
 | `PROXY_AD_SCRIPTS` | Proxy-friendly ad-network loader script(s), comma-separated (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |

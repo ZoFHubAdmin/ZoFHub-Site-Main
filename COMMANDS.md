@@ -135,7 +135,8 @@ Copy `.env.example` → `.env` and fill in:
 | `PORT` / `HOST` | Server port (default 8080) / bind address. |
 | `SUPABASE_URL` | Supabase project URL. |
 | `SUPABASE_PUBLISHABLE_KEY` | Public (browser-safe) key. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only** key (cron + writes + thumbnail fetch). Never commit/expose. |
+| `SUPABASE_SECRET_KEY` | **Server-only** admin key (cron + writes + thumbnail fetch), the new `sb_secret_…` form. Preferred. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` equivalent. Still accepted; mirrored from `SUPABASE_SECRET_KEY` automatically so CLI tools keep working. |
 | `SCORE_SECRET` | Signs the leaderboard proof-of-play tokens. |
 | `PROXY_AD_SCRIPTS` | Comma-separated proxy-friendly ad loader script URL(s) (Adsterra popunder, Monetag push…). Google URLs are auto-rejected. |
 | `PROXY_BANNER_TAG` | Optional footer banner tag (one line). Shows only when set. |

@@ -35,7 +35,8 @@ or a VPS.
 |---|---|---|
 | `SUPABASE_URL` | ✓ | |
 | `SUPABASE_ANON_KEY` | ✓ | public/browser key (`SUPABASE_PUBLISHABLE_KEY` accepted too) |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | server-only; bypasses RLS |
+| `SUPABASE_SECRET_KEY` | ✓ | server-only; bypasses RLS. The new `sb_secret_…` key from Settings → API Keys — **use this one** |
+| `SUPABASE_SERVICE_ROLE_KEY` | — | legacy `eyJ…` JWT; still accepted, retired by Supabase end of 2026 and not rotatable. Only set it if you haven't migrated |
 | `SCORE_SECRET` | ✓ | random 32+ chars; stable so score tokens survive restarts |
 | `ADMIN_SECRET` | ✓ | random 32+ chars; unlocks `/admin` to review scores the anti-cheat layer flagged/quarantined. Without it the panel fails closed and flagged scores can never be released |
 | `PROXY_AD_SCRIPTS` | — | comma-separated proxy-friendly ad loader script URL(s); Google URLs auto-rejected. Blank = ad-free |

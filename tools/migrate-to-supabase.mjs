@@ -108,14 +108,16 @@ function looksLikeJWT(s) {
 if (!DRY_RUN) {
   const errors = [];
   if (!SUPABASE_URL) errors.push('SUPABASE_URL is empty');
-  if (!SUPABASE_KEY) errors.push('SUPABASE_SERVICE_ROLE_KEY is empty');
-  else if (!looksLikeJWT(SUPABASE_KEY)) {
-    errors.push(`SUPABASE_SERVICE_ROLE_KEY does not look like a service-role key.\n` +
+  if (!SUPABASE_KEY) errors.push('SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY is empty');
+  // A new-style secret key (sb_secret_…) is equally valid and is what Supabase
+  // is migrating everyone to — rejecting it as "not a service-role key" would
+  // block the very migration we want.
+  else if (!looksLikeJWT(SUPABASE_KEY) && !SUPABASE_KEY.startsWith('sb_secret_')) {
+    errors.push(`That does not look like a Supabase admin key.\n` +
       `          You set: ${SUPABASE_KEY.slice(0, 30)}${SUPABASE_KEY.length > 30 ? '…' : ''}\n` +
-      `          A real service-role key:\n` +
-      `            - is a long JWT starting with "eyJ"\n` +
-      `            - has two dots (header.payload.signature)\n` +
-      `            - is several hundred characters long\n` +
+      `          A valid admin key is either:\n` +
+      `            - a new secret key starting with "sb_secret_"  (preferred), or\n` +
+      `            - a legacy service-role JWT starting with "eyJ" with two dots\n` +
       `          You probably pasted the project ID instead. Get the real key here:\n` +
       `            https://supabase.com/dashboard/project/_/settings/api\n` +
       `          → scroll to "Project API keys" → click "Reveal" on the red "service_role" row.`);

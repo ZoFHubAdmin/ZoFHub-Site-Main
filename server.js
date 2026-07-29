@@ -82,6 +82,23 @@ if (process.env.NODE_ENV === 'production' && envFileKeys.length) {
   }
 }
 
+// Supabase is replacing the legacy `service_role` JWT with a new `sb_secret_…`
+// key (legacy keys can no longer be rotated, and retire at the end of 2026).
+// Both do the same job — they bypass RLS — so this mirrors whichever one you
+// filled in across BOTH env names before anything reads them. Without it,
+// pasting the new key into SUPABASE_SECRET_KEY would leave the ten CLI tools
+// that read SUPABASE_SERVICE_ROLE_KEY by name reporting "not configured" while
+// the server itself worked fine. See lib/supabase-keys.mjs.
+const { normalizeSupabaseKeys } = await import('./lib/supabase-keys.mjs');
+const supaKeyInfo = normalizeSupabaseKeys();
+if (supaKeyInfo.present) {
+  console.log(`[zofhub] Supabase admin key: ${supaKeyInfo.format} (from ${supaKeyInfo.source})`
+    + (supaKeyInfo.bothSet ? ' — both slots set, the new secret key wins' : ''));
+  if (supaKeyInfo.format === 'legacy-jwt') {
+    console.warn('[zofhub] that is a LEGACY service_role key. Supabase retires these at the end of 2026 and they cannot be rotated — create a secret key (Settings → API Keys) and paste it into SUPABASE_SECRET_KEY.');
+  }
+}
+
 // These modules read process.env at import time, so they must be imported
 // AFTER the env-file load above.
 const { getSupabase, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
@@ -3678,7 +3695,10 @@ setInterval(() => { flushPlayStats().catch(() => {}); }, 60 * 1000).unref();
 // it's a fast no-op. Skips when Supabase isn't configured or SKIP_THUMB_FETCH=1.
 function kickThumbnailFetch() {
   if (process.env.SKIP_THUMB_FETCH === '1') return;
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  // Either admin key name is fine (normalizeSupabaseKeys mirrors them, but stay
+  // explicit so this guard can't silently disable itself if that order changes).
+  if (!process.env.SUPABASE_URL) return;
+  if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
   try {
     // Pass through only CA flags (not --watch etc.) so the child's TLS matches ours.
     const caArgs = process.execArgv.filter(a => /^--use-(system|bundled|openssl)-ca/.test(a));
