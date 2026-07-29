@@ -2,10 +2,10 @@
 import { $ } from './utils.js';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { getPlayerName } from './identity.js';
-// Floating AI game-helper orb (auto-skips on the /ai page).
-import './ai-helper.js?v=20260720';
-// Cookie-consent notice (shows once, site-wide; complements Google's CMP).
-import './consent.js?v=20260720';
+// NB: the floating AI game-helper orb is NOT imported here — see mountAIStub()
+// near the bottom of this file. It is loaded on demand.
+// Cookie-consent notice (shows once, site-wide).
+import './consent.js?v=20260729';
 // NB: the proxy-friendly ad loaders (proxy-ads.js + footer-ad.js) are imported
 // LATER (bottom of this file) — after /api/site-config resolves. No AdSense.
 
@@ -249,6 +249,76 @@ function mountMobileNav() {
   window.addEventListener('resize', () => { if (window.innerWidth > 880) setOpen(false); });
 }
 mountMobileNav();
+
+// ════════════════════════════════════════════════════════════════════════
+// AI helper orb — placeholder now, real module on first click.
+// ai-helper.js + pollinations.js are ~25KB, and they used to be a static
+// import at the top of this file: every visitor on every page paid to fetch,
+// parse and execute the whole AI assistant before layout.js could finish,
+// including the large majority who never touch it. What they actually need up
+// front is a button. So we render the button — same id, same classes, so
+// main.css styles it identically — and fetch the real thing when it's clicked.
+// ════════════════════════════════════════════════════════════════════════
+function mountAIStub() {
+  if (document.body.classList.contains('page-ai')) return;   // /ai IS the assistant
+  if (document.getElementById('aiOrb') || document.getElementById('aiRestore')) return;
+
+  // Respect a previously dismissed assistant: that visitor gets the small
+  // restore chip instead of the orb, exactly as ai-helper.js would render it.
+  let dismissed = false;
+  try { dismissed = localStorage.getItem('zofhub_ai_hidden') === '1'; } catch {}
+  const onGamePage = !!(window.ZOFHUB_GAME && window.ZOFHUB_GAME.slug);
+
+  const stub = document.createElement('button');
+  stub.type = 'button';
+  if (dismissed) {
+    stub.id = 'aiRestore';
+    stub.className = 'ai-restore';
+    stub.setAttribute('aria-label', 'Show AI assistant');
+    stub.innerHTML = `<span class="ai-restore-dot" aria-hidden="true"></span>AI`;
+  } else {
+    stub.id = 'aiOrb';
+    stub.className = 'ai-orb';
+    stub.setAttribute('aria-label', onGamePage ? 'AI game tips' : 'Ask ZoFHub AI');
+    stub.innerHTML = `
+      <span class="ai-orb-ring" aria-hidden="true"></span>
+      <span class="ai-orb-ring ai-orb-ring-2" aria-hidden="true"></span>
+      <svg class="ai-orb-icon" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+        <path d="M12 2.4l1.8 4.8 4.8 1.8-4.8 1.8L12 15.6l-1.8-4.8L5.4 9l4.8-1.8z"/>
+        <path d="M18.3 13.4l.85 2.25 2.25.85-2.25.85-.85 2.25-.85-2.25-2.25-.85 2.25-.85z"/>
+      </svg>`;
+  }
+
+  let booting = false;
+  function boot() {
+    if (booting) return;
+    booting = true;
+    stub.classList.add('is-loading');
+    // Remove the stub BEFORE mounting — ai-helper.js bails out if #aiOrb
+    // already exists, which is what stops it double-mounting normally.
+    stub.remove();
+    import('./ai-helper.js?v=20260729')
+      .then(m => m.mountAIHelper(true))
+      .catch(err => {
+        // Put the button back so the failure is retryable rather than terminal.
+        console.warn('[ai-orb] load failed:', err?.message || err);
+        booting = false;
+        stub.classList.remove('is-loading');
+        document.body.appendChild(stub);
+      });
+  }
+
+  stub.addEventListener('click', boot);
+  document.body.appendChild(stub);
+
+  // Game pages have a separate "AI Help" button above the frame. Once the real
+  // module mounts it wires its own listener, so this one only covers the gap.
+  document.getElementById('aiHelpBtn')?.addEventListener('click', boot, { once: true });
+
+  // Same one-time attention nudge the real orb used to do on game pages.
+  if (onGamePage && !dismissed) setTimeout(() => stub.classList.add('nudge'), 2500);
+}
+mountAIStub();
 
 // ════════════════════════════════════════════════════════════════════════
 // Proxy-friendly ads (loaded after config). ZoFHub is ALWAYS a proxy site and

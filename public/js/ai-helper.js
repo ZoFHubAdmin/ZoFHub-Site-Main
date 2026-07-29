@@ -7,9 +7,15 @@
 
 import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
-import { pollTextPromptStream } from './pollinations.js?v=20260720';
+import { pollTextPromptStream } from './pollinations.js?v=20260729';
 
-(function initAIHelper() {
+// Called by layout.js's placeholder orb on FIRST interaction — this module and
+// pollinations.js are ~25KB together and most visitors never open the helper,
+// so nothing here is fetched until someone actually asks for it.
+// `openNow` is true when the user reached us by clicking, which is every real
+// entry point; it un-hides the assistant and opens the panel so the click they
+// just made isn't swallowed by the load.
+export function mountAIHelper(openNow = false) {
   // The /ai page is the full assistant — don't double up there.
   if (document.body.classList.contains('page-ai')) return;
   if (document.getElementById('aiOrb')) return;
@@ -269,5 +275,11 @@ import { pollTextPromptStream } from './pollinations.js?v=20260720';
   }
 
   // Gentle one-time nudge so users notice the orb (only on game pages).
-  if (onGamePage) setTimeout(() => orb.classList.add('nudge'), 2500);
-})();
+  // Skipped when we were opened by a click — the user has already found it.
+  if (onGamePage && !openNow) setTimeout(() => orb.classList.add('nudge'), 2500);
+
+  // Arriving here from the placeholder means a real click. showAssistant(true)
+  // covers both cases: a first-time visitor (orb visible, panel opens) and one
+  // who had previously hidden the assistant and clicked the restore chip.
+  if (openNow) showAssistant(true);
+}
