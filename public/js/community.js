@@ -1,5 +1,5 @@
 // ZoFHub · community.js — recommendations feed + submit + global leaderboard.
-import { $, el, fetchJson, escapeHtml, toast } from './utils.js';
+import { $, el, fetchJson, escapeHtml, toast, trapFocus } from './utils.js';
 import { getPlayerName } from './identity.js';
 
 const recList  = $('#recList');
@@ -150,18 +150,26 @@ async function loadLeaderboard() {
 // ---------------------------------------------------------------------------
 function bindRecModal() {
   const modal = $('#recModal');
+  let releaseFocus = null;
   const open  = () => {
     modal.hidden = false;
     // Default the author to this device's persistent player name (no "Anonymous").
     const authorEl = $('#recForm')?.querySelector('input[name="author"]');
     if (authorEl && !authorEl.value.trim()) authorEl.value = getPlayerName();
-    $('#recForm')?.querySelector('input[name="title"]')?.focus();
+    releaseFocus = trapFocus(modal, { initial: 'input[name="title"]' });
   };
-  const close = () => { modal.hidden = true; $('#recMsg').textContent = ''; };
+  const close = () => {
+    modal.hidden = true;
+    $('#recMsg').textContent = '';
+    releaseFocus?.(); releaseFocus = null;
+  };
   $('#openRecBtn')?.addEventListener('click', open);
   $('#recClose')?.addEventListener('click', close);
   $('#recCancel')?.addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  // The play modal had Escape-to-close and this one didn't, so the two dialogs
+  // on the same page behaved differently for no reason.
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) close(); });
 
   $('#recForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -183,7 +191,7 @@ function bindRecModal() {
       f.reset();
       toast('Recommendation posted', 'ok');
       await loadRecommendations();
-      setTimeout(() => { modal.hidden = true; msg.textContent = ''; }, 900);
+      setTimeout(close, 900);   // close() also releases the focus trap
     } catch {
       msg.className = 'modal-msg err'; msg.textContent = 'Network error — try again.';
     } finally {
@@ -196,9 +204,17 @@ function bindRecModal() {
 // Play modal (sandboxed iframe — embed_url is already trusted-host validated
 // server-side, and we additionally sandbox the frame here)
 // ---------------------------------------------------------------------------
+// The focus trap for this one is installed by openPlay() (which is what
+// actually shows the modal) and released by close() below.
+let releasePlayFocus = null;
+
 function bindPlayModal() {
   const modal = $('#playModal');
-  const close = () => { modal.hidden = true; $('#playModalFrame').innerHTML = ''; };
+  const close = () => {
+    modal.hidden = true;
+    $('#playModalFrame').innerHTML = '';
+    releasePlayFocus?.(); releasePlayFocus = null;
+  };
   $('#playClose')?.addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) close(); });
@@ -225,6 +241,9 @@ function openPlay(r) {
   iframe.setAttribute('allowfullscreen', '');
   frame.appendChild(iframe);
   modal.hidden = false;
+  // Start focus on the close button, not the game frame — focus inside a
+  // cross-origin iframe can't be tracked or pulled back out by us.
+  releasePlayFocus = trapFocus(modal, { initial: '#playClose' });
   // Bump the view counter (powers the cleanup of unseen recs).
   if (r.id) fetch(`/api/recommendations/${r.id}/seen`, { method: 'POST' }).catch(() => {});
 }

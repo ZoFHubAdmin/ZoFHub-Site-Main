@@ -117,3 +117,57 @@ export function formatRelative(ts) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
+// ── Modal focus trapping ────────────────────────────────────────────────────
+// Every dialog on the site (community's recommend + play modals, the vibe
+// finder, the panic panel) left Tab free to walk into the page BEHIND it. For a
+// sighted mouse user that's invisible; for anyone navigating by keyboard the
+// focus ring just disappears into content they can't see, and there's no way
+// back to the dialog's own close button.
+//
+// trapFocus(el) keeps Tab and Shift+Tab cycling inside `el`, moves focus to the
+// first sensible control on open, and restores focus to whatever was focused
+// before on release. It returns a release function; call it when you close.
+//
+// Deliberately re-queries the focusable set on every Tab rather than caching
+// it: these dialogs build their content dynamically (the play modal injects an
+// iframe, the vibe finder swaps in results), so a cached list goes stale.
+const FOCUSABLE = [
+  'a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+export function trapFocus(root, { initial } = {}) {
+  if (!root) return () => {};
+  const previouslyFocused = document.activeElement;
+
+  const visible = () => [...root.querySelectorAll(FOCUSABLE)]
+    // offsetParent is null for anything display:none'd, which is how these
+    // dialogs hide their inactive states.
+    .filter(n => n.offsetParent !== null || n === document.activeElement);
+
+  function onKeydown(e) {
+    if (e.key !== 'Tab') return;
+    const items = visible();
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    // document.activeElement can be outside the dialog if focus already escaped
+    // (or if the browser put it on <body>), so pull it back rather than assume.
+    if (!root.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  document.addEventListener('keydown', onKeydown, true);
+  // Defer: callers typically unhide the element in the same tick, and a hidden
+  // element can't take focus.
+  setTimeout(() => {
+    const target = (typeof initial === 'string' ? root.querySelector(initial) : initial) || visible()[0];
+    try { target?.focus(); } catch {}
+  }, 30);
+
+  return function release() {
+    document.removeEventListener('keydown', onKeydown, true);
+    try { previouslyFocused?.focus?.(); } catch {}
+  };
+}

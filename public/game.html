@@ -30,7 +30,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" /></noscript>
-  <link rel="stylesheet" href="/css/main.css?v=20260729" />
+  <link rel="stylesheet" href="/css/main.css?v=20260729b" />
   <link rel="stylesheet" href="/css/game-page.css?v=20260729" />
 
   <!-- ============================================================ -->
@@ -171,12 +171,13 @@
 
       <!-- ====== LEADERBOARD ====== -->
       <section class="score-panel" id="scorePanel" hidden>
-        <h3 class="row-title">
+        <h2 class="row-title">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg>
           Leaderboard — {{TITLE}}
-        </h3>
+        </h2>
         <ol class="score-list" id="scoreList"><li class="score-empty">No scores yet — be the first!</li></ol>
         <form class="score-form" id="scoreForm">
+          <label class="sr-only" for="scoreValue">Your score for {{TITLE}}</label>
           <input id="scoreValue" type="number" min="0" max="2000000000" placeholder="Your score" required />
           <button class="btn-primary btn-sm" type="submit">Submit score</button>
         </form>
@@ -189,7 +190,7 @@
       </div>
 
       <section class="play-related">
-        <h3 class="row-title">You might also like</h3>
+        <h2 class="row-title">You might also like</h2>
         <div class="related-grid" id="relatedGrid"></div>
       </section>
 
@@ -218,7 +219,7 @@
 
   <script>window.ZOFHUB_GAME = { slug: "{{SLUG}}", title: "{{TITLE}}", category: "{{CATEGORY}}", upstream: "{{UPSTREAM_URL}}", iframeSrc: "{{IFRAME_SRC}}", proxyUrl: "{{PROXY_URL}}", thumbnail: "{{THUMBNAIL}}", directOnly: {{DIRECT_ONLY}} };</script>
   <script type="module" src="/js/layout.js?v=20260729b"></script>
-  <script type="module" src="/js/panic.js?v=20260729"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
   <!-- iframe-loader-optimized.js is imported by game-page.js — no separate tag needed. -->
   <script type="module" src="/js/game-page.js?v=20260727"></script>
   <script type="module" src="/js/search-suggest.js?v=20260720"></script>

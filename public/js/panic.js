@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { store } from './storage.js';
-import { $, el, toast } from './utils.js';
+import { $, el, toast, trapFocus } from './utils.js';
 
 // Preset cloak/escape destinations.
 const PRESETS = [
@@ -206,8 +206,19 @@ function stopRecording(keyEl) {
   keyEl && (keyEl.textContent = prettyKey(store.panic.get().key));
 }
 
-function showPanel() { buildPanel(); panelEl.hidden = false; }
-function hidePanel() { if (panelEl) panelEl.hidden = true; if (recording) stopRecording($('#panicKey', panelEl)); }
+let releasePanelFocus = null;
+function showPanel() {
+  buildPanel();
+  panelEl.hidden = false;
+  // This panel captures keystrokes to record a custom hotkey, so it matters
+  // more than most that Tab can't walk out of it mid-recording.
+  releasePanelFocus = trapFocus(panelEl);
+}
+function hidePanel() {
+  if (panelEl) panelEl.hidden = true;
+  if (recording) stopRecording($('#panicKey', panelEl));
+  releasePanelFocus?.(); releasePanelFocus = null;
+}
 export function showSettings() { showPanel(); }
 
 // ── Actions ─────────────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
-  <link rel="stylesheet" href="/css/main.css?v=20260729" />
+  <link rel="stylesheet" href="/css/main.css?v=20260729b" />
   <link rel="stylesheet" href="/css/browser.css?v=20260727" />
   <!-- Engine bundles for the in-app service-worker proxies (Ultraviolet + Scramjet).
        Loaded defer; browser.js waits for them and warms the shared Wisp transport.
@@ -70,6 +70,7 @@
 
       <form class="br-urlbar" id="urlForm">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <label class="sr-only" for="urlInput">Search the web or enter a URL</label>
         <input id="urlInput" type="text" placeholder="Search the web or enter a URL" autocomplete="off" spellcheck="false" />
       </form>
 
@@ -139,7 +140,7 @@
   </main>
 
   <script type="module" src="/js/layout.js?v=20260729b"></script>
-  <script type="module" src="/js/panic.js?v=20260729"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
   <script type="module" src="/js/browser.js?v=20260728"></script>
 </body>
 </html>

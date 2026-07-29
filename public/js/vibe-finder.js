@@ -9,7 +9,7 @@
 // nothing and could hang on "Reading your vibe…". This version is server-backed,
 // fast, and has a hard request timeout so it can never get stuck.
 // ---------------------------------------------------------------------------
-import { $, el } from './utils.js';
+import { $, el, trapFocus } from './utils.js';
 
 // Quick one-tap moods (sent to the same endpoint as typed text). A mix of
 // feelings and activity-moods so "how you feel" is obvious at a glance.
@@ -179,8 +179,19 @@ function buildModal() {
   return modal;
 }
 
-function open() { buildModal(); modal.hidden = false; setTimeout(() => $('.vibe-form input', modal)?.focus(), 30); }
-function close() { if (modal) modal.hidden = true; }
+let releaseFocus = null;
+function open() {
+  buildModal();
+  modal.hidden = false;
+  // trapFocus also does the initial focus (deferred, so the unhide above has
+  // landed first) — keyboard users can now reach the close button and the mood
+  // chips without Tab wandering into the catalog behind the dialog.
+  releaseFocus = trapFocus(modal, { initial: '.vibe-form input' });
+}
+function close() {
+  if (modal) modal.hidden = true;
+  releaseFocus?.(); releaseFocus = null;
+}
 
 function mountTrigger() {
   if ($('.vibe-trigger')) return;
