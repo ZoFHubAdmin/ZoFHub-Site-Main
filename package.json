@@ -43,7 +43,8 @@
     "build-curated": "node --use-system-ca tools/build-curated.mjs",
     "upgrade-y8-thumbs": "python tools/upgrade_y8_thumbs.py",
     "sync-migrations": "node tools/sync-supabase-migrations.mjs",
-    "check-ads": "node tools/check-ads.mjs"
+    "check-ads": "node tools/check-ads.mjs",
+    "gamezop": "node --use-system-ca tools/set-gamezop-partner.mjs"
   },
   "engines": {
     "node": ">=22"
