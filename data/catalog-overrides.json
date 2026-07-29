@@ -4139,6 +4139,430 @@
       "set": {
         "thumbnail_url": "/thumbs/zig_zig.webp"
       }
+    },
+    {
+      "match": {
+        "slug": "dream-head-soccer-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dream-head-soccer-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "skibidi-elastic-head"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/skibidi-elastic-head.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "stick-tank-wars"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/stick-tank-wars.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "long-neck-runner-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/long-neck-runner-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "who-is-imposter"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/who-is-imposter.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "lob-master-2021"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/lob-master-2021.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "pga6-blocky-combat-swat-apocalypse-2022"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pga6-blocky-combat-swat-apocalypse-2022.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "dames-online-elite"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dames-online-elite.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "coffee-business-tycoon-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/coffee-business-tycoon-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "melon-sandbox-online"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/melon-sandbox-online.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "monster-high-spooky-fashion"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/monster-high-spooky-fashion.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "makeover-glow-up-match"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/makeover-glow-up-match.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "sky-bus-mega-ramp-drive"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sky-bus-mega-ramp-drive.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "uno-card-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/uno-card-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "coco-spa-salon"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/coco-spa-salon.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "city-bus-passenger-picking-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/city-bus-passenger-picking-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "delusional-disorder"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/delusional-disorder.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "garden-war"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/garden-war.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "feed-my-monster"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/feed-my-monster.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "sniper-shooting-game"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sniper-shooting-game.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "makeup-art-salon"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/makeup-art-salon.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "tile-golf"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/tile-golf.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "hockey-world-cup-2024"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/hockey-world-cup-2024.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "italian-brainrot-3d-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/italian-brainrot-3d-puzzle.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "cocktail-run"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/cocktail-run.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "empire-estate-kingdom-conquest"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/empire-estate-kingdom-conquest.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "couples-outfit-change-challenge"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/couples-outfit-change-challenge.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "aqua-logics-puzzle-new"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/aqua-logics-puzzle-new.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "witchy-dress-up"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/witchy-dress-up.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "pixel-racers"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pixel-racers.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "sokoban-push-the-box"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sokoban-push-the-box.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "foggy-fox"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/foggy-fox.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "go-chicken-go"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/go-chicken-go.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "tictoc-urban-outfits"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/tictoc-urban-outfits.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "dinosaur-merge-quest"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dinosaur-merge-quest.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "laser-fruits-slice"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/laser-fruits-slice.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "pandemic-simulator"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/pandemic-simulator.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "anime-couples-dress-up-1"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/anime-couples-dress-up-1.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "stickjet-parkour"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/stickjet-parkour.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "gun-mob-stickman-run"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/gun-mob-stickman-run.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "do-it-up"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/do-it-up.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "dontmove"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dontmove.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "insect-world-war-online"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/insect-world-war-online.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "asmr-girl-livestream-mukbang"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/asmr-girl-livestream-mukbang.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "train-games-for-kids"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/train-games-for-kids.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "match-hit"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/match-hit.webp"
+      }
+    },
+    {
+      "match": {
+        "slug": "number-slide"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/number-slide.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "football-magnet-2021"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/football-magnet-2021.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "practice-on-me"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/practice-on-me.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "sausage-man"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/sausage-man.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "motocross-jumper"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/motocross-jumper.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "coachella-hairstyle-design"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/coachella-hairstyle-design.jpg"
+      }
+    },
+    {
+      "match": {
+        "slug": "dog-amp-duck"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/dog-amp-duck.png"
+      }
     }
   ],
   "add": [

@@ -14596,5 +14596,17 @@
     "name": "Circle Jump",
     "thumbnail": "https://cdn2.y8.com/cloudimage/408945/file/w180h135_webp-ef22cd90da37148cd36bfa38caf65d23.webp",
     "source": "directory"
+  },
+  "moto_flip_race": {
+    "slug": "moto_flip_race",
+    "name": "Moto Flip Race",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/409195/file/w180h135_webp-6355296074b27538e1977450d3d8e0f9.webp",
+    "source": "directory"
+  },
+  "pin_spin_master_puzzle": {
+    "slug": "pin_spin_master_puzzle",
+    "name": "Pin Spin Master Puzzle",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/408997/file/w180h135_webp-b437db6a24d48b1e666330fb55061ab8.webp",
+    "source": "directory"
   }
 }
