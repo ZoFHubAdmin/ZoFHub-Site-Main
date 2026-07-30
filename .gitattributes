@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  Line-ending policy
+#
+#  WHY THIS FILE EXISTS
+#  Git's `core.autocrlf=true` (the Windows default, and what this machine has)
+#  stores files as LF in the repository but converts them to CRLF on checkout.
+#  That is invisible almost everywhere — except in one place where it broke a
+#  real tool:
+#
+#      `npm run sync-migrations -- --check` builds each expected migration in
+#      memory with '\n'.join() and byte-compares it against the file on disk.
+#      With autocrlf the disk copy has CRLF headers, so the comparison could
+#      NEVER match: the check reported all 7 migrations "stale" on a repo that
+#      was perfectly in sync. Verified: the SQL bodies were byte-identical and
+#      only the generated header differed.
+#
+#  Worse, "fixing" it by re-running the generator wrote LF headers next to
+#  CRLF bodies, turning a false alarm into 7 genuinely modified files.
+#
+#  THE FIX: pin the file types where line endings are load-bearing to LF, so
+#  the bytes on disk match the bytes in git and the drift check is meaningful.
+#  Deliberately NOT a blanket `* text=auto` — this repo commits node_modules
+#  and vendored third-party trees (Interstellar, scramjet, DayDream, NautilusOS),
+#  and renormalizing those would rewrite thousands of files nobody here owns.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# SQL — the schema. sync-migrations byte-compares these, so LF is required for
+# `--check` to work at all. Covers db/ (source of truth) and supabase/migrations.
+*.sql text eol=lf
+
+# Python — all 5 tools/*.py carry a `#!/usr/bin/env python3` shebang. A CRLF
+# shebang makes Linux report "bad interpreter: /usr/bin/env python3\r".
+# (Currently LF in git, so this pins existing-correct behavior rather than
+# changing it — it stops a future Windows-side edit from committing CRLF.)
+*.py text eol=lf
+
+# Shell scripts — same shebang hazard, and CRLF breaks `sh` parsing outright.
+*.sh text eol=lf
+
+# Server + tooling JavaScript. Node tolerates CRLF, so this is about keeping
+# diffs clean rather than correctness.
+*.mjs text eol=lf
+*.js  text eol=lf
+
+# Config / docs where a stray ^M shows up in diffs and terminal output.
+*.json text eol=lf
+*.toml text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+
+# Dockerfile is consumed by a Linux builder.
+Dockerfile text eol=lf
+
+# ── Binary: never touch, never diff, never renormalize ─────────────────────
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.exe  binary
+*.wasm binary
+*.csv  binary
+
+# ── Vendored third-party trees: leave exactly as upstream shipped them ──────
+# These are reference/companion apps, not ZoFHub source. Renormalizing them
+# would produce enormous diffs in code this project does not maintain.
+Interstellar/** -text
+scramjet/**     -text
+DayDream/**     -text
+NautilusOS/**   -text
+node_modules/** -text

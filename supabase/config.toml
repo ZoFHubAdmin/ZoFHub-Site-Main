@@ -14,6 +14,15 @@
 # would only enter something like `apps/web` for a monorepo whose layout is
 # `apps/web/supabase/`.)
 #
+# Entering `supabase` instead makes the integration look for
+# `supabase/supabase/migrations/`, find nothing, and apply nothing — with NO
+# error shown anywhere. Same silent outcome if the connected REPOSITORY is not
+# the repo you actually push to. Both are verified in supabase/README.md.
+#
+# CONNECTED REPOSITORY must be the same repo this working tree pushes to:
+#     git remote get-url origin
+# If the dashboard names a different owner/repo, migrations here can never run.
+#
 # WHAT RUNS: every file in supabase/migrations/ is applied, in filename order,
 # to each preview branch and — once you merge to your production branch — to
 # production. supabase/seed.sql runs on preview branches only.
@@ -30,10 +39,15 @@
 project_id = "jfflnuvqjlrcuqzyglnn"
 
 [db]
-# Match your project's Postgres major version. Supabase free tier is 15 unless
-# you explicitly created a 17 project — check Dashboard → Settings → Database
-# and correct this if it disagrees, otherwise `supabase start` runs a local
-# Postgres that differs from production.
+# LOCAL-ONLY setting. This tells `supabase start` which Postgres to run in
+# Docker; it does NOT configure, migrate, or upgrade the hosted database, and
+# the GitHub integration ignores it entirely. A wrong value here cannot affect
+# production — it only means local dev runs a different Postgres than prod.
+#
+# The hosted version is not readable through the REST API (PostgREST reports its
+# OWN version there, e.g. "14.5", which is NOT the Postgres version — do not
+# copy that number here). If you use `supabase start`, confirm the real value at
+# Dashboard → Settings → Database → "Postgres version" and match it.
 major_version = 15
 
 [db.migrations]

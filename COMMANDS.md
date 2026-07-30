@@ -20,7 +20,7 @@ there is no Google AdSense and no separate "hub" mode.
 | `npm run dev` | Start with `--watch` (auto-restarts when you edit a file). Auto-fetches missing thumbnails on boot. |
 | `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
-| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · Interstellar · DayDream · Nebula) on their own ports. Prints why it skipped any that aren't ready. |
+| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · Interstellar · DayDream) on their own ports. Prints why it skipped any that aren't ready. Nebula was removed from the working tree — restore it with `git checkout 07a2a6f7 -- Nebula` if you want it back. |
 | `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
 > **About the auto-thumbnails:** EVERY start command fetches missing Y8 thumbnails
@@ -77,13 +77,19 @@ there is no Google AdSense and no separate "hub" mode.
 | `npm run check` | JavaScript syntax check across the project (fast sanity pass). |
 | `npm run link-check` | Check a batch of game links and mark dead ones. |
 | `npm run link-check:full` | Full link-check pass over the whole catalog. |
-| `npm run fix-links` | Alias for the link checker (re-checks + updates link health). |
+| `node --use-system-ca tools/sweep-dead-games.mjs` | Probe every working game and report dead ones (no npm alias — run it directly). Add `--apply` to actually mark them. Takes ~1–2 h for the full catalog. |
 | `npm run audit` | Audit the catalog (health/coverage report). |
 | `npm run audit-thumbnails` | Report which games are missing/broken thumbnails. |
 | `npm run audit-licensing` | Audit games for licensing/trademark compliance. |
 | `npm run clean-fakes` | Remove fake/synthetic GameDistribution hashes (games that 200 but never render). |
 | `npm run purge-eduame` | One-off: purge legacy "Eduame" references. |
 | `npm run build-mvp` | Rebuild the trimmed bundled catalog JSON (`api/games.json`). |
+| `npm run build-merged` | Merge the raw source JSON files into one combined catalog. |
+| `npm run build-curated` | Build the hand-curated catalog subset. |
+| `npm run cleanup-ip` | Find and remove trademark/IP-infringing titles. |
+| `npm run check-ads` | Validate your ad config **before** you find out the slow way that the CSP is blocking a network (the symptom is silent: a console line and no revenue). |
+| `npm run gamezop` | Switch Gamezop URLs to our own partner id. |
+| `npm run sync-migrations` | Regenerate `supabase/migrations/` from `db/`. Add `-- --check` to verify without writing — this is what CI runs. |
 
 ---
 
@@ -93,25 +99,57 @@ there is no Google AdSense and no separate "hub" mode.
 |---|---|
 | `npm run mood-index` | Build `data/mood-tags.json` (the mood→game index powering the AI "Vibe Finder"). Needs **Python**. |
 
-> This is the **only** Python script. Everything else is Node. The AI chat itself
-> needs no command — it runs directly in the visitor's browser via Pollinations
-> (keyless), so nothing to configure or run server-side.
+> The AI chat itself needs no command — it runs directly in the visitor's browser
+> via Pollinations (keyless), so there is nothing to configure or run server-side.
+
+### The other Python tools (thumbnails)
+
+There are **four** Python scripts in total; everything else in this project is Node.
+
+| Command | What it does |
+|---|---|
+| `npm run fix-missing-thumbs` | Fetch thumbnails that are missing from the catalog. |
+| `npm run scrape-thumbs` | Scrape thumbnails from publisher pages. |
+| `npm run normalize-thumbs` | Re-encode oversized thumbnails down to a sane size. |
+| `npm run upgrade-y8-thumbs` | Re-fetch Y8 thumbnails at full thumbnail resolution. |
 
 ---
 
 ## 💻 Raw terminal commands (not npm)
 
-### Git — push to both accounts
+### Git — save your work to GitHub
 ```cmd
-cd /d "C:\Users\jayes\OneDrive\Documents\CLAUDECODEPROJECTS\ZoFHub"
+cd /d "C:\Users\sumat\Documents\CLAUDECODEPROJECTS\ZoFHub"
+git status
 git add -A
 git commit -m "describe your change"
 git push origin main
-git push backup main
 ```
-- `origin` = your main account (ZSM1010), `backup` = second account (ZoFHubAdmin).
-- If a push is **rejected** (something changed on GitHub, e.g. a web upload): `git pull --rebase origin main`, resolve any conflict, then push again.
-- Check state anytime (safe): `git status` · `git log --oneline -5`.
+- `origin` = `ZSM1010/ZoFHub-Gaming-AI-Browser-Hub`. Check what is actually
+  configured with `git remote -v` — that output is the source of truth.
+- **The optional `backup` remote (second account).** `git push backup main` only
+  works once you add it; on a fresh clone it fails with *"'backup' does not appear
+  to be a git repository"*, and because that error prints AFTER a successful
+  `git push origin main` it is easy to miss — you think both accounts are synced
+  when only one is. To set it up:
+
+  ```cmd
+  :: 1. Create the repo on github.com under the second account FIRST (empty, no README).
+  :: 2. That account must add this one as a collaborator, or the push is denied.
+  git remote add backup https://github.com/ZoFHubAdmin/ZoFHub-Site.git
+  git push backup main
+  ```
+
+  Verify it took effect with `git remote -v` (you should see four lines, not two).
+
+  ⚠️ **Supabase can only watch ONE repository.** If you keep two remotes, make sure
+  the one connected in Supabase → Integrations → GitHub is the one you actually
+  push to most reliably; otherwise a failed push to the watched repo leaves your
+  database on a stale schema with no error anywhere. Keeping a single remote
+  avoids this class of bug entirely.
+- If a push is **rejected** (something changed on GitHub, e.g. a web upload):
+  `git pull --rebase origin main`, resolve any conflict, then push again.
+- Check state anytime (safe, changes nothing): `git status` · `git log --oneline -5`.
 
 ### Docker
 ```cmd
@@ -139,7 +177,15 @@ Copy `.env.example` → `.env` and fill in:
 | `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` equivalent. Still accepted; mirrored from `SUPABASE_SECRET_KEY` automatically so CLI tools keep working. |
 | `SCORE_SECRET` | Signs the leaderboard proof-of-play tokens. |
 | `PROXY_AD_SCRIPTS` | Comma-separated proxy-friendly ad loader script URL(s) (Adsterra popunder, Monetag push…). Google URLs are auto-rejected. |
-| `PROXY_BANNER_TAG` | Optional footer banner tag (one line). Shows only when set. |
+| `PROXY_BANNER_TAG` | Footer banner tag, 728×90 (one line). Shows only when set. |
+| `PROXY_HEADER_TAG` | Header leaderboard tag, 728×90, under the site header. Shows only when set. |
+| `PROXY_SIDEBAR_TAG` | Sidebar rectangle tag, 300×250, in the category sidebar. Hidden below 900px wide. |
+
+> **Start with ONE network.** Stacking several popunder networks makes them fight
+> each other and trips their fraud checks — the fastest way to get banned by all
+> of them and paid by none. Add a second only once the first is paying out.
+> Run `npm run check-ads` after configuring; the CSP allowlist is derived
+> automatically from these variables, so no code change is ever needed.
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
 | `CRON_DISABLED` | Set `1` to disable the background jobs. |
 | `SKIP_THUMB_FETCH` | Set `1` to skip the automatic on-boot Y8 thumbnail fetch. |
@@ -190,6 +236,11 @@ npm run y8-scrape && npm run y8-sync && npm run fix-thumbnails
 :: Add render-verified new games right now
 npm run grow
 
-:: Save + back up to both GitHub accounts
-git add -A && git commit -m "update" && git push origin main && git push backup main
+:: Save your work to GitHub
+git add -A && git commit -m "update" && git push origin main
+
+:: If you also keep the optional second-account remote, push it too. Run this as
+:: its OWN line, not chained with && — chaining hides whether the first one
+:: failed, and a silent failure here is how the two accounts drift apart.
+git push backup main
 ```

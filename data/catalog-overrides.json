@@ -4656,8 +4656,8 @@
       "hostIncludes": "play.famobi.com.disabled"
     },
     {
-      "_note": "licensing: removed GameFlare - DISABLED to allow games to load",
-      "hostIncludes": "gameflare.com.disabled"
+      "_note": "RE-BLOCKED 2026-07-29 (verified): distribution.gameflare.com now returns HTTP 403 + X-Frame-Options: SAMEORIGIN for third-party embeds. Probed 25 random GameFlare games — 25/25 returned 403 SAMEORIGIN under every header combination tried (no referer, self-origin referer, gameflare.com referer, and full Sec-Fetch-Dest:iframe navigation headers). GameFlare has revoked third-party embedding host-wide, so all 108 catalog rows rendered a blocked/black iframe for every visitor. The earlier \".disabled\" suffix (\"DISABLED to allow games to load\") predates that change and is now obsolete. Re-enable only if GameFlare restores embedding or a license is obtained.",
+      "hostIncludes": "gameflare.com"
     },
     {
       "_note": "DEAD GAMES removed 2026-07-04: verified in a real browser to NOT load at all (GameMonetize invalid IDs → placeholder page; GameDistribution → \"Not found at origin!\"; OnlineGames → S3 \"Access Denied\"). Also set is_working=false in the DB; these override rules keep them hidden even if a restore-games re-run flips is_working back to true."

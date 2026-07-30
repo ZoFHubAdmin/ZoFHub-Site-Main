@@ -64,7 +64,7 @@ const REMOVE_SLUGS = ['slope-y8', 'slope'];
 const { getSupabase } = await import('../lib/supabase.mjs');
 const supa = getSupabase();
 if (!supa) {
-  console.error('[slope] Supabase is not configured. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env and retry.');
+  console.error('[slope] Supabase is not configured. Set SUPABASE_URL + SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) in .env and retry.');
   process.exit(1);
 }
 

@@ -45,3 +45,50 @@ jobs:
             echo "::error::server failed to start or /api/health never responded"
             exit 1
           fi
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Guards the Supabase GitHub integration.
+  #
+  # The integration applies everything in supabase/migrations/ to the PRODUCTION
+  # database on merge to main. That directory is a GENERATED MIRROR of db/ (see
+  # tools/sync-supabase-migrations.mjs) — db/ is where schema is authored and
+  # where every doc points. If someone edits db/ and forgets to re-run the
+  # generator, the mirror goes stale and Supabase applies the OLD schema, with no
+  # error anywhere: production silently diverges from the SQL in this repo.
+  #
+  # This job makes that impossible to merge. It is intentionally separate from
+  # startup-check so the failure reads as "migrations are stale", not "app broke".
+  # ───────────────────────────────────────────────────────────────────────────
+  migrations-in-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: supabase/migrations must match db/
+        run: |
+          if node tools/sync-supabase-migrations.mjs --check; then
+            echo "✅ supabase/migrations is a faithful mirror of db/"
+          else
+            echo "::error::supabase/migrations is out of sync with db/. Run 'npm run sync-migrations' and commit the result — otherwise Supabase will apply a stale schema to production."
+            exit 1
+          fi
+
+      - name: Migration filenames must match Supabase's required format
+        run: |
+          # Supabase orders migrations lexicographically by filename and requires
+          # a 14-digit YYYYMMDDHHMMSS prefix. A malformed name is either skipped
+          # or applied out of order — both corrupt the dependency chain (the
+          # `status` column must exist before scores_review/scores_unique run).
+          fail=0
+          for f in supabase/migrations/*.sql; do
+            b=$(basename "$f")
+            if ! echo "$b" | grep -qE '^[0-9]{14}_[a-z0-9_]+\.sql$'; then
+              echo "::error file=$f::'$b' must be <14-digit timestamp>_snake_case_name.sql"
+              fail=1
+            fi
+          done
+          [ "$fail" = "0" ] && echo "✅ all migration filenames are valid" || exit 1

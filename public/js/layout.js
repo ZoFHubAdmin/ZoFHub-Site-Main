@@ -338,9 +338,17 @@ fetch('/api/site-config')
     if (Array.isArray(cfg.proxyAdScripts) && cfg.proxyAdScripts.length) {
       window.ZOFHUB_PROXY_ADS = cfg.proxyAdScripts;
     }
-    // Optional fixed footer display banner (independent of the scripts above).
+    // Optional fixed display banners (independent of the scripts above). Each
+    // slot renders ONLY when its own tag is set, so you can enable them one at a
+    // time as each network approves you.
     if (typeof cfg.proxyBannerTag === 'string' && cfg.proxyBannerTag.trim()) {
       window.ZOFHUB_PROXY_BANNER = cfg.proxyBannerTag;
+    }
+    if (typeof cfg.proxyHeaderTag === 'string' && cfg.proxyHeaderTag.trim()) {
+      window.ZOFHUB_HEADER_TAG = cfg.proxyHeaderTag;
+    }
+    if (typeof cfg.proxySidebarTag === 'string' && cfg.proxySidebarTag.trim()) {
+      window.ZOFHUB_SIDEBAR_TAG = cfg.proxySidebarTag;
     }
   })
   .catch(() => { /* config unavailable → site still works, just no ads */ })
@@ -352,4 +360,11 @@ fetch('/api/site-config')
     //     window.ZOFHUB_PROXY_BANNER and stays hidden until a banner tag is set,
     //     so a real banner appears the moment you configure PROXY_BANNER_TAG.
     import('./footer-ad.js?v=20260721').then(m => m.mountFooterAd()).catch(() => {});
+    // (c) header 728×90 + sidebar 300×250. Same contract: each self-checks its
+    //     own tag and does nothing when unset, so this import is free until you
+    //     configure PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG. Loaded only when at
+    //     least one is present so unconfigured visitors don't fetch it at all.
+    if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG) {
+      import('./ad-slots.js?v=20260730').then(m => m.mountAdSlots()).catch(() => {});
+    }
   });

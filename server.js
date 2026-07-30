@@ -53,6 +53,19 @@ process.on('uncaughtException', (err) => {
 //      feature take its own safe path: admin auth fails CLOSED, Supabase reports
 //      unconfigured, SCORE_SECRET falls back to a random per-boot value.
 const PLACEHOLDER = /^(change-me|your-|YOUR_|<|\.\.\.|https:\/\/your-|sb_publishable_your)/;
+// The `<` branch above exists to catch .env.example dummies written as <your-key>.
+// But a REAL ad banner tag is raw HTML and always starts with "<script>", so it
+// matched too — and was deleted as a placeholder. The failure was silent and
+// total: the banner never rendered, its origin never reached the CSP allowlist,
+// and nothing was logged. Following the documented setup
+// (`PROXY_BANNER_TAG=<script>…` in .env) therefore earned exactly $0 with no
+// error to explain why.
+//
+// These three vars are HTML by definition, so the `<` heuristic can never apply
+// to them. They are still validated properly downstream: /api/site-config strips
+// any Google ad code, and only https origins reach the CSP.
+const HTML_VALUED_KEYS = new Set(['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG']);
+const isPlaceholder = (key, value) => !HTML_VALUED_KEYS.has(key) && PLACEHOLDER.test(value);
 const envFileKeys = [];
 for (const f of ['.env', '.env.example']) {
   const p = join(__dirname, f);
@@ -62,7 +75,7 @@ for (const f of ['.env', '.env.example']) {
     process.loadEnvFile(p);
     for (const k of Object.keys(process.env)) {
       if (before.has(k)) continue;                       // real environment supplied it
-      if (PLACEHOLDER.test(String(process.env[k] ?? '').trim())) { delete process.env[k]; continue; }
+      if (isPlaceholder(k, String(process.env[k] ?? '').trim())) { delete process.env[k]; continue; }
       envFileKeys.push(k);
     }
     console.log(`[zofhub] loaded env from ${f}`);
@@ -765,8 +778,14 @@ const AD_ORIGINS = (() => {
   };
 
   for (const s of (process.env.PROXY_AD_SCRIPTS || '').split(',')) add(s);
-  // The banner is a raw HTML tag, so pull any src="…" / src=… out of it.
-  for (const m of String(process.env.PROXY_BANNER_TAG || '').matchAll(/src\s*=\s*["']?(https:\/\/[^"'\s>]+)/gi)) add(m[1]);
+  // The banner slots are raw HTML tags, so pull any src="…" / src=… out of them.
+  // ALL THREE must be scanned: a tag whose origin isn't allowlisted here is
+  // refused by the browser with only a console message — it looks exactly like
+  // the network not paying out. (PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG feed the
+  // header + sidebar slots in public/js/ad-slots.js.)
+  for (const varName of ['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG']) {
+    for (const m of String(process.env[varName] || '').matchAll(/src\s*=\s*["']?(https:\/\/[^"'\s>]+)/gi)) add(m[1]);
+  }
   // Escape hatch: extra origins (wildcards allowed) for hosts the network's own
   // chain pulls in. Written through verbatim — still never Google's ad stack.
   for (const raw of (process.env.PROXY_AD_ORIGINS || '').split(',')) {
@@ -3552,11 +3571,20 @@ app.get('/api/site-config', (req, res) => {
   // popunder, Monetag push, etc.). https only; any Google ad URL is dropped.
   const proxyAdScripts = (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
     .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s));
-  // PROXY_BANNER_TAG — optional raw footer banner tag (e.g. a HilltopAds / Adsterra
-  // 728×90 unit). Refused outright if it contains Google ad code.
-  const rawBanner = (process.env.PROXY_BANNER_TAG || '').trim();
-  const proxyBannerTag = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(rawBanner) ? '' : rawBanner;
-  res.json({ proxy: true, proxyAdScripts, proxyBannerTag });
+  // Raw banner tags for the three fixed display slots. Each is refused outright
+  // if it contains Google ad code (AdSense on a proxy domain is an ACCOUNT-level
+  // ban, so this can never be allowed to slip through — same rule as the
+  // page-level scripts above).
+  //   PROXY_BANNER_TAG  → footer banner   (footer-ad.js)
+  //   PROXY_HEADER_TAG  → header 728×90   (ad-slots.js)
+  //   PROXY_SIDEBAR_TAG → sidebar 300×250 (ad-slots.js)
+  // Unset = that slot simply never renders. No empty boxes, ever.
+  const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
+  const safeTag = (v) => { const s = (v || '').trim(); return GOOGLE_AD_RE.test(s) ? '' : s; };
+  const proxyBannerTag  = safeTag(process.env.PROXY_BANNER_TAG);
+  const proxyHeaderTag  = safeTag(process.env.PROXY_HEADER_TAG);
+  const proxySidebarTag = safeTag(process.env.PROXY_SIDEBAR_TAG);
+  res.json({ proxy: true, proxyAdScripts, proxyBannerTag, proxyHeaderTag, proxySidebarTag });
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));

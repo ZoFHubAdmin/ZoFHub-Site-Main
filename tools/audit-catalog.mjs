@@ -70,8 +70,10 @@ if (FROM_EXPORT) {
   games = JSON.parse(readFileSync(p, 'utf8'));
   console.log(`Loaded ${games.length} rows from games-export.json (offline structural pass).\n`);
 } else {
-  const SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!SB_URL || !SB_KEY) { console.error('✗ Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env (or use --from-export)'); process.exit(1); }
+  // adminKey() accepts the new `sb_secret_…` key as well as the legacy JWT.
+  const { adminKey } = await import('../lib/supabase-keys.mjs');
+  const SB_URL = process.env.SUPABASE_URL, SB_KEY = adminKey();
+  if (!SB_URL || !SB_KEY) { console.error('✗ Missing SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) in .env (or use --from-export)'); process.exit(1); }
   const { createClient } = await import('@supabase/supabase-js');
   supabase = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   for (let from = 0; ; from += 1000) {

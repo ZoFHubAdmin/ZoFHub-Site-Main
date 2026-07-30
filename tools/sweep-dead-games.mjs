@@ -23,10 +23,20 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 process.loadEnvFile('.env');
+// adminKey() accepts the new `sb_secret_…` key as well as the legacy JWT, so a
+// key migration doesn't silently break this tool. Fail loudly if neither is set:
+// createClient(url, undefined) would otherwise construct a broken client and the
+// first query would fail with a confusing "Invalid API key" instead.
+const { adminKey } = await import('../lib/supabase-keys.mjs');
+const SB_URL = process.env.SUPABASE_URL, SB_KEY = adminKey();
+if (!SB_URL || !SB_KEY) {
+  console.error('Missing SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) in .env');
+  process.exit(1);
+}
 const APPLY = process.argv.includes('--apply');
 const CONCURRENCY = 24;
 const TIMEOUT_MS = 5000;
-const supa = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const supa = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 
 // Hosts already hidden by data/catalog-overrides.json — skip probing them.
 const SKIP_HOSTS = ['htmlgames.com', 'play.gamezop.com', 'onlinegames.io', 'unblocked-games.s3.amazonaws.com'];

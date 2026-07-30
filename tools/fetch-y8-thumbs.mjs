@@ -35,8 +35,14 @@ for (const f of ['.env', '.env.example']) {
   const p = join(root, f);
   if (existsSync(p) && typeof process.loadEnvFile === 'function') { try { process.loadEnvFile(p); } catch {} break; }
 }
-const SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SB_URL || !SB_KEY) { console.warn('⚠ Skipping thumbnails — SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set in .env (server still starts).'); process.exit(0); }
+// adminKey() reads SUPABASE_SECRET_KEY *and* the legacy SUPABASE_SERVICE_ROLE_KEY,
+// so the new-style `sb_secret_…` key works here too. This tool is also spawned by
+// server.js at boot (kickThumbnailFetch), where the parent has already normalized
+// the names — reading only the legacy name meant it worked when spawned but failed
+// when run directly via `npm run fix-thumbnails`. Same script, opposite result.
+const { adminKey } = await import('../lib/supabase-keys.mjs');
+const SB_URL = process.env.SUPABASE_URL, SB_KEY = adminKey();
+if (!SB_URL || !SB_KEY) { console.warn('⚠ Skipping thumbnails — SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) not set in .env (server still starts).'); process.exit(0); }
 
 const DRY = process.argv.includes('--dry-run');
 const SELF_HOST = process.argv.includes('--self-host');

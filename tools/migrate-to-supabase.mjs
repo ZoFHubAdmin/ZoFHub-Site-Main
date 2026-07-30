@@ -96,7 +96,12 @@ for (const f of ['.env', '.env.example']) {
 
 const SUPABASE_URL = process.env.SUPABASE_URL
                   || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// adminKey() reads SUPABASE_SECRET_KEY *and* the legacy SUPABASE_SERVICE_ROLE_KEY.
+// This previously read only the legacy name, while the error message below claimed
+// both were accepted — so pasting the new `sb_secret_…` key produced an error that
+// pointed away from the actual cause.
+const { adminKey } = await import('../lib/supabase-keys.mjs');
+const SUPABASE_KEY = adminKey();
 
 // Validate: the service-role key MUST look like a JWT.  A common mistake
 // is pasting the project ID (e.g. "qemiyzaimvjrjmgdfsks") instead of the

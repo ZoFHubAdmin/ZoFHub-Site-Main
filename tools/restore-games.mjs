@@ -70,13 +70,28 @@ console.log(`\nUnique valid games: ${rows.length} (working: ${rows.filter(r => r
 
 if (DRY) { console.log('\n[dry-run] nothing written.'); process.exit(0); }
 
-const env = {};
-for (const line of readFileSync(new URL('../.env', import.meta.url), 'utf8').split(/\r?\n/)) {
-  const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
-}
-if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) { console.error('Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env'); process.exit(1); }
+// Read .env into process.env (not a local object) and mirror the admin key
+// across both names. Two bugs this fixes:
+//   1. The old code parsed .env into a local `env` object, so a value set in the
+//      real environment (Render's dashboard, or `SET x=y` before the command)
+//      was IGNORED — the file always won. That is backwards from every other
+//      entry point in this repo, where the host environment takes precedence.
+//   2. It read SUPABASE_SERVICE_ROLE_KEY by name only. Pasting the new-style
+//      `sb_secret_…` key into SUPABASE_SECRET_KEY (the migration Supabase is
+//      pushing) made this exit with "Missing …" while the server worked fine.
+// load-env.mjs handles both: it fills gaps from .env without overwriting real
+// env vars, then calls normalizeSupabaseKeys().
+await import('../lib/load-env.mjs');
+const { adminKey } = await import('../lib/supabase-keys.mjs');
 
-const supa = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = adminKey();
+if (!SB_URL || !SB_KEY) {
+  console.error('Missing SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) in .env');
+  process.exit(1);
+}
+
+const supa = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const BATCH = 500; let done = 0, errs = 0;
 for (let i = 0; i < rows.length; i += BATCH) {
   const chunk = rows.slice(i, i + BATCH);

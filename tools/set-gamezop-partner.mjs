@@ -48,8 +48,10 @@ if (!/^[a-z0-9]{3,32}$/i.test(PARTNER)) {
   process.exit(1);
 }
 
-const SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SB_URL || !SB_KEY) { console.error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set.'); process.exit(1); }
+// adminKey() accepts the new `sb_secret_…` key as well as the legacy JWT.
+const { adminKey } = await import('../lib/supabase-keys.mjs');
+const SB_URL = process.env.SUPABASE_URL, SB_KEY = adminKey();
+if (!SB_URL || !SB_KEY) { console.error('SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) not set.'); process.exit(1); }
 const supa = createClient(SB_URL, SB_KEY);
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
