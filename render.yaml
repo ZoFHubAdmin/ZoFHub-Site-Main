@@ -23,7 +23,17 @@ services:
     name: zofhub
     runtime: node
     plan: starter
-    buildCommand: npm ci
+    # --omit=dev is LOAD-BEARING, not tidiness. package.json's devDependencies
+    # holds playwright, which pulls ~300 MB of browser binaries and is used by
+    # exactly one manually-run local tool (y8-harvest.js). Nothing in server.js
+    # or lib/ imports it. Plain `npm ci` installs devDependencies, so without
+    # this flag moving a package to devDependencies changes NOTHING here — the
+    # deploy still downloads it on every single build.
+    #
+    # Do not rely on NODE_ENV=production to imply this. That was npm 6
+    # behaviour; on npm 7+ the reliable switch is the explicit flag, and the
+    # Dockerfile already uses its equivalent (`npm install --omit=dev`).
+    buildCommand: npm ci --omit=dev
     # `npm start` on purpose, so there is ONE definition of how this server
     # starts. This used to be a literal `node server.js` while package.json's
     # start script was `node --use-system-ca server.js` — meaning the process
