@@ -119,6 +119,11 @@ const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs')
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
+const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
+  await import('./lib/recommender.mjs');
+// Loads data/game-similarity.json once, at boot. Missing file is fine — the
+// recommender degrades to category affinity and logs how to build it.
+loadSimilarityIndex(join(__dirname, 'data'));
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -411,6 +416,47 @@ try {
   }
 } catch (e) { console.warn('[zofhub] mood-tags load failed:', e.message); }
 
+// ------------------------------------------------------------------------
+// Feed ranking artifact, from tools/analyze-catalog.py (npm run feed-rank).
+//
+// Two things come out of that analysis and are used below:
+//   • scores          slug -> 0..1. Encodes what the catalog data actually
+//                     supports: duplicate titles demoted (2,348 games share a
+//                     title with another) and junk titles demoted. Deliberately
+//                     COARSE — see the long note in the Python about why a
+//                     fine-grained score invented category clustering that was
+//                     not in the data.
+//   • categoryBalance category -> 0..1, used as a per-page diversity cap so one
+//                     category cannot own the grid ("arcade" is 31.7% of the
+//                     catalog).
+// Optional, like mood-tags: absent file means the feed ranks exactly as it did
+// before, with no error.
+// ------------------------------------------------------------------------
+let FEED_SCORES = new Map();
+let CATEGORY_BALANCE = new Map();
+let FEED_PLAYS_TOTAL = 0;
+try {
+  const frFile = join(__dirname, 'data', 'feed-ranking.json');
+  if (existsSync(frFile)) {
+    const fr = JSON.parse(readFileSync(frFile, 'utf8'));
+    FEED_SCORES = new Map(Object.entries(fr.scores || {}));
+    CATEGORY_BALANCE = new Map(Object.entries(fr.categoryBalance || {}));
+    FEED_PLAYS_TOTAL = Number(fr.stats?.playsTotal) || 0;
+    console.log(`[zofhub] feed-ranking loaded: ${FEED_SCORES.size} scores, `
+      + `${fr.stats?.duplicatesDemoted || 0} duplicates demoted`);
+  } else {
+    console.log('[zofhub] no data/feed-ranking.json — feed uses popularity only. '
+      + 'Build it with: npm run feed-rank');
+  }
+} catch (e) { console.warn('[zofhub] feed-ranking load failed:', e.message); }
+
+// 0..1 quality/dedup score for a game; 1.0 (neutral) when unknown, so a game
+// missing from the artifact is never punished for it.
+const feedScore = (g) => {
+  const s = FEED_SCORES.get(g.slug);
+  return s === undefined ? 1.0 : s;
+};
+
 function setCatalog(games, source) {
   // Merge in finalgames.json (the repo-root master list) FIRST, so its games are
   // present whether this catalog came from the bundled JSON or from Supabase.
@@ -495,6 +541,34 @@ function setCatalog(games, source) {
 const POP_WEIGHT  = 3.0;  // how strongly plays can lift a game over the random baseline
 const POP_LOG_CAP = 3.0;  // ≈1000 plays reaches the top of the popularity scale
 const THUMB_BONUS = 0.3;  // mild nudge so real-image tiles tend to lead (vs blanks)
+const QUALITY_WEIGHT = 1.4; // how strongly the feed-ranking artifact can sink a
+                            // duplicate. A duplicate scores 0.25 vs 1.0, so it
+                            // loses ~1.05 — more than the random term's full
+                            // range, so a repeat title reliably falls behind its
+                            // canonical copy, but not so much that it becomes
+                            // unreachable.
+
+// POPULARITY MUST EARN ITS WEIGHT.
+//
+// POP_WEIGHT multiplies popNorm ∈ [0,1] to [0,3] while the per-visit random term
+// spans only [0,1]. So once a game passes popNorm ≈ 0.34 — about TEN plays — it
+// outranks every zero-play game no matter what the random draw does. That is a
+// ratchet: the first games to get any traffic are pinned to page 1, they collect
+// more traffic because they are on page 1, and the remaining ~12,000 games can
+// never surface. Classic rich-get-richer.
+//
+// It matters right now because the play data is 179 events across 71 games —
+// our own testing. Without this gate, whichever handful of games we happened to
+// click during development would permanently lead the feed for every visitor.
+//
+// So popularity's influence scales with how much evidence exists site-wide,
+// mirroring the trust ramp in tools/analyze-catalog.py. At 179 plays the weight
+// is ~0.01 (popularity is effectively off, which is correct); at 50k plays it
+// reaches its full 3.0 with no code change.
+const PLAYS_FOR_FULL_TRUST = 50000;
+let _liveTotalPlays = 0;               // refreshed by the play-count loader
+const popWeightNow = () =>
+  POP_WEIGHT * Math.min(1, Math.max(FEED_PLAYS_TOTAL, _liveTotalPlays) / PLAYS_FOR_FULL_TRUST);
 
 function hashUnit(str) {
   // FNV-1a + avalanche → uniform (0,1). Deterministic for a given string.
@@ -516,9 +590,15 @@ function popNorm(g) {
 // Deterministic popularity order (no seed) — used for search so the most-played
 // matches surface first and the result stays edge-cacheable.
 function rankByPopularity(list) {
+  // Same blend as weightedShuffle minus the per-visit randomness, so the
+  // deterministic order (search results, no-seed requests) agrees with the
+  // shuffled one about which games are worth showing — in particular it also
+  // sinks duplicate titles instead of listing the same game three times.
+  const key = (g) => popWeightNow() * popNorm(g)
+                   + QUALITY_WEIGHT * feedScore(g)
+                   + (hasThumb(g) ? THUMB_BONUS : 0);
   return [...list].sort((a, b) =>
-    popNorm(b) - popNorm(a) ||
-    (hasThumb(b) - hasThumb(a)) ||
+    key(b) - key(a) ||
     String(a.title).localeCompare(String(b.title)));
 }
 
@@ -527,9 +607,10 @@ function weightedShuffle(list, seed) {
   const keyed = new Array(list.length);
   for (let i = 0; i < list.length; i++) {
     const g = list[i];
-    const k = POP_WEIGHT * popNorm(g)
+    const k = popWeightNow() * popNorm(g)
             + hashUnit(seed + '|' + (g.slug || g.title || i))
-            + (hasThumb(g) ? THUMB_BONUS : 0);
+            + (hasThumb(g) ? THUMB_BONUS : 0)
+            + QUALITY_WEIGHT * feedScore(g);
     keyed[i] = { g, k };
   }
   keyed.sort((a, b) => b.k - a.k);
@@ -658,7 +739,14 @@ async function loadPlayStats() {
     }
     for (const g of CATALOG.games) g.plays = playCounts.get(g.slug) || 0;
     orderCache.clear();
-    console.log(`[plays] loaded ${playCounts.size} play counts from game_stats`);
+    // Feeds the evidence gate on popularity ranking (popWeightNow). Recomputed
+    // on every refresh so the feed starts trusting play data automatically as
+    // real traffic arrives, without a redeploy.
+    _liveTotalPlays = 0;
+    for (const v of playCounts.values()) _liveTotalPlays += v;
+    console.log(`[plays] loaded ${playCounts.size} play counts from game_stats `
+      + `(${_liveTotalPlays} plays; popularity weight `
+      + `${popWeightNow().toFixed(2)} of ${POP_WEIGHT})`);
   } catch (e) {
     console.warn('[plays] load failed (in-memory only):', e.message);
   }
@@ -2312,85 +2400,75 @@ app.get('/api/presence/stream', (req, res) => {
 // origin hit per 5 min per edge POP — the database barely notices.
 const PAGE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600';
 
-// Single-flight: when N requests miss the SAME cache key at the SAME instant
-// (cold cache / right after a TTL expiry), only ONE hits Supabase; the rest
-// await that one promise. Without this, a traffic spike on a cold key sends
-// a thundering herd of identical queries at the free-tier database.
-const pageInFlight = new Map(); // cacheKey -> Promise<payload>
-
-async function loadCatalogPage(page, limit, offset, cacheKey, cache) {
-  if (pageInFlight.has(cacheKey)) return pageInFlight.get(cacheKey);
-  const work = (async () => {
-    const supa = getSupabase();
-    if (!supa) return { games: [], page, limit, total: 0, source: 'no-supabase' };
-    // games_public is the safe, frontend-shaped view from schema.sql.
-    const { data, error, count } = await supa
-      .from('games_public')
-      .select('id, slug, title, game_url, thumbnail_url, category', { count: 'exact' })
-      .order('id', { ascending: false })
-      .range(offset, offset + limit - 1);
-    if (error) throw error;
-    // Same in-repo display overrides as the in-memory catalog (rename / hide).
-    // Only inject `add` games on page 1 so they aren't duplicated across pages.
-    const games = applyCatalogOverrides(data || [], { injectAdds: page === 1 })
-      // Route ad-blocked publisher CDNs through the same-origin /thumb proxy.
-      // Done BEFORE the cache write so cached pages carry the proxied URLs too.
-      .map(g => (g && g.thumbnail_url) ? { ...g, thumbnail_url: thumbUrl(g.thumbnail_url) } : g);
-    const payload = { games, page, limit, total: count || 0, source: 'supabase' };
-    // Best-effort cache write — failure logged but doesn't block the response.
-    cache.set(cacheKey, payload, 3600).catch(e =>
-      console.warn('[api/games] cache.set failed:', e.message));
-    return payload;
-  })();
-  pageInFlight.set(cacheKey, work);
-  try { return await work; }
-  finally { pageInFlight.delete(cacheKey); }
-}
+// NOTE: a single-flight Supabase loader (loadCatalogPage / pageInFlight) lived
+// here and was removed when Mode 1 stopped querying the database per request.
+// It is unreachable now, and leaving it would suggest this endpoint still hits
+// Supabase, which it does not. Recoverable from git history if ever needed.
 
 app.get('/api/games', async (req, res) => {
-  // -------- Mode 1: page-based (cache-aside → Supabase) --------
+  // -------- Mode 1: page-based --------
+  //
+  // THIS USED TO QUERY SUPABASE DIRECTLY, AND IT WAS BROKEN. Recording why, so
+  // nobody "restores" it:
+  //
+  //   The query was `ORDER BY id DESC LIMIT n OFFSET m`, and the in-repo
+  //   override rules (data/catalog-overrides.json — dead hosts, unlicensed
+  //   copies, duplicates; ~2.3k games) were applied to the rows AFTER they came
+  //   back. Filtering after pagination means a page of 24 can return anything
+  //   from 24 games down to none, and `total` reported the UNFILTERED count.
+  //
+  //   That is not a theoretical problem. `id DESC` walks newest-first, and the
+  //   newest ~2,000 rows are where the removed games are concentrated — 97-99%
+  //   of positions 200-2000 are removed. Measured against the live database:
+  //   page 1 returned 22 of 24, page 2 returned 19, and pages 6 through ~83
+  //   returned ZERO, while `total` cheerfully advertised 16,820 games. Any
+  //   client paging through this hit a wall of empty pages almost immediately.
+  //
+  //   It also ordered by INSERTION ORDER, which is not a feed. Whatever was
+  //   imported last led the page regardless of quality or popularity.
+  //
+  // The fix is to serve from the in-memory catalog, because that is where the
+  // override rules can actually be applied — they are JS matchers (slug /
+  // titleAllOf / hostIncludes), so no SQL ORDER BY can express them. Filtering
+  // has to happen where the rules live. That gives exact pagination, an honest
+  // total, and the same popularity ranking Mode 2 uses.
+  //
+  // Trade-off, stated plainly: the catalog refreshes from Supabase every 30
+  // minutes, so this is eventually-consistent rather than live. For a game
+  // catalog that is fine, and Mode 2 has always worked this way.
   if (req.query.page !== undefined) {
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 24));
     const offset = (page - 1) * limit;
-    const cacheKey = `games:page:${page}:limit:${limit}`;
-    const cache = getCache();
+    const cat = req.query.category
+      ? canonCategory(String(req.query.category).toLowerCase())
+      : null;
+    const seed = (req.query.seed || '').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || null;
 
-    // ---- Cache HIT path ----
-    try {
-      const hit = await cache.get(cacheKey);
-      if (hit) {
-        res.setHeader('Cache-Control', PAGE_CACHE_CONTROL);
-        res.setHeader('X-Cache', 'HIT');
-        res.setHeader('X-Cache-Backend', cache.backend);
-        // hit is already JSON-deserialized by RedisCache.get / MemoryCache.get
-        return res.json(hit);
-      }
-    } catch (e) {
-      // Cache failure must never block the request — fall through to DB.
-      console.warn('[api/games] cache.get failed:', e.message);
-    }
+    const list = orderedList(cat && cat !== 'all' ? cat : null, seed);
+    const slice = list.slice(offset, offset + limit);
 
-    // ---- Cache MISS → Supabase (single-flighted) ----
-    try {
-      const payload = await loadCatalogPage(page, limit, offset, cacheKey, cache);
-      if (payload.source === 'no-supabase') {
-        // No DB configured — don't let a CDN cache the empty result for long.
-        res.setHeader('Cache-Control', 'public, max-age=15');
-        res.setHeader('X-Cache', 'BYPASS');
-      } else {
-        res.setHeader('Cache-Control', PAGE_CACHE_CONTROL);
-        res.setHeader('X-Cache', 'MISS');
-        res.setHeader('X-Cache-Backend', cache.backend);
-      }
-      return res.json(payload);
-    } catch (e) {
-      // Spec: empty array, not a crash, 200 status — UI never breaks.
-      console.warn('[zofhub] /api/games supabase failed, returning []:', e.message);
-      res.setHeader('Cache-Control', 'no-store'); // don't cache a transient failure
-      res.setHeader('X-Cache', 'BYPASS');
-      return res.json({ games: [], page, limit, total: 0, source: 'fallback-empty', error: e.message });
-    }
+    // Both field names are populated on purpose. The in-memory catalog
+    // normalises to `thumbnail`, but this endpoint has always returned
+    // `thumbnail_url` as well, and an external consumer may read either.
+    const games = slice.map(g => ({
+      ...g,
+      thumbnail_url: g.thumbnail_url || g.thumbnail || '',
+      game_url: g.game_url || g.embed_url || '',
+    }));
+
+    res.setHeader('Cache-Control', seed ? 'private, max-age=60' : PAGE_CACHE_CONTROL);
+    res.setHeader('X-Cache', 'MEMORY');
+    return res.json({
+      games,
+      page,
+      limit,
+      // The real, post-filter count — so `Math.ceil(total/limit)` is the true
+      // number of pages and the last one is where the games actually end.
+      total: list.length,
+      pages: Math.max(1, Math.ceil(list.length / limit)),
+      source: CATALOG.source || 'memory',
+    });
   }
 
   // -------- Mode 2: in-memory, popularity-ranked + per-visit shuffle --------
@@ -2408,6 +2486,24 @@ app.get('/api/games', async (req, res) => {
     // Search: deterministic, most-played matches first; edge-cacheable.
     let list = (cat && cat !== 'all') ? (byCategory.get(cat) || []) : CATALOG.games;
     list = rankByPopularity(list.filter(g => g.title.toLowerCase().includes(q)));
+    // Collapse repeated titles. Ranking alone cannot fix this: searching
+    // "color road" matched exactly two rows and BOTH were returned, so the
+    // results read "Color Road / Color Road". Sorting only decides which of the
+    // two comes first. Search is where duplicates are most visible, because the
+    // result set is small and the copies end up adjacent.
+    //
+    // rankByPopularity has already put the best copy of each title first (it
+    // includes the feed-ranking score, which demotes non-canonical duplicates),
+    // so keeping the FIRST occurrence keeps the right one. The others are not
+    // deleted — they remain reachable by direct URL and on category pages.
+    const seenTitle = new Set();
+    list = list.filter(g => {
+      const key = String(g.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!key) return true;
+      if (seenTitle.has(key)) return false;
+      seenTitle.add(key);
+      return true;
+    });
     res.setHeader('Cache-Control', 'public, max-age=30');
     return res.json({ total: list.length, limit, offset, games: list.slice(offset, offset + limit) });
   }
@@ -2446,6 +2542,74 @@ app.post('/api/play', (req, res) => {
     return res.json({ ok: true, plays: n });
   } catch {
     return res.json({ ok: false });
+  }
+});
+
+// ========================================================================
+// /api/for-you — personalised recommendations from THIS device's history.
+// ------------------------------------------------------------------------
+// The client posts the slugs it has in localStorage (store.history /
+// store.favorites) and gets back a ranked, de-duplicated, genre-diversified
+// row. Nothing about the user is stored here — see the header comment in
+// lib/recommender.mjs for why that is deliberate rather than lazy.
+//
+// POST, not GET, for two reasons: a history of 60 slugs does not belong in a
+// URL, and a GET would invite a CDN or proxy to cache one person's personalised
+// row and serve it to everyone. The response is explicitly no-store for the
+// same reason.
+//
+// This handler always answers 200 with a games array (429 when rate-limited;
+// a malformed JSON body is rejected as 400 by express.json() before it gets
+// here). A recommendation row is decoration — if anything inside it fails, the
+// page should quietly show fewer tiles, never an error.
+// ========================================================================
+const FOR_YOU_MAX_SEEDS = 60;   // history is capped at 80 client-side; decay makes
+                                // anything past ~40 mathematically irrelevant anyway
+const FOR_YOU_MAX_LIMIT = 36;
+
+app.post('/api/for-you', (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  try {
+    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+      .split(',')[0].trim();
+    // Cheap endpoint, but it reads the whole catalog on the fallback path, so
+    // it still gets a bucket. Generous limit: a normal page load makes one call.
+    if (!writeAllow(ip, 30, 2000)) {
+      return res.status(429).json({ games: [], error: 'rate-limited' });
+    }
+
+    const clean = (arr) => (Array.isArray(arr) ? arr : [])
+      .map(s => String(s || '').toLowerCase().slice(0, 80))
+      .filter(Boolean)
+      .slice(0, FOR_YOU_MAX_SEEDS);
+
+    const history   = clean(req.body?.history);
+    const favorites = clean(req.body?.favorites);
+    const limit = Math.min(FOR_YOU_MAX_LIMIT,
+      Math.max(1, parseInt(req.body?.limit, 10) || 18));
+
+    const games = recommendGames({
+      history,
+      favorites,
+      limit,
+      // bySlug is the LIVE catalog, which has already had catalog-overrides
+      // applied — so a game the offline index still knows about but that has
+      // since been removed simply resolves to undefined and is skipped. This is
+      // exactly why the Python builder does not re-implement the override rules.
+      getGame: (slug) => bySlug.get(slug),
+      pool: () => CATALOG.games,
+      playsOf: (slug) => playCounts.get(slug) || 0,
+    });
+
+    return res.json({
+      games,
+      count: games.length,
+      personalized: history.length > 0 || favorites.length > 0,
+      indexed: simIndexSize(),
+    });
+  } catch (e) {
+    console.warn('[for-you] failed:', e.message);
+    return res.json({ games: [], count: 0, error: 'unavailable' });
   }
 });
 

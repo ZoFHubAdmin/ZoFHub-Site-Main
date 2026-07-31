@@ -482,31 +482,120 @@ function renderRecentRow() {
 // most popular games you HAVEN'T played yet from the categories you play most.
 // Stays hidden until there's enough history to be meaningful, and re-renders as
 // the full catalog streams in (so the pool covers every game, not just page 1).
-function renderForYouRow() {
-  const row = $('#forYouRow'), grid = $('#forYouGrid'); if (!row || !grid) return;
-  const hist = store.history.get();
-  if (hist.length < 3) { row.hidden = true; return; }        // need a few plays first
+// Cached across re-renders. renderAll() runs again every time another chunk of
+// the catalog streams in, and this must not fire a request each time.
+let _forYou = { fetched: false, games: null, inflight: null };
 
-  const played = new Set(hist.map(h => h.id));
-  // Affinity: earlier entries in history are MORE recent → weight them higher.
-  const affinity = {};
-  hist.forEach((h, i) => {
-    const g = state.all.find(x => x.slug === h.id);
+/** Proper Fisher-Yates. `sort(() => Math.random() - .5)` — which this row used
+ *  to use — is not a shuffle: the comparator is inconsistent, so the result is
+ *  neither uniform nor stable across browsers. */
+function shuffled(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * LOCAL fallback, used only when /api/for-you is unreachable.
+ *
+ * Same idea as the version this replaces — category affinity over play history
+ * — with its two real bugs fixed:
+ *   • weight was Math.max(1, 12 - i), which is FLAT past the 12th entry while
+ *     history holds 80, so 68 stale plays could outvote the 12 recent ones.
+ *     Now exponential, matching the server (RECENCY_DECAY).
+ *   • `state.all.find()` inside the loop is O(n·m) — ~1M string compares on a
+ *     12k catalog with 80 history entries, re-run on every catalog chunk. Now a
+ *     single Map.
+ */
+function forYouLocal(histIds, favIds, limit) {
+  const bySlug = new Map(state.all.map(g => [g.slug, g]));
+  const played = new Set([...histIds, ...favIds]);
+  const affinity = new Map();
+  histIds.forEach((id, i) => {
+    const g = bySlug.get(id);
     if (!g || !g.category) return;
-    affinity[g.category] = (affinity[g.category] || 0) + Math.max(1, 12 - i);
+    affinity.set(g.category, (affinity.get(g.category) || 0) + Math.pow(0.85, i));
   });
-  const favCats = Object.entries(affinity).sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]);
-  if (!favCats.length) { row.hidden = true; return; }
+  for (const id of favIds) {
+    const g = bySlug.get(id);
+    if (g && g.category) affinity.set(g.category, (affinity.get(g.category) || 0) + 1.25);
+  }
+  if (!affinity.size) return [];
+  const favCats = new Set([...affinity.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]));
+  const pool = state.all
+    .filter(g => favCats.has(g.category) && !played.has(g.slug) && g.thumbnail)
+    .sort((a, b) => popularityScore(b) - popularityScore(a))
+    .slice(0, 80);
+  return shuffled(pool).slice(0, limit).map(g => ({ ...g, because: { kind: 'category', category: g.category } }));
+}
 
-  const catSet = new Set(favCats);
-  // Candidates: unplayed games in the favored categories, ranked by real
-  // popularity, then a light shuffle of the top slice so the row varies per visit.
-  let pool = state.all.filter(g => catSet.has(g.category) && !played.has(g.slug));
-  pool.sort((a, b) => popularityScore(b) - popularityScore(a));
-  pool = pool.slice(0, 60).sort(() => Math.random() - .5).slice(0, 18);
-  if (pool.length < 6) { row.hidden = true; return; }        // not enough to fill a row
-  row.hidden = false;
-  paintGrid(grid, pool);
+/**
+ * "Recommended for you".
+ *
+ * Asks the server, which ranks against a precomputed game-similarity index
+ * (tools/build-recommendations.py) — that is what lets it say "because you
+ * played Moto X3M" rather than just "you seem to like racing". Falls back to
+ * local category affinity if the request fails, so the row still appears
+ * offline or if the endpoint is down.
+ *
+ * Nothing is sent that the browser did not already have: the history and
+ * favourites in localStorage, and nothing else. The server stores none of it.
+ */
+function renderForYouRow() {
+  const row = $('#forYouRow'), grid = $('#forYouGrid');
+  if (!row || !grid) return;
+
+  const histIds = store.history.get().map(h => h.id).filter(Boolean);
+  const favIds = store.favorites.get().filter(Boolean);
+  if (histIds.length < 3 && favIds.length < 2) { row.hidden = true; return; }
+
+  const paint = (games) => {
+    if (!games || games.length < 6) { row.hidden = true; return; }
+    // Resolve against the live client catalog so a game hidden since the index
+    // was built never renders, and so tiles carry the same fields as every
+    // other row (thumbnail, plays, favourite state).
+    const bySlug = new Map(state.all.map(g => [g.slug, g]));
+    const items = games
+      .map(g => (bySlug.has(g.slug) ? { ...bySlug.get(g.slug), because: g.because } : null))
+      .filter(Boolean);
+    if (items.length < 6) { row.hidden = true; return; }
+    row.hidden = false;
+    paintGrid(grid, items);
+    // Say WHY, using the strongest attributed pick. Honest attribution matters:
+    // a row that claims a reason it cannot back up is worse than no reason.
+    const seed = items.find(g => g.because && g.because.kind === 'similar' && g.because.title);
+    let sub = row.querySelector('.row-sub');
+    if (seed) {
+      if (!sub) {
+        sub = document.createElement('p');
+        sub.className = 'row-sub';
+        row.querySelector('.row-title')?.after(sub);
+      }
+      sub.textContent = `Because you played ${seed.because.title}`;
+    } else if (sub) {
+      sub.remove();
+    }
+  };
+
+  if (_forYou.fetched) { paint(_forYou.games); return; }
+  if (_forYou.inflight) { _forYou.inflight.then(() => paint(_forYou.games)); return; }
+
+  _forYou.inflight = fetch('/api/for-you', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ history: histIds, favorites: favIds, limit: 18 }),
+  })
+    .then(r => (r.ok ? r.json() : null))
+    .then(j => {
+      _forYou.games = (j && Array.isArray(j.games) && j.games.length)
+        ? j.games
+        : forYouLocal(histIds, favIds, 18);
+    })
+    .catch(() => { _forYou.games = forYouLocal(histIds, favIds, 18); })
+    .finally(() => { _forYou.fetched = true; _forYou.inflight = null; paint(_forYou.games); });
 }
 
 function paintGrid(grid, items, opts = {}) {

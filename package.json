@@ -44,7 +44,9 @@
     "upgrade-y8-thumbs": "python tools/upgrade_y8_thumbs.py",
     "sync-migrations": "node tools/sync-supabase-migrations.mjs",
     "check-ads": "node tools/check-ads.mjs",
-    "gamezop": "node --use-system-ca tools/set-gamezop-partner.mjs"
+    "gamezop": "node --use-system-ca tools/set-gamezop-partner.mjs",
+    "rec-index": "python tools/build-recommendations.py",
+    "feed-rank": "python tools/analyze-catalog.py"
   },
   "engines": {
     "node": ">=22"
