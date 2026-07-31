@@ -235,7 +235,7 @@ Join the **[ZoFHub Official Discord](https://discord.gg/SeMuMRG9gG)** — announ
 
 ## 📜 License & credits
 
-ZoFHub's own code is under the terms in [`LICENSE`](LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, Wisp, Epoxy, libcurl.js) keep their **own** upstream licenses (MIT / AGPL-3.0 / LGPL-3.0) — see **[CREDITS.md](CREDITS.md)** for the full attribution and the AGPL network-use source offer. Standalone copyleft companion browsers are **not** included in this repository.
+ZoFHub's own code is under the terms in [`LICENSE`](LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, GUST, Wisp, Epoxy, libcurl transport) are **AGPL-3.0**, and **libcurl.js is LGPL-3.0-or-later** — they keep their **own** upstream licenses, which always take precedence for those components. Because they are served over a network, the **AGPL-3.0 §13 source offer** applies; see **[CREDITS.md](CREDITS.md)** for the full attribution and that offer. Standalone copyleft companion browsers are **not** included in this repository.
 
 Games are served through their publishers' **official embed URLs**; ZoFHub hosts no pirated game assets.
 

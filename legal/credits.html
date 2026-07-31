@@ -78,13 +78,14 @@
         <table>
           <thead><tr><th>Project</th><th>Role</th><th>License</th></tr></thead>
           <tbody>
-            <tr><td><a href="https://github.com/titaniumnetwork-dev/Ultraviolet" target="_blank" rel="noopener">Ultraviolet</a></td><td>In-page proxy engine</td><td class="lic">MIT</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener">Scramjet</a></td><td>In-page proxy engine</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/titaniumnetwork-dev/Ultraviolet" target="_blank" rel="noopener">Ultraviolet</a></td><td>In-page proxy engine</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener">Scramjet</a></td><td>In-page proxy engine</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
             <tr><td><a href="https://github.com/MercuryWorkshop/bare-mux" target="_blank" rel="noopener">bare-mux</a></td><td>Transport multiplexer</td><td class="lic">MIT</td></tr>
             <tr><td><a href="https://github.com/MercuryWorkshop/wisp-client-js" target="_blank" rel="noopener">Wisp (wisp-js)</a></td><td>Tunnel protocol client</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/EpoxyTransport" target="_blank" rel="noopener">Epoxy transport</a></td><td>TLS-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/EpoxyTransport" target="_blank" rel="noopener">Epoxy transport</a></td><td>TLS-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
             <tr><td><a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a></td><td>WASM curl (used by GUST)</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
+            <tr><td><a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GUST</a></td><td>Service-worker-free proxy browser (libcurl.js + Wisp)</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
           </tbody>
         </table>
       </div>
@@ -96,6 +97,21 @@
         local changes would be kept in ZoFHub's own repository. To request the source for a specific
         deployed build, contact us at {{CONTACT}} or via the <strong>ZoFHub Discord</strong> linked in the
         footer below.</p>
+      <p><strong>The live, machine-checked version of this offer is at
+        <a href="/licenses">/licenses</a></strong> (JSON: <a href="/licenses.json">/licenses.json</a>).
+        That page is generated from the packages this server is actually running, so the versions it
+        lists can never drift from the code being served, and it links the verbatim license text for
+        every component.</p>
+      <p>This offer covers <strong>Ultraviolet, Scramjet, GUST, Wisp, Epoxy transport</strong> and
+        <strong>libcurl transport</strong>, and it extends to <a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a>
+        under LGPL-3.0. <strong>GUST is modified by ZoFHub</strong>; its changes, their date, and a link
+        to the running modified source are listed on <a href="/licenses">/licenses</a> as AGPL-3.0 §5
+        requires. <em>Note on Ultraviolet and Scramjet:</em> their npm packages declare
+        <code>"license": "MIT"</code> in <code>package.json</code>, but both ship a full
+        <strong>GNU AGPL-3.0</strong> text in their <code>LICENSE</code> file, and GitHub reports
+        Ultraviolet's repository as AGPL-3.0. Where those two disagree the LICENSE file is the operative
+        grant, so ZoFHub treats both as AGPL-3.0 and makes the §13 source offer for them. This page
+        previously listed them as MIT; that was incorrect and has been corrected.</p>
 
       <h2>Standalone companion browsers (optional, not bundled)</h2>
       <p>ZoFHub can optionally list these separate, self-hosted proxy-browser apps when they are running.
@@ -134,6 +150,7 @@
       </div>
 
       <nav class="legal-related" aria-label="Related policies">
+        <a href="/licenses">Open Source &amp; Source Offer</a>
         <a href="/privacy">Privacy Policy</a>
         <a href="/terms">Terms of Service</a>
         <a href="/dmca">DMCA / Copyright</a>
@@ -144,7 +161,7 @@
 
   <footer class="site-footer"></footer>
 
-  <script type="module" src="/js/layout.js?v=20260716c"></script>
-  <script type="module" src="/js/panic.js?v=20260630"></script>
+  <script type="module" src="/js/layout.js?v=20260729c"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
 </body>
 </html>

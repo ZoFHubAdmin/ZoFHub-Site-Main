@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="Open-source licenses and the AGPL-3.0 network-use source offer for the proxy engines ZoFHub serves, generated from the exact package versions this server is running." />
+  <title>Open Source Licenses &amp; Source Offer · ZoFHub</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260630" />
+  <link rel="stylesheet" href="/css/legal.css?v=20260630" />
+  <style>
+    /* Same pattern as credits.html: keep a wide table from pushing the page
+       sideways on mobile instead of letting it overflow the viewport. */
+    .lic-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 14px 0; }
+    .lic-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 460px; }
+    .lic-table th, .lic-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(125,170,255,.16); vertical-align: top; }
+    .lic-table th { color: #a7bce0; font-weight: 700; white-space: nowrap; }
+    .lic-table a { word-break: break-word; }
+    .lic-role { color: #a7bce0; font-size: 12.5px; margin-top: 3px; }
+    .lic-ver { color: #a7bce0; font-weight: 500; font-size: 12.5px; white-space: nowrap; }
+    .lic-spdx { font-weight: 700; white-space: nowrap; }
+    .lic-copyleft { color: #ffb454; }
+    /* The AGPL §5 modification notice. Deliberately loud — a change notice that
+       reads like body text defeats the "prominent notices" requirement. */
+    .lic-mod { background: #ffb454; color: #241a00; font-weight: 800; font-size: 11px; padding: 1px 6px; border-radius: 5px; letter-spacing: .02em; white-space: nowrap; }
+    .lic-changes { margin-top: 9px; padding: 9px 12px; border-left: 3px solid #ffb454; background: rgba(255,180,84,.07); border-radius: 0 8px 8px 0; font-size: 13px; }
+    .lic-changes ul { margin: 6px 0 6px 18px; padding: 0; }
+    .lic-changes li { margin: 3px 0; }
+    .lic-changes p { margin: 6px 0 0; }
+  </style>
+</head>
+<body class="page-legal">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-shell">
+    <div class="legal-hero">
+      <h1>Open Source Licenses &amp; Source Offer</h1>
+      <p class="legal-updated">Generated from the exact component versions this server is running</p>
+    </div>
+
+    <div class="legal-body">
+      <p>ZoFHub's web-browser feature is built on open-source software that is served
+        <strong>to your browser</strong> when you use it. Several of those components are
+        <strong>copyleft</strong> (AGPL-3.0 / LGPL-3.0), which means anyone who uses them over a
+        network is entitled to their source code. This page is that offer, and it links the verbatim
+        license text for each component.</p>
+
+      <h2>Components served by this site</h2>
+      <!-- The table below is generated at boot by lib/licenses.mjs from the
+           INSTALLED packages, so the versions shown can never drift from the code
+           actually being served. See server.js → /licenses.
+           NOTE: do not write the placeholder's name inside this comment — the
+           substitution is a plain string .replace(), which hits the FIRST match
+           only. A mention here would consume the table and leave the real
+           placeholder raw on the page (that exact bug happened once). -->
+      {{COMPONENT_TABLE}}
+
+      <h2>AGPL-3.0 §13 — network-use source offer</h2>
+      <p>For every AGPL-3.0 component above, the <strong>Corresponding Source</strong> is the linked
+        upstream repository at the exact version listed, which is the version this server is running.
+        Versions are read from the installed packages at startup, so they cannot drift from reality.</p>
+      <p>Where ZoFHub has <strong>modified</strong> a component, the upstream repository alone is not
+        the Corresponding Source — the modified file is linked directly in its row above, and the
+        changes are described there with the date they were made.</p>
+      <p>A machine-readable version of this offer is available at
+        <a href="/licenses.json">/licenses.json</a>.</p>
+
+      <h2>LGPL-3.0 — libcurl.js</h2>
+      <p>libcurl.js is served as a WebAssembly bundle to the GUST browser. It is used unmodified; its
+        license text is linked above, and its own copyright notice is preserved inside the bundle
+        itself.</p>
+
+      <h2>ZoFHub's own code</h2>
+      <p>ZoFHub's own source is <strong>not</strong> open source — it is covered by the ZoFHub License
+        (source-available, personal &amp; non-commercial). The copyleft licenses above apply only to the
+        third-party components listed, and those licenses always take precedence for those
+        components.</p>
+
+      <div class="legal-contact" id="contact">
+        <h2>Requesting source</h2>
+        <p>Everything is linked above and needs no request. If you need the source for a specific
+          deployed build, or believe an attribution is missing or incorrect, contact us at
+          {{CONTACT}} or in the ZoFHub Discord (linked in the footer).</p>
+      </div>
+
+      <nav class="legal-related" aria-label="Related policies">
+        <a href="/credits">Credits &amp; Licenses</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/dmca">DMCA / Copyright</a>
+        <a href="/cookies">Cookie Policy</a>
+      </nav>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260729c"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
+</body>
+</html>

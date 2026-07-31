@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       This file is a REDIRECT, not a page.
+
+       WHY IT EXISTS AT ALL
+       The real credits page lives at legal/credits.html and is served at
+       /credits by server.js (it is templated at boot so {{CONTACT}} becomes the
+       CONTACT_EMAIL address — which is exactly why the source cannot sit in
+       public/, where express.static would serve the raw {{CONTACT}} token to
+       visitors).
+
+       THE PROBLEM THIS SOLVES
+       express.static(PUBLIC_DIR) is mounted near the top of server.js, long
+       before the /credits route is registered. Extensionless /credits still
+       reaches the templated route, but any file at public/credits.html is
+       ALSO reachable at /credits.html — so the site ended up with two credits
+       pages: the real one, and an unstyled duplicate with no header, no footer,
+       and its own conflicting license claims. Search engines index both, and a
+       visitor who lands on the duplicate sees a page that looks broken.
+
+       Deleting the file would also work, but a redirect is friendlier: anything
+       already linking to /credits.html keeps working instead of 404ing.
+
+       The <meta refresh> is the no-JavaScript fallback; the script below fires
+       first and uses history.replaceState semantics (location.replace) so the
+       duplicate never lands in the visitor's back-button history.
+       ═══════════════════════════════════════════════════════════════════════ -->
+
+  <title>Credits &amp; Licenses · ZoFHub</title>
+  <link rel="canonical" href="/credits" />
+  <meta name="robots" content="noindex, follow" />
+  <meta http-equiv="refresh" content="0; url=/credits" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+
+  <style>
+    /* Styled so the ~100ms before the redirect fires doesn't flash a bare white
+       page. Colours are hard-coded rather than pulled from main.css: loading a
+       stylesheet for a page that is about to navigate away would delay the
+       redirect for no benefit. */
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #1a0b3d;
+      color: #f7f4ff;
+      font: 15px/1.6 Inter, "Segoe UI", system-ui, sans-serif;
+    }
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px;
+      text-align: center;
+    }
+    a { color: #ffd426; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p>Redirecting to the Credits &amp; Licenses page…</p>
+    <p><a href="/credits">Continue to /credits</a></p>
+  </div>
+
+  <script>
+    // location.replace (not location.href) so this interstitial never becomes a
+    // back-button trap: pressing Back returns to wherever the visitor actually
+    // came from, not to this redirect.
+    location.replace('/credits');
+  </script>
+</body>
+</html>

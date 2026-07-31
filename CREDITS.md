@@ -10,27 +10,42 @@ These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
 
 | Project | Role in ZoFHub | Repository | License |
 |---|---|---|---|
-| **Ultraviolet** | In‑page proxy engine (service worker) | https://github.com/titaniumnetwork-dev/Ultraviolet | MIT |
-| **Scramjet** | In‑page proxy engine (service worker) | https://github.com/MercuryWorkshop/scramjet | MIT |
-| **bare‑mux** | Transport multiplexer | https://github.com/MercuryWorkshop/bare-mux | see upstream `LICENSE` |
+| **Ultraviolet** | In‑page proxy engine (service worker) | https://github.com/titaniumnetwork-dev/Ultraviolet | **AGPL‑3.0** |
+| **Scramjet** | In‑page proxy engine (service worker) | https://github.com/MercuryWorkshop/scramjet | **AGPL‑3.0** |
+| **bare‑mux** | Transport multiplexer | https://github.com/MercuryWorkshop/bare-mux | MIT |
 | **Wisp (wisp‑js)** | Tunnel protocol client (the `/wisp/` tunnel) | https://github.com/MercuryWorkshop/wisp-client-js | **AGPL‑3.0** |
-| **Epoxy transport** | TLS‑over‑Wisp transport | https://github.com/MercuryWorkshop/EpoxyTransport | **AGPL‑3.0** |
-| **libcurl transport** | curl‑over‑Wisp transport | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0** |
+| **Epoxy transport** | TLS‑over‑Wisp transport | https://github.com/MercuryWorkshop/EpoxyTransport | **AGPL‑3.0‑only** |
+| **libcurl transport** | curl‑over‑Wisp transport | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0‑only** |
 | **libcurl.js** | WASM curl used by GUST | https://github.com/ading2210/libcurl.js | **LGPL‑3.0‑or‑later** |
-| **GUST** | Service‑worker‑free libcurl + Wisp browser | Mercury Workshop ecosystem | uses the AGPL/LGPL libs above |
+| **GUST** | Service‑worker‑free libcurl + Wisp browser | https://github.com/nautilus-os/GUST | **AGPL‑3.0** |
 
-Ultraviolet and Scramjet are MIT‑licensed. The **Wisp / Epoxy / libcurl
-transport stack is AGPL‑3.0** and **libcurl.js is LGPL‑3.0‑or‑later** — these are
-served to users from this origin, so their license notices are preserved in the
-vendored/npm files and the AGPL network‑use source offer below applies. None of
-these are covered by the ZoFHub License.
+Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST**, and the
+**Wisp / Epoxy / libcurl transport stack** — is **AGPL‑3.0**, and **libcurl.js is
+LGPL‑3.0‑or‑later**. They are served to users from this origin, so their license
+notices are preserved in the vendored/npm files and the AGPL network‑use source
+offer below applies to all of them. **bare‑mux** is MIT (its `package.json`
+declares no license, but the package ships an MIT `LICENSE` file). None of these
+are covered by the ZoFHub License.
 
-### AGPL‑3.0 §13 network‑use source offer (for the in‑use transport stack)
+> **Corrected 2026‑07‑30 — Ultraviolet and Scramjet are AGPL‑3.0, not MIT.**
+> Both npm packages declare `"license": "MIT"` in `package.json`, but both ship a
+> full **GNU AGPL‑3.0** text as their `LICENSE` file (661 lines, verified), and
+> GitHub reports Ultraviolet's repository as AGPL‑3.0. Where the manifest and the
+> LICENSE file disagree, **the LICENSE file is the operative grant**. This file and
+> the public credits page previously listed both as MIT, which understated the
+> obligation: AGPL‑3.0 §13 requires a network‑use source offer, and MIT does not.
+> The §13 offer below now covers them.
+
+### AGPL‑3.0 §13 network‑use source offer (all served proxy engines)
+
+Covers **Ultraviolet, Scramjet, GUST, Wisp, Epoxy transport** and **libcurl
+transport**, plus **libcurl.js** under LGPL‑3.0.
 
 Because ZoFHub serves the AGPL‑3.0 components above over a network, their users
 are offered the **corresponding source**: it is each project's upstream
 repository (linked above) at the version pinned in `package-lock.json`
-(`node_modules/@mercuryworkshop/*`). ZoFHub runs them unmodified; any local
+(`node_modules/@mercuryworkshop/*`, `node_modules/@titaniumnetwork-dev/ultraviolet`,
+and the vendored `public/gust/`). ZoFHub runs them unmodified; any local
 changes would be kept in this repository. To request the source for a specific
 deployed build, ask in the official **ZoFHub Discord server** — the invite is
 linked from the footer of the live site.

@@ -146,6 +146,10 @@ function mountFooter() {
         <a href="/cookies">Cookie Policy</a>
         <a href="/dmca">DMCA / Copyright</a>
         <a href="/credits">Credits &amp; Licenses</a>
+        <!-- AGPL-3.0 §13 requires the source offer to be reachable by anyone
+             USING the software over the network. A page nobody can find does not
+             discharge that, so it gets a permanent footer link on every page. -->
+        <a href="/licenses">Open Source &amp; Source Offer</a>
       </nav>
     </div>
     <div class="footer-bottom">

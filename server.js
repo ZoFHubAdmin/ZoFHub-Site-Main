@@ -953,6 +953,27 @@ let wisp = null;
 // The proxy front-end assets (gust, uv, scram, …) are ALWAYS served — this is a
 // proxy site with no hub mode that would ever hide them.
 
+// ---- Canonical redirects for the `.html` twins of the legal pages ----------
+// MUST be registered BEFORE express.static below. The legal pages are served
+// extensionless (/credits) from ./legal, templated at boot so {{CONTACT}} becomes
+// the real address — which is why their source cannot live in public/, where the
+// raw {{CONTACT}} token would be served to visitors.
+//
+// The hazard: any file that ends up at public/<name>.html is served by the static
+// mount, producing a SECOND, untemplated copy of a legal page at /<name>.html.
+// That is a duplicate-content problem for search engines and a broken-looking
+// page for anyone who lands on it. (It happened for real with a hand-written
+// public/credits.html.)
+//
+// Registering the 301 above the static mount makes the canonical URL win no
+// matter what files exist in public/. Verified: with public/credits.html present,
+// /credits.html returned 200 (the stray file) when this ran after the static
+// mount, and 301 → /credits when it runs here.
+const LEGAL_HTML_TWINS = ['/privacy', '/terms', '/dmca', '/cookies', '/credits', '/licenses'];
+for (const route of LEGAL_HTML_TWINS) {
+  app.get(`${route}.html`, (req, res) => res.redirect(301, route));
+}
+
 app.use(express.static(PUBLIC_DIR, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res, path) => {
@@ -3517,6 +3538,13 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /epoxy/',
     'Disallow: /baremux/',
     'Disallow: /wisp/',
+    // /licenses, /licenses/* and /licenses.json are DELIBERATELY crawlable.
+    // They carry the AGPL-3.0 §13 source offer and the §5 modification notice.
+    // The proxy engine PATHS above are disallowed (they are machine assets that
+    // can get a domain classified as an anonymizer), but the license and source
+    // offer for that same code must stay openly reachable. Do not add a
+    // Disallow for /licenses.
+    'Allow: /licenses',
   ];
   // Advertise the sitemap so search engines discover the games catalog (the
   // proxy routes above are already disallowed, so only content pages get crawled).
@@ -3545,6 +3573,10 @@ app.get('/sitemap.xml', (req, res) => {
   add('/leaderboard', '0.6', 'daily');
   add('/community', '0.5', 'weekly');
   add('/ai', '0.5', 'monthly');
+  // The copyleft source offer. Listed so it is independently discoverable even
+  // if the footer link is ever lost in a redesign — AGPL §13 compliance should
+  // not depend on one nav element surviving.
+  add('/licenses', '0.4', 'monthly');
   const cats = new Set();
   for (const g of CATALOG.games) { const c = (g.category || '').toLowerCase(); if (c) cats.add(c); }
   for (const c of cats) add(`/category/${encodeURIComponent(c)}`, '0.7', 'weekly');
@@ -3636,6 +3668,125 @@ for (const [route, file] of Object.entries(LEGAL_PAGES)) {
   const html = renderLegal(file);           // template once at boot
   app.get(route, (req, res) => res.set('Cache-Control', 'public, max-age=3600').send(html));
 }
+
+// ========================================================================
+// COPYLEFT COMPLIANCE — /licenses, /licenses/:id, /licenses.json
+// ------------------------------------------------------------------------
+// ZoFHub serves six AGPL-3.0 proxy engines and one LGPL-3.0 library to every
+// visitor who opens /browser or /gust. Naming them on /credits is attribution,
+// not compliance. These routes discharge the actual obligations:
+//
+//   AGPL §4  — the license text must accompany the work. Before this, every
+//              /uv/LICENSE, /scram/LICENSE, … returned 404: the site served the
+//              code and withheld the license.
+//   AGPL §13 — a user interacting over a network must be offered the
+//              Corresponding Source of the version they are running. That is
+//              what /licenses.json is: a machine-readable written offer,
+//              pinned to the versions actually installed.
+//   AGPL §5  — a MODIFIED work must carry prominent notices of the change and
+//              its date. GUST is modified (its Wisp target was repointed at our
+//              own /wisp/, and the ZoFHub cloak system was added), so its entry
+//              states that, dates it, and links the running modified file
+//              rather than only upstream.
+//   LGPL §4  — same notice/text requirement for libcurl.js.
+//
+// Deliberately NOT behind the legal-page templating: these are verbatim license
+// texts and must be served byte-for-byte, with no {{token}} substitution.
+// ========================================================================
+const { getComponents, getLicenseText, getManifest } = await import('./lib/licenses.mjs');
+
+// Machine-readable written offer. JSON so a compliance checker (or a human with
+// curl) can enumerate every served component, its exact version, and where to
+// get its source — without scraping HTML.
+app.get('/licenses.json', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json(getManifest(requestOrigin(req), contactEmail));
+});
+
+// Verbatim license text, e.g. /licenses/ultraviolet.
+// text/plain so browsers display it rather than download it, and so no markup
+// can alter a legal document.
+app.get('/licenses/:id', (req, res) => {
+  const text = getLicenseText(String(req.params.id).toLowerCase());
+  if (!text) return send404(req, res);
+  res.type('text/plain; charset=utf-8')
+     .set('Cache-Control', 'public, max-age=86400')
+     .send(text);
+});
+
+// Human-readable index.
+//
+// The PAGE SHELL is legal/licenses.html — a real file carrying the exact same
+// head, header, footer and script tags as every other legal page, so /licenses
+// is identical to /privacy, /terms and /credits BY CONSTRUCTION rather than by
+// someone remembering to keep a template string in sync.
+//
+// That drift already happened once: this page previously lived as an inline
+// template here and was missing the Google Fonts <link>s, so it rendered in a
+// fallback system font while every other page used Inter/Lilita One. Moving the
+// shell into legal/ makes that class of bug impossible — the page is now built
+// from the same file pattern, loaded through the same renderLegal() templating,
+// as its four siblings.
+//
+// Only the COMPONENT TABLE is generated, from the same getComponents() the JSON
+// manifest uses, so the human page and the machine-readable offer can never
+// disagree about versions or modification status.
+const LICENSES_PAGE = (() => {
+  const rows = getComponents().map(c => {
+    // Vendored components (GUST) have no npm version — label them as such
+    // rather than printing an empty or bogus "v".
+    const ver = c.version
+      ? ` <span class="lic-ver">v${htmlEscape(c.version)}</span>`
+      : ' <span class="lic-ver">vendored in-repo</span>';
+    const modBadge = c.modified ? ' <span class="lic-mod">MODIFIED</span>' : '';
+    // Copyleft gets the same amber emphasis credits.html uses, so the two pages
+    // read as one system instead of two different designs.
+    const copyleft = /AGPL|LGPL|GPL/i.test(c.spdx) ? ' lic-copyleft' : '';
+    const licCell = c.licenseAvailable
+      ? `<a class="lic-spdx${copyleft}" href="/licenses/${htmlEscape(c.id)}">${htmlEscape(c.spdx)}</a>`
+      : `<span class="lic-spdx${copyleft}">${htmlEscape(c.spdx)}</span>`;
+    const modDetail = c.modified ? `
+              <div class="lic-changes">
+                <strong>Changed by ZoFHub on ${htmlEscape(c.modifiedOn)}:</strong>
+                <ul>${c.modifications.map(m => `<li>${htmlEscape(m)}</li>`).join('')}</ul>
+                <p>Corresponding Source of the running, modified version:
+                  <a href="${htmlEscape(c.modifiedSourceAt)}">${htmlEscape(c.modifiedSourceAt)}</a></p>
+              </div>` : '';
+    return `            <tr>
+              <td><a href="${htmlEscape(c.repo)}" target="_blank" rel="noopener">${htmlEscape(c.name)}</a>${ver}${modBadge}
+                <div class="lic-role">${htmlEscape(c.role)}</div>${modDetail}</td>
+              <td>${licCell}</td>
+              <td><a href="${htmlEscape(c.repo)}" target="_blank" rel="noopener">source</a></td>
+            </tr>`;
+  }).join('\n');
+
+  const table = `<div class="lic-wrap">
+        <table class="lic-table">
+          <thead><tr><th>Component</th><th>License</th><th>Source</th></tr></thead>
+          <tbody>
+${rows}
+          </tbody>
+        </table>
+      </div>`;
+
+  // renderLegal() applies the same {{CONTACT}} / {{SITE_URL}} substitution every
+  // other legal page receives; the generated table is injected on top of it.
+  //
+  // GLOBAL regex, not a plain string. A string .replace() substitutes only the
+  // FIRST match, so any earlier mention of the placeholder — even inside an HTML
+  // comment — would swallow the table and leave the real placeholder rendered
+  // raw on the page. That happened; this makes it structurally impossible.
+  const html = renderLegal('licenses.html').replace(/\{\{COMPONENT_TABLE\}\}/g, table);
+  // Fail loudly at BOOT rather than silently serving a broken page to visitors.
+  if (html.includes('{{')) {
+    console.warn('[licenses] unsubstituted {{token}} left in the rendered page — check legal/licenses.html');
+  }
+  return html;
+})();
+
+app.get('/licenses', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600').type('html').send(LICENSES_PAGE);
+});
 
 // ========================================================================
 // /category/:catSlug — server-templates a per-category page
