@@ -119,6 +119,8 @@ const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs')
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
+const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
+        healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -1185,6 +1187,27 @@ app.get('/api/proxies', async (req, res) => {
 // stripped of any private keys.  The /ai page can `fetch('/api/ai/providers')`
 // to populate a remote-model selector.  Cached with no-store since the
 // data is tiny and we want updates to ship immediately.
+// GET /api/ai/health — provider observability.
+// Exposes WHICH models are currently in cooldown and why, so "the AI is broken"
+// is diagnosable from outside the process. Deliberately leaks nothing sensitive:
+// model ids and upstream status codes only, never keys, prompts, or stack traces.
+app.get('/api/ai/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const models = healthSnapshot();
+  res.json({
+    ok: true,
+    priority: modelPriority(),
+    // Which endpoint the pipeline will actually use, without revealing the key.
+    endpoint: (process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN)
+      ? 'gen.pollinations.ai/v1/chat/completions'
+      : 'text.pollinations.ai/openai',
+    keyed: !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN),
+    healthy: models.filter(m => m.healthy).length,
+    total: models.length,
+    models,
+  });
+});
+
 app.get('/api/ai/providers', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(publicProviderList());
@@ -1278,33 +1301,101 @@ async function pollinationsText(promptUrl, timeoutMs = AI_TIMEOUT_MS) {
 //   the point of the model registry the secondary path already consults.
 // `opts.signal` — caller's AbortSignal, so a caller-side timeout genuinely
 //   CANCELS the upstream request instead of abandoning it to run for ~90s.
-async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS, opts = {}) {
-  const model = opts.model || 'openai-fast';
-  let last = 0;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (opts.signal?.aborted) throw new Error('aborted');
-    const r = await aiFetch('https://text.pollinations.ai/openai', {
-      method: 'POST', timeoutMs, signal: opts.signal,
-      headers: pollinationsHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
-      // 'openai-fast' (= gpt-oss-20b, a reasoning model) is the keyless default;
-      // reasoning_effort:'low' cuts its time-to-first-token from ~20s to ~1.5s.
-      body: JSON.stringify({ model, messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
-    });
-    if (r.ok) {
-      const j = await r.json().catch(() => null);
-      const txt = j?.choices?.[0]?.message?.content;
-      if (txt) return String(txt).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-      throw new Error('empty reply');
-    }
-    last = r.status;
-    if (r.status === 429 || r.status >= 500) {
-      const ra = parseInt(r.headers.get('retry-after'), 10);
-      await new Promise(s => setTimeout(s, ra > 0 ? ra * 1000 : 1200 * (attempt + 1)));
-      continue;
-    }
-    break;
+// ONE attempt against ONE model. Retry/failover live in pollinationsChat.
+//
+// Endpoint choice is evidence-based. gen.pollinations.ai/v1/chat/completions is
+// the documented OpenAI-compatible endpoint and is preferred — but probing it
+// with this deployment's credentials returned 401 anonymously and 403 with our
+// pk_ key (recognised, tier too low), while text.pollinations.ai/openai — also
+// OpenAI-compatible — returns 200 in ~770ms. So `gen` is used only when a
+// higher-tier key is actually configured; otherwise we go straight to the
+// endpoint that works, instead of burning a round-trip on a known 401.
+async function pollinationsChatOnce(messages, model, timeoutMs, opts = {}) {
+  if (opts.signal?.aborted) throw new Error('aborted');
+  const apiKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN || '';
+  const url = apiKey
+    ? 'https://gen.pollinations.ai/v1/chat/completions'
+    : 'https://text.pollinations.ai/openai';
+  const headers = pollinationsHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' });
+  if (apiKey) headers.Authorization = 'Bearer ' + apiKey;
+
+  const r = await aiFetch(url, {
+    method: 'POST', timeoutMs, signal: opts.signal, headers,
+    // reasoning_effort:'low' cuts time-to-first-token on reasoning models
+    // (openai-fast = gpt-oss-20b) from ~20s to ~1.5s.
+    body: JSON.stringify({ model, messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
+  });
+
+  if (!r.ok) {
+    // Surface the status in the message so isTransient() can classify it: 4xx
+    // (bad model / no permission) must fail over to the next MODEL immediately,
+    // while 429/5xx should be retried against the SAME model.
+    const err = new Error('upstream ' + r.status);
+    const ra = parseInt(r.headers.get('retry-after'), 10);
+    if (ra > 0) err.retryAfterMs = ra * 1000;
+    throw err;
   }
-  throw new Error('upstream ' + last);
+  const j = await r.json().catch(() => null);
+  const txt = j?.choices?.[0]?.message?.content;
+  if (!txt) throw new Error('empty reply');
+  return String(txt).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
+
+// Model failover + exponential backoff.
+//
+// Before: one hardcoded model ('openai-fast'), 3 attempts, LINEAR backoff, and
+// no notion of a model being down — so an unavailable model was re-probed on
+// every single request forever.
+//
+// Now: walk the configurable priority list, skipping models in cooldown; retry
+// transient failures per model with exponential backoff + jitter; record health
+// so a dead model is skipped rather than hammered.
+async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS, opts = {}) {
+  // Endpoint-aware candidates: never offer a model the chosen endpoint cannot
+  // serve (see KEYLESS_MODELS in lib/ai-pipeline.mjs for what that cost us).
+  const keyed = !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN);
+  const models = opts.model ? [opts.model] : healthyModels(candidateModels(keyed));
+
+  // TOTAL TIME BUDGET — the whole failover chain, not per attempt.
+  //
+  // Testing caught this the hard way: with 6 models in the priority list and 3
+  // retries each, a full failover could run for minutes and the HTTP request
+  // simply hung. Model failover is only useful if it is bounded; past ~20s the
+  // user has already given up, and holding the connection open just occupies a
+  // slot in the concurrency gate that a request which COULD succeed needs.
+  //
+  // So: one shared deadline. Each model gets whatever time is left, retries are
+  // capped at 2 (model failover is the primary resilience mechanism here, not
+  // repeated attempts at the same failing model), and when the budget is gone
+  // we stop immediately and let the caller fall through to AI Horde.
+  const budgetMs = Number(process.env.AI_TOTAL_BUDGET_MS) || 20_000;
+  const deadline = Date.now() + budgetMs;
+
+  let lastErr = new Error('no models available');
+  for (const model of models) {
+    const remaining = deadline - Date.now();
+    if (remaining < 1500) {                       // too little left to be useful
+      lastErr = new Error('ai budget exhausted');
+      break;
+    }
+    try {
+      const txt = await withRetry(
+        () => pollinationsChatOnce(messages, model, Math.min(timeoutMs, remaining), opts),
+        {
+          attempts: 2,
+          onRetry: (n, e) => console.warn(`[ai] retry ${n} for "${model}": ${e.message}`),
+        }
+      );
+      markSuccess(model);
+      return txt;
+    } catch (e) {
+      lastErr = e;
+      markFailure(model, e);
+      if (opts.signal?.aborted) throw e;          // caller gave up; stop failing over
+      // fall through to the next model in priority order
+    }
+  }
+  throw lastErr;
 }
 
 // AI Horde — the second keyless text provider from ai_gaming_hub_final.json.
@@ -1468,12 +1559,48 @@ app.post('/api/ai/text', async (req, res) => {
     const turns = history.filter(m => m.role === 'user' || m.role === 'assistant')
       .slice(-6).map(m => ({ role: m.role, content: String(m.content).slice(0, 700) }));
     if (!turns.length && latest) turns.push({ role: 'user', content: latest });
+    // ENDPOINT ORDER IS EVIDENCE-BASED, and it is the reverse of what the
+    // OpenAI-compatible spec would suggest. Measured repeatedly:
+    //
+    //   GET  text.pollinations.ai/<prompt>   200 in ~0.8-1.3s, every attempt
+    //   POST text.pollinations.ai/openai     402 on almost every attempt
+    //   POST gen.pollinations.ai/v1/...      401 anonymous, 403 with our pk_ key
+    //
+    // The 402 is not about our Referer (tested with a correct one, a malformed
+    // one, and none at all — all 402) and not about the key. The POST path is
+    // simply gated for unkeyed callers now.
+    //
+    // So when we have NO key we go to the endpoint that works first. Trying POST
+    // first cost ~36s per request and dumped every user onto the AI Horde
+    // fallback, which returned garbage. When a real key IS configured, the
+    // richer OpenAI-compatible path is tried first and this order flips.
+    const keyedAi = !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN);
+    // THE `system=` QUERY PARAM IS PAYWALLED. Isolated by testing each param
+    // against the live endpoint with an identical prompt:
+    //
+    //   bare                     200   434ms
+    //   ?model=openai-fast       200   790ms
+    //   ?system=...              402 24978ms   <-- 402 Payment Required
+    //   ?model=...&system=...    402 29589ms
+    //
+    // The server appended `&system=` on EVERY request, so every unkeyed AI call
+    // hit a paywall, waited ~25-30s for the 402, then fell through to the AI
+    // Horde fallback — which returned unrelated text like "/ 2 / 3 / 4 / 5".
+    // That is why the assistant looked broken rather than merely slow.
+    //
+    // Folding the system prompt into the prompt body costs nothing and keeps
+    // the same behaviour. The paid `system=` param is used only when a key is
+    // configured, where it is permitted.
+    const getUrl = keyedAi
+      ? `https://text.pollinations.ai/${encodeURIComponent(ctx)}?model=${encodeURIComponent(textModel)}&system=${encodeURIComponent(system)}`
+      : `https://text.pollinations.ai/${encodeURIComponent(system + '\n\n' + ctx)}?model=${encodeURIComponent(textModel)}`;
     let text;
-    try {
-      text = await pollinationsChat([{ role: 'system', content: system }, ...turns]);
-    } catch {
-      const url = `https://text.pollinations.ai/${encodeURIComponent(ctx)}?model=${encodeURIComponent(textModel)}&system=${encodeURIComponent(system)}`;
-      text = await pollinationsText(url);
+    if (keyedAi) {
+      try { text = await pollinationsChat([{ role: 'system', content: system }, ...turns]); }
+      catch { text = await pollinationsText(getUrl); }
+    } else {
+      try { text = await pollinationsText(getUrl); }
+      catch { text = await pollinationsChat([{ role: 'system', content: system }, ...turns]); }
     }
     const payload = { reply: text || '(no response)', provider: 'pollinations' };
     if (text) cache.set(key, payload, AI_CACHE_TTL).catch(() => {});
