@@ -122,6 +122,12 @@ const { applyCatalogOverrides }            = await import('./lib/catalog-overrid
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const weather = await import('./lib/weather.mjs');
+// Imported EARLY on purpose: renderDependencyTable() runs while routes are
+// being registered, which is before the late import block. A `const` from a
+// later `await import` is still in the temporal dead zone at that point, and
+// the server crashed at boot with "Cannot access 'getCredits' before
+// initialization" until this moved up here.
+const { getCredits, creditsSummary } = await import('./lib/credits.mjs');
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -4178,9 +4184,58 @@ const LEGAL_PAGES = {
   '/cookies': 'cookies.html',
   '/credits': 'credits.html',
 };
+// Attribution table for /credits, built from the packages actually installed.
+// Generated once at boot for the same reason the licence manifest is: a
+// hand-written list is wrong the moment a dependency changes, and nothing
+// breaks to tell you.
+function renderDependencyTable() {
+  const rows = getCredits().map(c => {
+    const link = c.repository || c.homepage || '';
+    const nameCell = link
+      ? `<a href="${htmlEscape(link)}" target="_blank" rel="noopener">${htmlEscape(c.name)}</a>`
+      : htmlEscape(c.name);
+    const ver = c.version ? ` <span class="lic-ver">v${htmlEscape(c.version)}</span>` : '';
+    const dev = c.dev ? ' <span class="lic-ver">(build tool only)</span>' : '';
+    const copyleft = c.copyleft ? ' lic-copyleft' : '';
+    // Where package.json and the LICENCE FILE disagree, show both. An
+    // unexplained "MIT -> AGPL-3.0" on a credits page reads as an error; the
+    // discrepancy is itself the useful information, and it is the reason this
+    // table trusts the file over the metadata.
+    const conflict = c.licenceConflict
+      ? `<div class="lic-role">package.json declares &ldquo;${htmlEscape(c.declaredLicence)}&rdquo;, but the bundled LICENSE file is ${htmlEscape(c.licence)} &mdash; the file governs.</div>`
+      : '';
+    return `            <tr>
+              <td>${nameCell}${ver}${dev}${conflict}</td>
+              <td><span class="lic-spdx${copyleft}">${htmlEscape(c.licence)}</span></td>
+              <td>${htmlEscape(c.author || '—')}</td>
+            </tr>`;
+  }).join('\n');
+
+  const s = creditsSummary();
+  return `<p class="legal-updated">${s.total} direct dependencies &middot; ${s.copyleft} copyleft &middot; ${s.dev} build-only`
+    + (s.conflicts ? ` &middot; ${s.conflicts} with a licence discrepancy` : '')
+    + `</p>
+      <div class="lic-wrap">
+        <table class="lic-table">
+          <thead><tr><th>Package</th><th>Licence</th><th>Author</th></tr></thead>
+          <tbody>
+${rows}
+          </tbody>
+        </table>
+      </div>`;
+}
+
 for (const [route, file] of Object.entries(LEGAL_PAGES)) {
   if (!existsSync(join(LEGAL_DIR, file))) continue;
-  const html = renderLegal(file);           // template once at boot
+  let html = renderLegal(file);             // template once at boot
+  if (route === '/credits') {
+    html = html.replace(/\{\{DEPENDENCY_TABLE\}\}/g, renderDependencyTable());
+  }
+  // A placeholder that survives substitution renders as literal {{TOKEN}} to
+  // visitors. That shipped once; a boot-time warning makes it impossible to
+  // miss again.
+  const leftover = html.match(/\{\{[A-Z_]+\}\}/);
+  if (leftover) console.warn(`[legal] ${file} still contains ${leftover[0]} after templating`);
   app.get(route, (req, res) => res.set('Cache-Control', 'public, max-age=3600').send(html));
 }
 
