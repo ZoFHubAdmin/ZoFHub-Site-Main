@@ -121,6 +121,7 @@ const { publicProviderList, MODEL_FALLBACKS }               = await import('./li
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
+const weather = await import('./lib/weather.mjs');
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -1401,11 +1402,55 @@ async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS, opts = {}) 
 // AI Horde — the second keyless text provider from ai_gaming_hub_final.json.
 // Async (submit job → poll), slower than Pollinations but a different network
 // so it covers Pollinations rate-limits. Anonymous key '0000000000'.
+// Last-resort fallback when Pollinations is unavailable.
+//
+// AI Horde is a volunteer compute pool: the anonymous key (0000000000) gets
+// whichever worker is free, and many run BASE completion models rather than
+// instruction-tuned chat models. Handed a bare prompt, those models continue
+// the text instead of answering it — in testing this returned things like
+// "We need to output only the text to insert, no markdown fences" and
+// "/ 2 / 3 / 4 / 5 / 6", presented to the user as the assistant's reply.
+//
+// Two defences: ask explicitly for instruct-capable models and format the
+// prompt with clear turn markers, then VALIDATE what comes back. Returning
+// obvious nonsense is worse than admitting the assistant is unavailable —
+// a wrong answer costs the user's trust, an honest error costs them a retry.
+const HORDE_INSTRUCT_MODELS = [
+  'koboldcpp/Hermes-3-Llama-3.1-8B', 'koboldcpp/L3-8B-Stheno-v3.2',
+  'koboldcpp/Mistral-Nemo-Instruct-2407', 'koboldcpp/gemma-2-9b-it',
+];
+
+/** Heuristic garbage filter for base-model continuations. */
+function hordeLooksLikeGarbage(text, prompt) {
+  const t = String(text || '').trim();
+  if (t.length < 2) return true;
+  // Echoing our own system prompt back at us.
+  if (/you are zofhub ai/i.test(t)) return true;
+  // Meta-instructions to itself — the classic base-model tell.
+  if (/^(we need to|the user wants|the prefix before|output only|no markdown fences)/i.test(t)) return true;
+  // Degenerate numeric or delimiter runs ("/ 2 / 3 / 4", "000,000,000").
+  if (/^[\s\d.,/|:-]+$/.test(t)) return true;
+  // A bare hex blob (a request id leaking through).
+  if (/^[0-9a-f]{16,}\.?$/i.test(t)) return true;
+  return false;
+}
+
 async function aiHordeText(prompt, timeoutMs = 45_000) {
+  // Turn markers give an instruction-tuned model the shape it expects and give
+  // a base model a much better chance of continuing usefully.
+  const framed = `### Instruction:
+${prompt}
+
+### Response:
+`;
   const submit = await aiFetch('https://aihorde.net/api/v2/generate/text/async', {
     method: 'POST', timeoutMs: 15_000,
     headers: { 'Content-Type': 'application/json', apikey: '0000000000', 'Client-Agent': 'ZoFHub:1.0:zofhub.app' },
-    body: JSON.stringify({ prompt, params: { max_length: 220, max_context_length: 1024 } })
+    body: JSON.stringify({
+      prompt: framed,
+      models: HORDE_INSTRUCT_MODELS,
+      params: { max_length: 220, max_context_length: 1024, stop_sequence: ['###', '\n\n###'] },
+    })
   });
   const sj = await submit.json().catch(() => ({}));
   if (!sj.id) throw new Error('horde submit failed');
@@ -1416,7 +1461,9 @@ async function aiHordeText(prompt, timeoutMs = 45_000) {
     const stj = await st.json().catch(() => ({}));
     if (stj.faulted) throw new Error('horde faulted');
     if (stj.done && Array.isArray(stj.generations) && stj.generations.length) {
-      return (stj.generations[0].text || '').trim();
+      const text = (stj.generations[0].text || '').replace(/###.*$/s, '').trim();
+      if (hordeLooksLikeGarbage(text, prompt)) throw new Error('horde returned unusable output');
+      return text;
     }
   }
   throw new Error('horde timeout');
@@ -1533,7 +1580,36 @@ app.post('/api/ai/text', async (req, res) => {
     ? history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${String(m.content).slice(0, 700)}`).join('\n') + '\nAssistant:'
     : latest
   ).slice(0, 3500);
-  const system = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown.';
+  let system = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown.';
+
+  // LIVE WEATHER GROUNDING.
+  // A language model has no idea what the weather is; asked directly it will
+  // confidently invent a temperature. So when the question is clearly about
+  // weather we fetch the real conditions and put them in the system prompt, and
+  // the model's job becomes summarising a fact rather than guessing one.
+  //
+  // The weather text becomes part of the cache key (aiCacheKey hashes `system`),
+  // so a cached answer expires naturally as conditions change — no separate
+  // invalidation needed.
+  if (weather.looksLikeWeatherQuestion(latest)) {
+    try {
+      const place = await weather.resolveLocation({
+        city: req.body?.city ? String(req.body.city).slice(0, 80) : null,
+        tz: req.body?.tz ? String(req.body.tz).slice(0, 64) : null,
+      });
+      if (place) {
+        const wx = await weather.forecast(place.latitude, place.longitude);
+        system += '\n\nLIVE WEATHER (real data, retrieved just now — use it and do '
+          + 'not invent figures): ' + weather.summarize(place, wx);
+      }
+    } catch (e) {
+      // Weather being down must never break chat. Without live data the model
+      // is instructed to say so instead of fabricating.
+      console.warn('[ai] weather grounding unavailable:', e.message);
+      system += '\n\nNOTE: live weather is unavailable right now. If asked about '
+        + 'weather, say you cannot retrieve it rather than guessing.';
+    }
+  }
 
   const cache = getCache();
   const key = aiCacheKey(system, ctx);
@@ -1617,7 +1693,17 @@ app.post('/api/ai/text', async (req, res) => {
       if (/\b429\b/.test(e1.message) || /\b429\b/.test(e2.message)) {
         return res.status(429).json({ reply: '', error: 'rate_limited', retryAfter: 8 });
       }
-      return res.json({ reply: '', error: `pollinations:${e1.message}; horde:${e2.message}` });
+      // Log the upstream detail for us; return a plain message to the client.
+      // The old response shipped `pollinations:<msg>; horde:<msg>` straight to
+      // the browser, which leaked upstream hostnames, status codes and internal
+      // wording to anyone who opened devtools — and told the user nothing they
+      // could act on.
+      console.warn('[ai] all providers failed —', 'pollinations:', e1.message, '| horde:', e2.message);
+      return res.status(503).json({
+        reply: '',
+        error: 'ai_unavailable',
+        message: 'The AI assistant is temporarily unavailable. Please try again in a moment.',
+      });
     }
   } finally {
     aiGateLeave();
@@ -2737,6 +2823,48 @@ app.post('/api/for-you', (req, res) => {
   } catch (e) {
     console.warn('[for-you] failed:', e.message);
     return res.json({ games: [], count: 0, error: 'unavailable' });
+  }
+});
+
+// ========================================================================
+// GET /api/weather — live conditions + 3-day forecast from Open-Meteo.
+// ------------------------------------------------------------------------
+// Location, most explicit first: ?lat&lon -> ?city -> ?tz (IANA timezone).
+// The widget sends `tz` because the browser already knows it and it needs no
+// permission prompt and no third-party IP lookup — see lib/weather.mjs.
+//
+// Publicly cacheable: the response depends only on the coordinates, contains
+// nothing about the requester, and weather is identical for everyone in a city.
+// That lets a CDN absorb the traffic from a widget that renders on every page.
+// ========================================================================
+app.get('/api/weather', async (req, res) => {
+  try {
+    if (!writeAllow(req.ip || 'unknown', 30, 2000)) {
+      res.set('Cache-Control', 'no-store');
+      return res.status(429).json({ ok: false, error: 'rate_limited' });
+    }
+    const place = await weather.resolveLocation({
+      lat: req.query.lat, lon: req.query.lon,
+      city: req.query.city ? String(req.query.city).slice(0, 80) : null,
+      tz: req.query.tz ? String(req.query.tz).slice(0, 64) : null,
+    });
+    if (!place) {
+      res.set('Cache-Control', 'public, max-age=60');
+      return res.status(400).json({ ok: false, error: 'location_unresolved' });
+    }
+    const wx = await weather.forecast(place.latitude, place.longitude);
+    res.set('Cache-Control', 'public, max-age=600, s-maxage=600, stale-while-revalidate=1800');
+    return res.json({
+      ok: true,
+      place: { name: place.name, country: place.country },
+      ...wx,
+    });
+  } catch (e) {
+    // Never invent a temperature. A weather widget that guesses is worse than
+    // one that admits it is unavailable.
+    console.warn('[weather] failed:', e.message);
+    res.set('Cache-Control', 'no-store');
+    return res.status(503).json({ ok: false, error: 'weather_unavailable' });
   }
 });
 
