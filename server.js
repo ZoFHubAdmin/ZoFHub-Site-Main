@@ -1147,13 +1147,47 @@ app.use(express.static(PUBLIC_DIR, {
   }
 }));
 
+// 30s cache in front of the live Supabase probe — see the note inside the
+// handler for why the uncached 1828ms was an operational problem, not just a
+// slow endpoint. An in-flight probe is shared rather than duplicated, so a
+// burst of health polls on a cold cache still makes exactly one round trip.
+let _sbHealth = { at: 0, value: null, inflight: null };
+const SB_HEALTH_TTL_MS = 30_000;
+async function cachedSupabaseHealth() {
+  const now = Date.now();
+  if (_sbHealth.value && now - _sbHealth.at < SB_HEALTH_TTL_MS) return _sbHealth.value;
+  if (_sbHealth.inflight) return _sbHealth.inflight;
+  _sbHealth.inflight = (async () => {
+    try {
+      const v = await supabaseHealth();
+      _sbHealth = { at: Date.now(), value: v, inflight: null };
+      return v;
+    } catch (e) {
+      _sbHealth.inflight = null;
+      throw e;
+    }
+  })();
+  return _sbHealth.inflight;
+}
+
 app.get('/api/health', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Live Supabase connectivity probe — so "configured but not working" becomes a
   // precise reason (paused project / bad key / RLS / egress). Bounded (8s client
   // timeout); if the probe itself hiccups we still return the rest of the health.
+  // The Supabase probe is CACHED for 30s. Measured cost without it: 1828ms per
+  // call, versus 27-77ms for every other route on the site.
+  //
+  // That matters operationally, not just aesthetically. Render polls this
+  // endpoint continuously as its health check, and CI blocks on it during the
+  // boot test. A health check that takes nearly two seconds risks being scored
+  // as a timeout — the endpoint whose job is to prove the service is alive
+  // would be the thing reporting it dead.
+  //
+  // 30s is short enough that a real outage still surfaces almost immediately,
+  // and long enough that a burst of health polls costs one round trip.
   let supabase;
-  try { supabase = await supabaseHealth(); }
+  try { supabase = await cachedSupabaseHealth(); }
   catch (e) { supabase = { configured: isSupabaseConfigured(), connected: false, error: e?.message || String(e) }; }
   // /api/health is UNAUTHENTICATED, so it reports liveness, not configuration.
   //
