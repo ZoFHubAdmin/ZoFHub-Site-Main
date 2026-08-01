@@ -121,7 +121,12 @@ if (supaKeyInfo.present) {
 
 // These modules read process.env at import time, so they must be imported
 // AFTER the env-file load above.
-const { getSupabase, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
+// getSupabase()      — read paths. Admin key if present, else publishable.
+// getSupabaseAdmin() — write paths ONLY. Null unless a secret/service-role key
+//                      is configured, so a write endpoint returns a clear 503
+//                      instead of issuing an INSERT that RLS will refuse with
+//                      an opaque 42501 the caller can do nothing about.
+const { getSupabase, getSupabaseAdmin, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
 const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs');
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
@@ -775,7 +780,7 @@ async function flushPlayStats() {
   for (const [k, ts] of playDedup) if (ts < cutoff) playDedup.delete(k);
 
   if (!playStatsTable || !playsDirty.size) return;
-  const supa = getSupabase();
+  const supa = getSupabaseAdmin();   // upserts game_stats
   if (!supa) return;
   const slugs = [...playsDirty];
   playsDirty.clear();
@@ -2038,7 +2043,7 @@ app.post('/api/recommendations', async (req, res) => {
     ? dupe.matches.slice(0, 3).map(m => m.slug)
     : null;
 
-  const supa = getSupabase();
+  const supa = getSupabaseAdmin();   // INSERTs a recommendation
   if (!supa) return res.status(503).json({ ok: false, error: 'Community storage is not configured yet.' });
   try {
     const { data, error } = await supa.from('recommendations')
@@ -2094,7 +2099,7 @@ app.post('/api/recommendations/:id/seen', async (req, res) => {
   if (!writeAllow(req.ip || 'unknown', 40, 1000)) return res.json({ ok: false });
   const id = parseInt(req.params.id);
   if (!id) return res.json({ ok: false });
-  const supa = getSupabase();
+  const supa = getSupabaseAdmin();   // bumps the view counter
   if (!supa) return res.json({ ok: false });
   try {
     // Atomic increment via RPC-less read-modify-write is racy but fine for a
@@ -2258,7 +2263,9 @@ app.post('/api/scores', async (req, res) => {
     return res.status(422).json({ ok: false, error: `That score is above this game's allowed range (max ${ceiling.toLocaleString()}).` });
   }
 
-  const supa = getSupabase();
+  // submit_score() is SECURITY DEFINER and revoked from anon/authenticated, so
+  // this path is admin-only by database design, not just by convention.
+  const supa = getSupabaseAdmin();
   if (!supa) return res.status(503).json({ ok: false, error: 'Leaderboard not configured.' });
   const hasStatus = await ensureStatusCap(supa);
   try {
@@ -2451,8 +2458,10 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   }
   const id = parseInt(req.params.id, 10);
   if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
-  const supa = getSupabase();
-  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase not configured.' });
+  const supa = getSupabaseAdmin();   // show/hide a recommendation
+  // Precise wording: Supabase may well be configured — it is the ADMIN key that
+  // is missing, and only that distinction tells the operator what to fix.
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured — writes are disabled.' });
   try {
     const { error } = await supa.from('recommendations')
       .update({ is_visible: req.params.action === 'show' }).eq('id', id);
@@ -2501,8 +2510,8 @@ app.post('/api/admin/scores/:id/:action', async (req, res) => {
   }
   const id = parseInt(req.params.id, 10);
   if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
-  const supa = getSupabase();
-  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase not configured.' });
+  const supa = getSupabaseAdmin();   // approve/reject a flagged score
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured — writes are disabled.' });
   const approve = req.params.action === 'approve';
   try {
     // Approving makes the score public. The UNIQUE (slug, player_name) WHERE
@@ -4262,13 +4271,42 @@ const contactEmail = (process.env.CONTACT_EMAIL || '').trim();
 const CONTACT_HTML = contactEmail
   ? `<a href="mailto:${htmlEscape(contactEmail)}">${htmlEscape(contactEmail)}</a>`
   : `<strong>a contact address has not been published yet</strong>`;
-const SITE_URL_HTML = (process.env.SITE_URL || '').trim()
-  ? htmlEscape(process.env.SITE_URL.trim())
-  : 'this website';
-function renderLegal(file) {
+const SITE_URL_SET = !!(process.env.SITE_URL || '').trim();
+const SITE_URL_HTML = SITE_URL_SET ? htmlEscape(process.env.SITE_URL.trim()) : 'this website';
+function renderLegal(file, siteUrlHtml = SITE_URL_HTML) {
   const raw = readFileSync(join(LEGAL_DIR, file), 'utf8');
   return raw.replace(/\{\{CONTACT\}\}/g, CONTACT_HTML)
-            .replace(/\{\{SITE_URL\}\}/g, SITE_URL_HTML);
+            .replace(/\{\{SITE_URL\}\}/g, siteUrlHtml);
+}
+
+// ── Naming the site when SITE_URL is unset ─────────────────────────────────
+// SITE_URL is `sync: false` in render.yaml, so it is easy to deploy without it,
+// and then a DMCA policy reads "…governs your use of this website", which is
+// exactly where a real domain name matters most. Rather than leave that to a
+// dashboard field nobody revisits, derive the origin from the request the
+// visitor actually made.
+//
+// THE HOST HEADER IS ATTACKER-CONTROLLED, so this is deliberately narrow:
+//   * strict hostname grammar + length cap — no spaces, no scheme, no path
+//   * the result is htmlEscape()d like any other interpolated value
+//   * a bad host falls back to "this website" rather than rendering anything
+//   * the per-host render cache is bounded, so junk Host headers cannot grow it
+//   * responses Vary on the headers templated from, so a shared cache can never
+//     serve one host's page to a visitor on another
+//
+// It affects PAGE TEXT ONLY. SITE_URL_ORIGIN, which gates CORS, stays purely
+// env-derived above — deriving a trust boundary from a header the caller
+// controls would defeat the entire check. A spoofed Host here changes nothing
+// but the wording of the attacker's own response.
+const LEGAL_HOST_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?$/i;
+function originFromRequest(req) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0].trim();
+  if (!host || host.length > 253 || !LEGAL_HOST_RE.test(host)) return '';
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase()
+             || req.protocol || 'https';
+  if (proto !== 'http' && proto !== 'https') return '';
+  return `${proto}://${host}`;
 }
 const LEGAL_PAGES = {
   '/privacy': 'privacy.html',
@@ -4320,16 +4358,43 @@ ${rows}
 
 for (const [route, file] of Object.entries(LEGAL_PAGES)) {
   if (!existsSync(join(LEGAL_DIR, file))) continue;
-  let html = renderLegal(file);             // template once at boot
-  if (route === '/credits') {
-    html = html.replace(/\{\{DEPENDENCY_TABLE\}\}/g, renderDependencyTable());
-  }
+  const build = (siteUrlHtml) => {
+    let out = renderLegal(file, siteUrlHtml);
+    if (route === '/credits') {
+      out = out.replace(/\{\{DEPENDENCY_TABLE\}\}/g, renderDependencyTable());
+    }
+    return out;
+  };
   // A placeholder that survives substitution renders as literal {{TOKEN}} to
   // visitors. That shipped once; a boot-time warning makes it impossible to
-  // miss again.
+  // miss again. Checked on the boot-time render, so it still fires even when
+  // the page is later re-templated per host.
+  let html = build(SITE_URL_HTML);
   const leftover = html.match(/\{\{[A-Z_]+\}\}/);
   if (leftover) console.warn(`[legal] ${file} still contains ${leftover[0]} after templating`);
-  app.get(route, (req, res) => res.set('Cache-Control', 'public, max-age=3600').send(html));
+
+  if (SITE_URL_SET) {
+    // Fast path, unchanged: one render at boot, served to everyone.
+    app.get(route, (req, res) => res.set('Cache-Control', 'public, max-age=3600').send(html));
+  } else {
+    // Name the origin the visitor actually reached. Bounded cache — a flood of
+    // junk Host headers costs at most MAX_HOSTS renders, then resets.
+    const byHost = new Map();
+    const MAX_HOSTS = 8;
+    app.get(route, (req, res) => {
+      res.set('Vary', 'Host, X-Forwarded-Host, X-Forwarded-Proto');
+      res.set('Cache-Control', 'public, max-age=3600');
+      const origin = originFromRequest(req);
+      if (!origin) return res.send(html);          // falls back to "this website"
+      let page = byHost.get(origin);
+      if (!page) {
+        if (byHost.size >= MAX_HOSTS) byHost.clear();
+        page = build(htmlEscape(origin));
+        byHost.set(origin, page);
+      }
+      res.send(page);
+    });
+  }
 }
 
 // ========================================================================

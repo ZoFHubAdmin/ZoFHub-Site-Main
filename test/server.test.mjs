@@ -281,3 +281,74 @@ describe('rate limiting', () => {
     assert.ok(j.error, '429 body must name the error');
   });
 });
+
+describe('legal pages name the site without requiring SITE_URL', () => {
+  // SITE_URL is `sync: false` in render.yaml, so deploying without it is easy
+  // and then these pages read "…governs your use of this website". The origin
+  // is derived from the request instead — which means the Host header, an
+  // ATTACKER-CONTROLLED input, reaches a rendered page. These tests pin the
+  // safety properties that make that acceptable.
+  //
+  // Only cookies/privacy/terms carry the {{SITE_URL}} token; dmca and credits
+  // do not, so /privacy is the page under test.
+  const SITE_URL_SET = !!(process.env.SITE_URL || '').trim();
+
+  // These use X-Forwarded-Host, NOT Host. Node's fetch() treats Host as a
+  // forbidden header and silently drops it, so a test that sets Host exercises
+  // nothing and passes no matter what the server does — the first draft of this
+  // block did exactly that. X-Forwarded-Host is settable, and it is also the
+  // header that actually carries the visitor's domain in production, where the
+  // app sits behind Render's proxy.
+  const fwd = (host, proto = 'https') =>
+    get('/privacy', { headers: { 'X-Forwarded-Host': host, 'X-Forwarded-Proto': proto } });
+
+  test('a legitimate forwarded origin is used (and the header takes effect)', async () => {
+    if (SITE_URL_SET) return;   // fast path: one static render, nothing to derive
+    const body = await (await fwd('zofhub.example')).text();
+    // Doubles as the non-vacuity guard for every case below: if the header were
+    // being ignored, this assertion fails and the suite tells you so.
+    assert.ok(body.includes('https://zofhub.example'), 'forwarded origin should name the site');
+    assert.ok(!body.includes('this website'), 'should no longer use the neutral fallback');
+  });
+
+  test('a hostile forwarded host cannot inject markup', async () => {
+    const r = await fwd('evil.example"><script>alert(1)</script>');
+    const body = await r.text();
+    assert.equal(r.status, 200);
+    assert.ok(!body.includes('<script>alert(1)</script>'),
+      'the host header was interpolated without escaping');
+    assert.ok(!/evil\.example"\s*>/.test(body), 'attribute context was broken out of');
+  });
+
+  test('a malformed forwarded host falls back instead of rendering junk', async () => {
+    if (SITE_URL_SET) return;
+    for (const host of ['a b c', '../../etc/passwd', 'x:99999999', 'has_underscore.example']) {
+      const body = await (await fwd(host)).text();
+      assert.ok(body.includes('this website'),
+        `"${host}" should have fallen back to the neutral wording`);
+    }
+  });
+
+  test('a non-http scheme is rejected', async () => {
+    if (SITE_URL_SET) return;
+    const body = await (await fwd('zofhub.example', 'javascript')).text();
+    assert.ok(body.includes('this website'), 'only http/https may be rendered');
+  });
+
+  test('responses Vary on the headers they were templated from', async () => {
+    // Without this a shared cache could serve one host's rendered page to a
+    // visitor who arrived on a different domain.
+    const r = await get('/privacy');
+    const vary = (r.headers.get('vary') || '').toLowerCase();
+    for (const h of ['host', 'x-forwarded-host', 'x-forwarded-proto']) {
+      assert.ok(vary.includes(h), `Vary must list ${h}, got "${vary}"`);
+    }
+  });
+
+  test('no unsubstituted template token survives on any legal page', async () => {
+    for (const p of ['/privacy', '/terms', '/cookies', '/dmca', '/credits']) {
+      const body = await (await get(p)).text();
+      assert.ok(!/\{\{[A-Z_]+\}\}/.test(body), `${p} rendered a raw {{TOKEN}}`);
+    }
+  });
+});
