@@ -122,6 +122,7 @@ const { applyCatalogOverrides }            = await import('./lib/catalog-overrid
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const weather = await import('./lib/weather.mjs');
+const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
 // Imported EARLY on purpose: renderDependencyTable() runs while routes are
 // being registered, which is before the late import block. A `const` from a
 // later `await import` is still in the temporal dead zone at that point, and
@@ -1958,6 +1959,44 @@ app.post('/api/recommendations', async (req, res) => {
   if (!recHostOk(embed_url)) return res.status(400).json({ ok: false, error: 'Embed link must be an https URL from a supported game host (GameDistribution, OnlineGames.io, GameMonetize, HTMLGames, or a y8.com/embed/ link).' });
   if (isTrademarkTitle(title)) return res.status(400).json({ ok: false, error: 'That game appears to use a trademarked name we can’t host.' });
 
+  // URL SAFETY — recHostOk() checks the host is a known portal, which is an
+  // allowlist, not a safety check. These are the shapes an allowlist alone does
+  // not catch: credentials embedded in the URL (the https://trusted.com@evil
+  // phishing form), addresses that resolve inside our own infrastructure
+  // including the cloud metadata endpoint, and encoded IPv4 literals like
+  // 2130706433 that read as a hostname to a string check and as 127.0.0.1 to a
+  // resolver.
+  const safety = checkUrlSafety(embed_url);
+  if (!safety.ok) {
+    return res.status(400).json({
+      ok: false,
+      error: 'That link cannot be embedded.',
+      // Named so a legitimate submitter can fix their link; carries no internal
+      // detail beyond the category of problem.
+      reason: safety.reason,
+    });
+  }
+
+  // CROSS-DOMAIN DUPLICATE DETECTION.
+  // A plain `WHERE embed_url = ?` treats the same game on a different partner
+  // subdomain as new — which is how the catalog reached 4,691 rows (27.7%)
+  // sharing a title. Matching on PROVIDER IDENTITY collapses those.
+  const dupe = findDuplicates({ url: embed_url, title }, CATALOG.games);
+  if (dupe.status === 'exact') {
+    return res.status(409).json({
+      ok: false,
+      error: 'We already have that game.',
+      reason: dupe.reason,
+      existing: dupe.matches.slice(0, 3).map(m => ({ slug: m.slug, title: m.title })),
+    });
+  }
+  // A title-only match is evidence, not proof — two different games really are
+  // both called "Bubble Shooter". Accept the submission and flag it, rather
+  // than rejecting a legitimate game on a name collision.
+  const possibleDuplicateOf = dupe.status === 'likely'
+    ? dupe.matches.slice(0, 3).map(m => m.slug)
+    : null;
+
   const supa = getSupabase();
   if (!supa) return res.status(503).json({ ok: false, error: 'Community storage is not configured yet.' });
   try {
@@ -1965,7 +2004,20 @@ app.post('/api/recommendations', async (req, res) => {
       .insert({ title, embed_url, note, author, category })
       .select('id, title, author, category, created_at').single();
     if (error) throw error;
-    return res.json({ ok: true, recommendation: data });
+    if (possibleDuplicateOf) {
+      // Surfaced to the submitter (so they can say "no, mine is different")
+      // and logged for whoever reviews the queue. Not a rejection: a name
+      // collision is not proof, and rejecting on one would lose real games.
+      console.log(`[recommendations] "${title}" may duplicate: ${possibleDuplicateOf.join(', ')}`);
+    }
+    return res.json({
+      ok: true,
+      recommendation: data,
+      ...(possibleDuplicateOf ? {
+        notice: 'Saved — but we may already have a game with this name. A moderator will check.',
+        possibleDuplicateOf,
+      } : {}),
+    });
   } catch (e) {
     if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql in Supabase to enable recommendations.' });
     console.warn('[recommendations] insert failed:', e.message);

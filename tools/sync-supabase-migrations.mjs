@@ -50,6 +50,8 @@ const ORDER = [
    'Table the /healthz probe pokes so a free-tier database never pauses.'],
   ['20260101000600', 'game_stats', 'db/stats.sql',
    'Per-game play counters.'],
+  ['20260101000700', 'game_fingerprints', 'db/game-fingerprints.sql',
+   'provider fingerprints + duplicate relations for the game discovery engine.'],
 ];
 
 function render(name, src, why, body) {
