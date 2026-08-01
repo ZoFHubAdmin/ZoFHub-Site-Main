@@ -1088,11 +1088,28 @@ app.get('/api/health', async (req, res) => {
   let supabase;
   try { supabase = await supabaseHealth(); }
   catch (e) { supabase = { configured: isSupabaseConfigured(), connected: false, error: e?.message || String(e) }; }
+  // /api/health is UNAUTHENTICATED, so it reports liveness, not configuration.
+  //
+  // It previously returned `keyType: "service_role (legacy JWT — retires end of
+  // 2026)"` and the exact Node build to anybody who asked. Neither is a
+  // credential, but both are free reconnaissance: which key class the server
+  // holds, and the precise runtime version to match against CVEs. A test now
+  // asserts no real secret VALUE appears in any response body; this trims the
+  // metadata that was disclosed alongside it.
+  //
+  // The operator loses nothing — the key-type warning is already logged at boot,
+  // and the full detail is still available to an authenticated admin below.
+  const isAdmin = adminAuthorized(req);
   res.json({
-    status: 'ok', uptime: process.uptime(), node: process.version,
-    catalog: { source: CATALOG.source, games: CATALOG.games.length },
-    supabase,
-    proxy: proxyStatus
+    status: 'ok',
+    uptime: process.uptime(),
+    catalog: { games: CATALOG.games.length },
+    supabase: isAdmin ? supabase : {
+      configured: !!supabase?.configured,
+      connected: !!supabase?.connected,
+    },
+    proxy: proxyStatus,
+    ...(isAdmin ? { node: process.version, catalogSource: CATALOG.source } : {}),
   });
 });
 
