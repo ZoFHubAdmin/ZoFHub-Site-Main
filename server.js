@@ -110,6 +110,13 @@ if (supaKeyInfo.present) {
   if (supaKeyInfo.format === 'legacy-jwt') {
     console.warn('[zofhub] that is a LEGACY service_role key. Supabase retires these at the end of 2026 and they cannot be rotated — create a secret key (Settings → API Keys) and paste it into SUPABASE_SECRET_KEY.');
   }
+} else if (process.env.SUPABASE_URL && (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY)) {
+  // Supabase IS configured, just not with an admin key. This deployment can read
+  // but not write, and every symptom of that shows up far from the cause: score
+  // submissions accepted then absent, play counters frozen, the link-checker
+  // reporting success while updating nothing. Say it once, at boot, in the one
+  // place an operator actually looks.
+  console.warn('[zofhub] Supabase has NO ADMIN KEY — only the publishable key is set. Reads will work; every WRITE will be refused by RLS. Set SUPABASE_SECRET_KEY (Dashboard → Settings → API Keys) to enable writes.');
 }
 
 // These modules read process.env at import time, so they must be imported

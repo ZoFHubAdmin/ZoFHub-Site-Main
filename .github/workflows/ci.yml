@@ -114,3 +114,93 @@ jobs:
             fi
           done
           [ "$fail" = "0" ] && echo "✅ all migration filenames are valid" || exit 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Prove the migrations actually APPLY, against a real Postgres.
+  #
+  # WHY THIS MATTERS MORE HERE THAN IN MOST REPOS: the Supabase GitHub
+  # integration applies supabase/migrations/ straight to the PRODUCTION database
+  # on merge to main. There is no staging gate. So the first execution of a
+  # broken migration would otherwise be against production data.
+  #
+  # migrations-in-sync above proves the files MATCH db/. It cannot prove they
+  # RUN. This job runs them, in filename order, and then runs them all a second
+  # time to prove the idempotency every one of them claims in its header
+  # (IF NOT EXISTS / OR REPLACE / guarded DROPs).
+  #
+  # THIS IS NOT A DEPLOY PATH. It applies to a throwaway container and never
+  # touches a real project — no secrets, no network, nothing to leak. Migrations
+  # continue to reach production solely through the Supabase GitHub integration;
+  # a second deploy path would be two systems racing to apply the same DDL.
+  #
+  # postgres:15 matches `major_version = 15` in supabase/config.toml.
+  # ───────────────────────────────────────────────────────────────────────────
+  migrations-apply:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zofhub_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      PSQL: psql -v ON_ERROR_STOP=1 -h localhost -U postgres -d zofhub_ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Create the roles Supabase's platform provides
+        run: |
+          # Stock Postgres has no anon/authenticated/service_role. Six
+          # `revoke all on function … from public, anon, authenticated` statements
+          # in these migrations reference them and would fail without these roles.
+          # Supabase creates them as part of the platform, so creating them here
+          # reproduces the target environment rather than working around it.
+          $PSQL -c "do \$\$ begin
+            if not exists (select 1 from pg_roles where rolname='anon')          then create role anon          nologin noinherit; end if;
+            if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin noinherit; end if;
+            if not exists (select 1 from pg_roles where rolname='service_role')  then create role service_role  nologin noinherit bypassrls; end if;
+          end \$\$;"
+
+      - name: Apply every migration in order
+        run: |
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "── $(basename "$f")"
+            $PSQL -q -f "$f" || { echo "::error file=$f::migration failed to apply"; exit 1; }
+          done
+          echo "✅ all migrations applied cleanly, in order"
+
+      - name: Apply them all a SECOND time (idempotency)
+        run: |
+          # Every migration header promises it is idempotent. The Supabase
+          # integration can legitimately re-run a file against a database that
+          # already has the schema, so a migration that only works on an empty
+          # database is a production outage waiting for a retry.
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            $PSQL -q -f "$f" || { echo "::error file=$f::not idempotent — failed on re-apply"; exit 1; }
+          done
+          echo "✅ re-applying every migration is a no-op, as each header claims"
+
+      - name: RLS must be enabled on every public table
+        run: |
+          # Deny-by-default is the posture these tables are documented to have.
+          # A table that ships with RLS off is readable and writable by anyone
+          # holding the publishable key, which is a key that lives in a browser-
+          # facing config by design.
+          missing=$($PSQL -tAc "select string_agg(c.relname, ', ')
+            from pg_class c join pg_namespace n on n.oid=c.relnamespace
+            where n.nspname='public' and c.relkind='r' and not c.relrowsecurity;")
+          if [ -n "$missing" ]; then
+            echo "::error::RLS is DISABLED on: $missing"
+            exit 1
+          fi
+          echo "✅ RLS is enabled on every table in the public schema"

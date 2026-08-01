@@ -14,6 +14,17 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Load the same env file the SERVER loads. Without this the test process has no
+// secrets, so the "no response body contains a real secret VALUE" test below
+// compared every response against an EMPTY list and passed vacuously — the
+// strongest assertion in this file could never fail. The spawned server read
+// .env through its own loader and did hold the real keys, so only the watcher
+// was blind.
+//
+// This keeps the no-secrets property intact: with no .env (fresh clone, CI) the
+// loader sets nothing, the list is empty, and the suite still runs — it just
+// falls back to the pattern assertions, exactly as it does today.
+import '../lib/load-env.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.TEST_PORT) || 3399;
@@ -97,7 +108,24 @@ describe('security headers and error hygiene', () => {
       process.env.SUPABASE_SECRET_KEY, process.env.SUPABASE_SERVICE_ROLE_KEY,
       process.env.SUPABASE_ANON_KEY, process.env.POLLINATIONS_PUBLIC_KEY,
       process.env.ADMIN_SECRET, process.env.SCORE_SECRET, process.env.CRON_SECRET,
+      // The PUBLISHABLE key is browser-safe in general, but this app has no
+      // client-side Supabase SDK — the browser only ever calls our own /api
+      // routes. So it has no reason to appear in a response either, and if it
+      // ever does, someone has added a browser client and should be made to
+      // think about RLS coverage before shipping it.
+      process.env.SUPABASE_PUBLISHABLE_KEY,
     ].filter(s => typeof s === 'string' && s.length > 12);
+
+    // Make the coverage VISIBLE. An empty list is legitimate (CI runs with no
+    // secrets) but it must not look like a pass — this test silently checked
+    // nothing for its entire existence because the test process never loaded
+    // .env. If a .env is present, it must have yielded something to search for.
+    const { existsSync } = await import('node:fs');
+    if (existsSync(join(root, '.env'))) {
+      assert.ok(secrets.length > 0,
+        '.env exists but no secrets were loaded — this test would pass vacuously');
+    }
+    console.error(`      (checking ${secrets.length} configured secret value(s))`);
 
     for (const p of ['/', '/api/health', '/api/games?limit=2', '/api/ai/health', '/api/categories']) {
       const body = await (await get(p)).text();
@@ -116,6 +144,9 @@ describe('security headers and error hygiene', () => {
     assert.equal(j.status, 'ok');
     assert.equal(j.supabase.keyType, undefined, 'key type must not be public');
     assert.equal(j.node, undefined, 'Node version must not be public');
+    // Whether the server holds a write-capable key is reconnaissance too: it
+    // tells an attacker if there is an admin key on this host worth going after.
+    assert.equal(j.supabase.writable, undefined, 'write capability must not be public');
   });
 
   test('a 404 body carries no stack trace', async () => {
