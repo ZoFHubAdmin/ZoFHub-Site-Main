@@ -951,7 +951,67 @@ app.use(compression({
     return compression.filter(req, res);
   }
 }));
-app.use(cors());
+// CORS: open for READS, same-origin for WRITES.
+//
+// This was `cors()` with no options, which sends
+// `Access-Control-Allow-Origin: *` on everything — any website could POST to
+// our write endpoints from a visitor's browser.
+//
+// What that did and did not mean matters, so it is written down rather than
+// guessed at later: this app has NO cookies and NO sessions (identity lives in
+// the visitor's own localStorage), so a cross-origin request carries no ambient
+// credentials and classic CSRF does not apply. A CSRF token here would protect
+// nothing. The real exposure was abuse — any third-party page could drive score
+// submissions, community posts and AI calls through our rate limits using its
+// own visitors' IPs.
+//
+// So: GET stays open, because the game catalog is public data and an open read
+// API is a feature. Anything that writes must come from our own origin or an
+// explicitly allowlisted one (CORS_ALLOWED_ORIGINS, comma-separated).
+const CORS_ALLOWLIST = String(process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+// Our own public origin, derived from SITE_URL when it is set. Parsed once and
+// defensively: a malformed SITE_URL must not take the server down at boot.
+const SITE_URL_ORIGIN = (() => {
+  try {
+    const u = String(process.env.SITE_URL || '').trim();
+    return u ? new URL(u).origin : null;
+  } catch { return null; }
+})();
+
+app.use(cors({
+  origin(origin, cb) {
+    // No Origin header = same-origin navigation, curl, or a server-to-server
+    // call. Never a browser cross-origin request, so nothing to block.
+    if (!origin) return cb(null, true);
+    if (CORS_ALLOWLIST.includes(origin)) return cb(null, true);
+    if (SITE_URL_ORIGIN && origin === SITE_URL_ORIGIN) return cb(null, true);
+    // Reflect for reads; the per-method gate below rejects cross-origin writes.
+    return cb(null, true);
+  },
+  // Without credentials, a cross-origin caller can never act as a logged-in
+  // user — which is the property that makes the read-open policy safe.
+  credentials: false,
+  methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
+}));
+
+// Enforce the write half of the policy above.
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  const origin = req.headers.origin;
+  if (!origin) return next();                                   // not a browser cross-origin call
+  if (CORS_ALLOWLIST.includes(origin)) return next();
+  if (SITE_URL_ORIGIN && origin === SITE_URL_ORIGIN) return next();
+  try {
+    // Same host as the request itself → our own frontend, whatever domain it is
+    // deployed on. This keeps preview deployments working without configuration.
+    if (new URL(origin).host === req.headers.host) return next();
+  } catch { /* unparseable Origin → treat as cross-origin */ }
+  res.set('Cache-Control', 'no-store');
+  return res.status(403).json({ error: 'cross_origin_write_blocked' });
+});
+
 app.use(express.json({ limit: '2mb' }));
 
 // Permissions-Policy: explicitly delegate every capability a game iframe
@@ -1544,7 +1604,26 @@ async function resolveModels() {
 //      no memory blow-up), and the client already retries with backoff.
 const AI_CACHE_TTL = 6 * 60 * 60;                     // 6h — replies are stable enough
 const AI_MAX_CONCURRENT = 8;                          // simultaneous upstream calls
-const AI_IP_BUCKET = { capacity: 5, refillMs: 4000 }; // ~1 req / 4s per IP, burst 5
+// Per-IP rate limits. Configurable via env, as required, with defaults chosen
+// from what each endpoint actually costs rather than one number for everything:
+//
+//   AI    ~15 req/min (burst 5, one token per 4s). An AI call fans out to a
+//         third-party model and can occupy an upstream slot for seconds, so it
+//         is the most expensive thing an anonymous visitor can trigger.
+//   WRITE ~12 req/min (burst 8, one token per 5s) for endpoints that touch the
+//         database — score submission, community posts, view bumps.
+//
+// A flat 10/min would be simultaneously too tight for the write path (a burst
+// of legitimate UI activity trips it) and too loose for AI. Both return a JSON
+// 429; neither ever returns an HTML error page, which a fetch() cannot parse.
+const AI_IP_BUCKET = {
+  capacity: Number(process.env.AI_RATE_CAPACITY) || 5,
+  refillMs: Number(process.env.AI_RATE_REFILL_MS) || 4000,
+};
+const WRITE_IP_BUCKET = {
+  capacity: Number(process.env.WRITE_RATE_CAPACITY) || 8,
+  refillMs: Number(process.env.WRITE_RATE_REFILL_MS) || 5000,
+};
 
 function aiCacheKey(system, ctx) {
   return 'ai:text:' + createHash('sha1').update(system + '\n' + ctx).digest('hex');
@@ -1568,7 +1647,7 @@ function ipAllow(ip) {
 // scores, view-bumps). Same bounded/swept design as the AI limiter, so a bot
 // can't flood the database from a single IP. Dependency-free.
 const _writeBuckets = new Map(); // ip -> { tokens, last }
-function writeAllow(ip, capacity = 8, refillMs = 5000) {
+function writeAllow(ip, capacity = WRITE_IP_BUCKET.capacity, refillMs = WRITE_IP_BUCKET.refillMs) {
   const now = Date.now();
   if (_writeBuckets.size > 50_000) { let drop = 25_000; for (const k of _writeBuckets.keys()) { _writeBuckets.delete(k); if (--drop <= 0) break; } }
   let b = _writeBuckets.get(ip);
