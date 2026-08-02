@@ -1,13 +1,16 @@
 # ═══════════════════════════════════════════════════════════════════════════
-#  PRIVATE FULL-BACKUP REPOSITORY — NOTHING IS EXCLUDED
-#  Everything is committed on purpose, including .env (real keys) and every
-#  node_modules folder. This is a complete, physical snapshot for backup.
+#  PRIVATE FULL-BACKUP REPOSITORY
 #
-#  ⚠  KEEP THIS REPOSITORY PRIVATE. It contains your Supabase service-role key.
-#     If it ever becomes public, rotate that key in Supabase → Settings → API.
+#  This repo is a near-complete physical snapshot: vendored proxy trees and
+#  node_modules are committed on purpose so a new machine can clone and run.
+#  The rules below are the deliberate exceptions.
 #
-#  ONE exception: Nebula/ (see below). It is the only thing deliberately left
-#  out of the snapshot, and it is still recoverable from history.
+#  ⚠  KEEP THIS REPOSITORY PRIVATE. .env is TRACKED (see the note further down)
+#     and holds live credentials.
+#
+#  A rule here does NOT untrack a file that is already tracked — git ignores
+#  only apply to files it is not already following. Two rules below are in that
+#  state on purpose, and say so, rather than looking like they work.
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Nebula — the one companion proxy NOT kept in the working tree.
@@ -25,14 +28,45 @@
 # the folder and starts it automatically if it's present and built.
 Nebula/
 
-# Server-side thumbnail proxy cache (regenerated on demand, never commit)
+# ── Regenerated caches ─────────────────────────────────────────────────────
+# Server-side thumbnail proxy cache (rebuilt on demand).
 .cache/
+# Y8 harvest scratch. It was tracked, which made it show as modified after any
+# harvest run and put half a megabyte of churn in front of every real diff.
+.y8-cache/
 
-# Python bytecode cache (never useful in the repo; version-specific)
+# Python bytecode cache (never useful in the repo; version-specific).
 __pycache__/
 *.pyc
 
-# Supabase CLI local state (regenerated; never part of the repo)
+# Supabase CLI local state (regenerated; never part of the repo).
 supabase/.temp/
 supabase/.branches/
+
+# ── Tool output ────────────────────────────────────────────────────────────
+# Run logs. These were tracked, so the repo carried one machine's migration
+# errors from July as though they were source.
+logs/
+*.log
+
+# Backups written by tools/build-merged.mjs and tools/cleanup-ip.mjs before they
+# rewrite data/top_games.json.
+#
+# Tracking these actively BROKE the safety net they exist to provide: both tools
+# guard with `if (!existsSync(bak))`, so a committed .bak from July meant a run
+# today skipped taking a backup and left the stale one in place. A backup is
+# only useful if it is from immediately before the change it protects against.
+*.bak
+
+# ── Already tracked; these rules do not take effect ────────────────────────
+# node_modules is committed deliberately (see the header) — this rule only stops
+# NEW package directories being added by accident.
 node_modules
+
+# .env is TRACKED and committed. This rule therefore does nothing today; it is
+# here so the file stops being tracked the moment someone runs
+#     git rm --cached .env
+# which is worth doing: .env now holds ADMIN_PASSWORD_HASH and
+# ADMIN_SESSION_SECRET, and render.yaml already declares every one of those, so
+# production reads them from the host rather than from git.
+.env
