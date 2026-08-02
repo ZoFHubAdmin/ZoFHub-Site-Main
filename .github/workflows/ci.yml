@@ -21,13 +21,23 @@ jobs:
         with:
           node-version: "22"
 
+      # --omit=dev on purpose: this job boots the server, and the server runs on
+      # production dependencies. Installing devDependencies here would mean the
+      # thing being smoke-tested is not the thing that gets deployed.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --omit=dev
 
       - name: Syntax-check all JavaScript
         run: |
           node --check server.js
-          for f in lib/*.mjs tools/*.mjs; do node --check "$f"; done
+          for f in lib/*.mjs tools/*.mjs test/*.mjs *.js; do node --check "$f"; done
+
+      # Front-end ES modules, which `node --check` above never sees: they are
+      # served as static assets, so nothing imports them and no test loads them.
+      # That includes admin-ui/, where a parse error means an administrator
+      # locked out of their own console by a blank page.
+      - name: Syntax-check front-end modules
+        run: npm run check
 
       - name: Boot the server and check /api/health
         run: |

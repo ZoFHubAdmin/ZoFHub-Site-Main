@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {
   hashPassword, hashPasswordSync, verifyPassword,
   parseCookies, csrfOk, originOk, adminConfigStatus, hashIp, hashToken,
+  coerceCredentials, parseRowId,
   CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE,
 } from '../lib/admin-auth.mjs';
 
@@ -164,6 +165,73 @@ describe('configuration is fail-closed', () => {
       ADMIN_SESSION_SECRET: 'x'.repeat(48),
     }, () => adminConfigStatus());
     assert.deepEqual(s, { ok: true, problems: [] });
+  });
+});
+
+describe('credential type confusion', () => {
+  test('a non-string username cannot impersonate the real one', () => {
+    // REGRESSION, found by attacking the running server: the route read
+    // `String(req.body?.username)`, and String(["admin"]) === "admin" — so
+    // {"username":["admin"],"password":"…"} authenticated. It reached no account
+    // the correct password would not have, but type confusion inside an auth
+    // path is the first half of every credential-object bypass, and the
+    // {"$ne":null} probe next to it failed only because String({}) happens to be
+    // "[object Object]".
+    for (const hostile of [['admin'], { toString: () => 'admin' }, { $ne: null }, 42, true, Symbol.iterator]) {
+      const { username, wellFormed } = coerceCredentials({ username: hostile, password: 'pw' });
+      assert.equal(username, '', `${String(hostile?.constructor?.name)} coerced to a username`);
+      assert.equal(wellFormed, false);
+    }
+  });
+
+  test('a non-string password cannot satisfy the verifier', () => {
+    const { password, wellFormed } = coerceCredentials({ username: 'admin', password: ['x'] });
+    assert.equal(password, '');
+    assert.equal(wellFormed, false);
+  });
+
+  test('ordinary string credentials pass through, bounded', () => {
+    const c = coerceCredentials({ username: 'admin', password: 'hunter2' });
+    assert.deepEqual(c, { username: 'admin', password: 'hunter2', wellFormed: true });
+    const long = coerceCredentials({ username: 'u'.repeat(500), password: 'p'.repeat(9000) });
+    assert.equal(long.username.length, 120);
+    assert.equal(long.password.length, 512);
+  });
+
+  test('a missing or junk body yields empty credentials rather than throwing', () => {
+    for (const body of [undefined, null, {}, 'string', 42, []]) {
+      assert.doesNotThrow(() => coerceCredentials(body));
+      assert.equal(coerceCredentials(body).username, '');
+    }
+  });
+});
+
+describe('row id parsing', () => {
+  test('out-of-range and non-numeric ids are rejected, not passed to the database', () => {
+    // REGRESSION: `parseInt(id,10)` + `Number.isFinite()` let
+    // "99999999999999999999" through as 1e20. Postgres then refused it as an
+    // out-of-range bigint and the caller saw a 500 — an unhandled database error
+    // standing in for "that is not an id".
+    for (const bad of ['99999999999999999999', '1e20', '12abc', 'abc', '', '-1', '0', '1.5',
+                       '  ', null, undefined, {}, [], 'Infinity', 'NaN']) {
+      assert.equal(parseRowId(bad), null, `should reject ${JSON.stringify(bad)}`);
+    }
+  });
+
+  test('only decimal spellings are accepted', () => {
+    // Number() treats all of these as numbers, so without an explicit digit
+    // check one row would be addressable under several different ids — and the
+    // audit log would record whichever spelling the caller chose.
+    for (const alt of ['0x10', '0b101', '0o17', '1e3', '+12', ' 12', '12 ', '1_0']) {
+      assert.equal(parseRowId(alt), null, `should reject ${JSON.stringify(alt)}`);
+    }
+  });
+
+  test('real ids parse', () => {
+    assert.equal(parseRowId('1'), 1);
+    assert.equal(parseRowId('4096'), 4096);
+    assert.equal(parseRowId(String(Number.MAX_SAFE_INTEGER)), Number.MAX_SAFE_INTEGER);
+    assert.equal(parseRowId(Number.MAX_SAFE_INTEGER + 2), null, 'past what the column can hold');
   });
 });
 

@@ -66,14 +66,36 @@ function table(rows, cols, empty = 'Nothing to show.') {
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
+// The visible state was a CSS class only. Sighted users could see which tab was
+// active; anyone on a screen reader heard five tabs and no indication of which
+// one they were in, because aria-selected never moved off its initial value.
 const loaders = {};
-document.querySelectorAll('.tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('is-active', t === tab));
-    const name = tab.dataset.panel;
-    document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('is-active', p.dataset.panel === name));
-    clear();
-    loaders[name]?.();
+const tabs = [...document.querySelectorAll('.tab')];
+
+function activate(tab, { focus = false } = {}) {
+  for (const t of tabs) {
+    const on = t === tab;
+    t.classList.toggle('is-active', on);
+    t.setAttribute('aria-selected', String(on));
+    // Roving tabindex: one stop for the whole tablist, then arrow keys inside
+    // it. Otherwise Tab has to walk past every tab to reach the panel.
+    t.tabIndex = on ? 0 : -1;
+  }
+  const name = tab.dataset.panel;
+  document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('is-active', p.dataset.panel === name));
+  if (focus) tab.focus();
+  clear();
+  loaders[name]?.();
+}
+
+tabs.forEach((tab, i) => {
+  tab.tabIndex = tab.classList.contains('is-active') ? 0 : -1;
+  tab.addEventListener('click', () => activate(tab));
+  tab.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1, Home: -i, End: tabs.length - 1 - i }[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    activate(tabs[(i + step + tabs.length) % tabs.length], { focus: true });
   });
 });
 

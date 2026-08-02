@@ -65,11 +65,44 @@ services:
       # in the committed .env.
       - key: ADMIN_SECRET
         generateValue: true
+      # ── the administrator console (username + password login) ───────────────
+      # Declared here for the reason spelled out above: anything NOT listed is
+      # silently sourced from the committed .env, and a login credential read
+      # out of git is exactly the outcome that block warns about. Set these in
+      # the dashboard; the local .env copy then only ever unlocks localhost.
+      #
+      # Generate the hash with `npm run admin-hash` — it prompts without echoing
+      # and prints a scrypt string. The PLAINTEXT password is never stored
+      # anywhere, in this file or otherwise.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      # Signs session cookies and keys the HMAC that turns client IPs into
+      # non-reversible hashes. Generated here rather than synced so it never
+      # exists outside Render at all. Render generates it once and keeps it
+      # across deploys; changing it logs every admin out and breaks continuity
+      # of the stored IP hashes, which is the intended effect of a rotation.
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
       # --- set these as SECRETS in the Render dashboard (never commit them) ---
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false                # the public/browser key; SUPABASE_PUBLISHABLE_KEY is accepted too (same value)
+      # The same value under the name current Supabase dashboards show. Declared
+      # rather than left to the comment above, because an accepted-but-
+      # undeclared name is one that gets picked up from the committed .env.
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      # lib/supabase.mjs also accepts the NEXT_PUBLIC_* spellings, for configs
+      # copied over from a Next.js project. Declared for the same reason as the
+      # line above: a name the resolver honours but this file omits is a name
+      # that resolves out of the committed .env instead. Normally left unset.
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
       # PREFERRED: the new-style secret key (sb_secret_…) from Settings → API
       # Keys. Bypasses RLS exactly like the legacy service_role JWT, which
       # Supabase retires at the end of 2026 and which can no longer be rotated.
@@ -113,9 +146,25 @@ services:
       # never put a secret sk_ key here.
       - key: POLLINATIONS_PUBLIC_KEY
         sync: false
+      # SECRET Pollinations keys — the opposite of the pk_ key above. Either name
+      # is read (API_KEY wins), and either one moves the server-side AI path onto
+      # the keyed gen.pollinations.ai endpoint. Undeclared, they would have come
+      # from the committed .env.
+      - key: POLLINATIONS_API_KEY
+        sync: false
+      - key: POLLINATIONS_TOKEN
+        sync: false
+      # Paid video-generation provider key. /api/ai/video reports "unavailable"
+      # until it is set.
+      - key: VIDEO_API_KEY
+        sync: false
       # Optional Redis. Unset = a bounded in-process LRU, which is fine for ONE
       # instance but is not shared, so each replica would cache separately.
       - key: REDIS_URL
+        sync: false
+      # Alias read by lib/cache.mjs when REDIS_URL is unset. A Redis URL carries
+      # its password inline, so it is a credential, not a setting.
+      - key: UPSTASH_REDIS_URL
         sync: false
       # Optional tuning. SCORES_KEEP_PER_GAME defaults to 200.
       - key: SCORES_KEEP_PER_GAME

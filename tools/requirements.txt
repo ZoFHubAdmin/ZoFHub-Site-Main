@@ -1,0 +1,30 @@
+# Python dependencies for the OPTIONAL catalog / thumbnail maintenance tools in
+# tools/*.py. Nothing the ZoFHub server needs at runtime is in here — the deploy
+# (render.yaml, Dockerfile) never installs Python at all.
+#
+#   pip install -r tools/requirements.txt
+#
+# Run the tools through the npm scripts (`npm run scrape-thumbs`, …), which go
+# via tools/run-python.mjs so they find python3 / python / py -3 on any OS.
+#
+# Every import below is already wrapped in a try/except in the scripts, so a
+# missing package produces a readable message rather than a traceback. This file
+# is what turns that message into something you can act on: before it existed,
+# there was no record anywhere of which packages the tools wanted.
+
+# HTTP client — used by every scraper for feed and image fetches.
+requests>=2.31
+
+# Image decode / validate / resize. Imported as `PIL`.
+#   tools/scrape_thumbnails.py, upgrade_y8_thumbs.py, fetch_thumbnails.py
+Pillow>=10.0
+
+# HTML parsing for the thumbnail scrapers. Imported as `bs4`.
+#   tools/scrape_thumbnails.py
+beautifulsoup4>=4.12
+
+# Headless-browser fallback for pages that render their thumbnail with JS.
+# Only tools/scrape_thumbnails.py uses it, and only when the plain HTTP path
+# fails. After installing, fetch the browser binary once:
+#     python -m playwright install chromium
+playwright>=1.40

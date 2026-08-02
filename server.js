@@ -2661,8 +2661,9 @@ app.post('/api/admin/auth/login', async (req, res) => {
   if (!supa) return res.status(503).json({ ok: false, error: 'Admin login is unavailable (no database).' });
   if (!adminAuth.originOk(req)) return res.status(403).json({ ok: false, error: 'bad origin' });
 
-  const username = String(req.body?.username || '').slice(0, 120);
-  const password = String(req.body?.password || '').slice(0, 512);
+  // String-only, and non-strings fall through as '' so a malformed body still
+  // pays the lockout + delay + generic-401 price. See coerceCredentials().
+  const { username, password } = adminAuth.coerceCredentials(req.body);
 
   const lock = await adminAuth.isLockedOut(supa, ipHash);
   if (lock.locked) {
@@ -2712,6 +2713,16 @@ app.post('/api/admin/auth/login', async (req, res) => {
 // the token working until it expired.
 app.post('/api/admin/auth/logout', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  // Deliberately NOT behind requireAdmin: logging out must be idempotent and
+  // must never fail, including when the session has already expired — an admin
+  // who cannot log out is worse than one who logs out twice. An anonymous call
+  // therefore answers 200 having done nothing, which is the correct no-op.
+  //
+  // The Origin check is the one thing worth enforcing here. SameSite=Strict
+  // already stops a cross-site page from sending the session cookie at all, so
+  // a forged logout has nothing to revoke; this is a second, independent lock on
+  // the same door, in case that cookie attribute is ever relaxed.
+  if (!adminAuth.originOk(req)) return res.status(403).json({ ok: false, error: 'bad origin' });
   const cookies = adminAuth.parseCookies(req.headers?.cookie);
   const token = cookies[adminAuth.SESSION_COOKIE];
   if (token) {
@@ -2944,8 +2955,8 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   if (req.params.action !== 'hide' && req.params.action !== 'show') {
     return res.status(400).json({ ok: false, error: 'action must be hide or show' });
   }
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
+  const id = adminAuth.parseRowId(req.params.id);
+  if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
   const supa = getSupabaseAdmin();   // show/hide a recommendation
   // Precise wording: Supabase may well be configured — it is the ADMIN key that
   // is missing, and only that distinction tells the operator what to fix.
@@ -2998,8 +3009,8 @@ app.post('/api/admin/scores/:id/:action', async (req, res) => {
   if (req.params.action !== 'approve' && req.params.action !== 'reject') {
     return res.status(400).json({ ok: false, error: 'action must be approve or reject' });
   }
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'bad id' });
+  const id = adminAuth.parseRowId(req.params.id);
+  if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
   const supa = getSupabaseAdmin();   // approve/reject a flagged score
   if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured — writes are disabled.' });
   const approve = req.params.action === 'approve';
