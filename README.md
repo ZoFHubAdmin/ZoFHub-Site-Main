@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 156 tests |
+| Tests | `node:test` (built in — zero test dependencies), 174 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -127,16 +127,20 @@ No analytics, no telemetry, no source maps, no accounts. Prompts and AI response
 
 ## 🚀 Quick start
 
-**Prerequisites:** Node.js **22+** and Git. Supabase is optional for local dev — without it the app serves a bundled fallback catalog.
+**Prerequisites:** Node.js **22+** and Git — that is the whole list. No compiler, no Python, no build step. Supabase is optional for local dev; without it the app serves a bundled fallback catalog.
 
 ```bash
 git clone https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
 cd ZoFHub-Gaming-AI-Browser-Hub
-npm install
+npm ci                    # exactly what package-lock.json pins — same as CI and Render
 
 cp .env.example .env      # then fill in your values (see Configuration)
 npm start                 # → http://localhost:8080
 ```
+
+`.npmrc` sets `ignore-scripts=true`, so no dependency executes code while installing. That is a supply-chain control *and* a build requirement: one dependency ships a `preinstall` whose only job is to abort any install that is not pnpm. The one native addon in the tree (`bufferutil`, used by the Wisp tunnel) loads from prebuilt binaries, so node-gyp never runs.
+
+The Python tools under `tools/` are optional and separate — see [NEW-LAPTOP-SETUP.md](NEW-LAPTOP-SETUP.md) and `tools/requirements.txt`. Nothing the server does depends on them.
 
 > **Windows note:** `npm start` runs `node --use-system-ca server.js`. The `--use-system-ca` flag makes Node trust the Windows certificate store, which some corporate/school TLS setups require. On macOS/Linux/Docker it isn't needed.
 
@@ -382,7 +386,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, weather, recommender, credits, game-discovery
-├── test/                # node:test suites (156 tests, no framework)
+├── test/                # node:test suites (174 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, leaderboard, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -398,8 +402,8 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 156 tests, node:test — no framework, no install step
-npm run check   # syntax-check every JS module
+npm test        # 174 tests, node:test — no framework, no install step
+npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 
 Tests run **without any secrets**: with no `.env` the server falls back to its bundled catalog, because a test that needs production keys is a test nobody runs. When a `.env` *is* present the suite gets stricter — the "no response body contains a real secret" test then compares every response against the 7 real configured values and **asserts it had something to compare against**, so it can never pass vacuously.
@@ -422,7 +426,7 @@ Four CI jobs run on every push and PR:
 | Guide | What it covers |
 |---|---|
 | [HOW-IT-WORKS.md](HOW-IT-WORKS.md) | Plain-English tour of the whole app |
-| [NEW-LAPTOP-SETUP.md](NEW-LAPTOP-SETUP.md) | Moving to a new machine (this private repo backs up everything — just clone + `npm install`) |
+| [NEW-LAPTOP-SETUP.md](NEW-LAPTOP-SETUP.md) | Moving to a new machine (this private repo backs up everything — just clone + `npm ci`) |
 | [GO-LIVE.md](GO-LIVE.md) | Deployment, domains, ad networks, launch QA |
 | [GAMES-SETUP.md](GAMES-SETUP.md) | Loading the full game catalog into Supabase |
 | [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md) | The exact SQL run order |

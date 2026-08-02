@@ -65,8 +65,17 @@ repairs anything that didn't copy cleanly.)
 
 3. **Install the main site's dependencies:**
    ```bash
-   npm install
+   npm ci
    ```
+   `npm ci` rather than `npm install`: it installs exactly what `package-lock.json`
+   pins, which is what CI and the Render deploy install, so a fresh laptop cannot
+   quietly end up on different versions from production.
+
+   No compiler, Python or build toolchain is needed for this step. `.npmrc` sets
+   `ignore-scripts=true`, so no dependency runs code while installing — which is
+   also what makes the install work at all, since one dependency ships a
+   `preinstall` that deliberately aborts any non-pnpm install. `bufferutil`'s
+   native addon comes from prebuilt binaries, so nothing invokes node-gyp.
 
 4. **Run it:**
    ```bash
@@ -75,7 +84,20 @@ repairs anything that didn't copy cleanly.)
    Open http://localhost:8080 — your catalog loads straight from Supabase because
    `.env` is already there. No secret-restoring step needed.
 
-5. **(Only if you want the companion browsers locally)** each has its own deps.
+5. **(Only if you want the catalog/thumbnail tools)** seven `npm run` scripts —
+   `mood-index`, `rec-index`, `feed-rank`, `scrape-thumbs`, `normalize-thumbs`,
+   `fix-missing-thumbs`, `upgrade-y8-thumbs` — are Python. The website itself
+   never touches them, and the deploy installs no Python at all.
+   ```bash
+   pip install -r tools/requirements.txt
+   ```
+   You do not need to know whether your machine calls it `python`, `python3` or
+   `py`: the scripts go through `tools/run-python.mjs`, which finds a real
+   Python 3 (and ignores the Windows Store stub that pretends to be one). With no
+   interpreter installed it says so and exits, rather than failing as a confusing
+   "command not found".
+
+6. **(Only if you want the companion browsers locally)** each has its own deps.
    The main site does **not** need any of these — it uses the built-in
    Scramjet/UV/GUST engines. Per companion:
 
