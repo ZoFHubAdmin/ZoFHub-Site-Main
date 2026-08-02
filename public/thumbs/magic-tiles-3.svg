@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Falling piano tiles on a rhythm track with music notes">
+  <!-- Original generic artwork for ZoFHub. Piano-tile rhythm theme.
+       The previous thumbnail carried a stylised game wordmark AND a third
+       party's company logo — a brand asset, not generic art. This has neither:
+       just a perspective lane of tiles, a keyboard edge and plain note glyphs. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b1f6e"/><stop offset="1" stop-color="#160d33"/>
+    </linearGradient>
+    <linearGradient id="lane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity=".14"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2b34"/><stop offset="1" stop-color="#101018"/>
+    </linearGradient>
+    <radialGradient id="hit" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity=".7"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="400" height="400" fill="url(#bg)"/>
+
+  <!-- perspective lanes -->
+  <g fill="url(#lane)" stroke="#ffffff" stroke-opacity=".12" stroke-width="1.5">
+    <path d="M150 40 L184 40 L104 330 L20 330 Z"/>
+    <path d="M186 40 L214 40 L206 330 L122 330 Z"/>
+    <path d="M216 40 L250 40 L292 330 L208 330 Z"/>
+  </g>
+
+  <!-- falling tiles, scaled by depth -->
+  <g fill="url(#tile)" stroke="#5b5bff" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M152 62 L182 62 L178 92 L146 92 Z"/>
+    <path d="M218 104 L250 104 L258 142 L222 142 Z"/>
+    <path d="M136 150 L174 150 L166 198 L124 198 Z"/>
+    <path d="M186 214 L212 214 L210 268 L180 268 Z"/>
+    <path d="M264 214 L288 214 L262 268 L226 268 Z" opacity=".9"/>
+  </g>
+
+  <!-- hit line -->
+  <ellipse cx="200" cy="300" rx="150" ry="26" fill="url(#hit)"/>
+  <path d="M44 300 H356" stroke="#22d3ee" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- keyboard edge -->
+  <g>
+    <rect x="12" y="330" width="376" height="52" rx="7" fill="#f4f1ff" stroke="#1b1440" stroke-width="4"/>
+    <g fill="#151030">
+      <rect x="52"  y="330" width="20" height="32" rx="3"/>
+      <rect x="104" y="330" width="20" height="32" rx="3"/>
+      <rect x="182" y="330" width="20" height="32" rx="3"/>
+      <rect x="234" y="330" width="20" height="32" rx="3"/>
+      <rect x="286" y="330" width="20" height="32" rx="3"/>
+    </g>
+  </g>
+
+  <!-- music notes -->
+  <g fill="#ffd426">
+    <g transform="translate(62 92)">
+      <ellipse cx="0" cy="26" rx="13" ry="9.5" transform="rotate(-20 0 26)"/>
+      <rect x="9" y="-8" width="5" height="32" rx="2.5"/>
+      <path d="M14 -8 q22 6 22 22 q-8 -12 -22 -12 Z"/>
+    </g>
+    <g transform="translate(318 132) scale(.8)" opacity=".9">
+      <ellipse cx="0" cy="26" rx="13" ry="9.5" transform="rotate(-20 0 26)"/>
+      <rect x="9" y="-8" width="5" height="32" rx="2.5"/>
+      <path d="M14 -8 q22 6 22 22 q-8 -12 -22 -12 Z"/>
+    </g>
+  </g>
+</svg>

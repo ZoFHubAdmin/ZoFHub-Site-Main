@@ -91,6 +91,13 @@ jobs:
       - name: Run the test suite
         run: npm test
 
+      # A thumbnail override naming a file that is not in the repo degrades
+      # silently to a coloured fallback tile — no error, no 404 anyone reads.
+      # The suite covers this too; running it standalone makes the failure say
+      # "thumbnails" rather than "some assertion in some test".
+      - name: Every self-hosted thumbnail must exist
+        run: npm run verify-thumbs
+
   migrations-in-sync:
     runs-on: ubuntu-latest
     steps:

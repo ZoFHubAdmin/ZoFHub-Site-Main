@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Traffic signal and runner silhouettes at a finish line">
+  <!-- Original generic artwork for ZoFHub.
+       "Red light, green light" is a traditional playground game. This depicts it
+       with a plain traffic signal, anonymous runner silhouettes and a finish
+       line. It deliberately contains NO doll figure, NO numbered tracksuits and
+       NO masked guards — the elements that made the previous thumbnail
+       derivative of a televised series rather than of the folk game. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1c62"/><stop offset="1" stop-color="#14102f"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d2f7d"/><stop offset="1" stop-color="#241a55"/>
+    </linearGradient>
+    <radialGradient id="goGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#a3e635" stop-opacity=".75"/><stop offset="1" stop-color="#a3e635" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="400" height="400" fill="url(#sky)"/>
+  <rect y="250" width="400" height="150" fill="url(#ground)"/>
+
+  <!-- finish line -->
+  <g>
+    <rect x="0" y="252" width="400" height="10" fill="#ff3d8b"/>
+    <g fill="#ffffff" opacity=".9">
+      <rect x="0"   y="286" width="34" height="17"/><rect x="68"  y="286" width="34" height="17"/>
+      <rect x="136" y="286" width="34" height="17"/><rect x="204" y="286" width="34" height="17"/>
+      <rect x="272" y="286" width="34" height="17"/><rect x="340" y="286" width="34" height="17"/>
+      <rect x="34"  y="303" width="34" height="17"/><rect x="102" y="303" width="34" height="17"/>
+      <rect x="170" y="303" width="34" height="17"/><rect x="238" y="303" width="34" height="17"/>
+      <rect x="306" y="303" width="34" height="17"/><rect x="374" y="303" width="26" height="17"/>
+    </g>
+  </g>
+
+  <!-- traffic signal -->
+  <g>
+    <rect x="286" y="196" width="16" height="118" rx="6" fill="#1b1440"/>
+    <rect x="252" y="52" width="84" height="164" rx="20" fill="#1b1440" stroke="#6b53d8" stroke-width="4"/>
+    <circle cx="294" cy="98"  r="24" fill="#ff3d55"/>
+    <circle cx="294" cy="170" r="30" fill="url(#goGlow)"/>
+    <circle cx="294" cy="170" r="24" fill="#a3e635"/>
+  </g>
+
+  <!-- runner silhouettes, mid-stride -->
+  <g fill="#0d0922">
+    <!-- runner 1 -->
+    <g transform="translate(66 168)">
+      <circle cx="26" cy="14" r="15"/>
+      <path d="M26 30 q10 4 10 20 l-2 26 -16 0 -2 -26 q0 -16 10 -20 Z"/>
+      <path d="M24 76 l-16 34 12 6 18 -32 Z"/>
+      <path d="M32 76 l18 30 -11 8 -21 -30 Z"/>
+      <path d="M34 40 l24 -6 4 12 -26 8 Z"/>
+      <path d="M18 40 l-22 12 6 11 24 -12 Z"/>
+    </g>
+    <!-- runner 2 -->
+    <g transform="translate(158 186) scale(.86)">
+      <circle cx="26" cy="14" r="15"/>
+      <path d="M26 30 q10 4 10 20 l-2 26 -16 0 -2 -26 q0 -16 10 -20 Z"/>
+      <path d="M24 76 l-18 30 11 8 21 -30 Z"/>
+      <path d="M32 76 l16 34 -12 6 -18 -32 Z"/>
+      <path d="M34 40 l26 8 -4 12 -24 -6 Z"/>
+      <path d="M18 40 l-24 -12 -6 11 22 12 Z"/>
+    </g>
+  </g>
+</svg>

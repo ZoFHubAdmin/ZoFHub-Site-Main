@@ -1204,7 +1204,14 @@ app.use(express.static(PUBLIC_DIR, {
     // "my changes aren't showing" cause). ETag/Last-Modified still make unchanged
     // files return a cheap 304, so this costs a tiny conditional request, not a
     // full re-download. Hashed-filename caching is the future perf upgrade.
-    if (/\.(html|css|js|mjs|svg)$/.test(path)) res.setHeader('Cache-Control', 'no-cache');
+    // …but thumbnails are CONTENT, not app shell. Some are .svg (original
+    // artwork drawn for games whose CDN thumbnail died or could not be used),
+    // and without this exemption every one of them would revalidate on every
+    // page view while the .jpg tiles beside them cached for 7 days — a
+    // per-format performance split nobody chose. Filenames are per-slug and
+    // stable, so a replaced thumbnail is a new filename, not a stale cache.
+    const isThumb = /[\\/]thumbs[\\/]/.test(path);
+    if (!isThumb && /\.(html|css|js|mjs|svg)$/.test(path)) res.setHeader('Cache-Control', 'no-cache');
     // GUST vendors pdf.js as ES modules (.mjs). Some Express/send builds don't
     // map .mjs, and a wrong MIME makes the browser refuse the module import.
     if (path.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');

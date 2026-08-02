@@ -1,5 +1,5 @@
 {
-  "_comment": "Serve-time catalog fixes (lib/catalog-overrides.mjs). No DB write needed; takes effect on server restart. Includes the Slope cleanup AND self-hosted thumbnails for the 28 y8.com games.",
+  "_comment": "Serve-time catalog fixes (lib/catalog-overrides.mjs). No DB write needed; takes effect on server restart. Includes the Slope cleanup, self-hosted thumbnails for the y8.com games, and self-hosted thumbnails for the 13 games whose upstream CDN assets went dead (see tools/verify-thumbnails.mjs, which fails if any referenced file is missing).",
   "patch": [
     {
       "_note": "The GameDistribution classic Slope (slug slope-rolling). Rename to 'Slope' + use the self-hosted green-ball thumbnail.",
@@ -324,7 +324,7 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 9).",
+      "_note": "Upstream GD asset now 403s; self-hosted copy of the publisher's own syndicated art.",
       "match": {
         "slug": "vex-9"
       },
@@ -344,7 +344,7 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Vex 3).",
+      "_note": "Upstream GD asset now 403s; self-hosted copy of the publisher's own syndicated art.",
       "match": {
         "slug": "vex-3"
       },
@@ -364,7 +364,7 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Run 3D).",
+      "_note": "Upstream GD asset now 403s; self-hosted copy. Art is generic (tunnel runner), no third-party IP.",
       "match": {
         "slug": "run-3d"
       },
@@ -384,7 +384,7 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Fruit Ninja).",
+      "_note": "Upstream GD asset now 403s; self-hosted copy. Art is already a generic sliced-melon illustration with no branding.",
       "match": {
         "slug": "fruit-ninja"
       },
@@ -404,7 +404,7 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Rooftop Run).",
+      "_note": "Upstream GD asset now 403s; self-hosted copy. Art is a generic parkour runner, no branding.",
       "match": {
         "slug": "rooftop-run"
       },
@@ -424,12 +424,12 @@
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Magic Tiles 3).",
+      "_note": "REPLACED: the previous image carried a stylised game wordmark AND a third party's company logo. Original generic piano-tile artwork.",
       "match": {
         "slug": "magic-tiles-3"
       },
       "set": {
-        "thumbnail_url": "/thumbs/magic-tiles-3.jpg"
+        "thumbnail_url": "/thumbs/magic-tiles-3.svg"
       }
     },
     {
@@ -439,17 +439,17 @@
         "urlIncludes": "58deefb8f63943dcbc5093070b9b5777"
       },
       "set": {
-        "thumbnail_url": "/thumbs/magic-tiles-3.jpg"
+        "thumbnail_url": "/thumbs/magic-tiles-3.svg"
       }
     },
     {
       "_source": "fetch_thumbnails",
-      "_note": "Self-hosted thumbnail recovered by tools/fetch_thumbnails.py (Red Light Green Light).",
+      "_note": "REPLACED: the previous image depicted a televised series' doll, numbered tracksuits and masked guards. Original artwork of the traditional playground game only.",
       "match": {
         "slug": "red-light-green-light"
       },
       "set": {
-        "thumbnail_url": "/thumbs/red-light-green-light.jpg"
+        "thumbnail_url": "/thumbs/red-light-green-light.svg"
       }
     },
     {
@@ -459,12 +459,12 @@
         "urlIncludes": "788f89d325d840f391139ce0e1212c46"
       },
       "set": {
-        "thumbnail_url": "/thumbs/red-light-green-light.jpg"
+        "thumbnail_url": "/thumbs/red-light-green-light.svg"
       }
     },
     {
       "_source": "scrape_thumbnails",
-      "_note": "Thumbnail scraped by tools/scrape_thumbnails.py via L4 screenshot (Attractive).",
+      "_note": "Upstream now serves a 224-byte stub; self-hosted copy. No branding present.",
       "match": {
         "slug": "attractive"
       },
@@ -1932,12 +1932,12 @@
       }
     },
     {
-      "_note": "Bloxd.io: replaced onlinegames.io's hotlinked art (competitor CDN, unlicensed, serves a WAF challenge) with Bloxd LTD's OWN og:image, self-hosted at 512x384. Their ToS (checked 2026-07-28, rev 2025-07-15) has no anti-embed, no commercial-use and no public-display clause, and they set no X-Frame-Options / frame-ancestors.",
+      "_note": "REPLACED: previous image was a screenshot collage with the game's wordmark, taken from a third party with no licence chain. Original generic voxel artwork.",
       "match": {
         "slug": "bloxd-io"
       },
       "set": {
-        "thumbnail_url": "/thumbs/bloxd-io.jpg"
+        "thumbnail_url": "/thumbs/bloxd-io.svg"
       }
     },
     {
@@ -4566,22 +4566,40 @@
     },
     {
       "_source": "manual-blank-thumb",
-      "_note": "GameMonetize serves a 931-byte SOLID MAGENTA 512x384 rectangle for this game (verified: 1 distinct colour, 100% of pixels) — its \"no artwork published\" placeholder. It returns HTTP 200 with a valid image/jpeg, so the tile's load-failure fallback never fires and the visitor sees a blank magenta block. Clearing the URL lets tileFallbackHtml() render the branded initials tile instead. Remove this rule if real art is ever published.",
+      "_note": "Upstream serves a 52-byte stub and no local copy existed. Original generic clicker artwork.",
       "match": {
         "slug": "purple-clicker-game"
       },
       "set": {
-        "thumbnail_url": ""
+        "thumbnail_url": "/thumbs/purple-clicker-game.svg"
       }
     },
     {
       "_source": "manual-blank-thumb",
-      "_note": "GameMonetize serves a 931-byte SOLID MAGENTA 512x384 rectangle for this game (verified: 1 distinct colour, 100% of pixels) — its \"no artwork published\" placeholder. It returns HTTP 200 with a valid image/jpeg, so the tile's load-failure fallback never fires and the visitor sees a blank magenta block. Clearing the URL lets tileFallbackHtml() render the branded initials tile instead. Remove this rule if real art is ever published.",
+      "_note": "Upstream serves a 52-byte stub and no local copy existed. Original generic clicker artwork.",
       "match": {
         "slug": "green-clicker-game"
       },
       "set": {
-        "thumbnail_url": ""
+        "thumbnail_url": "/thumbs/green-clicker-game.svg"
+      }
+    },
+    {
+      "_note": "Upstream 403 and no local copy existed. Original generic stickman-platformer artwork.",
+      "match": {
+        "slug": "vex-x3m"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/vex-x3m.svg"
+      }
+    },
+    {
+      "_note": "Was hotlinked from a third party that neither owns the game nor licenses art to us, and 403s. Original generic battle-royale artwork.",
+      "match": {
+        "slug": "suroi"
+      },
+      "set": {
+        "thumbnail_url": "/thumbs/suroi.svg"
       }
     }
   ],

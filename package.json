@@ -13,6 +13,7 @@
     "dev:all": "node tools/dev-all.mjs",
     "build-mvp": "node --use-system-ca tools/build-mvp.mjs",
     "check": "node tools/check-js.mjs",
+    "verify-thumbs": "node tools/verify-thumbnails.mjs",
     "migrate": "node --use-system-ca tools/migrate-to-supabase.mjs",
     "migrate:dry": "node --use-system-ca tools/migrate-to-supabase.mjs --dry-run",
     "migrate:curated": "node --use-system-ca tools/migrate-to-supabase.mjs --curated",
