@@ -508,6 +508,30 @@ describe('the server is never an AI proxy', () => {
     }
   });
 
+  test('/api/proxy/diag will not fetch an AI provider', async () => {
+    // Its own comment says "Direct HEAD", but the probe is fetchAsBrowser(),
+    // which issues a full GET with redirects followed — so aimed at an inference
+    // endpoint it made this server generate and download AI output.
+    for (const u of ['https://text.pollinations.ai/hi', 'https://api.openai.com/v1/models']) {
+      const r = await visitor('/api/proxy/diag?u=' + encodeURIComponent(u));
+      const j = await r.json();
+      assert.equal(j.ok, false, `${u} must not be fetched`);
+      assert.match(j.error || '', /AI providers/i);
+    }
+  });
+
+  test('routes that take a prompt in the QUERY STRING are closed', async () => {
+    // Neither performs inference — /api/ai/audio only string-builds a URL the
+    // browser plays. They are closed because the prompt travels in the URL, and
+    // hosting platforms log request paths: Render's access log would accumulate
+    // the text visitors asked to have spoken, in a log this code never writes
+    // and cannot clear. Nothing references either route.
+    for (const p of ['/api/ai/audio?prompt=private+text', '/api/ai/video?prompt=private+text']) {
+      const r = await visitor(p);
+      assert.equal(r.status, 403, `${p} must be closed`);
+    }
+  });
+
   test('/thumb never proxies an arbitrary host either', async () => {
     // /thumb was already correct — a non-allowlisted host gets a 302 so the
     // BROWSER fetches it, and the server never touches the bytes. Pinning it so

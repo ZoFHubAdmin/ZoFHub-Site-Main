@@ -2008,6 +2008,16 @@ app.get('/api/ai/image', async (req, res) => {
 // bytes pass through us and the keyless limit spreads across users' own IPs.
 const AUDIO_VOICES = new Set(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']);
 app.get('/api/ai/audio', (req, res) => {
+  // Gated even though it performs no inference — it only string-builds a URL the
+  // browser then plays, so no audio bytes ever pass through here.
+  //
+  // The reason to close it anyway: the prompt arrives in the QUERY STRING, and
+  // hosting platforms log request paths. Render's access log would therefore
+  // accumulate the text visitors asked to have spoken — prompts recorded in a
+  // log this code never writes and cannot clear. Nothing calls this route (no
+  // reference anywhere in public/), and the URL it returns is a pure template
+  // with no secret in it, so a client that ever needs it can build it itself.
+  if (!aiServerAllowed(req)) return refuseServerAi(res);
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
   if (!prompt) return res.json({ url: null, error: 'missing prompt' });
@@ -2022,6 +2032,9 @@ app.get('/api/ai/audio', (req, res) => {
 // paid provider. Set VIDEO_API_KEY in .env and implement the provider call
 // below (e.g. Replicate / fal.ai / Luma / Runway) to enable it.
 app.get('/api/ai/video', (req, res) => {
+  // Same reasoning as /api/ai/audio: unreferenced, and it takes a prompt in the
+  // query string, which the hosting platform's access log would retain.
+  if (!aiServerAllowed(req)) return refuseServerAi(res);
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
   if (!prompt) return res.json({ url: null, error: 'missing prompt' });
@@ -4098,6 +4111,13 @@ app.get('/api/proxy/diag', async (req, res) => {
   // Render metadata service or scan the server's private network.
   if (target.protocol !== 'https:') return res.status(400).json({ ok: false, error: 'https URLs only' });
   if (isInternalHost(target.hostname)) return res.status(403).json({ ok: false, error: 'blocked host' });
+  // Same rule as /asset. This endpoint diagnoses GAME embeds, but the probe
+  // below is fetchAsBrowser(), which issues a full GET with redirects followed —
+  // not the HEAD its own comment implies. Aimed at an inference endpoint it
+  // would make this server generate and download AI output.
+  if (AI_PROVIDER_HOSTS.test(target.hostname)) {
+    return res.status(403).json({ ok: false, error: 'AI providers are not fetched by this server' });
+  }
 
   const report = { url: target.toString(), checks: {}, ts: new Date().toISOString() };
 
