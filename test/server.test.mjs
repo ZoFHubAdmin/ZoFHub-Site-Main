@@ -407,3 +407,57 @@ describe('presence counts survive prototype-colliding slugs', () => {
     assert.ok(!txt.includes('native code'), 'a function leaked into the payload');
   });
 });
+
+describe('AI runs on the visitor device, never on this server', () => {
+  // ZoFHub's AI is browser-direct: public/js/pollinations.js calls Pollinations
+  // from the visitor's own machine on their own IP. The server-side AI routes
+  // survive only as a local-development aid, because Pollinations' Turnstile
+  // check rejects browser fetches from http/localhost origins.
+  //
+  // These tests pin the SERVER half of that guarantee. The client half is a
+  // convention a future edit could drop; this one is enforced by the deployment.
+  // The suite runs from 127.0.0.1, which the guard allows, so a public client is
+  // simulated with X-Forwarded-For (`trust proxy` is on, so that becomes req.ip).
+  const asInternetVisitor = (path, init = {}) =>
+    get(path, { ...init, headers: { 'X-Forwarded-For': '203.0.113.9', ...(init.headers || {}) } });
+
+  test('an internet visitor cannot make this server generate text', async () => {
+    const r = await asInternetVisitor('/api/ai/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'generate something on the server' }),
+    });
+    assert.equal(r.status, 403, 'server-side text generation must be refused');
+    const j = await r.json();
+    assert.equal(j.error, 'client_side_only');
+  });
+
+  test('an internet visitor cannot make this server generate or proxy an image', async () => {
+    // This route pipes the image BYTES through our host — the exact bandwidth
+    // that is supposed to stay on the visitor's device.
+    const r = await asInternetVisitor('/api/ai/image?prompt=a%20cat');
+    assert.equal(r.status, 403, 'server-side image proxying must be refused');
+  });
+
+  test('the unreferenced /api/ai/echo route is closed too', async () => {
+    const r = await asInternetVisitor('/api/ai/echo', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'hi' }),
+    });
+    assert.equal(r.status, 403);
+  });
+
+  test('the metadata routes the browser genuinely needs still work', async () => {
+    // /api/ai/key hands over the PUBLISHABLE pk_ key so the browser can call
+    // Pollinations itself — serving it is the mechanism that keeps AI off this
+    // server, not a leak. It must never carry a secret sk_ key.
+    for (const p of ['/api/ai/key', '/api/ai/health', '/api/ai/providers']) {
+      const r = await asInternetVisitor(p);
+      assert.equal(r.status, 200, `${p} must stay reachable`);
+    }
+    const { key } = await (await asInternetVisitor('/api/ai/key')).json();
+    assert.ok(key === '' || key.startsWith('pk_'), 'only a publishable pk_ key may be served');
+    assert.ok(!String(key).startsWith('sk_'), 'a secret key must never be served to the browser');
+  });
+});

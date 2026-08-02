@@ -1716,7 +1716,48 @@ let _aiActive = 0;
 function aiGateEnter() { if (_aiActive >= AI_MAX_CONCURRENT) return false; _aiActive++; return true; }
 function aiGateLeave() { if (_aiActive > 0) _aiActive--; }
 
+// ── AI RUNS ON THE VISITOR'S DEVICE, NOT ON THIS SERVER ────────────────────
+// Every AI call the site makes in production goes browser-direct to Pollinations
+// from the visitor's own machine, on their own IP: public/js/pollinations.js for
+// text, an <img src> for images, and a plain URL the browser plays for audio.
+// Nothing about a prompt or a generated image passes through here.
+//
+// The routes below exist for ONE reason: Pollinations' text endpoint fronts a
+// Cloudflare Turnstile check keyed on the Origin header, and it rejects browser
+// fetches from http/localhost origins. So a developer running the site on
+// localhost cannot use the browser-direct path and would otherwise have no
+// working AI at all. `IS_LOCAL` in pollinations.js is the client half of this;
+// this is the server half, and it is deliberately stricter than the client:
+//
+//   * NODE_ENV=production  → always refused, no exceptions (render.yaml sets it)
+//   * otherwise            → only for a LOOPBACK client, i.e. a dev on the same
+//                            machine. `trust proxy` is on, so req.ip is the real
+//                            client address and a genuine internet visitor can
+//                            never present as 127.0.0.1.
+//   * AI_SERVER_FALLBACK=1 → explicit opt-in escape hatch, for the rare case of
+//                            debugging against a non-loopback dev host.
+//
+// Enforcing it here rather than only in the client matters: the client gate is a
+// convention that a future edit could quietly drop, and these endpoints are
+// reachable by anyone who knows the URL. This makes "no AI on my server" a
+// property of the deployment instead of a promise in a comment.
+function aiServerAllowed(req) {
+  if (process.env.AI_SERVER_FALLBACK === '1') return true;
+  if (process.env.NODE_ENV === 'production') return false;
+  const ip = String(req.ip || req.socket?.remoteAddress || '');
+  return ip === '' || /^(::1$|::ffff:127\.|127\.)/.test(ip);
+}
+function refuseServerAi(res) {
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(403).json({
+    error: 'client_side_only',
+    reply: '',
+    message: 'ZoFHub runs AI in your browser, not on the server. This endpoint is a local-development aid only.',
+  });
+}
+
 app.post('/api/ai/text', async (req, res) => {
+  if (!aiServerAllowed(req)) return refuseServerAi(res);
   res.setHeader('Cache-Control', 'no-store');
   const { prompt, messages } = req.body || {};
   const history = Array.isArray(messages) ? messages.filter(m => m && m.content) : [];
@@ -1865,6 +1906,12 @@ app.post('/api/ai/text', async (req, res) => {
 // that blocks Pollinations can't see or block it, and the upstream token/referrer
 // stay server-side. Cached hard so re-viewing a generated image never regenerates.
 app.get('/api/ai/image', async (req, res) => {
+  // This route PIPES THE GENERATED IMAGE BYTES through this server, which is
+  // exactly the traffic that is supposed to stay on the visitor's device — so it
+  // is gated like /api/ai/text. In production the browser uses the direct
+  // image.pollinations.ai URL (an <img> sends no Origin, so Turnstile never
+  // applies) and this never runs.
+  if (!aiServerAllowed(req)) return refuseServerAi(res);
   const prompt = (req.query.prompt || '').toString().slice(0, 1000).trim();
   if (!prompt) { res.setHeader('Cache-Control', 'no-store'); return res.status(400).json({ error: 'missing prompt' }); }
   // Per-user throttle (their own IP) so one client can't spam image gen.
@@ -1927,6 +1974,12 @@ app.get('/api/ai/video', (req, res) => {
 // POST /api/ai/echo — last-resort fallback ai.js calls if both the local
 // engine and the primary text path fail. Tries Pollinations once more.
 app.post('/api/ai/echo', async (req, res) => {
+  // Its comment claims ai.js calls this when the local engine and the primary
+  // text path both fail. Nothing does — a repo-wide search of public/ finds no
+  // caller. It was left behind by an earlier design in which the server owned
+  // the AI. Gated rather than deleted: it is still a usable local-dev probe, and
+  // gating removes the production exposure, which was the actual problem.
+  if (!aiServerAllowed(req)) return refuseServerAi(res);
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.body?.prompt || '').toString().slice(0, 2000);
   // Same shared-upstream protection as /api/ai/text so this fallback can't be

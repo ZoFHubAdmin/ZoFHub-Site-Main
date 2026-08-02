@@ -22,7 +22,10 @@ const REFERRER = (typeof location !== 'undefined' && location.hostname) || 'zofh
 
 // Turnstile blocks browser TEXT fetches from http/localhost — detect that so we
 // can use the dev server hop there. Real https prod → keyless browser-direct.
-const IS_LOCAL = typeof location !== 'undefined' && (
+// Exported so ai.js gates its image fallback on exactly the same condition —
+// two copies of this rule would eventually disagree, and the one that drifts
+// would silently start sending AI traffic through our server.
+export const IS_LOCAL = typeof location !== 'undefined' && (
   location.protocol !== 'https:' ||
   /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(location.hostname || '')
 );
