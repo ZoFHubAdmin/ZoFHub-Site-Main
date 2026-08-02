@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Dashboard · ZoFHub Admin</title>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">Z</span>
+    <div><strong>ZoFHub Admin</strong></div>
+  </div>
+  <div class="topbar-right">
+    <span id="whoami" class="who"></span>
+    <button id="logoutAll" class="btn-ghost" type="button" title="Revoke every session, everywhere">Sign out everywhere</button>
+    <button id="logout" class="btn-ghost" type="button">Sign out</button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab is-active" data-panel="overview"  role="tab">Overview</button>
+  <button class="tab" data-panel="games"     role="tab">Games</button>
+  <button class="tab" data-panel="scores"    role="tab">Leaderboard</button>
+  <button class="tab" data-panel="community" role="tab">Community</button>
+  <button class="tab" data-panel="security"  role="tab">Security</button>
+</nav>
+
+<main id="main">
+  <p id="banner" class="msg" role="alert" aria-live="polite" hidden></p>
+
+  <section class="panel is-active" data-panel="overview">
+    <div id="statGrid" class="stat-grid"></div>
+    <h2>System</h2>
+    <div id="sysGrid" class="kv-grid"></div>
+  </section>
+
+  <section class="panel" data-panel="games">
+    <div class="row">
+      <input id="gameSearch" type="search" placeholder="Search games by title or slug…" autocomplete="off">
+      <button id="refreshCatalog" class="btn-ghost" type="button">Refresh catalog</button>
+    </div>
+    <div id="gamesOut" class="table-wrap"></div>
+  </section>
+
+  <section class="panel" data-panel="scores">
+    <p class="hint">Scores the anti-cheat layer quarantined. Approving restores a score to the public board; rejecting removes it.</p>
+    <div id="scoresOut" class="table-wrap"></div>
+  </section>
+
+  <section class="panel" data-panel="community">
+    <p class="hint">Community submissions. Hiding removes a post from the public wall without deleting it.</p>
+    <div id="communityOut" class="table-wrap"></div>
+  </section>
+
+  <section class="panel" data-panel="security">
+    <h2>Active sessions</h2>
+    <div id="sessionsOut" class="table-wrap"></div>
+    <h2>Recent sign-in attempts</h2>
+    <div id="loginsOut" class="table-wrap"></div>
+    <h2>Security events</h2>
+    <div id="eventsOut" class="table-wrap"></div>
+    <h2>Audit trail <span class="hint-inline">append-only; cannot be edited or deleted from here</span></h2>
+    <div id="auditOut" class="table-wrap"></div>
+  </section>
+</main>
+
+<script src="/admin/assets/admin.js" type="module"></script>
+</body>
+</html>

@@ -569,3 +569,100 @@ describe('the server is never an AI proxy', () => {
     }
   });
 });
+
+describe('admin console access control', () => {
+  // These assert the invariants that must hold in EVERY configuration, so they
+  // are meaningful whether or not this checkout has admin credentials set.
+  const anon = (p, init = {}) =>
+    get(p, { ...init, headers: { 'X-Forwarded-For': '203.0.113.9', ...(init.headers || {}) } });
+
+  const ADMIN_SECRET = (process.env.ADMIN_SECRET || '').trim();
+
+  test('no admin API answers an anonymous caller', async () => {
+    for (const p of ['/api/admin/me', '/api/admin/dashboard', '/api/admin/security',
+                     '/api/admin/games', '/api/admin/recommendations', '/api/admin/scores/flagged']) {
+      const r = await anon(p);
+      assert.ok(r.status === 401 || r.status === 503,
+        `${p} answered ${r.status} to an anonymous caller`);
+    }
+  });
+
+  test('the dashboard document is never served to an anonymous caller', async () => {
+    // REGRESSION, and the sharp one. The console first lived in public/admin/,
+    // where express.static served public/admin/admin-dashboard.html with a 200
+    // to anybody — the auth route below it never ran. It now lives in admin-ui/,
+    // outside the static root, so there is no middleware order to get wrong.
+    for (const p of ['/admin/admin-dashboard.html', '/admin/assets/admin.js', '/admin/',
+                     '/admin/assets/../admin-dashboard.html', '/admin/assets/constructor',
+                     '/admin-ui/admin-dashboard.html', '/admin/index.html']) {
+      const r = await anon(p, { redirect: 'manual' });
+      const body = r.status === 200 ? await r.text() : '';
+      assert.ok(!/id="statGrid"|id="auditOut"/.test(body),
+        `${p} leaked the dashboard document (HTTP ${r.status})`);
+    }
+  });
+
+  test('a credential in the query string is not accepted', async () => {
+    // ?key= put an admin credential into the hosting access log, the browser's
+    // history, and the Referer of every outbound link on the page.
+    if (!ADMIN_SECRET) return;
+    const r = await anon('/api/admin/dashboard?key=' + encodeURIComponent(ADMIN_SECRET));
+    assert.ok(r.status === 401 || r.status === 503,
+      'a secret supplied as a query parameter must not authenticate');
+  });
+
+  test('the bearer token still authenticates machines', async () => {
+    if (!ADMIN_SECRET) return;
+    const r = await anon('/api/admin/dashboard', { headers: { Authorization: `Bearer ${ADMIN_SECRET}` } });
+    assert.equal(r.status, 200, 'monitors and CLI tooling must keep working');
+    const j = await r.json();
+    assert.equal(j.ok, true);
+    // Operational state only — never a configured secret.
+    const blob = JSON.stringify(j);
+    for (const s of [process.env.ADMIN_SECRET, process.env.SUPABASE_SECRET_KEY,
+                     process.env.SCORE_SECRET, process.env.ADMIN_SESSION_SECRET,
+                     process.env.ADMIN_PASSWORD_HASH].filter(v => v && v.length > 12)) {
+      assert.ok(!blob.includes(s), 'the dashboard payload leaked a configured secret');
+    }
+  });
+
+  test('login rejects with one generic message and never reveals which half was wrong', async () => {
+    const attempt = (username, password) => anon('/api/admin/auth/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const bad = await attempt('definitely-not-a-user', 'definitely-not-a-password');
+    // 503 when this checkout has no admin credentials configured; 401/429 when it does.
+    assert.ok([401, 429, 503].includes(bad.status), `unexpected ${bad.status}`);
+    if (bad.status === 401) {
+      const j = await bad.json();
+      assert.ok(!/user|username|account|exist/i.test(j.error || ''),
+        'the error must not indicate whether the username exists');
+      assert.ok(!/password/i.test(j.error || ''),
+        'the error must not indicate that the password specifically was wrong');
+    }
+  });
+
+  test('login is not reachable without a request body', async () => {
+    const r = await anon('/api/admin/auth/login', { method: 'POST' });
+    assert.ok(r.status !== 200, 'an empty login must never succeed');
+  });
+
+  test('state-changing admin routes require CSRF when session-authenticated', async () => {
+    // With no session cookie the request is rejected at authentication, which is
+    // the outer of the two gates. The inner CSRF gate is exercised by the unit
+    // tests over csrfOk() in test/admin-auth.test.mjs.
+    const r = await anon('/api/admin/games/slope/visibility', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ visible: false }),
+    });
+    assert.ok(r.status === 401 || r.status === 503, `expected refusal, got ${r.status}`);
+  });
+
+  test('admin responses are never cached or indexed', async () => {
+    const r = await anon('/api/admin/me');
+    const cc = (r.headers.get('cache-control') || '').toLowerCase();
+    assert.ok(cc.includes('no-store'), `admin responses must not be cached (got "${cc}")`);
+    assert.match((r.headers.get('x-robots-tag') || '').toLowerCase(), /noindex/);
+  });
+});

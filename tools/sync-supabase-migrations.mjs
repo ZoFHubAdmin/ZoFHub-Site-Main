@@ -52,6 +52,8 @@ const ORDER = [
    'Per-game play counters.'],
   ['20260101000700', 'game_fingerprints', 'db/game-fingerprints.sql',
    'provider fingerprints + duplicate relations for the game discovery engine.'],
+  ['20260101000800', 'admin', 'db/admin.sql',
+   'admin console: sessions, append-only audit trail, login attempts, security events.'],
 ];
 
 function render(name, src, why, body) {

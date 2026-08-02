@@ -1,0 +1,124 @@
+/* ZoFHub admin console — self-contained, no external fonts or CDNs, so the
+   console keeps working under the site's strict CSP and offline. */
+
+:root{
+  --bg:#0d1117; --panel:#161b22; --line:#242c38; --ink:#e6edf3; --dim:#8b949e;
+  --accent:#4c8dff; --ok:#2ea043; --bad:#da3633; --warn:#d29922;
+  --radius:10px;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f6f8fa; --panel:#fff; --line:#d8dee4; --ink:#1f2328; --dim:#636c76; }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em}
+h1{font-size:1.15rem;margin:0}
+h2{font-size:.95rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:26px 0 10px}
+
+/* ── Brand ─────────────────────────────────────────────────────────────── */
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:34px;height:34px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;font-weight:800;
+}
+.brand-sub{margin:2px 0 0;color:var(--dim);font-size:.82rem}
+
+/* ── Login ─────────────────────────────────────────────────────────────── */
+.login-body{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{
+  width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:28px;
+}
+.login-card .brand{margin-bottom:22px}
+label{display:block;font-size:.82rem;color:var(--dim);margin:14px 0 6px}
+input[type=text],input[type=password],input[type=search]{
+  width:100%;padding:10px 12px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;
+}
+input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.btn-primary{
+  width:100%;margin-top:20px;padding:11px;border:0;border-radius:var(--radius);
+  background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer;
+}
+.btn-primary:disabled{opacity:.6;cursor:progress}
+.foot{margin:20px 0 0;color:var(--dim);font-size:.78rem;line-height:1.5}
+
+/* ── Messages ──────────────────────────────────────────────────────────── */
+.msg{
+  margin:16px 0 0;padding:10px 12px;border-radius:var(--radius);font-size:.88rem;
+  background:color-mix(in srgb,var(--bad) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);
+}
+.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.msg.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+
+/* ── Shell ─────────────────────────────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);
+}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.who{color:var(--dim);font-size:.85rem}
+.btn-ghost,.btn-sm{
+  border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:8px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;
+}
+.btn-sm{padding:4px 10px;font-size:.8rem}
+.btn-ghost:hover,.btn-sm:hover{border-color:var(--accent)}
+.btn-sm.ok:hover{border-color:var(--ok)}
+.btn-sm.bad:hover{border-color:var(--bad)}
+.btn-sm:disabled{opacity:.5;cursor:progress}
+
+.tabs{display:flex;gap:4px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{
+  border:0;background:transparent;color:var(--dim);font:inherit;font-size:.9rem;
+  padding:11px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.tab.is-active{color:var(--ink);border-bottom-color:var(--accent)}
+
+main{max-width:1100px;margin:0 auto;padding:22px 20px 64px}
+.panel{display:none}
+.panel.is-active{display:block}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.row input{flex:1;min-width:220px}
+.hint{color:var(--dim);font-size:.85rem;margin:0 0 12px}
+.hint-inline{color:var(--dim);font-size:.72rem;text-transform:none;letter-spacing:0;margin-left:8px}
+
+/* ── Stats ─────────────────────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.stat-v{display:block;font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-k{display:block;color:var(--dim);font-size:.78rem;margin-top:2px}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.kv{display:flex;justify-content:space-between;gap:12px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:.86rem}
+.kv-k{color:var(--dim)}
+.kv-v{text-align:right;word-break:break-word}
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+/* Wide tables scroll inside their own box; the page itself never scrolls
+   sideways on a phone. */
+.table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.table-wrap .hint{padding:14px;margin:0}
+.tbl{width:100%;border-collapse:collapse;font-size:.86rem;min-width:520px}
+.tbl th{
+  text-align:left;font-weight:600;color:var(--dim);font-size:.74rem;
+  text-transform:uppercase;letter-spacing:.05em;padding:10px 12px;border-bottom:1px solid var(--line);
+}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.74rem;
+  border:1px solid var(--line);color:var(--dim)}
+.pill.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+
+@media (max-width:640px){
+  .topbar{padding:10px 14px}
+  main{padding:16px 14px 48px}
+  .tabs{padding:0 8px}
+}

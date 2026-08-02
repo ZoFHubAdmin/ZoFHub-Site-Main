@@ -47,7 +47,8 @@
     "gamezop": "node --use-system-ca tools/set-gamezop-partner.mjs",
     "rec-index": "python tools/build-recommendations.py",
     "feed-rank": "python tools/analyze-catalog.py",
-    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "admin-hash": "node tools/hash-admin-password.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -141,6 +141,9 @@ const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mj
 // the server crashed at boot with "Cannot access 'getCredits' before
 // initialization" until this moved up here.
 const { getCredits, creditsSummary } = await import('./lib/credits.mjs');
+// Admin authentication: scrypt password verification, database-backed sessions,
+// lockout, CSRF and the append-only audit trail. See lib/admin-auth.mjs.
+const adminAuth = await import('./lib/admin-auth.mjs');
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -2509,24 +2512,375 @@ app.get('/api/scores', async (req, res) => {
 // ========================================================================
 const ADMIN_SECRET = (process.env.ADMIN_SECRET || '').trim();
 
-function adminAuthorized(req) {
+// ── Two ways to be an administrator, and only two ──────────────────────────
+//
+// 1. A SESSION, for humans. Username + password at /admin/login, verified
+//    server-side against a scrypt hash, exchanged for a database-backed session
+//    whose token exists in the browser only as an HttpOnly cookie.
+//
+// 2. A BEARER TOKEN, for machines. ADMIN_SECRET in an Authorization header, for
+//    uptime monitors and CLI tooling that cannot hold a cookie.
+//
+// WHAT CHANGED AND WHY:
+//
+// `req.query.key` was accepted as a third way. A credential in a query string is
+// written to the hosting platform's access log, kept in browser history, and
+// forwarded in the Referer header of every off-site link on the page — three
+// copies of an admin credential in places nobody thinks to clear. It is gone.
+// Nothing legitimate used it: the console sent a header, and monitors send
+// Authorization.
+//
+// The old console also kept the raw ADMIN_SECRET in sessionStorage, where any
+// XSS or anyone typing in the console could read it. Sessions replace that: the
+// cookie is HttpOnly, so page JavaScript cannot read the credential at all.
+function adminBearerAuthorized(req) {
   if (!ADMIN_SECRET) return false;                       // fail CLOSED
   const bearer   = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  const provided = bearer || req.get('x-admin-secret') || req.query.key || '';
+  const provided = bearer || req.get('x-admin-secret') || '';
+  if (!provided) return false;
   const a = Buffer.from(String(provided));
   const b = Buffer.from(ADMIN_SECRET);
   return a.length === b.length && timingSafeEqual(a, b); // constant-time
 }
+
+// Kept under its original name because /api/health and several routes call it.
+// Machine auth only — a cookie session is resolved asynchronously by
+// resolveAdmin() below, since it needs a database round trip.
+function adminAuthorized(req) { return adminBearerAuthorized(req); }
+
+/**
+ * Resolve the caller to an administrator, by session cookie or bearer token.
+ * Returns null when the caller is not an admin. Never throws.
+ */
+async function resolveAdmin(req) {
+  if (adminBearerAuthorized(req)) {
+    return { username: 'service-token', via: 'bearer', session: null };
+  }
+  const cookies = adminAuth.parseCookies(req.headers?.cookie);
+  const token = cookies[adminAuth.SESSION_COOKIE];
+  if (!token) return null;
+  const supa = getSupabaseAdmin();
+  if (!supa) return null;                                // fail CLOSED
+  const sess = await adminAuth.validateSession(supa, token, {
+    ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'),
+  });
+  if (!sess) return null;
+  return { username: sess.username, via: 'session', session: sess };
+}
+
+/**
+ * Gate for admin API routes. Sync, so the many existing call sites keep their
+ * shape; it accepts a caller the async middleware below already resolved.
+ */
 function requireAdmin(req, res) {
-  if (adminAuthorized(req)) return true;
+  if (req.admin) return true;                            // set by adminGate
+  if (adminBearerAuthorized(req)) { req.admin = { username: 'service-token', via: 'bearer' }; return true; }
   res.setHeader('Cache-Control', 'no-store');
-  if (!ADMIN_SECRET) {
-    res.status(503).json({ ok: false, error: 'ADMIN_SECRET is not set — admin review is disabled. Add it to .env (and your host) to enable /admin.' });
+  if (!ADMIN_SECRET && !adminAuth.adminConfigStatus().ok) {
+    res.status(503).json({ ok: false, error: 'Admin access is not configured. Set ADMIN_USERNAME, ADMIN_PASSWORD_HASH and ADMIN_SESSION_SECRET (run: npm run admin-hash).' });
   } else {
     res.status(401).json({ ok: false, error: 'unauthorized' });
   }
   return false;
 }
+
+// Resolves a session for every /admin and /api/admin request before the route
+// runs, so requireAdmin() can stay synchronous. Registered below.
+async function adminGate(req, res, next) {
+  try { req.admin = await resolveAdmin(req); } catch { req.admin = null; }
+  next();
+}
+
+/**
+ * CSRF + Origin gate for state-changing admin requests.
+ *
+ * A bearer-token caller is exempt: CSRF defends a browser that carries an
+ * ambient credential automatically, and an Authorization header is never sent
+ * automatically by a browser, so there is nothing to forge.
+ */
+function requireAdminCsrf(req, res) {
+  if (req.admin?.via === 'bearer') return true;
+  if (!adminAuth.originOk(req)) {
+    res.status(403).json({ ok: false, error: 'bad origin' });
+    return false;
+  }
+  if (!adminAuth.csrfOk(req)) {
+    const supa = getSupabaseAdmin();
+    adminAuth.securityEvent(supa, {
+      kind: 'csrf_reject', severity: 'warn',
+      username: req.admin?.username, ipHash: adminAuth.hashIp(req.ip),
+      detail: { path: req.path },
+    });
+    res.status(403).json({ ok: false, error: 'csrf' });
+    return false;
+  }
+  return true;
+}
+
+/** Record an admin action. Fire-and-forget: telemetry never fails a request. */
+function auditAction(req, action, target, outcome = 'success', detail) {
+  adminAuth.audit(getSupabaseAdmin(), {
+    username: req.admin?.username, action, target, outcome,
+    ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'), detail,
+  });
+}
+
+// Resolve a session before any admin route runs. Mounted on both prefixes; it
+// only ever READS the request, so a non-admin caller is unaffected.
+app.use(['/admin', '/api/admin'], adminGate);
+
+// Nothing under /admin may be cached or indexed, ever.
+app.use(['/admin', '/api/admin'], (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
+});
+
+// ── POST /api/admin/auth/login ─────────────────────────────────────────────
+// Deliberate properties:
+//   · One generic failure message for every rejection. "Unknown user" versus
+//     "wrong password" tells an attacker which half to keep trying.
+//   · The password is verified even when the username is wrong, so the response
+//     time cannot be used to enumerate usernames.
+//   · Lockout is checked BEFORE verification and applies to the IP regardless of
+//     which username is tried, so rotating usernames does not reset it.
+//   · Fails closed on missing configuration or an unreachable database.
+app.post('/api/admin/auth/login', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const cfg = adminAuth.adminConfigStatus();
+  const supa = getSupabaseAdmin();
+  const ipHash = adminAuth.hashIp(req.ip);
+  const ua = req.get('user-agent');
+  const generic = { ok: false, error: 'Invalid credentials.' };
+
+  if (!cfg.ok) {
+    // The operator needs to know WHY; a visitor gets nothing actionable. This
+    // detail is safe: it names which variables are unset, never their values.
+    return res.status(503).json({ ok: false, error: 'Admin login is not configured.', problems: cfg.problems });
+  }
+  if (!supa) return res.status(503).json({ ok: false, error: 'Admin login is unavailable (no database).' });
+  if (!adminAuth.originOk(req)) return res.status(403).json({ ok: false, error: 'bad origin' });
+
+  const username = String(req.body?.username || '').slice(0, 120);
+  const password = String(req.body?.password || '').slice(0, 512);
+
+  const lock = await adminAuth.isLockedOut(supa, ipHash);
+  if (lock.locked) {
+    await adminAuth.recordLoginAttempt(supa, { username, ok: false, ipHash, userAgent: ua, reason: 'locked' });
+    await adminAuth.securityEvent(supa, { kind: 'lockout_hit', severity: 'warn', username, ipHash });
+    res.setHeader('Retry-After', String(lock.retryAfterSec || 60));
+    return res.status(429).json({ ok: false, error: 'Too many attempts. Try again later.' });
+  }
+
+  // Always run the KDF, even for a wrong username: skipping it would make a bad
+  // username measurably faster to reject than a bad password.
+  const expectedUser = String(process.env.ADMIN_USERNAME || '');
+  const passOk = await adminAuth.verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+  const userBuf = Buffer.from(username);
+  const wantBuf = Buffer.from(expectedUser);
+  const userOk = userBuf.length === wantBuf.length && timingSafeEqual(userBuf, wantBuf);
+
+  if (!userOk || !passOk) {
+    await adminAuth.recordLoginAttempt(supa, {
+      username, ok: false, ipHash, userAgent: ua,
+      reason: userOk ? 'bad_password' : 'unknown_user',    // recorded, never returned
+    });
+    const after = await adminAuth.isLockedOut(supa, ipHash);
+    if (after.locked) {
+      await adminAuth.securityEvent(supa, { kind: 'lockout_started', severity: 'warn', username, ipHash });
+    }
+    // Progressive delay: cheap for a human who mistyped, expensive for a script.
+    await new Promise(r => setTimeout(r, Math.min(2000, 250 * (after.failures || 1))));
+    return res.status(401).json(generic);
+  }
+
+  const created = await adminAuth.createSession(supa, { username: expectedUser, ipHash, userAgent: ua });
+  if (!created) return res.status(503).json({ ok: false, error: 'Could not start a session.' });
+
+  await adminAuth.recordLoginAttempt(supa, { username, ok: true, ipHash, userAgent: ua, reason: 'ok' });
+  await adminAuth.audit(supa, {
+    username: expectedUser, action: 'auth.login', outcome: 'success', ipHash, userAgent: ua,
+  });
+  adminAuth.setSessionCookies(res, created);
+  // The CSRF token is returned so the page can use it immediately; it is also in
+  // a readable cookie, which is what makes the double-submit check work.
+  res.json({ ok: true, username: expectedUser, csrfToken: created.csrf });
+});
+
+// ── POST /api/admin/auth/logout ────────────────────────────────────────────
+// Revokes server-side. Clearing the cookie alone would leave a stolen copy of
+// the token working until it expired.
+app.post('/api/admin/auth/logout', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const cookies = adminAuth.parseCookies(req.headers?.cookie);
+  const token = cookies[adminAuth.SESSION_COOKIE];
+  if (token) {
+    await adminAuth.revokeSession(getSupabaseAdmin(), token, 'logout');
+    if (req.admin) auditAction(req, 'auth.logout', null, 'success');
+  }
+  adminAuth.clearSessionCookies(res);
+  res.json({ ok: true });
+});
+
+// Revoke every session for this admin — the "my laptop was stolen" button.
+app.post('/api/admin/auth/logout-all', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  const n = await adminAuth.revokeAllSessions(getSupabaseAdmin(), req.admin.username, 'logout_all');
+  auditAction(req, 'auth.logout_all', null, 'success', { revoked: n });
+  adminAuth.clearSessionCookies(res);
+  res.json({ ok: true, revoked: n });
+});
+
+// Who am I? Used by the dashboard to decide whether to render or redirect.
+app.get('/api/admin/me', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({
+    ok: true,
+    username: req.admin.username,
+    via: req.admin.via,
+    session: req.admin.session
+      ? { createdAt: req.admin.session.createdAt, expiresAt: req.admin.session.expiresAt }
+      : null,
+  });
+});
+
+// ── GET /api/admin/dashboard ───────────────────────────────────────────────
+// One round trip for the overview. Everything here is operational state the
+// admin already has the right to see; no secret value is included, and the
+// tests assert that.
+app.get('/api/admin/dashboard', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const supa = getSupabaseAdmin();
+  const out = {
+    ok: true,
+    catalog: {
+      served: CATALOG.games.length,
+      source: CATALOG.source,
+      categories: byCategory.size,
+    },
+    server: {
+      uptimeSec: Math.round(process.uptime()),
+      node: process.version,
+      env: process.env.NODE_ENV || 'development',
+      memoryMB: Math.round(process.memoryUsage().rss / 1048576),
+      cronDisabled: process.env.CRON_DISABLED === '1',
+    },
+    ai: { mode: 'client-side', serverInference: false },
+    proxy: proxyStatus,
+  };
+  try { out.supabase = await cachedSupabaseHealth(); }
+  catch { out.supabase = { configured: isSupabaseConfigured(), connected: false }; }
+
+  if (supa) {
+    const count = async (table, build) => {
+      try {
+        let q = supa.from(table).select('*', { count: 'exact', head: true });
+        if (build) q = build(q);
+        const { count: n, error } = await q;
+        return error ? null : n;
+      } catch { return null; }
+    };
+    const [games, working, broken, scores, flagged, recs, hidden] = await Promise.all([
+      count('games'),
+      count('games', q => q.eq('is_working', true)),
+      count('games', q => q.eq('is_working', false)),
+      count('scores'),
+      count('scores', q => q.neq('status', 'ok')),
+      count('recommendations'),
+      count('recommendations', q => q.eq('is_visible', false)),
+    ]);
+    out.database = { games, working, broken, scores, flagged, recommendations: recs, hiddenRecommendations: hidden };
+  }
+  res.json(out);
+});
+
+// ── GET /api/admin/security ────────────────────────────────────────────────
+// The Security Centre: recent logins, security events, and the audit trail.
+app.get('/api/admin/security', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
+  const take = async (table, cols, order) => {
+    try {
+      const { data, error } = await supa.from(table).select(cols).order(order, { ascending: false }).limit(50);
+      return error ? [] : (data || []);
+    } catch { return []; }
+  };
+  const [logins, events, actions, sessions] = await Promise.all([
+    take('admin_login_attempts', 'at, username, ok, ip_hash, reason, user_agent', 'at'),
+    take('admin_security_events', 'at, kind, severity, username, ip_hash, detail', 'at'),
+    take('admin_audit_logs', 'at, username, action, target, outcome, ip_hash', 'at'),
+    adminAuth.listSessions(supa, req.admin.username, 20),
+  ]);
+  res.json({
+    ok: true, logins, events, actions, sessions,
+    lockout: { threshold: adminAuth.LOCK_THRESHOLD, windowMs: adminAuth.LOCK_WINDOW_MS, lockMs: adminAuth.LOCK_DURATION_MS },
+  });
+});
+
+// ── GET /api/admin/games ───────────────────────────────────────────────────
+// Search the live catalog. Reads the in-memory catalog rather than the database
+// so a mistyped filter cannot become an expensive scan.
+app.get('/api/admin/games', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 80);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+  let rows = CATALOG.games;
+  if (q) rows = rows.filter(g => g.title.toLowerCase().includes(q) || g.slug.includes(q));
+  res.json({
+    ok: true, total: rows.length,
+    games: rows.slice(0, limit).map(g => ({
+      slug: g.slug, title: g.title, category: g.category,
+      embed_url: g.embed_url, is_working: g.is_working !== false,
+      provider: (() => { try { return new URL(g.embed_url).hostname; } catch { return null; } })(),
+    })),
+  });
+});
+
+// ── POST /api/admin/games/:slug/visibility ─────────────────────────────────
+// Show or hide one game. Writes is_working in Supabase — the same field the
+// link checker maintains and the same one the public RLS policy filters on —
+// rather than inventing a parallel visibility mechanism.
+app.post('/api/admin/games/:slug/visibility', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  const slug = String(req.params.slug || '').slice(0, 120);
+  const visible = req.body?.visible === true;
+  if (!/^[a-z0-9][a-z0-9-]{0,118}$/i.test(slug)) {
+    return res.status(400).json({ ok: false, error: 'bad slug' });
+  }
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
+  try {
+    const { data, error } = await supa.from('games')
+      .update({ is_working: visible }).eq('slug', slug).select('slug');
+    if (error) throw error;
+    if (!data?.length) {
+      auditAction(req, 'game.visibility', slug, 'failure', { reason: 'not_found' });
+      return res.status(404).json({ ok: false, error: 'no such game' });
+    }
+    auditAction(req, 'game.visibility', slug, 'success', { visible });
+    res.json({ ok: true, slug, visible });
+  } catch (e) {
+    auditAction(req, 'game.visibility', slug, 'failure', { error: e.message });
+    res.status(500).json({ ok: false, error: 'update failed' });
+  }
+});
+
+// Pull the catalog from Supabase again, without waiting for the 30-minute timer.
+app.post('/api/admin/catalog/refresh', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  try {
+    const ok = await refreshCatalogFromSupabase();
+    auditAction(req, 'catalog.refresh', null, ok ? 'success' : 'failure');
+    res.json({ ok: !!ok, games: CATALOG.games.length, source: CATALOG.source });
+  } catch (e) {
+    auditAction(req, 'catalog.refresh', null, 'failure', { error: e.message });
+    res.status(500).json({ ok: false, error: 'refresh failed' });
+  }
+});
 
 // Normalize an embed URL so the same game submitted with http/https, a www
 // prefix, a trailing slash or tracking params still matches the catalog copy.
@@ -2584,6 +2938,8 @@ app.get('/api/admin/recommendations', async (req, res) => {
 // --- POST /api/admin/recommendations/:id/hide  (and /show) -------------------
 app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  auditAction(req, 'recommendation.' + req.params.action, req.params.id);
   res.setHeader('Cache-Control', 'no-store');
   if (req.params.action !== 'hide' && req.params.action !== 'show') {
     return res.status(400).json({ ok: false, error: 'action must be hide or show' });
@@ -2636,6 +2992,8 @@ app.get('/api/admin/scores/flagged', async (req, res) => {
 // --- POST /api/admin/scores/:id/approve | /reject ---------------------------
 app.post('/api/admin/scores/:id/:action', async (req, res) => {
   if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  auditAction(req, 'score.' + req.params.action, req.params.id);
   res.setHeader('Cache-Control', 'no-store');
   if (req.params.action !== 'approve' && req.params.action !== 'reject') {
     return res.status(400).json({ ok: false, error: 'action must be approve or reject' });
@@ -2775,11 +3133,68 @@ $("#out").onclick=()=>{sessionStorage.removeItem("zh_admin");load();};
 if(key())load();
 </script></body></html>`;
 
-// --- GET /admin — a tiny private console for the two queues above -----------
+// ── The admin console ──────────────────────────────────────────────────────
+// /admin/login  — always reachable; it is the only way in.
+// /admin        — the dashboard. An unauthenticated caller is REDIRECTED to the
+//                 login page and never receives the dashboard document at all.
+//
+// That last point is the difference between real access control and hiding the
+// UI: the previous console shipped its markup to anyone who asked and merely
+// failed the API calls afterwards, which leaks the console's structure and
+// invites people to poke at the endpoints behind it.
+//
+// The old inline ADMIN_HTML is retained below as the LOCAL-DEV fallback for a
+// deployment that has not configured the new credentials yet, so upgrading does
+// not lock an operator out of a running site before they run `npm run admin-hash`.
+// The console lives in admin-ui/, which is OUTSIDE PUBLIC_DIR — deliberately.
+//
+// The first version of this put it in public/admin/, and express.static served
+// public/admin/admin-dashboard.html to anonymous callers with a 200, bypassing
+// every check below. Reordering middleware would have "fixed" that, but only
+// until someone moved the static mount again. Keeping these documents out of the
+// web root means there is no ordering to get wrong: the static handler cannot
+// serve a file it cannot see.
+const ADMIN_DIR = join(__dirname, 'admin-ui');
+
+// Assets are served by an explicit, hard-coded allowlist — never a directory
+// mount — so no path traversal or new file can widen what is reachable.
+// Only the two the LOGIN page needs are public; the dashboard's script requires
+// a session, because there is no reason to hand its shape to an anonymous caller.
+const ADMIN_ASSETS = {
+  'admin.css':       { file: 'admin.css',       type: 'text/css; charset=utf-8',        public: true },
+  'admin-login.js':  { file: 'admin-login.js',  type: 'text/javascript; charset=utf-8', public: true },
+  'admin.js':        { file: 'admin.js',        type: 'text/javascript; charset=utf-8', public: false },
+};
+
+app.get('/admin/login', (req, res) => {
+  // Already signed in? Don't show a login form; go where they were going.
+  if (req.admin) return res.redirect(302, '/admin');
+  res.sendFile(join(ADMIN_DIR, 'admin-login.html'));
+});
+
+app.get('/admin/assets/:name', (req, res) => {
+  const entry = ADMIN_ASSETS[Object.prototype.hasOwnProperty.call(ADMIN_ASSETS, req.params.name)
+    ? req.params.name : ''];
+  if (!entry) return res.status(404).type('text').send('not found');
+  if (!entry.public && !req.admin) return res.status(401).type('text').send('unauthorized');
+  res.type(entry.type).sendFile(join(ADMIN_DIR, 'assets', entry.file));
+});
+
 app.get('/admin', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  res.type('html').send(ADMIN_HTML);
+  if (!req.admin) {
+    // No configured credentials AND no session: fall back to the legacy console
+    // so a live site is not stranded mid-upgrade. It still authenticates every
+    // API call with ADMIN_SECRET; it simply has no login page of its own.
+    if (!adminAuth.adminConfigStatus().ok) return res.type('html').send(ADMIN_HTML);
+    return res.redirect(302, '/admin/login');
+  }
+  res.sendFile(join(ADMIN_DIR, 'admin-dashboard.html'));
+});
+
+// Anything else under /admin is not a thing. Explicit 404 rather than falling
+// through to the catch-all, so no future static mount can pick it up.
+app.use('/admin', (req, res) => {
+  res.status(404).type('text').send('not found');
 });
 
 // ========================================================================

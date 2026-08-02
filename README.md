@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-129%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-156%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 129 tests |
+| Tests | `node:test` (built in — zero test dependencies), 156 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -250,6 +250,62 @@ can't be mis-clicked as a nav button (that protects your ad-account standing).
 
 ---
 
+## 🛡️ Admin console
+
+`/admin` is a full operator dashboard: overview stats, game visibility, leaderboard
+review, community moderation and a Security Centre.
+
+```bash
+npm run admin-hash        # prompts (hidden), prints the hash + a session secret
+```
+
+Put the three values it prints into your host's environment, then sign in at
+`/admin/login`.
+
+| Variable | Purpose |
+|---|---|
+| `ADMIN_USERNAME` | The operator's username |
+| `ADMIN_PASSWORD_HASH` | scrypt hash — **never** a plaintext password |
+| `ADMIN_SESSION_SECRET` | Keys session tokens and the audit trail's IP hashes (32+ chars) |
+| `ADMIN_SECRET` | Independent **machine** token for monitors/CLI, sent as a Bearer header |
+
+### How it is actually protected
+
+- **Passwords** are verified server-side against a versioned `scrypt$N$r$p$salt$hash`
+  string. A malformed, foreign or absent hash fails **closed** — it rejects every
+  login rather than accepting every login.
+- **Sessions** live in Postgres. The cookie carries a 256-bit random token; the
+  database stores only its SHA-256 hash, so a dump of `admin_sessions` grants
+  nobody a session. The cookie is `HttpOnly` + `SameSite=Strict` (+ `Secure` in
+  production), so page JavaScript cannot read the credential at all.
+- **Expiry** is enforced server-side on every request: an 8-hour absolute cap and
+  a 30-minute idle timeout. A session whose **user agent** changes is revoked; one
+  whose IP changes raises a security event but survives, because mobile networks
+  legitimately change addresses.
+- **Brute force** — five failures from one IP inside 15 minutes locks that IP for
+  15 minutes. The password KDF runs even for an unknown username so response time
+  cannot enumerate accounts, and every rejection returns the same generic message.
+- **CSRF** — double-submit token plus `Origin` validation on every state-changing
+  route. Bearer-token callers are exempt, because a browser never attaches an
+  `Authorization` header automatically, so there is nothing to forge.
+- **Audit** — `admin_audit_logs` is append-only, enforced by a database trigger
+  that refuses `UPDATE` and `DELETE`. The dashboard exposes no path to edit it.
+  Client IPs are stored only as a keyed HMAC, never as addresses.
+
+### Two things worth knowing
+
+The console's HTML lives in **`admin-ui/`, outside `public/`**. The first version
+put it in `public/admin/`, where `express.static` served
+`public/admin/admin-dashboard.html` to anonymous callers with a `200` — the auth
+route below it never ran. Keeping the documents out of the web root means there
+is no middleware order left to get wrong.
+
+`?key=<secret>` **no longer authenticates anything**. A credential in a query
+string is written to the hosting access log, kept in browser history, and
+forwarded in the `Referer` of every outbound link on the page.
+
+---
+
 ## 🗄️ Database setup (Supabase)
 
 The live catalog and community features live in Supabase. Fastest path once your `.env` has the Supabase keys:
@@ -287,6 +343,7 @@ Two copies of the same DDL drift silently, and the failure mode is bad — Supab
 | `recommendations` | 0 | the community wall |
 | `keepalive` | 1 | one row the `/healthz` probe pokes so a free-tier DB never pauses |
 | `game_fingerprints` · `game_duplicates` · `rejected_submissions` | 0 | the discovery engine — operational metadata, **no public access at all** |
+| `admin_sessions` · `admin_audit_logs` · `admin_login_attempts` · `admin_security_events` | — | the admin console. Audit log is append-only (database trigger); **no public access at all** |
 
 **RLS is deny-by-default everywhere and verified against production**: the publishable key gets `42501` on `INSERT`, sees 0 rows of every operational table, and reads exactly the 16,820 games the policy permits.
 
@@ -325,7 +382,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, weather, recommender, credits, game-discovery
-├── test/                # node:test suites (129 tests, no framework)
+├── test/                # node:test suites (156 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, leaderboard, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -341,7 +398,7 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 129 tests, node:test — no framework, no install step
+npm test        # 156 tests, node:test — no framework, no install step
 npm run check   # syntax-check every JS module
 ```
 

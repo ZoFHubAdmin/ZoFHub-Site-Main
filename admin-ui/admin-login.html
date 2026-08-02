@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Sign in · ZoFHub Admin</title>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="login-body">
+  <main class="login-card" role="main">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">Z</span>
+      <div>
+        <h1>ZoFHub Admin</h1>
+        <p class="brand-sub">Authorised access only</p>
+      </div>
+    </div>
+
+    <!-- No credential of any kind is embedded in this page. The form posts to
+         the server, which is the only party that can verify anything. -->
+    <form id="loginForm" autocomplete="on" novalidate>
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username"
+             required autocapitalize="none" spellcheck="false" enterkeyhint="next">
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password"
+             required enterkeyhint="go">
+
+      <button id="submit" type="submit" class="btn-primary">Sign in</button>
+    </form>
+
+    <p id="msg" class="msg" role="alert" aria-live="polite" hidden></p>
+
+    <p class="foot">
+      Sessions expire automatically and every action is recorded in an
+      append-only audit log.
+    </p>
+  </main>
+<script src="/admin/assets/admin-login.js" type="module"></script>
+</body>
+</html>
