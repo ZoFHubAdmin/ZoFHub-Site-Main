@@ -58,15 +58,20 @@ logs/
 # only useful if it is from immediately before the change it protects against.
 *.bak
 
-# ── Already tracked; these rules do not take effect ────────────────────────
-# node_modules is committed deliberately (see the header) — this rule only stops
-# NEW package directories being added by accident.
-node_modules
-
-# .env is TRACKED and committed. This rule therefore does nothing today; it is
-# here so the file stops being tracked the moment someone runs
-#     git rm --cached .env
-# which is worth doing: .env now holds ADMIN_PASSWORD_HASH and
-# ADMIN_SESSION_SECRET, and render.yaml already declares every one of those, so
-# production reads them from the host rather than from git.
+# ── Credentials ────────────────────────────────────────────────────────────
+# .env is ignored AND untracked (commit 1dd45a7e), so local credentials stay
+# local. It still exists on disk — untracking removed it from the index, not the
+# filesystem. Production gets these from the host: render.yaml declares every
+# secret the server reads, which is what makes untracking safe rather than a
+# thing that breaks the deploy.
+#
+# Its previous contents remain in git history. That is not a problem for the
+# Supabase pair — the legacy anon/service_role keys are deactivated and the API
+# now answers 401 "Legacy API keys are disabled" — but any OTHER secret that
+# was committed before 1dd45a7e should be treated as exposed and rotated.
 .env
+
+# node_modules is committed deliberately (see the header), so this rule does not
+# untrack the ~2,500 files already following. It only stops NEW package
+# directories being added by accident.
+node_modules
