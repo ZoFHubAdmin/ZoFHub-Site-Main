@@ -352,3 +352,58 @@ describe('legal pages name the site without requiring SITE_URL', () => {
     }
   });
 });
+
+describe('presence counts survive prototype-colliding slugs', () => {
+  // REGRESSION. presenceSnapshot() accumulated into a plain `{}` keyed by a
+  // client-supplied slug. On a plain object `games['constructor']` reads back
+  // the Object CONSTRUCTOR instead of undefined, so `(fn || 0) + 1`
+  // concatenated rather than added and the broadcast payload contained:
+  //   {"games":{"constructor":"function Object() { [native code] }1"}}
+  // That went to every SSE subscriber. It was not merely an adversarial input:
+  // the catalog holds a real game slugged `constructor` (id 6974, "Constructor"),
+  // so ordinary play triggered it and that game's live badge never lit up.
+  const beat = (sessionId, slug) =>
+    get('/api/presence/beat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId, slug }),
+    });
+
+  test('every count is a number, whatever the slug is called', async () => {
+    const hazards = ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__'];
+    let last;
+    for (const [i, slug] of hazards.entries()) {
+      const r = await beat(`proto-test-${i}-${Date.now()}`, slug);
+      if (r.status === 429) return;   // rate limiter won the race; not what we're testing
+      last = await r.json();
+    }
+    assert.ok(last && last.games, 'snapshot should carry a games map');
+    for (const [slug, count] of Object.entries(last.games)) {
+      assert.equal(typeof count, 'number',
+        `games["${slug}"] is ${typeof count} (${JSON.stringify(count)}) — prototype leaked in`);
+      assert.ok(Number.isFinite(count) && count >= 0, `games["${slug}"] = ${count}`);
+    }
+  });
+
+  test('a colliding slug is counted, not swallowed', async () => {
+    const id = `proto-count-${Date.now()}`;
+    const r = await beat(id, 'constructor');
+    if (r.status === 429) return;
+    const snap = await r.json();
+    assert.equal(typeof snap.games.constructor, 'number',
+      'the real catalog game slugged "constructor" must get a numeric count');
+    assert.ok(snap.games.constructor >= 1, 'its beat should have been recorded');
+  });
+
+  test('the snapshot serialises to valid JSON', async () => {
+    // Object.create(null) is the fix; this proves it did not break the wire
+    // format (JSON.stringify treats a null-prototype object like any other).
+    const r = await get('/api/presence');
+    assert.equal(r.status, 200);
+    const txt = await r.text();
+    const j = JSON.parse(txt);
+    assert.equal(typeof j.total, 'number');
+    assert.equal(typeof j.games, 'object');
+    assert.ok(!txt.includes('native code'), 'a function leaked into the payload');
+  });
+});

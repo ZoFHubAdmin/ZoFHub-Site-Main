@@ -16,7 +16,9 @@ function trackBadge(slug, node) {
 }
 presence.subscribe(snap => {
   for (const [slug, set] of liveBadges) {
-    const n = snap?.games?.[slug] || 0;
+    // Number() first — an absent slug reads back an inherited prototype
+    // function, which is truthy and would defeat a bare `|| 0`. See catalog.js.
+    const n = Number(snap?.games?.[slug]) || 0;
     for (const node of set) {
       if (!node.isConnected) { set.delete(node); continue; }
       if (n > 0) { paintCount(node, n, v => `${fmtCount(v)} playing`); node.classList.add('on'); }

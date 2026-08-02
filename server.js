@@ -2682,7 +2682,23 @@ const presence = new Map();
 const sseClients = new Set();        // res objects subscribed to the stream
 
 function presenceSnapshot() {
-  const games = {};
+  // Object.create(null), NOT {}. This object is keyed by a slug the CLIENT
+  // supplies, and a plain object literal inherits from Object.prototype — so
+  // `games['constructor']` reads back the Object constructor rather than
+  // undefined, and `(fn || 0) + 1` concatenates instead of adding:
+  //
+  //   {"games":{"constructor":"function Object() { [native code] }1"}}
+  //
+  // That was broadcast verbatim to every SSE subscriber. It is not only an
+  // adversarial case — the catalog contains a real game slugged `constructor`
+  // (id 6974, "Constructor"), so playing it triggered this in normal use and
+  // its live-player badge could never light up. `toString`, `valueOf` and the
+  // rest of the prototype behave the same way.
+  //
+  // A null-prototype object has nothing to inherit, which removes the whole
+  // class rather than blocklisting the names. JSON.stringify treats it exactly
+  // like any other object, so the wire format is unchanged.
+  const games = Object.create(null);
   let total = 0;
   const now = Date.now();
   for (const [, s] of presence) {
@@ -4555,11 +4571,45 @@ function send404(req, res) {
 // before the error handler, so real routes and express.static win first.
 app.use((req, res) => send404(req, res));
 
+// Client faults and server faults are different events and must not be logged
+// or answered the same way.
+//
+// WHAT THIS FIXES. Every malformed JSON body used to print a seven-line stack
+// trace at error level — body-parser → raw-body → async_hooks, with absolute
+// filesystem paths. Two consequences, both real:
+//   * Real 500s drown. `POST /api/ai/text -d '{oops'` in a loop is a cheap way
+//     to bury genuine errors, and on a host with a log quota, to exhaust it.
+//   * The CLIENT was told "Something went wrong. Please try again." for its own
+//     malformed request — which is untrue and, worse, advises a retry that is
+//     guaranteed to fail identically forever.
+//
+// So: 4xx logs one line and gets an accurate message; 5xx keeps the full stack
+// and the deliberately generic response.
+const CLIENT_ERROR_MESSAGES = {
+  'entity.parse.failed':   'Malformed JSON in request body.',
+  'entity.too.large':      'Request body is too large.',
+  'encoding.unsupported':  'Unsupported content encoding.',
+  'request.aborted':       'Request aborted.',
+};
 app.use((err, req, res, _next) => {
-  // Log the full error server-side; return a generic message so internal details
-  // (stack traces, DB/driver strings) are never disclosed to clients.
+  const status = Number(err.status || err.statusCode) || 500;
+
+  if (status >= 400 && status < 500) {
+    // One line, no stack. Enough to spot a pattern; not enough to bury anything.
+    console.warn(`[zofhub] ${status} ${req.method} ${req.path} — ${err.type || err.code || 'client error'}`);
+    // Only ever a fixed string from the table above, never err.message, so a
+    // parser's internals can't be reflected back to the caller.
+    const msg = CLIENT_ERROR_MESSAGES[err.type] || 'Bad request.';
+    if (!res.headersSent) res.status(status).json({ error: msg });
+    return;
+  }
+
+  // Genuine server fault: keep the full object, stack included.
   console.error('[zofhub] error:', err);
-  res.status(err.status || 500).json({ error: 'Something went wrong. Please try again.' });
+  // Headers may already be sent (e.g. a stream that failed mid-flight); writing
+  // again would throw ERR_HTTP_HEADERS_SENT inside the error handler itself.
+  if (res.headersSent) { try { res.end(); } catch {} return; }
+  res.status(status).json({ error: 'Something went wrong. Please try again.' });
 });
 
 // ========================================================================

@@ -37,7 +37,12 @@ function trackBadge(slug, el) {
 
 presence.subscribe(snap => {
   for (const [slug, set] of liveBadges) {
-    const n = snap?.games?.[slug] || 0;
+    // Number(...) || 0, not just || 0. `snap.games` arrives via JSON.parse, so
+    // it carries Object.prototype: for a slug with nobody playing —
+    // `constructor`, `toString`, and the real catalog game slugged
+    // `constructor` — the lookup returns an inherited FUNCTION, which is truthy
+    // and sails past `|| 0`. Number() maps that to NaN so the fallback fires.
+    const n = Number(snap?.games?.[slug]) || 0;
     for (const el of set) {
       if (!el.isConnected) { set.delete(el); continue; }
       if (n > 0) {
@@ -253,7 +258,11 @@ async function loadRest() {
 }
 
 function recomputeCounts() {
-  const c = { all: state.all.length };
+  // Null-prototype accumulator: `c` is keyed by a category string that comes
+  // from catalog data, and on a plain object `c['constructor']` reads back the
+  // Object constructor rather than undefined — so `(fn || 0) + 1` would
+  // concatenate and the count would become "function Object() {…}1".
+  const c = Object.assign(Object.create(null), { all: state.all.length });
   for (const g of state.all) c[g.category] = (c[g.category] || 0) + 1;
   c.featured = state.all.filter(g => g.is_featured).length;
   c.new      = state.all.filter(g => g.is_new).length;

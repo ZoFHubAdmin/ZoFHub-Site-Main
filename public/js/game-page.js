@@ -209,7 +209,9 @@ function bindLiveCount() {
   const pill = el('span', { class: 'live-pill live-pill-big' });
   meta.appendChild(pill);
   presence.subscribe(snap => {
-    const n = snap?.games?.[slug] || 0;
+    // Number() first — an absent slug reads back an inherited prototype
+    // function, which is truthy and would defeat a bare `|| 0`. See catalog.js.
+    const n = Number(snap?.games?.[slug]) || 0;
     if (n > 0) {
       paintCount(pill, n, v => `${fmtCount(v)} playing now`);
       pill.classList.add('on');
