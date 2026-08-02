@@ -2,16 +2,37 @@
   "_meta": {
     "source": "https://www.y8.com/games_for_your_website",
     "embedPattern": "https://www.y8.com/embed/<slug>",
-    "scrapedAt": "2026-07-29T03:33:27.716Z",
+    "scrapedAt": "2026-08-02T13:21:02.337Z",
     "pages": 46,
-    "count": 2425
+    "count": 2428
   },
   "gamesFlat": [
+    {
+      "name": "Paint Swipe 3d",
+      "slug": "paint_swipe_3d",
+      "embedUrl": "https://www.y8.com/embed/paint_swipe_3d",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409735/file/w180h135_webp-e2e4f6e49b6838cce0b486024f705f14.webp",
+      "gamePage": "https://www.y8.com/games/paint_swipe_3d"
+    },
+    {
+      "name": "Bubble Challenge Pop Battle",
+      "slug": "bubble_challenge_pop_battle",
+      "embedUrl": "https://www.y8.com/embed/bubble_challenge_pop_battle",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409717/file/w180h135_webp-a4d9e0c07f4eb8e6cc69c326f32628ca.webp",
+      "gamePage": "https://www.y8.com/games/bubble_challenge_pop_battle"
+    },
+    {
+      "name": "Spin Shot Master",
+      "slug": "spin_shot_master",
+      "embedUrl": "https://www.y8.com/embed/spin_shot_master",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409715/file/w180h135_webp-10b2b826cb67d4b18d0eb76ba87d21a4.webp",
+      "gamePage": "https://www.y8.com/games/spin_shot_master"
+    },
     {
       "name": "Moto Flip Race",
       "slug": "moto_flip_race",
       "embedUrl": "https://www.y8.com/embed/moto_flip_race",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/409195/file/w180h135_webp-6355296074b27538e1977450d3d8e0f9.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409193/file/w180h135_webp-590c72a8c057799801d648fa1a285356.webp",
       "gamePage": "https://www.y8.com/games/moto_flip_race"
     },
     {
@@ -123,7 +144,7 @@
       "name": "Piano Tiles Beat",
       "slug": "piano_tiles_beat",
       "embedUrl": "https://www.y8.com/embed/piano_tiles_beat",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/406541/file/w180h135_webp-8cd85adbfd859ac1eaf1ca0e3a6b96ee.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/406537/file/w180h135_webp-c72e2b1a611792de44efb9e43534a940.webp",
       "gamePage": "https://www.y8.com/games/piano_tiles_beat"
     },
     {
@@ -172,7 +193,7 @@
       "name": "Puppy Match Html5",
       "slug": "puppy_match_html5",
       "embedUrl": "https://www.y8.com/embed/puppy_match_html5",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/405465/file/w180h135_webp-f49041b0606beade53e3e62efc2c7e2c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/405469/file/w180h135_webp-8e4abfbe6b99cc623310287999312fff.webp",
       "gamePage": "https://www.y8.com/games/puppy_match_html5"
     },
     {
@@ -305,7 +326,7 @@
       "name": "Flappy Shooter",
       "slug": "flappy_shooter_webgl",
       "embedUrl": "https://www.y8.com/embed/flappy_shooter_webgl",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/401413/file/w180h135_webp-a5e91c6f8fddbb441ffa158e647e2a81.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/401409/file/w180h135_webp-cd4d67e29a40deb224c0a313a8f4bef5.webp",
       "gamePage": "https://www.y8.com/games/flappy_shooter_webgl"
     },
     {
@@ -5534,7 +5555,7 @@
       "name": "Shape Switch",
       "slug": "shape_switch",
       "embedUrl": "https://www.y8.com/embed/shape_switch",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/407431/file/w180h135_webp-1e956095ca357c93b493b63d012e212c.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/401495/file/w380h285_retina_webp-895ed80e38fcec56506e4e6817e44914.webp",
       "gamePage": "https://www.y8.com/games/shape_switch"
     },
     {
@@ -5555,7 +5576,7 @@
       "name": "Shape Havoc",
       "slug": "shape_havoc",
       "embedUrl": "https://www.y8.com/embed/shape_havoc",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/402765/file/w380h285_retina_webp-d70fd0fa36c04ea8ed488737e787ff03.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/10353/file/w180h135_webp-e332945baadea8911b731d5a702eec7b.webp",
       "gamePage": "https://www.y8.com/games/shape_havoc"
     },
     {
@@ -15810,7 +15831,7 @@
       "name": "Abandoned Island",
       "slug": "abandoned_island",
       "embedUrl": "https://www.y8.com/embed/abandoned_island",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/407779/file/w180h135_webp-e84a005e692146252d75693e067747b1.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/407783/file/w180h135_webp-e0f85ecb736720689fa56ad92c5a2a71.webp",
       "gamePage": "https://www.y8.com/games/abandoned_island"
     },
     {
@@ -16034,7 +16055,7 @@
       "name": "Castle Cake Cooking",
       "slug": "castle_cake_cooking",
       "embedUrl": "https://www.y8.com/embed/castle_cake_cooking",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/60683/file/w180h135_webp-dbcc809eefecc1098eb862a6023b5668.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409319/file/w180h135_webp-374d8d177a03390d1b891950cb5063a4.webp",
       "gamePage": "https://www.y8.com/games/castle_cake_cooking"
     },
     {
@@ -16223,7 +16244,7 @@
       "name": "My Party Car",
       "slug": "my_party_car",
       "embedUrl": "https://www.y8.com/embed/my_party_car",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/51751/file/w180h135_webp-8062437d58ded492db5781140d5c5942.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/409779/file/w180h135_webp-17b81ad0b8f26f0a979d6209af865a1a.webp",
       "gamePage": "https://www.y8.com/games/my_party_car"
     },
     {
@@ -16538,7 +16559,7 @@
       "name": "Master Moves",
       "slug": "master_moves",
       "embedUrl": "https://www.y8.com/embed/master_moves",
-      "thumbnail": "https://cdn2.y8.com/cloudimage/40169/file/w180h135_webp-05f93117e621ef54c44355d45fcc80ff.webp",
+      "thumbnail": "https://cdn2.y8.com/cloudimage/40159/file/w180h135_webp-224dcd50ec64a1c1326f9ed679a84d2d.webp",
       "gamePage": "https://www.y8.com/games/master_moves"
     },
     {

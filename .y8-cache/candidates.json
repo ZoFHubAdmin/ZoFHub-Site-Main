@@ -14608,5 +14608,23 @@
     "name": "Pin Spin Master Puzzle",
     "thumbnail": "https://cdn2.y8.com/cloudimage/408997/file/w180h135_webp-b437db6a24d48b1e666330fb55061ab8.webp",
     "source": "directory"
+  },
+  "paint_swipe_3d": {
+    "slug": "paint_swipe_3d",
+    "name": "Paint Swipe 3d",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/409735/file/w180h135_webp-e2e4f6e49b6838cce0b486024f705f14.webp",
+    "source": "directory"
+  },
+  "bubble_challenge_pop_battle": {
+    "slug": "bubble_challenge_pop_battle",
+    "name": "Bubble Challenge Pop Battle",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/409717/file/w180h135_webp-a4d9e0c07f4eb8e6cc69c326f32628ca.webp",
+    "source": "directory"
+  },
+  "spin_shot_master": {
+    "slug": "spin_shot_master",
+    "name": "Spin Shot Master",
+    "thumbnail": "https://cdn2.y8.com/cloudimage/409715/file/w180h135_webp-10b2b826cb67d4b18d0eb76ba87d21a4.webp",
+    "source": "directory"
   }
 }

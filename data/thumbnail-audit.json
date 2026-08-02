@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-07-29T16:59:19.203Z",
+  "generatedAt": "2026-08-02T14:17:53.218Z",
   "referer": "http://localhost:8080",
   "totals": {
-    "probed": 145,
-    "ok": 143,
+    "probed": 10129,
+    "ok": 10127,
     "broken": 2,
-    "emptyNoUrl": 0
+    "emptyNoUrl": 2
   },
   "brokenByHost": {
     "onlinegames.io": 1,
@@ -29,5 +29,14 @@
       "status": 403
     }
   ],
-  "emptyNoUrl": []
+  "emptyNoUrl": [
+    {
+      "slug": "purple-clicker-game",
+      "title": "Purple Clicker Game"
+    },
+    {
+      "slug": "green-clicker-game",
+      "title": "Green Clicker Game"
+    }
+  ]
 }
