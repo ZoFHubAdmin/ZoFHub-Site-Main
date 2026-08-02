@@ -461,3 +461,87 @@ describe('AI runs on the visitor device, never on this server', () => {
     assert.ok(!String(key).startsWith('sk_'), 'a secret key must never be served to the browser');
   });
 });
+
+describe('the server is never an AI proxy', () => {
+  // Audit findings, each pinned by a test. The suite runs from 127.0.0.1, which
+  // aiServerAllowed() treats as local development, so an internet visitor is
+  // simulated with X-Forwarded-For (`trust proxy` is on → that becomes req.ip).
+  const visitor = (path, init = {}) =>
+    get(path, { ...init, headers: { 'X-Forwarded-For': '203.0.113.9', ...(init.headers || {}) } });
+
+  test('/api/vibe does not perform server-side inference', async () => {
+    // FOUND IN AUDIT: /api/vibe is not under /api/ai, so it escaped the guard.
+    // A mood that missed the curated map sent the visitor's TYPED TEXT to
+    // Pollinations from this server. Measured at 3.02s for "relaxing puzzle" —
+    // an ordinary query, not an edge case.
+    //
+    // Latency is the discriminator: the outbound call had a 2.5s abort budget,
+    // so a sub-second response proves no upstream request was made.
+    for (const q of ['relaxing puzzle', 'qwertyuiop zxcvbnm plughfjord']) {
+      const t0 = Date.now();
+      const r = await visitor('/api/vibe?q=' + encodeURIComponent(q));
+      const ms = Date.now() - t0;
+      assert.equal(r.status, 200);
+      const j = await r.json();
+      assert.ok(ms < 1500, `"${q}" took ${ms}ms — the server appears to have called an AI provider`);
+      assert.notEqual(j.source, 'ai', 'source:"ai" means the server ran inference');
+      // The feature must still work: the curated map is the source of truth.
+      assert.ok(j.games.length > 0, 'Vibe Finder must still return games without the AI');
+    }
+  });
+
+  test('/asset refuses to fetch AI providers', async () => {
+    // FOUND IN AUDIT: /asset is a deliberately general cross-origin GET proxy
+    // (it fixes WebGL canvas tainting for games) and "general" included
+    // inference endpoints — it fetched text.pollinations.ai and relayed the
+    // upstream API response body verbatim.
+    for (const u of [
+      'https://text.pollinations.ai/hello',
+      'https://image.pollinations.ai/prompt/cat',
+      'https://aihorde.net/api/v2/status/modes',
+      'https://api.openai.com/v1/models',
+      'https://generativelanguage.googleapis.com/v1/models',
+      'https://api-inference.huggingface.co/models/gpt2',
+    ]) {
+      const r = await visitor('/asset?u=' + encodeURIComponent(u));
+      assert.equal(r.status, 403, `${u} must not be proxied`);
+    }
+  });
+
+  test('/thumb never proxies an arbitrary host either', async () => {
+    // /thumb was already correct — a non-allowlisted host gets a 302 so the
+    // BROWSER fetches it, and the server never touches the bytes. Pinning it so
+    // that property cannot regress into a general image proxy.
+    const r = await visitor('/thumb?u=' + encodeURIComponent('https://image.pollinations.ai/prompt/cat'), { redirect: 'manual' });
+    assert.ok(r.status === 302 || r.status === 403, `expected redirect or refusal, got ${r.status}`);
+  });
+
+  test('AI pipeline metadata is not published to anonymous callers', async () => {
+    // Neither endpoint is called by any client code, yet both described the
+    // server-side pipeline: model priority, the upstream endpoint, whether a key
+    // is held, and the full provider inventory with URLs and limits. That
+    // advertises capability this deployment deliberately does not offer.
+    const h = await (await visitor('/api/ai/health')).json();
+    assert.equal(h.serverInference, false);
+    assert.equal(h.endpoint, undefined, 'must not reveal the upstream endpoint');
+    assert.equal(h.models, undefined, 'must not reveal the model inventory');
+    assert.equal(h.keyed, undefined, 'must not reveal whether a key is held');
+
+    const p = await (await visitor('/api/ai/providers')).json();
+    assert.equal(p.serverInference, false);
+    assert.deepEqual(p.text, [], 'must not list text providers');
+    assert.deepEqual(p.image, [], 'must not list image providers');
+  });
+
+  test('privacy-sensitive browser features are explicitly denied', async () => {
+    // Permissions-Policy is an allowlist: anything unlisted falls back to the UA
+    // default. These were unlisted, so thousands of embedded third-party game
+    // and ad frames inherited the ability to ask for them.
+    const pp = ((await get('/')).headers.get('permissions-policy') || '').replace(/\s+/g, '');
+    for (const f of ['geolocation', 'camera', 'microphone', 'browsing-topics',
+                     'interest-cohort', 'idle-detection', 'local-fonts',
+                     'run-ad-auction', 'join-ad-interest-group']) {
+      assert.ok(pp.includes(`${f}=()`), `${f} must be explicitly denied`);
+    }
+  });
+});

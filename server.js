@@ -224,6 +224,26 @@ function coerceEmbedUrl(url) {
 // this can never be used as a general-purpose open image proxy).
 const THUMB_PROXY_HOSTS = /(^|\.)(gamemonetize\.(com|co)|gamedistribution\.com|famobi\.com|htmlgames\.com|onlinegames\.io|y8\.com|gameflare\.com|gamezop\.com|poki\.com|cloudimage\.io)$/i;
 
+// ── Hosts this server must never fetch on a caller's behalf ────────────────
+// ZoFHub's AI runs in the visitor's browser. /asset is a deliberately general
+// cross-origin GET proxy — the injected iframe shim routes game assets through
+// it to fix WebGL canvas tainting — and "general" included AI providers, so
+//
+//     GET /asset?u=https://image.pollinations.ai/prompt/<anything>
+//     GET /asset?u=https://text.pollinations.ai/<prompt>
+//
+// turned this server into exactly the AI proxy it is designed never to be:
+// it fetched the endpoint, downloaded the response and streamed it back.
+// Verified before this guard existed — the server relayed Pollinations' own
+// API response body verbatim.
+//
+// A denylist rather than an allowlist, because /asset legitimately serves an
+// open-ended set of game CDNs; an allowlist would break games. These hosts are
+// refused outright rather than redirected: /asset exists for game assets, and
+// 302-ing an arbitrary caller-supplied URL would turn it into an open redirect.
+// No legitimate game asset lives on an inference endpoint.
+const AI_PROVIDER_HOSTS = /(^|\.)(pollinations\.ai|aihorde\.net|stablehorde\.net|openai\.com|anthropic\.com|claude\.ai|generativelanguage\.googleapis\.com|api\.groq\.com|api\.mistral\.ai|api\.cohere\.(ai|com)|api\.deepseek\.com|api\.together\.xyz|api\.replicate\.com|replicate\.delivery|fal\.(ai|run)|api\.openrouter\.ai|openrouter\.ai|huggingface\.co|api-inference\.huggingface\.co|api\.stability\.ai|api\.x\.ai|api\.perplexity\.ai)$/i;
+
 // Rewrite a remote thumbnail URL to the same-origin proxy. Local paths
 // (/thumbs/…, already self-hosted) and unknown hosts pass through unchanged.
 function thumbUrl(u) {
@@ -1052,7 +1072,36 @@ app.use((req, res, next) => {
     'gyroscope=*',
     'xr-spatial-tracking=*',
     'picture-in-picture=*',
-    'sync-xhr=*'
+    'sync-xhr=*',
+
+    // ── Explicitly DENIED ──────────────────────────────────────────────────
+    // Permissions-Policy is an allowlist, so anything unlisted falls back to the
+    // user agent's default — which for a same-origin document is generally
+    // "allowed". Listing these with an EMPTY allowlist `=()` turns them off for
+    // this document AND for every iframe it embeds, which matters here because
+    // the site embeds thousands of third-party games and ad frames.
+    //
+    // Nothing ZoFHub does needs any of them: there are no accounts, no uploads,
+    // no location features, and the AI runs in the browser against a public
+    // endpoint. Denying them means an embedded game or ad tag cannot even
+    // prompt for camera, microphone or location, and cannot silently join
+    // Google's Topics interest-cohort advertising API.
+    'geolocation=()',
+    'camera=()',
+    'microphone=()',
+    'browsing-topics=()',      // Google Topics API — interest-based ad profiling
+    'interest-cohort=()',      // legacy FLoC name, still honoured by some builds
+    'idle-detection=()',       // reports when the user steps away from the device
+    'local-fonts=()',          // enumerating installed fonts is a fingerprinting vector
+    'usb=()',
+    'serial=()',
+    'bluetooth=()',
+    'hid=()',
+    'midi=()',
+    'display-capture=()',      // screen recording
+    'attribution-reporting=()',// ad attribution measurement
+    'run-ad-auction=()',       // Protected Audience / FLEDGE on-device ad auctions
+    'join-ad-interest-group=()',
   ].join(', '));
   next();
 });
@@ -1322,8 +1371,22 @@ app.get('/api/proxies', async (req, res) => {
 // Exposes WHICH models are currently in cooldown and why, so "the AI is broken"
 // is diagnosable from outside the process. Deliberately leaks nothing sensitive:
 // model ids and upstream status codes only, never keys, prompts, or stack traces.
+// These two describe the SERVER-SIDE AI pipeline — model priority, which
+// upstream endpoint it would call, whether it holds a key, the full provider
+// inventory with per-provider URLs and limits. In production that pipeline is
+// switched off, so publishing its shape to anonymous callers is pure metadata
+// leakage: it advertises capability this deployment deliberately does not offer,
+// and hands a prospective abuser a map of what to aim at. Neither endpoint is
+// called by ANY client code (verified with a repo-wide search of public/).
+//
+// So they now answer honestly and minimally in production, and stay fully
+// detailed for local development and for an authenticated admin, who is the
+// only party the diagnostics were ever for.
 app.get('/api/ai/health', (req, res) => {
   res.set('Cache-Control', 'no-store');
+  if (!aiServerAllowed(req) && !adminAuthorized(req)) {
+    return res.json({ ok: true, mode: 'client-side', serverInference: false });
+  }
   const models = healthSnapshot();
   res.json({
     ok: true,
@@ -1341,6 +1404,9 @@ app.get('/api/ai/health', (req, res) => {
 
 app.get('/api/ai/providers', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  if (!aiServerAllowed(req) && !adminAuthorized(req)) {
+    return res.json({ mode: 'client-side', serverInference: false, text: [], image: [], web_search: [] });
+  }
   res.json(publicProviderList());
 });
 
@@ -3279,8 +3345,24 @@ function rankCatalogByKeywords(keywords, limit = 18) {
 
 // `ip` is used for the same rate/concurrency gates every other AI call goes
 // through — this was the one outbound AI path with NO throttling at all.
-async function vibeKeywordsFromAI(text, ip = 'unknown') {
-  // Gate first: unthrottled, this fired an outbound Pollinations request on every
+async function vibeKeywordsFromAI(text, req) {
+  // PRODUCTION GUARD FIRST — this was the AI path that escaped the audit.
+  //
+  // /api/ai/* is refused in production, but this route is not under /api/ai, so
+  // it was never gated: a Vibe Finder search whose mood missed the curated map
+  // sent the visitor's TYPED TEXT to Pollinations FROM THIS SERVER, on the
+  // server's IP. Measured under NODE_ENV=production before this guard existed:
+  // "relaxing puzzle" — an entirely ordinary query — took 3.02s because it was
+  // waiting on that outbound call. It was not an edge case.
+  //
+  // The Vibe Finder does not degrade: vibeKeywords() is the curated source of
+  // truth and the AI was only ever an optional refinement, so the caller's
+  // catch already falls back to it. In production the fallback is now the ONLY
+  // path, which also makes every mood search instant instead of costing up to
+  // 2.5s of dead wait.
+  if (!aiServerAllowed(req)) throw new Error('client-side-only');
+  const ip = req?.ip || 'unknown';
+  // Gate next: unthrottled, this fired an outbound Pollinations request on every
   // mood search that missed the local bucket map.
   if (!ipAllow(ip)) throw new Error('rate-limited');
   if (!aiGateEnter()) throw new Error('ai-busy');
@@ -3322,7 +3404,7 @@ app.get('/api/vibe', async (req, res) => {
   // the fix for "Vibe Finder takes too long / times out".
   if (!matched) {
     try {
-      const ai = await vibeKeywordsFromAI(q, req.ip || 'unknown');
+      const ai = await vibeKeywordsFromAI(q, req);
       if (ai.length) { keywords = [...new Set([...ai, ...local])]; source = 'ai'; }
     } catch { /* AI slow/down → built-in mood map carries it */ }
   }
@@ -3884,6 +3966,11 @@ app.get('/asset', async (req, res) => {
   try { target = new URL(raw); } catch { return res.status(400).type('text').send('bad url'); }
   if (target.protocol !== 'https:') return res.status(400).type('text').send('https only');
   if (isInternalHost(target.hostname)) return res.status(403).type('text').send('blocked host');
+  // This server never fetches an inference endpoint for a caller. See
+  // AI_PROVIDER_HOSTS — without this, /asset was a working AI proxy.
+  if (AI_PROVIDER_HOSTS.test(target.hostname)) {
+    return res.status(403).type('text').send('AI providers are not proxied — ZoFHub runs AI in your browser');
+  }
 
   try {
     const r = await fetchAsBrowser(target.toString(), {
