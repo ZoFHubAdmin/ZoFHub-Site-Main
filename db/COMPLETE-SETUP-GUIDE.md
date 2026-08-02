@@ -6,7 +6,10 @@ regenerating SQL, troubleshooting) see [../GAMES-SETUP.md](../GAMES-SETUP.md).
 
 ## Prerequisites
 - A Supabase project.
-- `.env` filled in with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+- `.env` filled in with `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the `sb_secret_…`
+  key from Settings → API Keys). The legacy `SUPABASE_SERVICE_ROLE_KEY` pair is
+  disabled on this project — it returns `401 Legacy API keys are disabled` — and
+  the loader mirrors the secret key onto that name for the older CLI tools.
 
 ## The two ways to load
 

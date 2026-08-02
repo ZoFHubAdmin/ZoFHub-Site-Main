@@ -54,6 +54,8 @@ const ORDER = [
    'provider fingerprints + duplicate relations for the game discovery engine.'],
   ['20260101000800', 'admin', 'db/admin.sql',
    'admin console: sessions, append-only audit trail, login attempts, security events.'],
+  ['20260101000900', 'scores_evidence', 'db/community-scores-evidence.sql',
+   'scores.flag_evidence + ip_tag: why a score was quarantined, and the correlation handle review needs. Runs after scores_integrity, which creates status/flag_reason.'],
 ];
 
 function render(name, src, why, body) {

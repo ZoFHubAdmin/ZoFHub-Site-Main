@@ -135,6 +135,7 @@ const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const weather = await import('./lib/weather.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
+const { assessScore } = await import('./lib/score-integrity.mjs');
 // Imported EARLY on purpose: renderDependencyTable() runs while routes are
 // being registered, which is before the late import block. A `const` from a
 // later `await import` is still in the temporal dead zone at that point, and
@@ -2334,6 +2335,10 @@ function loadScoreLimits() {
     SCORE_LIMITS = {
       default: Number(j.default) > 0 ? Number(j.default) : 5_000_000,
       perGame: (j.perGame && typeof j.perGame === 'object') ? j.perGame : {},
+      // Per-game override for the points-per-second rule. A game that genuinely
+      // scores faster than the global bound (idle/clicker curves do) gets its
+      // own number here rather than forcing the global one up for everybody.
+      perSecond: (j.perSecond && typeof j.perSecond === 'object') ? j.perSecond : {},
     };
   } catch (e) { console.warn('[scores] score-limits.json load failed:', e.message); }
 }
@@ -2343,9 +2348,26 @@ const scoreCeiling = (slug) => { const g = Number(SCORE_LIMITS.perGame[slug]); r
 // Outlier quarantine tuning + a one-time probe for the `status` column, so this
 // all keeps working BEFORE the user runs db/community-scores-integrity.sql
 // (quarantine simply stays off until the column exists).
-const OUTLIER_FACTOR = 6;         // a new score > 6x the current game-best ...
-const OUTLIER_BASELINE = 50;      // ... but only once the board has a real baseline
+// The quarantine rules themselves now live in lib/score-integrity.mjs, as a pure
+// function — inline here they could only be exercised with a live database and a
+// real play session, which meant they had no test coverage at all.
 let scoresStatusCol = null;       // null=unknown, true/false after probe
+
+// Same one-time probe, for the evidence columns added by
+// db/community-scores-evidence.sql. Probed rather than assumed so the detector
+// keeps quarantining on a database that has not had that migration applied yet —
+// it simply cannot record WHY, which is strictly better than not flagging.
+let scoresEvidenceCols = null;
+async function ensureEvidenceCols(supa) {
+  if (scoresEvidenceCols !== null) return scoresEvidenceCols;
+  try {
+    const { error } = await supa.from('scores').select('flag_evidence, ip_tag').limit(1);
+    scoresEvidenceCols = !error;
+    if (error) console.warn('[scores] flag_evidence/ip_tag not found — run db/community-scores-evidence.sql to record anti-cheat evidence. Quarantine itself is active regardless.');
+  } catch { scoresEvidenceCols = false; }
+  return scoresEvidenceCols;
+}
+
 async function ensureStatusCap(supa) {
   if (scoresStatusCol !== null) return scoresStatusCol;
   try {
@@ -2410,20 +2432,56 @@ app.post('/api/scores', async (req, res) => {
   const supa = getSupabaseAdmin();
   if (!supa) return res.status(503).json({ ok: false, error: 'Leaderboard not configured.' });
   const hasStatus = await ensureStatusCap(supa);
+  const hasEvidenceCols = hasStatus && await ensureEvidenceCols(supa);
   try {
     // Outlier quarantine: a wild leap past an ESTABLISHED game-best is held for
     // review (status='flagged') instead of shown. Only active once the column
     // exists (post-migration); harmless no-op before that.
-    let flagged = false;
+    let verdict = { flagged: false, reason: null, evidence: null };
+    const tag = ipTag(req.ip);
     if (hasStatus) {
       const { data: topRow } = await supa.from('scores')
         .select('score').eq('slug', slug).eq('status', 'ok')
         .order('score', { ascending: false }).limit(1).maybeSingle();
       const best = topRow?.score || 0;
-      if (best >= OUTLIER_BASELINE && score > best * OUTLIER_FACTOR) flagged = true;
+
+      // Replay probe: this exact score, for this game, from this source, seen
+      // before. Cheap — an index seek on (slug, ip_tag, score) — and it is the
+      // one signal the pure detector cannot compute for itself.
+      //
+      // SCOPE, precisely: ip_tag is written on the quarantine path below, so
+      // what this counts is REPEATED FLAGGED ATTEMPTS, not all submissions.
+      // Recording it on the clean path too would mean changing the signature of
+      // the submit_score() SECURITY DEFINER function, which is a schema change
+      // to the one write path that must not break. Someone retrying the same
+      // rejected score is exactly the behaviour worth catching, so this is
+      // narrower than it sounds — but it is narrower, and that is worth knowing
+      // before tuning DUPLICATE_THRESHOLD against it.
+      //
+      // A failed probe must never block a legitimate submission: it counts zero.
+      let duplicates = 0;
+      if (hasEvidenceCols) {
+        const { count, error: dupeErr } = await supa.from('scores')
+          .select('id', { count: 'exact', head: true })
+          .eq('slug', slug).eq('ip_tag', tag).eq('score', score);
+        if (!dupeErr) duplicates = count || 0;
+      }
+
+      verdict = assessScore({
+        score, best,
+        ceiling,
+        playedMs: sess.played,
+        duplicates,
+        maxPerSecond: SCORE_LIMITS.perSecond?.[slug],
+      });
     }
-    if (flagged) {
-      const { error } = await supa.from('scores').insert({ slug, player_name: name, score, status: 'flagged', flag_reason: 'outlier' });
+    if (verdict.flagged) {
+      const row = { slug, player_name: name, score, status: 'flagged', flag_reason: verdict.reason };
+      // The evidence columns arrive with db/community-scores-evidence.sql. Before
+      // that migration lands the detector still runs and still quarantines — it
+      // just cannot record why, which is strictly better than not quarantining.
+      if (hasEvidenceCols) { row.flag_evidence = verdict.evidence; row.ip_tag = tag; }
+      const { error } = await supa.from('scores').insert(row);
       if (error) throw error;
       return res.json({ ok: true, best: score, pending: true });
     }
@@ -2986,8 +3044,15 @@ app.get('/api/admin/scores/flagged', async (req, res) => {
     if (!(await ensureStatusCap(supa))) {
       return res.json({ ok: true, scores: [], note: 'The `status` column is missing — run db/community-scores-integrity.sql.' });
     }
+    // flag_evidence is what makes this queue reviewable rather than a guess:
+    // the board best at the time, the ratio, measured play time and implied
+    // points-per-second. Selected optionally so this endpoint still works on a
+    // database that has not had db/community-scores-evidence.sql applied.
+    const withEvidence = await ensureEvidenceCols(supa);
+    const cols = 'id, slug, player_name, score, status, flag_reason, created_at'
+      + (withEvidence ? ', flag_evidence' : '');
     const { data, error } = await supa.from('scores')
-      .select('id, slug, player_name, score, status, flag_reason, created_at')
+      .select(cols)
       .eq('status', 'flagged')
       .order('created_at', { ascending: false })
       .limit(200);

@@ -24,9 +24,14 @@ Your site pulls games from several major sources (some overlap; duplicates are c
 - Environment variables set in `.env` file:
   ```
   SUPABASE_URL=your_supabase_url
-  SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+  SUPABASE_SECRET_KEY=sb_secret_your_secret_key
   SCORE_SECRET=your_secret_key
   ```
+  Use `SUPABASE_SECRET_KEY` (Settings → API Keys → *secret*), **not** the legacy
+  `SUPABASE_SERVICE_ROLE_KEY`. The legacy `anon`/`service_role` pair is disabled
+  on this project and now answers `401 Legacy API keys are disabled`. The loader
+  mirrors the secret key onto the old variable name, so the tools below — which
+  read `SUPABASE_SERVICE_ROLE_KEY` by name — keep working with it unset.
 
 ## Step 1: Generate SQL Files
 

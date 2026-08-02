@@ -174,7 +174,7 @@ Copy `.env.example` → `.env` and fill in:
 | `SUPABASE_URL` | Supabase project URL. |
 | `SUPABASE_PUBLISHABLE_KEY` | Public (browser-safe) key. |
 | `SUPABASE_SECRET_KEY` | **Server-only** admin key (cron + writes + thumbnail fetch), the new `sb_secret_…` form. Preferred. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` equivalent. Still accepted; mirrored from `SUPABASE_SECRET_KEY` automatically so CLI tools keep working. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` name. **The legacy pair is disabled on this project** — presenting an old key returns `401 Legacy API keys are disabled`. Do not set it. The loader mirrors `SUPABASE_SECRET_KEY` onto this name automatically, which is the only reason the CLI tools that read it still work. |
 | `SCORE_SECRET` | Signs the leaderboard proof-of-play tokens. |
 | `PROXY_AD_SCRIPTS` | Comma-separated proxy-friendly ad loader script URL(s) (Adsterra popunder, Monetag push…). Google URLs are auto-rejected. |
 | `PROXY_BANNER_TAG` | Footer banner tag, 728×90 (one line). Shows only when set. |

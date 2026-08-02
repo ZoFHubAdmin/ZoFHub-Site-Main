@@ -109,7 +109,12 @@ services:
       # Set THIS one; when both are present the secret key wins.
       - key: SUPABASE_SECRET_KEY
         sync: false
-      # LEGACY fallback — still works until Supabase turns it off.
+      # LEGACY name. The `anon`/`service_role` pair has been DEACTIVATED on this
+      # project — presenting an old key returns 401 "Legacy API keys are
+      # disabled". Leave this UNSET: lib/load-env.mjs mirrors SUPABASE_SECRET_KEY
+      # onto this name so the CLI tools that read it keep working. It stays
+      # declared only so that setting it here, rather than picking it up from the
+      # committed .env, remains the deliberate choice.
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       # Proxy-friendly ad loaders (comma-separated). Google/AdSense URLs are
