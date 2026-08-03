@@ -142,6 +142,10 @@ const { parseScoreQuery, searchFilter, explainEvidence, summarizePlayer }
   = await import('./lib/score-review.mjs');
 // Structural catalog health — the offline half of tools/audit-catalog.mjs.
 const { auditGames, ISSUE_LABELS } = await import('./lib/catalog-quality.mjs');
+// Ops telemetry for the admin console: a bounded, redacted error buffer and the
+// catalog rollups the analytics panel needs.
+const { createErrorLog, summarizeCatalog } = await import('./lib/ops-metrics.mjs');
+const errorLog = createErrorLog();
 // Imported EARLY on purpose: renderDependencyTable() runs while routes are
 // being registered, which is before the late import block. A `const` from a
 // later `await import` is still in the temporal dead zone at that point, and
@@ -3040,6 +3044,110 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   } catch { return res.status(500).json({ ok: false, error: 'Update failed.' }); }
 });
 
+// --- GET /api/admin/analytics -----------------------------------------------
+// Play distribution across the catalog. Reads the in-memory playCounts map the
+// server already maintains, so opening this panel costs no database work.
+app.get('/api/admin/analytics', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    return res.json({ ok: true, ...summarizeCatalog(CATALOG.games, playCounts, { top: 20 }) });
+  } catch {
+    return res.status(500).json({ ok: false, error: 'Could not build analytics.' });
+  }
+});
+
+// --- GET /api/admin/system --------------------------------------------------
+// Runtime, background jobs, caches, feature state and recent errors: the things
+// you want when the site is misbehaving and you do not yet know why.
+//
+// Feature state is reported from the environment the process actually booted
+// with, not from a settings table. There is no toggle here that nothing reads —
+// a switch in a dashboard that changes no behaviour is worse than no switch,
+// because it looks like it worked.
+app.get('/api/admin/system', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const mem = process.memoryUsage();
+  const flag = (name, on, note) => ({ name, on: !!on, note: note || null });
+
+  let thumbCache = { files: null, bytes: null };
+  try {
+    const { readdirSync, statSync } = await import('node:fs');
+    const files = readdirSync(THUMB_CACHE_DIR);
+    let bytes = 0;
+    for (const f of files) { try { bytes += statSync(join(THUMB_CACHE_DIR, f)).size; } catch { /* raced */ } }
+    thumbCache = { files: files.length, bytes };
+  } catch { /* the directory is created lazily; absent is normal */ }
+
+  return res.json({
+    ok: true,
+    runtime: {
+      node: process.version,
+      platform: `${process.platform}/${process.arch}`,
+      env: process.env.NODE_ENV || 'development',
+      pid: process.pid,
+      uptimeSec: Math.round(process.uptime()),
+      rssMB: Math.round(mem.rss / 1048576),
+      heapUsedMB: Math.round(mem.heapUsed / 1048576),
+      heapTotalMB: Math.round(mem.heapTotal / 1048576),
+    },
+    // Render sets these; absent locally, which is not a fault.
+    deployment: {
+      service: process.env.RENDER_SERVICE_NAME || null,
+      region: process.env.RENDER_REGION || null,
+      commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 8) || null,
+      branch: process.env.RENDER_GIT_BRANCH || null,
+      instance: process.env.RENDER_INSTANCE_ID ? 'render' : 'self-hosted',
+    },
+    jobs: {
+      cron: process.env.CRON_DISABLED === '1' ? 'disabled' : 'running',
+      catalogSource: CATALOG.source,
+      catalogGeneratedAt: CATALOG.generatedAt,
+      catalogGames: CATALOG.games.length,
+      playCountsTracked: playCounts.size,
+      playCountsPending: playsDirty.size,
+    },
+    caches: {
+      thumbnails: { ...thumbCache, dir: '.cache/thumbs' },
+      catalogInMemory: CATALOG.games.length,
+    },
+    features: [
+      flag('Supabase writes', !!getSupabaseAdmin(), 'admin key present'),
+      flag('Cron jobs', process.env.CRON_DISABLED !== '1'),
+      flag('Server-side AI fallback', process.env.AI_SERVER_FALLBACK === '1',
+        'must stay OFF in production — the server is not an AI proxy'),
+      flag('Proxy engines', Object.values(proxyStatus || {}).some(Boolean),
+        Object.entries(proxyStatus || {}).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'),
+    ],
+    errors: { recent: errorLog.list({ limit: 40 }), ...errorLog.stats() },
+  });
+});
+
+// --- POST /api/admin/cache/clear --------------------------------------------
+// Drops the on-disk thumbnail cache. Safe by construction: every entry is a
+// copy of a remote image that is re-fetched on the next request, so the worst
+// case is one slow page load.
+app.post('/api/admin/cache/clear', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  auditAction(req, 'cache.clear', 'thumbnails');
+  try {
+    const { readdirSync, rmSync } = await import('node:fs');
+    let removed = 0;
+    for (const f of readdirSync(THUMB_CACHE_DIR)) {
+      // Only ever files directly inside the cache directory. Never recursive,
+      // never a path built from anything the caller sent.
+      try { rmSync(join(THUMB_CACHE_DIR, f), { force: true }); removed++; } catch { /* raced */ }
+    }
+    return res.json({ ok: true, removed });
+  } catch (e) {
+    if (e?.code === 'ENOENT') return res.json({ ok: true, removed: 0, note: 'Cache directory does not exist yet.' });
+    return res.status(500).json({ ok: false, error: 'Could not clear the cache.' });
+  }
+});
+
 // --- GET /api/admin/catalog/quality -----------------------------------------
 // Structural health of the catalog the site actually serves. CATALOG.games is
 // already override-applied (see loadCatalog), so this reports what a player
@@ -5420,6 +5528,10 @@ app.use((err, req, res, _next) => {
 
   // Genuine server fault: keep the full object, stack included.
   console.error('[zofhub] error:', err);
+  // Also into the bounded in-memory buffer the admin console reads. The message
+  // is redacted on the way in — an error message is the most common place a
+  // credential leaks, and this one ends up as JSON in a browser.
+  errorLog.record(err, { where: `${req.method} ${req.path}`, status });
   // Headers may already be sent (e.g. a stream that failed mid-flight); writing
   // again would throw ERR_HTTP_HEADERS_SENT inside the error handler itself.
   if (res.headersSent) { try { res.end(); } catch {} return; }

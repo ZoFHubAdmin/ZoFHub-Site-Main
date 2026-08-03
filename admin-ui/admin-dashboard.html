@@ -29,6 +29,8 @@
   <button class="tab" data-panel="scores"    role="tab" id="tab-scores"    aria-controls="panel-scores"    aria-selected="false">Leaderboard</button>
   <button class="tab" data-panel="community" role="tab" id="tab-community" aria-controls="panel-community" aria-selected="false">Community</button>
   <button class="tab" data-panel="security"  role="tab" id="tab-security"  aria-controls="panel-security"  aria-selected="false">Security</button>
+  <button class="tab" data-panel="analytics" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
+  <button class="tab" data-panel="system"    role="tab" id="tab-system"    aria-controls="panel-system"    aria-selected="false">System</button>
 </nav>
 
 <main id="main">
@@ -95,6 +97,30 @@
     <div id="eventsOut" class="table-wrap"></div>
     <h2>Audit trail <span class="hint-inline">append-only; cannot be edited or deleted from here</span></h2>
     <div id="auditOut" class="table-wrap"></div>
+  </section>
+
+  <section class="panel" data-panel="analytics" id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" tabindex="0">
+    <div id="anStats" class="stat-grid"></div>
+    <h2>Most played</h2>
+    <div id="anTop" class="table-wrap"></div>
+    <h2>Catalog composition</h2>
+    <div id="anBreakdown" class="split"></div>
+  </section>
+
+  <section class="panel" data-panel="system" id="panel-system" role="tabpanel" aria-labelledby="tab-system" tabindex="0">
+    <h2>Runtime</h2>
+    <div id="sysRuntime" class="kv-grid"></div>
+    <h2>Deployment</h2>
+    <div id="sysDeploy" class="kv-grid"></div>
+    <h2>Background jobs</h2>
+    <div id="sysJobs" class="kv-grid"></div>
+    <h2>Feature state <span class="hint-inline">read from the environment this process booted with</span></h2>
+    <div id="sysFeatures" class="kv-grid"></div>
+    <h2>Caches</h2>
+    <div id="sysCaches" class="kv-grid"></div>
+    <div class="row"><button id="clearCache" class="btn-ghost" type="button">Clear thumbnail cache</button></div>
+    <h2>Recent errors <span class="hint-inline">redacted, grouped, newest first</span></h2>
+    <div id="sysErrors" class="table-wrap"></div>
   </section>
 </main>
 

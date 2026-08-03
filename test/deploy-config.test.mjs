@@ -62,7 +62,18 @@ function envReads() {
 
 // Provided by the platform (Render injects PORT; Node sets NODE_ENV), or read
 // only by the test suite and local CLI tools that never run on the deploy host.
-const PLATFORM = new Set(['NODE_ENV', 'PORT', 'CI', 'HOME', 'USERPROFILE', 'PATH']);
+//
+// The RENDER_* group is injected by Render into every service automatically and
+// carries no secret — service name, region, git branch and commit. Declaring
+// them in render.yaml would be wrong twice over: they are not ours to set, and
+// a `sync: false` entry would make the deploy prompt for a value the platform
+// already supplies. The admin System panel reads them to show where the running
+// process came from, and they are simply absent off-Render.
+const PLATFORM = new Set([
+  'NODE_ENV', 'PORT', 'CI', 'HOME', 'USERPROFILE', 'PATH',
+  'RENDER_SERVICE_NAME', 'RENDER_REGION', 'RENDER_GIT_COMMIT',
+  'RENDER_GIT_BRANCH', 'RENDER_INSTANCE_ID',
+]);
 const isDeployCode = (files) => [...files].some(f => !f.startsWith('test/') && !f.startsWith('tools/'));
 
 /**

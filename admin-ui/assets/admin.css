@@ -117,6 +117,19 @@ main{max-width:1100px;margin:0 auto;padding:22px 20px 64px}
 .pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
 .pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 
+/* ── Analytics ─────────────────────────────────────────────────────────── */
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.split h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 10px}
+/* A bar per row, not a column of numbers: with 40 categories the relative
+   shape is the information, and the counts alone hide it. */
+.bar-row{display:grid;grid-template-columns:minmax(80px,34%) 1fr auto;align-items:center;gap:10px;
+  padding:3px 0;font-size:.8rem}
+.bar-k{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{background:var(--panel);border:1px solid var(--line);border-radius:999px;height:9px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--accent);border-radius:999px}
+.bar-v{font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+.kv-k em{font-style:normal}
+
 /* ── Catalog health ────────────────────────────────────────────────────── */
 .quality{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
   padding:14px;margin-bottom:16px}

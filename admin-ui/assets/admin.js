@@ -445,6 +445,125 @@ loaders.security = async () => {
   } catch (e) { say(e.message); }
 };
 
+// ── Analytics ──────────────────────────────────────────────────────────────
+loaders.analytics = async () => {
+  try {
+    const d = await api('/api/admin/analytics');
+    $('#anStats').innerHTML = [
+      ['Games served',  fmt(d.games)],
+      ['Total plays',   fmt(d.totalPlays)],
+      ['Games played',  fmt(d.playedGames)],
+      // On a 12,000-game catalogue this is the number that says whether
+      // discovery works: the share anyone has ever actually opened.
+      ['Catalog reach', `${fmt(d.coverage)}%`],
+    ].map(([k, v]) => `<div class="stat"><span class="stat-v">${esc(v)}</span><span class="stat-k">${esc(k)}</span></div>`).join('');
+
+    $('#anTop').innerHTML = table(d.topGames || [], [
+      { label: '#',        cell: (g, i) => String((d.topGames || []).indexOf(g) + 1) },
+      { label: 'Game',     cell: (g) => esc(g.title || g.slug) },
+      { label: 'Slug',     cell: (g) => `<code>${esc(g.slug)}</code>` },
+      { label: 'Category', cell: (g) => esc(g.category) },
+      { label: 'Plays',    cell: (g) => `<strong>${fmt(g.plays)}</strong>` },
+    ], 'No game has been played yet.');
+
+    // A bar per row rather than a bare count: with 40 categories the relative
+    // shape is the point, and a column of numbers hides it.
+    const bars = (rows, heading) => {
+      const max = Math.max(1, ...rows.map((r) => r.count));
+      return `<div><h3>${esc(heading)}</h3>` + rows.map((r) => `
+        <div class="bar-row">
+          <span class="bar-k">${esc(r.name)}</span>
+          <span class="bar-track"><span class="bar-fill" style="width:${(r.count / max) * 100}%"></span></span>
+          <span class="bar-v">${fmt(r.count)}</span>
+        </div>`).join('') + '</div>';
+    };
+    $('#anBreakdown').innerHTML =
+      bars((d.categories || []).slice(0, 14), 'By category') +
+      bars(d.providers || [], 'By provider');
+  } catch (e) { say(e.message); }
+};
+
+// ── System ─────────────────────────────────────────────────────────────────
+const kvGrid = (pairs) => pairs
+  .filter(([, v]) => v !== null && v !== undefined && v !== '')
+  .map(([k, v]) => `<div class="kv"><span class="kv-k">${esc(k)}</span><span class="kv-v">${esc(v)}</span></div>`)
+  .join('');
+
+const bytes = (n) => {
+  if (!Number.isFinite(Number(n))) return '—';
+  const v = Number(n);
+  if (v < 1024) return `${v} B`;
+  if (v < 1048576) return `${(v / 1024).toFixed(1)} KB`;
+  return `${(v / 1048576).toFixed(1)} MB`;
+};
+
+loaders.system = async () => {
+  try {
+    const d = await api('/api/admin/system');
+    const up = d.runtime?.uptimeSec || 0;
+    $('#sysRuntime').innerHTML = kvGrid([
+      ['Node', d.runtime?.node], ['Platform', d.runtime?.platform],
+      ['Environment', d.runtime?.env], ['Process id', d.runtime?.pid],
+      ['Uptime', `${Math.floor(up / 3600)}h ${Math.floor((up % 3600) / 60)}m`],
+      ['Memory (RSS)', `${d.runtime?.rssMB} MB`],
+      ['Heap', `${d.runtime?.heapUsedMB} / ${d.runtime?.heapTotalMB} MB`],
+    ]);
+
+    const dep = d.deployment || {};
+    // Render sets these; running locally they are simply absent, which is not a
+    // fault and should not render as a row of dashes.
+    $('#sysDeploy').innerHTML = kvGrid([
+      ['Host', dep.instance], ['Service', dep.service], ['Region', dep.region],
+      ['Branch', dep.branch], ['Commit', dep.commit],
+    ]) || '<p class="hint">No deployment metadata — this process is not running on Render.</p>';
+
+    const j = d.jobs || {};
+    $('#sysJobs').innerHTML = kvGrid([
+      ['Cron jobs', j.cron], ['Catalog source', j.catalogSource],
+      ['Catalog built', j.catalogGeneratedAt ? new Date(j.catalogGeneratedAt).toLocaleString() : null],
+      ['Games in catalog', fmt(j.catalogGames)],
+      ['Play counts tracked', fmt(j.playCountsTracked)],
+      ['Unflushed play counts', fmt(j.playCountsPending)],
+    ]);
+
+    $('#sysFeatures').innerHTML = (d.features || []).map((f) => `
+      <div class="kv"><span class="kv-k">${esc(f.name)}${f.note ? ` <em class="hint-inline">${esc(f.note)}</em>` : ''}</span>
+      <span class="kv-v"><span class="pill ${f.on ? 'ok' : ''}">${f.on ? 'on' : 'off'}</span></span></div>`).join('');
+
+    const c = d.caches || {};
+    $('#sysCaches').innerHTML = kvGrid([
+      ['Thumbnail cache', c.thumbnails?.files === null
+        ? 'not created yet'
+        : `${fmt(c.thumbnails?.files)} file(s), ${bytes(c.thumbnails?.bytes)}`],
+      ['Cache directory', c.thumbnails?.dir],
+      ['Catalog in memory', fmt(c.catalogInMemory)],
+    ]);
+
+    const e = d.errors || {};
+    $('#sysErrors').innerHTML =
+      `<p class="hint">${fmt(e.distinct)} distinct, ${fmt(e.total)} total since boot` +
+      `${e.dropped ? ` · ${fmt(e.dropped)} evicted (buffer holds ${fmt(e.capacity)})` : ''}</p>` +
+      table(e.recent || [], [
+        { label: 'Last seen', cell: (x) => esc(when(x.lastAt)) },
+        { label: 'Count',     cell: (x) => x.count > 1 ? `<strong>${fmt(x.count)}×</strong>` : '1' },
+        { label: 'Where',     cell: (x) => x.where ? `<code>${esc(x.where)}</code>` : '—' },
+        { label: 'Error',     cell: (x) => esc(x.message) },
+      ], 'No server errors since boot. That is the good outcome.');
+  } catch (err) { say(err.message); }
+};
+
+$('#clearCache').addEventListener('click', async (ev) => {
+  clear();
+  ev.target.disabled = true;
+  try {
+    const d = await api('/api/admin/cache/clear', { method: 'POST' });
+    // Safe by construction: every entry is a copy of a remote image that is
+    // re-fetched on demand, so the worst case is one slow page load.
+    say(`Thumbnail cache cleared — ${fmt(d.removed)} file(s) removed.`, 'ok');
+    loaders.system();
+  } catch (e) { say(e.message); } finally { ev.target.disabled = false; }
+});
+
 // ── Session controls ───────────────────────────────────────────────────────
 $('#logout').addEventListener('click', async () => {
   try { await api('/api/admin/auth/logout', { method: 'POST' }); } catch { /* leaving anyway */ }
