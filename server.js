@@ -136,6 +136,10 @@ const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
 const weather = await import('./lib/weather.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
 const { assessScore } = await import('./lib/score-integrity.mjs');
+// The review half of the same system: parsing a reviewer's filters and turning a
+// stored flag_evidence blob back into something a person can act on.
+const { parseScoreQuery, searchFilter, explainEvidence, summarizePlayer }
+  = await import('./lib/score-review.mjs');
 // Imported EARLY on purpose: renderDependencyTable() runs while routes are
 // being registered, which is before the late import block. A `const` from a
 // later `await import` is still in the temporal dead zone at that point, and
@@ -3034,6 +3038,118 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   } catch { return res.status(500).json({ ok: false, error: 'Update failed.' }); }
 });
 
+// ── Leaderboard review helpers ─────────────────────────────────────────────
+
+// Which score columns this database can actually serve. Both extra groups came
+// from later migrations, so a deployment that has not run them yet still gets a
+// working screen instead of a PostgREST error about an unknown column.
+async function reviewColumns(supa) {
+  const hasStatus = await ensureStatusCap(supa);
+  const hasEvidence = hasStatus && await ensureEvidenceCols(supa);
+  return {
+    hasStatus,
+    hasEvidence,
+    cols: 'id, slug, player_name, score, created_at'
+      + (hasStatus ? ', status, flag_reason' : '')
+      + (hasEvidence ? ', flag_evidence' : ''),
+  };
+}
+
+/**
+ * Add the two things a reviewer needs that are not on the row itself: the score
+ * to compare against, and the quarantine explained in words.
+ *
+ * The board best used to be fetched one query per row. At the 200-row limit that
+ * was 200 sequential round trips to render one table, and it got slower the more
+ * there was to review — exactly backwards. One `in` query covers every slug on
+ * the page instead.
+ */
+async function attachReviewContext(supa, rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return [];
+  const slugs = [...new Set(list.map((r) => r.slug).filter(Boolean))];
+  const best = new Map();
+  if (slugs.length) {
+    try {
+      const { data } = await supa.from('scores')
+        .select('slug, score').in('slug', slugs).eq('status', 'ok')
+        .order('score', { ascending: false });
+      for (const r of (data || [])) {
+        if (!best.has(r.slug)) best.set(r.slug, r.score);   // ordered desc, so first wins
+      }
+    } catch { /* context is a nicety; the queue must still render without it */ }
+  }
+  return list.map((s) => ({
+    ...s,
+    currentBest: best.get(s.slug) ?? 0,
+    verdict: s.status === 'ok' ? null : explainEvidence(s.flag_evidence, s.flag_reason),
+  }));
+}
+
+// --- GET /api/admin/scores --------------------------------------------------
+// The full leaderboard, not just the queue. Search by player or game, filter by
+// status, sort, paginate. Defaults to status=flagged so the URL with no query
+// string is still the review queue.
+app.get('/api/admin/scores', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabase();
+  if (!supa) return res.json({ ok: true, scores: [], total: 0, note: 'Supabase not configured.' });
+  const qy = parseScoreQuery(req.query);
+  try {
+    const { hasStatus, hasEvidence, cols } = await reviewColumns(supa);
+    let sel = supa.from('scores').select(cols, { count: 'exact' });
+    // Without the status column every row is implicitly public, so a status
+    // filter would silently return nothing rather than everything.
+    if (hasStatus && qy.status !== 'all') sel = sel.eq('status', qy.status);
+    const filter = searchFilter(qy.q);
+    if (filter) sel = sel.or(filter);
+    const { data, error, count } = await sel
+      .order(qy.column, { ascending: qy.ascending })
+      .range(qy.offset, qy.offset + qy.limit - 1);
+    if (error) throw error;
+    const scores = await attachReviewContext(supa, data || []);
+    return res.json({
+      ok: true, scores, total: count ?? scores.length,
+      query: { q: qy.q, status: qy.status, sort: qy.sort, limit: qy.limit, offset: qy.offset },
+      capabilities: { status: hasStatus, evidence: hasEvidence },
+    });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
+    return res.status(500).json({ ok: false, error: 'Could not load scores.' });
+  }
+});
+
+// --- GET /api/admin/players/:name -------------------------------------------
+// Everything one name has ever submitted. A single flagged row cannot tell you
+// whether someone is cheating or had one odd game; their history can.
+app.get('/api/admin/players/:name', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabase();
+  if (!supa) return res.json({ ok: true, player: null, scores: [], note: 'Supabase not configured.' });
+  const name = String(req.params.name || '').slice(0, 80);
+  if (!name) return res.status(400).json({ ok: false, error: 'no player name' });
+  try {
+    const { cols } = await reviewColumns(supa);
+    // eq(), not ilike() — this is an exact identity, and a pattern match here
+    // would fold distinct players together in a way a moderator would not see.
+    const { data, error } = await supa.from('scores')
+      .select(cols).eq('player_name', name)
+      .order('created_at', { ascending: false }).limit(200);
+    if (error) throw error;
+    const rows = data || [];
+    return res.json({
+      ok: true,
+      player: { name, ...summarizePlayer(rows) },
+      scores: await attachReviewContext(supa, rows),
+    });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
+    return res.status(500).json({ ok: false, error: 'Could not load player history.' });
+  }
+});
+
 // --- GET /api/admin/scores/flagged ------------------------------------------
 app.get('/api/admin/scores/flagged', async (req, res) => {
   if (!requireAdmin(req, res)) return;
@@ -3057,14 +3173,7 @@ app.get('/api/admin/scores/flagged', async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(200);
     if (error) throw error;
-    // Show the current public best for context, so "is this plausible?" is easy.
-    const out = [];
-    for (const s of (data || [])) {
-      const { data: top } = await supa.from('scores')
-        .select('score').eq('slug', s.slug).eq('status', 'ok')
-        .order('score', { ascending: false }).limit(1).maybeSingle();
-      out.push({ ...s, currentBest: top?.score ?? 0 });
-    }
+    const out = await attachReviewContext(supa, data || []);
     return res.json({ ok: true, scores: out, count: out.length });
   } catch (e) {
     if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
@@ -3076,17 +3185,35 @@ app.get('/api/admin/scores/flagged', async (req, res) => {
 app.post('/api/admin/scores/:id/:action', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   if (!requireAdminCsrf(req, res)) return;
-  auditAction(req, 'score.' + req.params.action, req.params.id);
   res.setHeader('Cache-Control', 'no-store');
-  if (req.params.action !== 'approve' && req.params.action !== 'reject') {
-    return res.status(400).json({ ok: false, error: 'action must be approve or reject' });
+  // Validate BEFORE auditing. This used to write 'score.' + the raw path segment
+  // into the audit log's action column, so any authenticated request could put
+  // an arbitrary string into an append-only table that nobody can clean up.
+  const ACTIONS = ['approve', 'reject', 'delete'];
+  if (!ACTIONS.includes(req.params.action)) {
+    return res.status(400).json({ ok: false, error: `action must be one of: ${ACTIONS.join(', ')}` });
   }
   const id = adminAuth.parseRowId(req.params.id);
   if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
-  const supa = getSupabaseAdmin();   // approve/reject a flagged score
+  auditAction(req, 'score.' + req.params.action, String(id));
+  const supa = getSupabaseAdmin();   // approve/reject/delete a score
   if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured — writes are disabled.' });
   const approve = req.params.action === 'approve';
   try {
+    // Deletion is the one irreversible action here, so what was removed goes
+    // into the audit trail first. Otherwise the delete destroys the only record
+    // that it ever existed, and an append-only log that cannot answer "what was
+    // in that row" is not much of a log.
+    if (req.params.action === 'delete') {
+      const { data: row } = await supa.from('scores')
+        .select('slug, player_name, score, status').eq('id', id).maybeSingle();
+      if (!row) return res.status(404).json({ ok: false, error: 'not found' });
+      const { error } = await supa.from('scores').delete().eq('id', id);
+      if (error) throw error;
+      auditAction(req, 'score.delete.detail', String(id), 'success',
+        `${row.player_name} · ${row.slug} · ${row.score} · was ${row.status}`);
+      return res.json({ ok: true, id, action: 'delete', deleted: row });
+    }
     // Approving makes the score public. The UNIQUE (slug, player_name) WHERE
     // status='ok' index (db/community-scores-unique.sql) means a player who
     // already has a visible row would collide — so fold it into their best.

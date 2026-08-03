@@ -52,8 +52,30 @@
   </section>
 
   <section class="panel" data-panel="scores" id="panel-scores" role="tabpanel" aria-labelledby="tab-scores" tabindex="0">
-    <p class="hint">Scores the anti-cheat layer quarantined. Approving restores a score to the public board; rejecting removes it.</p>
+    <!-- The whole leaderboard, not only the queue. Defaults to the quarantined
+         scores because that is the view with work waiting in it. -->
+    <div class="row">
+      <input id="scoreSearch" type="search" placeholder="Search by player or game…" autocomplete="off">
+      <label class="sel"><span class="sr-only">Status</span>
+        <select id="scoreStatus">
+          <option value="flagged">Awaiting review</option>
+          <option value="ok">On the public board</option>
+          <option value="rejected">Rejected</option>
+          <option value="all">Every score</option>
+        </select>
+      </label>
+      <label class="sel"><span class="sr-only">Sort</span>
+        <select id="scoreSort">
+          <option value="recent">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="highest">Highest score</option>
+          <option value="lowest">Lowest score</option>
+        </select>
+      </label>
+    </div>
+    <p id="scoreMeta" class="hint"></p>
     <div id="scoresOut" class="table-wrap"></div>
+    <div id="scorePager" class="pager"></div>
   </section>
 
   <section class="panel" data-panel="community" id="panel-community" role="tabpanel" aria-labelledby="tab-community" tabindex="0">

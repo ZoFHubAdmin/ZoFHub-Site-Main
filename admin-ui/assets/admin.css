@@ -117,8 +117,60 @@ main{max-width:1100px;margin:0 auto;padding:22px 20px 64px}
 .pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
 .pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 
+/* ── Leaderboard review ────────────────────────────────────────────────── */
+/* Visually hidden but still announced. Used for the labels on the filter
+   selects, which are obvious by position to a sighted user and completely
+   unlabelled to anyone else. */
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.sel select{
+  padding:10px 12px;border-radius:var(--radius);border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);font:inherit;cursor:pointer;
+}
+.sel select:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+/* A player name that opens their history. Styled as a link, but it is a real
+   button, so it is reachable by keyboard and announced as an action. */
+.lnk{
+  border:0;background:none;padding:0;font:inherit;color:var(--accent);
+  cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px;
+}
+.lnk:hover{text-decoration-thickness:2px}
+.lnk:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+.who-line{margin-left:12px;color:var(--dim)}
+.pager{display:flex;align-items:center;gap:10px;margin-top:12px}
+.btn-sm.ghost{opacity:.65}
+.btn-sm.ghost:hover{opacity:1}
+
+/* The evidence disclosure. Collapsed by default: a reviewer working a queue
+   wants the verdict, and the numbers only when the verdict is not obviously
+   right. Expanding it must not require leaving the row. */
+.verdict{max-width:340px}
+.verdict summary{cursor:pointer;list-style:none}
+.verdict summary::-webkit-details-marker{display:none}
+.verdict summary::before{content:"▸ ";color:var(--dim)}
+.verdict[open] summary::before{content:"▾ "}
+.verdict summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.verdict-head{font-size:.82rem}
+.verdict[data-legacy] .verdict-head{color:var(--dim);font-style:italic}
+
+.evidence{margin-top:8px;padding:8px 10px;background:var(--bg);
+  border:1px solid var(--line);border-radius:8px}
+.fact{display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:.78rem}
+.fact-k{color:var(--dim)}
+.fact-v{font-variant-numeric:tabular-nums;text-align:right}
+/* The specific numbers a rule fired on. Colour alone would not survive a
+   colour-blind reviewer, so the weight changes too. */
+.fact.is-hot .fact-v{color:var(--warn);font-weight:700}
+.fact-note{margin:0 0 6px;font-size:.75rem;color:var(--warn)}
+
 @media (max-width:640px){
   .topbar{padding:10px 14px}
   main{padding:16px 14px 48px}
   .tabs{padding:0 8px}
+  .verdict{max-width:none}
+  .who-line{display:block;margin:8px 0 0}
 }
