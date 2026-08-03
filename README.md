@@ -385,7 +385,7 @@ ZoFHub/
 ├── supabase/            # CLI config + migrations/ (GENERATED mirror of db/) + seed.sql
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
-│                        #   ai-pipeline, weather, recommender, credits, game-discovery
+│                        #   ai-pipeline, recommender, credits, game-discovery
 ├── test/                # node:test suites (174 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, leaderboard, browser, game…)

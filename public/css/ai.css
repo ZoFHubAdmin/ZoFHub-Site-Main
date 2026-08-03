@@ -303,3 +303,16 @@
   .ai-side { display: none; }
   .ai-image { width: 100%; }
 }
+
+/* ── AI disclaimer ────────────────────────────────────────────────────────
+   Under the composer, where it is read at the moment of use rather than in a
+   footer nobody scrolls to. Quiet enough not to compete with the conversation,
+   but it must still pass contrast — a warning nobody can read is decoration. */
+.ai-disclaimer {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 6px 0 0; padding: 0 2px;
+  font-size: 11.5px; line-height: 1.45;
+  color: var(--text-mute, #8f81c8);
+}
+.ai-disclaimer svg { flex: 0 0 13px; margin-top: 2px; opacity: .85; }
+@media (max-width: 560px) { .ai-disclaimer { font-size: 11px; } }

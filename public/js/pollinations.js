@@ -1,3 +1,4 @@
+import { SYSTEM_PROMPT } from './ai-prompt.js';
 // ZoFHub · pollinations.js — CLIENT-SIDE AI, the simple keyless URL way.
 // ---------------------------------------------------------------------------
 // The prompt the user types is sent to a Pollinations WEB URL directly from the
@@ -36,7 +37,10 @@ const IMG_DIRECT = 'https://image.pollinations.ai/prompt/';
 
 const MODEL     = 'openai-fast'; // keyless text model (GPT-OSS 20B reasoning)
 const REASONING = 'low';         // reasoning_effort:'low' → fast first token
-const SYSTEM    = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown. Keep answers focused and reasonably brief unless asked for more detail.';
+// Shared with ai.js and server.js — see public/js/ai-prompt.js. The three copies
+// that used to live here each said only "friendly, concise assistant" and never
+// forbade inventing facts, which is what produced the fabricated game histories.
+const SYSTEM    = SYSTEM_PROMPT;
 
 const CONNECT_MS = 15000, FIRST_BYTE_MS = 25000, IDLE_MS = 20000, GET_MS = 45000;
 

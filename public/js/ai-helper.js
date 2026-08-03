@@ -61,7 +61,8 @@ export function mountAIHelper(openNow = false) {
       <button type="submit" class="ai-orb-send" aria-label="Send">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
       </button>
-    </form>`;
+    </form>
+    <p class="ai-orb-note" role="note">AI can make mistakes. Verify anything important.</p>`;
   document.body.appendChild(panel);
 
   const body  = panel.querySelector('#aiOrbBody');

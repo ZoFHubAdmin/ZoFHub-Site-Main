@@ -797,6 +797,13 @@ body { letter-spacing: -0.005em; }
   background: rgba(0,0,0,.25); color: #fff; font-size: 13.5px; outline: none;
 }
 .ai-orb-form input:focus { border-color: var(--brand, #ffd426); }
+/* The same warning as the full AI page, sized for the floating panel. The orb
+   appears on every page, so this is where most people meet the assistant. */
+.ai-orb-note {
+  margin: 0; padding: 0 14px 11px;
+  font-size: 10.5px; line-height: 1.4;
+  color: var(--text-mute, #8f81c8);
+}
 .ai-orb-send {
   flex: 0 0 auto; width: 40px; border: 0; border-radius: 10px; cursor: pointer;
   display: grid; place-items: center; color: var(--surface);
@@ -914,53 +921,4 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 980px) {
   .header-user { padding: 3px; border: 0; background: none; max-width: none; }
   .header-user-name { display: none; }
-}
-
-/* ── Live weather pill (weather-widget.js) ──────────────────────────────────
-   Deliberately built from the same recipe as .live-total above — same padding,
-   radius, border weight, font size and nowrap — so the two live indicators read
-   as one set rather than two unrelated badges. The tint is the brand amber
-   instead of the presence green, which keeps them distinguishable at a glance
-   without introducing a new colour to the palette. */
-.wx-pill {
-  display: inline-flex; align-items: center;
-  font-size: 12.5px; font-weight: 700;
-  white-space: nowrap;
-}
-.wx-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 12px 6px 10px;
-  background: linear-gradient(180deg, rgba(255,212,38,.15), rgba(255,212,38,.05));
-  border: 1px solid rgba(255,212,38,.42);
-  border-radius: 999px;
-  font: inherit; color: #fff6d9;
-  letter-spacing: .01em;
-  cursor: pointer;
-  transition: background .18s, border-color .18s, transform .18s;
-}
-.wx-btn:hover { background: linear-gradient(180deg, rgba(255,212,38,.24), rgba(255,212,38,.09)); border-color: rgba(255,212,38,.62); }
-.wx-btn:active { transform: translateY(1px); }
-.wx-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.wx-icon { font-size: 14px; line-height: 1; }
-.wx-temp { color: var(--brand); font-weight: 800; font-variant-numeric: tabular-nums; }
-.wx-place { color: rgba(255,255,255,.7); font-weight: 600; }
-.wx-edit { display: inline-flex; }
-.wx-input {
-  width: 120px; padding: 6px 12px;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,212,38,.5);
-  border-radius: 999px;
-  font: inherit; color: var(--text);
-}
-.wx-input::placeholder { color: var(--text-mute); }
-.wx-input:focus { outline: none; border-color: var(--brand); }
-
-/* On narrow screens the city name is the first thing to go — the icon and
-   temperature carry the information, and header space is scarce. */
-@media (max-width: 760px) {
-  .wx-place { display: none; }
-  .wx-btn { padding: 6px 10px; }
-}
-@media (max-width: 480px) {
-  .wx-pill { display: none; }
 }

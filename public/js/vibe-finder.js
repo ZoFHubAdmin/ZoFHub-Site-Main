@@ -44,8 +44,12 @@ function injectStyles() {
   .vibe-trigger:hover{filter:brightness(1.08);box-shadow:0 5px 16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.3)}
   .vibe-trigger:active{transform:translateY(1px)}
   .vibe-trigger:focus-visible{outline:2px solid #ffd426;outline-offset:2px}
-  .vibe-trigger svg{width:14px;height:14px;flex:0 0 14px;color:#ffd426;
-    filter:drop-shadow(0 0 3px rgba(255,212,38,.65));animation:vibeSparkle 2.6s ease-in-out infinite}
+  /* The icon inherits the LABEL's colour, not the accent. It was #ffd426 with a
+     yellow glow — the same yellow as this button's own gradient background, so
+     the sparkle was being drawn in the background colour and was invisible. That
+     rule was written for an accent icon on a dark surface; this button is not one. */
+  .vibe-trigger svg{width:14px;height:14px;flex:0 0 14px;color:var(--brand-ink,#241a00);
+    animation:vibeSparkle 2.6s ease-in-out infinite}
   @keyframes vibeSparkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.82;transform:scale(1.14)}}
   /* On small screens collapse to a round icon-only button so it never crowds the input. */
   @media (max-width:760px){.vibe-trigger span{display:none}.vibe-trigger{padding:0;width:30px;gap:0;margin-left:8px}

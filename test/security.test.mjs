@@ -95,9 +95,4 @@ describe('input validation', () => {
     assert.ok(r.status < 500, `expected a handled response, got ${r.status}`);
   });
 
-  test('weather rejects a timezone that is not a timezone', async () => {
-    const r = await fetch(BASE + '/api/weather?tz=' + encodeURIComponent('http://169.254.169.254/'),
-      { signal: AbortSignal.timeout(15000) });
-    assert.equal(r.status, 400);
-  });
 });

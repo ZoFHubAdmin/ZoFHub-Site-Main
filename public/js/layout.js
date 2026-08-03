@@ -72,12 +72,6 @@ function mountLiveTotal() {
 }
 mountLiveTotal();
 
-// Live weather pill, on every page. Lazy-imported so the header paints first —
-// weather is ambient information, never blocking. Any failure inside the module
-// leaves the pill hidden rather than showing a broken badge.
-import('./weather-widget.js?v=20260801')
-  .then(m => m.mountWeather())
-  .catch(() => { /* weather unavailable → no pill, site unaffected */ });
 
 // ════════════════════════════════════════════════════════════════════════
 // Brand social links — ONLY pseudonymous brand accounts that point somewhere

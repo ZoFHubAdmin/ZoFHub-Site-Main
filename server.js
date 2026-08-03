@@ -133,9 +133,12 @@ const { publicProviderList, MODEL_FALLBACKS }               = await import('./li
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
-const weather = await import('./lib/weather.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
 const { assessScore } = await import('./lib/score-integrity.mjs');
+// The one shared AI prompt + retrieval grounding, imported by the browser as a
+// static module and by the server from disk. There is deliberately no copy.
+const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
+  = await import('./public/js/ai-prompt.js');
 // The review half of the same system: parsing a reviewer's filters and turning a
 // stored flag_evidence blob back into something a person can act on.
 const { parseScoreQuery, searchFilter, explainEvidence, summarizePlayer }
@@ -1857,36 +1860,26 @@ app.post('/api/ai/text', async (req, res) => {
     ? history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${String(m.content).slice(0, 700)}`).join('\n') + '\nAssistant:'
     : latest
   ).slice(0, 3500);
-  let system = 'You are ZoFHub AI, a friendly, concise assistant for students. Reply in clear markdown.';
-
-  // LIVE WEATHER GROUNDING.
-  // A language model has no idea what the weather is; asked directly it will
-  // confidently invent a temperature. So when the question is clearly about
-  // weather we fetch the real conditions and put them in the system prompt, and
-  // the model's job becomes summarising a fact rather than guessing one.
+  // RETRIEVAL BEFORE GENERATION.
+  // Asked who made a game, an ungrounded model invents authors, dates and a
+  // ZoFHub-flavoured backstory — it was told it IS ZoFHub, so it credited ZoFHub
+  // with third-party games. When the question names a game we hold, the real
+  // catalog fields go in the prompt and the model is told those are the only
+  // facts it has, including that authorship is genuinely not among them.
   //
-  // The weather text becomes part of the cache key (aiCacheKey hashes `system`),
-  // so a cached answer expires naturally as conditions change — no separate
-  // invalidation needed.
-  if (weather.looksLikeWeatherQuestion(latest)) {
-    try {
-      const place = await weather.resolveLocation({
-        city: req.body?.city ? String(req.body.city).slice(0, 80) : null,
-        tz: req.body?.tz ? String(req.body.tz).slice(0, 64) : null,
-      });
-      if (place) {
-        const wx = await weather.forecast(place.latitude, place.longitude);
-        system += '\n\nLIVE WEATHER (real data, retrieved just now — use it and do '
-          + 'not invent figures): ' + weather.summarize(place, wx);
-      }
-    } catch (e) {
-      // Weather being down must never break chat. Without live data the model
-      // is instructed to say so instead of fabricating.
-      console.warn('[ai] weather grounding unavailable:', e.message);
-      system += '\n\nNOTE: live weather is unavailable right now. If asked about '
-        + 'weather, say you cannot retrieve it rather than guessing.';
+  // The grounding text is part of the cache key (aiCacheKey hashes `system`), so
+  // a grounded answer and an ungrounded one never share a cache entry.
+  let grounding = '';
+  try {
+    if (looksLikeProvenanceQuestion(latest)) {
+      grounding = groundingBlock(findMentionedGames(latest, CATALOG.games));
     }
+  } catch (e) {
+    // Grounding is an improvement, not a dependency. The accuracy rules in the
+    // base prompt still apply without it.
+    console.warn('[ai] grounding unavailable:', e.message);
   }
+  let system = buildSystemPrompt(grounding);
 
   const cache = getCache();
   const key = aiCacheKey(system, ctx);
@@ -3937,48 +3930,6 @@ app.post('/api/for-you', (req, res) => {
   } catch (e) {
     console.warn('[for-you] failed:', e.message);
     return res.json({ games: [], count: 0, error: 'unavailable' });
-  }
-});
-
-// ========================================================================
-// GET /api/weather — live conditions + 3-day forecast from Open-Meteo.
-// ------------------------------------------------------------------------
-// Location, most explicit first: ?lat&lon -> ?city -> ?tz (IANA timezone).
-// The widget sends `tz` because the browser already knows it and it needs no
-// permission prompt and no third-party IP lookup — see lib/weather.mjs.
-//
-// Publicly cacheable: the response depends only on the coordinates, contains
-// nothing about the requester, and weather is identical for everyone in a city.
-// That lets a CDN absorb the traffic from a widget that renders on every page.
-// ========================================================================
-app.get('/api/weather', async (req, res) => {
-  try {
-    if (!writeAllow(req.ip || 'unknown', 30, 2000)) {
-      res.set('Cache-Control', 'no-store');
-      return res.status(429).json({ ok: false, error: 'rate_limited' });
-    }
-    const place = await weather.resolveLocation({
-      lat: req.query.lat, lon: req.query.lon,
-      city: req.query.city ? String(req.query.city).slice(0, 80) : null,
-      tz: req.query.tz ? String(req.query.tz).slice(0, 64) : null,
-    });
-    if (!place) {
-      res.set('Cache-Control', 'public, max-age=60');
-      return res.status(400).json({ ok: false, error: 'location_unresolved' });
-    }
-    const wx = await weather.forecast(place.latitude, place.longitude);
-    res.set('Cache-Control', 'public, max-age=600, s-maxage=600, stale-while-revalidate=1800');
-    return res.json({
-      ok: true,
-      place: { name: place.name, country: place.country },
-      ...wx,
-    });
-  } catch (e) {
-    // Never invent a temperature. A weather widget that guesses is worse than
-    // one that admits it is unavailable.
-    console.warn('[weather] failed:', e.message);
-    res.set('Cache-Control', 'no-store');
-    return res.status(503).json({ ok: false, error: 'weather_unavailable' });
   }
 });
 

@@ -228,29 +228,6 @@ describe('/api/for-you — recommendations', () => {
   });
 });
 
-describe('/api/weather', () => {
-  test('resolves a location from an IANA timezone', async () => {
-    const r = await get('/api/weather?tz=' + encodeURIComponent('Europe/London'));
-    assert.equal(r.status, 200);
-    const j = await r.json();
-    assert.equal(j.ok, true);
-    assert.equal(typeof j.current.temperature, 'number');
-    assert.ok(j.current.text && j.current.icon);
-    assert.ok(Array.isArray(j.daily) && j.daily.length >= 1);
-  });
-
-  test('rejects an unresolvable location with 400, not a guess', async () => {
-    // A weather feature inventing a temperature is the one thing it must never do.
-    for (const q of ['?tz=not-a-timezone', '', '?city=']) {
-      const r = await get('/api/weather' + q);
-      assert.equal(r.status, 400, `expected 400 for "${q}"`);
-      const j = await r.json();
-      assert.equal(j.ok, false);
-      assert.ok(!('current' in j), 'must not return fabricated conditions');
-    }
-  });
-});
-
 describe('/api/ai/health', () => {
   test('reports model health without exposing secrets', async () => {
     const r = await get('/api/ai/health');

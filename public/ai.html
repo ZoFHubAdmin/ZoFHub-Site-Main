@@ -81,6 +81,16 @@
         </button>
       </form>
       <div class="ai-hint">Enter to send · Shift+Enter for newline · <b>/image</b> draw a picture · free &amp; unlimited</div>
+      <!-- Sits directly under the composer, so it is read at the moment of use
+           rather than buried in a footer nobody scrolls to. role="note" keeps it
+           out of the live-region chatter as replies stream in. -->
+      <p class="ai-disclaimer" role="note">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        AI can make mistakes — including about games, people and dates.
+        Verify anything important; do not treat answers as fact.
+      </p>
     </section>
   </main>
 
