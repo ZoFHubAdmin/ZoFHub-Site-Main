@@ -44,6 +44,9 @@
   </section>
 
   <section class="panel" data-panel="games" id="panel-games" role="tabpanel" aria-labelledby="tab-games" tabindex="0">
+    <!-- Catalog health first: it describes the whole set, and the search below
+         only ever shows one page of it. -->
+    <div id="qualityOut" class="quality"></div>
     <div class="row">
       <input id="gameSearch" type="search" placeholder="Search games by title or slug…" autocomplete="off">
       <button id="refreshCatalog" class="btn-ghost" type="button">Refresh catalog</button>

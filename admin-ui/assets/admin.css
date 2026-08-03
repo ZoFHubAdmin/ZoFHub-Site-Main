@@ -117,6 +117,16 @@ main{max-width:1100px;margin:0 auto;padding:22px 20px 64px}
 .pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
 .pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 
+/* ── Catalog health ────────────────────────────────────────────────────── */
+.quality{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;margin-bottom:16px}
+.quality-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.quality-score{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.quality-list{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px 20px}
+.quality .hint{margin:12px 0 0}
+.quality .fact-k em{font-style:normal;color:var(--dim);opacity:.8}
+.quality code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+
 /* ── Leaderboard review ────────────────────────────────────────────────── */
 /* Visually hidden but still announced. Used for the labels on the filter
    selects, which are obvious by position to a sighted user and completely

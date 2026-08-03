@@ -49,7 +49,8 @@
     "rec-index": "node tools/run-python.mjs tools/build-recommendations.py",
     "feed-rank": "node tools/run-python.mjs tools/analyze-catalog.py",
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
-    "admin-hash": "node tools/hash-admin-password.mjs"
+    "admin-hash": "node tools/hash-admin-password.mjs",
+    "quality": "node tools/catalog-quality.mjs"
   },
   "engines": {
     "node": ">=22"

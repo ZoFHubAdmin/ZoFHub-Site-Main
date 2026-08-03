@@ -140,6 +140,8 @@ const { assessScore } = await import('./lib/score-integrity.mjs');
 // stored flag_evidence blob back into something a person can act on.
 const { parseScoreQuery, searchFilter, explainEvidence, summarizePlayer }
   = await import('./lib/score-review.mjs');
+// Structural catalog health — the offline half of tools/audit-catalog.mjs.
+const { auditGames, ISSUE_LABELS } = await import('./lib/catalog-quality.mjs');
 // Imported EARLY on purpose: renderDependencyTable() runs while routes are
 // being registered, which is before the late import block. A `const` from a
 // later `await import` is still in the temporal dead zone at that point, and
@@ -3036,6 +3038,33 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
     if (error) throw error;
     return res.json({ ok: true, id, is_visible: req.params.action === 'show' });
   } catch { return res.status(500).json({ ok: false, error: 'Update failed.' }); }
+});
+
+// --- GET /api/admin/catalog/quality -----------------------------------------
+// Structural health of the catalog the site actually serves. CATALOG.games is
+// already override-applied (see loadCatalog), so this reports what a player
+// sees rather than what the database holds — auditing the raw table re-reports
+// the ~4,200 entries the override layer already handles and buries anything new.
+//
+// Read-only. Hiding a game is a separate, reviewable step: `npm run quality --
+// --write` appends rules to data/catalog-overrides.json, which lands in a diff
+// rather than mutating the live site from a dashboard button.
+app.get('/api/admin/catalog/quality', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const report = auditGames(CATALOG.games);
+    return res.json({
+      ok: true,
+      ...report,
+      source: CATALOG.source,
+      generatedAt: CATALOG.generatedAt,
+      labels: ISSUE_LABELS,
+      applyWith: 'npm run quality -- --write',
+    });
+  } catch {
+    return res.status(500).json({ ok: false, error: 'Could not audit the catalog.' });
+  }
 });
 
 // ── Leaderboard review helpers ─────────────────────────────────────────────

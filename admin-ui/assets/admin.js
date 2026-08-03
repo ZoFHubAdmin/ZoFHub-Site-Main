@@ -137,6 +137,43 @@ loaders.overview = async () => {
 };
 
 // ── Games ──────────────────────────────────────────────────────────────────
+// Catalog health. Deliberately read-only: hiding a game is done by
+// `npm run quality -- --write`, which lands the change in a reviewable diff
+// instead of mutating the live site from a dashboard button nobody can audit.
+async function loadQuality() {
+  try {
+    const d = await api('/api/admin/catalog/quality');
+    const sev = d.bySeverity || {};
+    const tone = d.score >= 99 ? 'ok' : d.score >= 95 ? 'warn' : 'bad';
+    const rows = Object.entries(d.byKind || {}).sort((a, b) => b[1] - a[1]);
+
+    $('#qualityOut').innerHTML = `
+      <div class="quality-head">
+        <div class="quality-score">
+          <span class="pill ${tone}">${esc(d.score)}% structurally sound</span>
+          <span class="hint-inline">${fmt(d.healthy)} of ${fmt(d.total)} served games have no issues</span>
+        </div>
+        <span class="hint-inline">source: ${esc(d.source || '—')}</span>
+      </div>` +
+      (rows.length ? `<div class="quality-list">` + rows.map(([kind, n]) => {
+        // Cosmetic issues are called out as harmless on the row itself. Without
+        // that, "3,000 games have no thumbnail" reads as an outage.
+        const cosmetic = kind === 'no-thumbnail' || kind === 'no-category';
+        return `<div class="fact${cosmetic ? '' : ' is-hot'}">
+          <span class="fact-k">${esc((d.labels || {})[kind] || kind)}${cosmetic ? ' <em>— cosmetic, stays visible</em>' : ''}</span>
+          <span class="fact-v">${fmt(n)}</span></div>`;
+      }).join('') + `</div>` : '')
+      + (d.removable?.length
+        ? `<p class="hint">${fmt(d.removable.length)} entr${d.removable.length === 1 ? 'y is' : 'ies are'} unusable or redundant.
+           Hide them with <code>${esc(d.applyWith)}</code> — it writes reviewable rules to
+           <code>data/catalog-overrides.json</code>.</p>`
+        : `<p class="hint">Nothing is unusable or redundant. Cosmetic gaps above do not hide a game.</p>`);
+  } catch (e) {
+    // A failed audit must not take the games table down with it.
+    $('#qualityOut').innerHTML = `<p class="hint">Catalog health unavailable: ${esc(e.message)}</p>`;
+  }
+}
+
 async function loadGames() {
   const q = $('#gameSearch').value.trim();
   try {
@@ -154,7 +191,7 @@ async function loadGames() {
       ], q ? 'No games match that search.' : 'No games loaded.');
   } catch (e) { say(e.message); }
 }
-loaders.games = loadGames;
+loaders.games = () => { loadQuality(); loadGames(); };
 $('#gameSearch').addEventListener('input', () => {
   clearTimeout(window.__gt); window.__gt = setTimeout(loadGames, 250);
 });
