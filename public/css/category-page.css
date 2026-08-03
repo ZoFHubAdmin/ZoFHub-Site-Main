@@ -58,7 +58,7 @@
 .page-btn:hover { background: var(--surface-2); border-color: var(--line-2); }
 .page-btn.active {
   background: var(--brand);
-  color: #241a55;
+  color: var(--surface);
   border-color: var(--brand);
   cursor: default;
 }

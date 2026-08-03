@@ -50,7 +50,8 @@
     "feed-rank": "node tools/run-python.mjs tools/analyze-catalog.py",
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "admin-hash": "node tools/hash-admin-password.mjs",
-    "quality": "node tools/catalog-quality.mjs"
+    "quality": "node tools/catalog-quality.mjs",
+    "css-tokens": "node tools/css-tokens.mjs"
   },
   "engines": {
     "node": ">=22"

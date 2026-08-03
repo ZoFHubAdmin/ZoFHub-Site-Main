@@ -59,7 +59,7 @@
 .br-urlbar input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text, #fff); font: inherit; font-size: 13.5px; }
 
 .br-note { font-size: 12.5px; color: var(--text-mute, #8a94a6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.br-note-link { color: #ffd426; text-decoration: none; font-weight: 700; }
+.br-note-link { color: var(--brand); text-decoration: none; font-weight: 700; }
 .br-note-link:hover { text-decoration: underline; }
 
 /* Fullscreen button sits IN the toolbar (not floating). */
@@ -133,7 +133,7 @@
 .loader-caption { font-size: 12.5px; color: #b8c4d0; margin: 0; }
 .spinner {
   width: 38px; height: 38px; border-radius: 50%;
-  border: 3px solid rgba(255,255,255,.12); border-top-color: #ffd426;
+  border: 3px solid rgba(255,255,255,.12); border-top-color: var(--brand);
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }

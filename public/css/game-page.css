@@ -93,7 +93,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   width: 100%;
   aspect-ratio: 16 / 9;
   /* Neutral stage backdrop — shows only briefly while the game iframe loads. */
-  background: linear-gradient(160deg, #2c2065 0%, #241a55 60%, #201650 100%);
+  background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface) 60%, var(--bg-grad-from) 100%);
   border-radius: 16px;
   overflow: hidden;
   box-shadow:
@@ -266,7 +266,7 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
 .play-notice-btn {
   flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 9px; cursor: pointer;
-  background: linear-gradient(135deg, #ffd426, #f5c518); color: #241a00;
+  background: linear-gradient(135deg, var(--brand), #f5c518); color: var(--brand-ink);
   border: 0; font: inherit; font-size: 12.5px; font-weight: 800;
   transition: filter .2s ease, transform .2s ease;
 }
