@@ -546,3 +546,42 @@ body.is-searching #allRowTitle::before {
   .game-tile:hover { transform: translateY(-4px); }
   .game-tile:hover img { transform: none; }
 }
+
+/* ============================================================
+   CATEGORY RAILS — one row per category, with a way through.
+   Measured problem: 52 of ~12,700 games had ever been opened (0.4% reach).
+   The homepage surfaced ~90 tiles and everything else sat behind "All games".
+   These rails turn 20 sidebar links into ~240 visible games, each linking to
+   the full paginated /category/:slug page.
+   ============================================================ */
+.rail-row { margin-top: 28px; }
+/* The rail head puts the title and the way out on one baseline. .row-title
+   carries its own bottom margin for the standalone rows above, which would
+   push the link off that baseline here. */
+.rail-row .row-head { align-items: center; }
+.rail-row .row-title { margin-bottom: 0; font-size: 19px; }
+
+.row-more {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex: none;                       /* never let a long title squeeze it away */
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.row-more:hover { color: var(--brand); border-color: var(--line-2); background: var(--surface-hi); }
+.row-more:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.row-more svg { transition: transform .15s ease; }
+.row-more:hover svg { transform: translateX(2px); }
+/* The count is supporting detail, not the label — "View all 412" should read as
+   one action, with the number quieter than the verb. */
+.row-more-n { color: var(--text-mute); font-weight: 600; }
+
+@media (max-width: 560px) {
+  .rail-row { margin-top: 20px; }
+  .rail-row .row-title { font-size: 17px; }
+  .row-more { padding: 5px 10px; font-size: 12px; }
+  .row-more-n { display: none; }   /* the verb matters more than the number here */
+}

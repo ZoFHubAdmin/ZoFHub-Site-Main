@@ -208,7 +208,7 @@ async function retryLoad() {
   if (!state.loadFailed) {
     recomputeCounts();
     renderSidebar();
-    renderFeatured(); renderTrending(); renderNew(); renderRunners();
+    renderFeatured(); renderTrending(); renderNew(); renderRunners(); renderCategoryRails();
     renderFavoritesRow(); renderForYouRow(); renderRecentRow();
     loadRest();
   }
@@ -242,7 +242,7 @@ async function loadRest() {
   // Full catalog is now in memory — keep the server's per-visit order as-is.
   recomputeCounts();
   renderSidebar();
-  renderFeatured(); renderTrending(); renderNew(); renderRunners();
+  renderFeatured(); renderTrending(); renderNew(); renderRunners(); renderCategoryRails();
   renderForYouRow();   // now that the full catalog is loaded, recs can pull from every game
   // Re-run if the user is searching (so results now cover the FULL catalog, not
   // just the first 600) or is on the default all-games view. resetView=false
@@ -622,6 +622,68 @@ function paintGrid(grid, items, opts = {}) {
   });
   grid.innerHTML = '';
   grid.appendChild(frag);
+}
+
+// ============ Category rails ============
+// The discovery problem, measured: of ~12,700 games in the catalog, 52 had ever
+// been opened — 0.4% reach. The homepage surfaced roughly 90 games across its
+// fixed rows and everything else sat behind "All games", which nobody scrolls.
+//
+// A rail per category turns 20 hidden sidebar links into ~240 visible games,
+// each with a way through to the full paginated /category/:slug page. The
+// categories shown rotate per visit, so a returning player meets a different
+// slice instead of the same 90 tiles.
+
+const RAIL_SIZE = 12;          // tiles per rail — one row on a wide screen
+const RAIL_COUNT = 8;          // rails per visit; more than this and the page is a wall
+const RAIL_MIN = 8;            // a category with fewer games than this looks broken as a rail
+
+function railHead(name, href, count) {
+  const head = el('div', { class: 'row-head' });
+  head.innerHTML =
+    `<h2 class="row-title">${escapeHtml(name)}</h2>` +
+    `<a class="row-more" href="${href}">View all${count ? ` <span class="row-more-n">${fmtCount(count)}</span>` : ''}
+       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+         <path d="M5 12h13M13 6l6 6-6 6"/></svg></a>`;
+  return head;
+}
+
+function renderCategoryRails() {
+  const host = $('#categoryRails');
+  if (!host) return;
+  // Only ever built from what is already loaded, so a rail cannot show a game
+  // the rest of the page has filtered out.
+  const byCat = new Map();
+  for (const g of state.all) {
+    const c = (g.category || '').toLowerCase();
+    if (!c) continue;
+    if (!byCat.has(c)) byCat.set(c, []);
+    byCat.get(c).push(g);
+  }
+
+  // Skip categories the fixed rows above already cover, or the same games
+  // appear twice within one screen.
+  const covered = new Set(['featured', 'new', 'all']);
+  const eligible = [...byCat.entries()]
+    .filter(([id, games]) => !covered.has(id) && games.length >= RAIL_MIN);
+  if (!eligible.length) { host.innerHTML = ''; return; }
+
+  const pick = shuffled(eligible).slice(0, RAIL_COUNT);
+  const frag = document.createDocumentFragment();
+  for (const [id, games] of pick) {
+    const nav = NAV.find(c => c.id === id);
+    const section = el('section', { class: 'row rail-row' });
+    section.appendChild(railHead(nav?.name || id, `/category/${encodeURIComponent(id)}`, games.length));
+    const grid = el('div', { class: 'game-grid' });
+    // Shuffled, not "first N": taking the head of the list would show the same
+    // tiles on every visit and defeat the point of the rail.
+    paintGrid(grid, shuffled(games).slice(0, RAIL_SIZE));
+    section.appendChild(grid);
+    frag.appendChild(section);
+  }
+  host.innerHTML = '';
+  host.appendChild(frag);
 }
 
 // ============ Filtering / "All games" ============
