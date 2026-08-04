@@ -51,7 +51,7 @@ process.on('uncaughtException', (err) => {
 //      "change-me-…" — a documented password, i.e. no password at all. So
 //      placeholder values are stripped rather than used, which makes each
 //      feature take its own safe path: admin auth fails CLOSED, Supabase reports
-//      unconfigured, SCORE_SECRET falls back to a random per-boot value.
+//      unconfigured, and session secrets fall back to a random per-boot value.
 const PLACEHOLDER = /^(change-me|your-|YOUR_|<|\.\.\.|https:\/\/your-|sb_publishable_your)/;
 // The `<` branch above exists to catch .env.example dummies written as <your-key>.
 // But a REAL ad banner tag is raw HTML and always starts with "<script>", so it

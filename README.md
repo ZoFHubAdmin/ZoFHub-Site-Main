@@ -10,26 +10,26 @@
 
 A single-server web app that bundles three things into one site:
 
-1. **A games hub** — **12,711 playable games** served from official/authorized embeds (16,913 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a cheat-resistant global leaderboard, and a community wall.
+1. **A games hub** — **12,333 playable games** served from official/authorized embeds (16,895 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, and a community wall.
 2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **entirely in the visitor's browser**. Keyless, and **no prompt, reply or generated image ever touches this server** — that is enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks.
 
-It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, scores, and community data. It runs as **one always-on proxy site** that shows the proxy **and** ads together, monetized entirely by **proxy-friendly ad networks** (no Google AdSense).
+It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, feedback, and community data. It runs as **one always-on proxy site** that shows the proxy **and** ads together, monetized entirely by **proxy-friendly ad networks** (no Google AdSense).
 
 ---
 
 ## ✨ Features
 
-- 🎮 **12,711 playable games** from GameMonetize, Y8, Famobi and GameDistribution — all via their official embed URLs. (Another 4,202 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
+- 🎮 **12,333 playable games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — all via their official embed URLs. (Another ~4,560 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
 - ⚡ **Instant catalog** — the full game list is held in memory and refreshed from Supabase every 30 min; API responses are edge-cached.
 - 🌟 **Game of the Day** — a deterministic daily pick (same for every visitor, changes at UTC midnight), genre-weighted toward what players actually play.
-- 🏆 **Cheat-resistant leaderboard** — score submissions require a signed **proof-of-play session** (single-use, minimum play time, per-game score ceilings); statistical outliers are quarantined instead of shown.
+- 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for, no emails collected.
 - 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks.
 - 🧩 **Always-on proxy + ads** — one site runs the web proxy **and** ads together, monetized by proxy-friendly networks (Adsterra / HilltopAds / Monetag). No Google AdSense. See [💰 Monetization](#-monetizing-the-proxy-build).
 - 💤 **Free-tier friendly** — a secured `/healthz` keep-alive endpoint keeps Render + Supabase awake without a paid plan.
-- 🛠️ **Self-maintaining** — 7 scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune scores & community posts, and heartbeat the DB. See [`lib/cron-jobs.mjs`](lib/cron-jobs.mjs).
+- 🛠️ **Self-maintaining** — scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune community posts and admin logs, and heartbeat the DB. See [`lib/cron-jobs.mjs`](lib/cron-jobs.mjs).
 
 ---
 
@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 174 tests |
+| Tests | `node:test` (built in — zero test dependencies), 269 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -50,36 +50,53 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 ## 🎮 The catalog: what is actually served
 
-The numbers differ at each layer, on purpose. Measured live:
+The numbers differ at each layer, on purpose. Measured live on 2026-08-04 by
+walking every page of `/api/games` against the production Supabase set:
 
 | Layer | Count | Why |
 |---|---:|---|
-| Rows in Supabase `games` | **16,913** | everything ever ingested |
-| `is_working = true` | 16,820 | 93 failed the link checker |
-| Visible to the public key | 16,820 | the RLS policy is exactly `is_working = true` |
-| **Actually served to visitors** | **12,711** | after provider exclusions + curation overrides |
+| Rows loaded from Supabase `games` | **16,895** | everything ever ingested that passes RLS |
+| Visible to the public key | 16,895 | the RLS policy is exactly `is_working = true` |
+| **Actually served to visitors** | **12,333** | after provider exclusions + curation overrides |
 
 ### Where the served games come from
 
 | Provider | Served | Share |
 |---|---:|---:|
-| GameMonetize (`html5.gamemonetize.co`) | 9,576 | 75.3% |
-| Y8 (`www.y8.com`) | 2,367 | 18.6% |
-| Famobi (`play.famobi.com`) | 607 | 4.8% |
-| GameDistribution (`html5.gamedistribution.com`) | 155 | 1.2% |
-| Direct `.io` titles (smashkarts, suroi, bloxd, deadshot, turbowarp) | 5 | <0.1% |
+| GameMonetize (`html5.gamemonetize.co`) | 9,566 | 77.6% |
+| Y8 (`www.y8.com` + `y8.com`) | 2,349 | 19.0% |
+| OnlineGames.io (`www.` + `cloud.onlinegames.io`) | 258 | 2.1% |
+| GameDistribution (`html5.gamedistribution.com`) | 155 | 1.3% |
+| Direct `.io` titles (suroi, bloxd, deadshot, lolbeans, turbowarp) | 5 | <0.1% |
 
-### Why ~4,200 catalogued games are never served
+Those five hosts are the complete list. A scan of all 12,333 served rows found
+**zero** URLs on `famobi`, `smashkarts`, `gamezop`, `gameflare` or `htmlgames`.
 
-This is deliberate, and it is the single most surprising thing about the catalog:
+> ⚠️ Those last 5 rows embed a **publisher's own site root** (`https://bloxd.io/`, …) rather than a distributor URL, so there is no licence chain behind them. `smashkarts.io` was the sixth and was removed on 2026-08-04 for exactly that reason. The remaining four are flagged for a decision, not verified as permitted — see [`data/catalog-overrides.json`](data/catalog-overrides.json).
 
-- **HTMLGames (1,195), OnlineGames.io (311)** — both **frame-bust**. They actively break out of an `<iframe>`, so an embed renders a broken or hijacked page. They are excluded at the source-of-truth level (`server.js`), and were also removed as catalog-growth sources.
-- **Gamezop (228), GameFlare (154)** — excluded for the same anti-framing behaviour.
-- **Curation overrides (2,306 remove rules)** — duplicates, trademark-risk titles, and dead embeds, in [`data/catalog-overrides.json`](data/catalog-overrides.json).
+### Why ~4,560 catalogued games are never served
 
-They stay in the database rather than being deleted, so the exclusion is reversible if a provider ever changes its framing policy.
+This is deliberate, and it is the single most surprising thing about the catalog.
+**Two different reasons** get confused constantly, so they are separated here:
 
-**87 distinct categories.** Largest: arcade (5,364), action (1,205), racing (1,202), girls (1,130), puzzle (1,118), shooting (1,057), sports (1,055).
+**Excluded because they do not render**
+
+- **HTMLGames (1,195)** — frame-busts via its on-page `GameLib/ThirdParty.js`, so an embed renders a broken or hijacked page.
+- **GameFlare (154)** — returns `403` + `X-Frame-Options: SAMEORIGIN` for third-party embeds (re-verified 2026-07-29, 25/25 probes).
+
+**Excluded for licensing**
+
+- **Famobi (603)** — blocked 2026-08-04. `tools/audit-licensing.mjs` puts Famobi in tier **ACCOUNT**: embedding is free but must run through their publisher programme and feed, and every catalog row is a raw `play.famobi.com` hotlink instead. Also removed as a catalog-growth source, so no new ones arrive.
+- **Gamezop (228)** — tier **PARTNER-ID**: the embeds carry a *different* publisher's partner id, not ours.
+- **Trademark / publisher-site titles** — e.g. Subway Surfers (SYBO/Kiloo), Smash Karts (`smashkarts.io` framed whole). Blocked by slug, by title **and** by host, because a re-import can change a slug but not a name.
+
+**Excluded as duplicates or dead embeds**
+
+- **Curation overrides (2,400 remove rules — 2,389 by slug, 6 by host, 4 by title)** in [`data/catalog-overrides.json`](data/catalog-overrides.json). Most are the same game ingested twice under a hyphen and an underscore slug.
+
+Rows stay in the database rather than being deleted, so every exclusion is reversible from one file if a provider's policy or our licence position changes.
+
+**20 categories in the served set.** Largest: arcade (2,372), racing (1,228), girls (1,130), puzzle (1,100), action (1,081), shooting (1,065), sports (1,028).
 
 ---
 
@@ -157,8 +174,8 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 | `SUPABASE_URL` | Your project URL. Not a secret — it is in every API call the app makes. |
 | `SUPABASE_PUBLISHABLE_KEY` | The browser-safe key (`sb_publishable_…`, formerly "anon"). Subject to RLS. `SUPABASE_ANON_KEY` is accepted as an alias. |
 | `SUPABASE_SECRET_KEY` | **Server-only.** The `sb_secret_…` key. Bypasses RLS; required for every write. Never expose to the browser. |
-| `SCORE_SECRET` | Signs the proof-of-play leaderboard tokens. Keep it stable. |
-| `ADMIN_SECRET` | Unlocks `/admin`, where you review the scores the anti-cheat layer flagged or quarantined. Unset = the panel and `/api/admin/*` fail closed, and flagged scores stay hidden with nobody able to release them. |
+| `ADMIN_SECRET` | Bearer token for `/api/admin/*` — the catalog, analytics, security and feedback endpoints. Unset = the panel and every admin route fail **closed**. |
+| `ADMIN_PASSWORD_HASH` | scrypt hash of the `/admin` login password, from `npm run admin-hash`. The plaintext password is never stored anywhere. |
 | `SITE_URL` | Optional. Names the site on the legal pages and pins the CORS origin. If unset, those pages derive the name from the request; CORS falls back to same-host matching. |
 | `POLLINATIONS_PUBLIC_KEY` | Optional `pk_` key served to the browser to lift the anonymous per-IP AI limit. **Publishable by design** — never put an `sk_` key here. |
 | `PROXY_AD_SCRIPTS` | Proxy-friendly ad-network loader script(s), comma-separated (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
@@ -256,8 +273,8 @@ can't be mis-clicked as a nav button (that protects your ad-account standing).
 
 ## 🛡️ Admin console
 
-`/admin` is a full operator dashboard: overview stats, game visibility, leaderboard
-review, community moderation and a Security Centre.
+`/admin` is a full operator dashboard: overview stats, game visibility, catalog
+health, analytics, the feedback inbox, community moderation and a Security Centre.
 
 ```bash
 npm run admin-hash        # prompts (hidden), prints the hash + a session secret
@@ -318,7 +335,7 @@ The live catalog and community features live in Supabase. Fastest path once your
 npm run restore-games     # loads every game source into Supabase in one command
 ```
 
-Prefer the SQL editor? Run the files in [`db/`](db/) in order — **`schema.sql` → `community.sql` → `community-scores-integrity.sql` (leaderboard anti-cheat: quarantine + cleanup functions) → (optional) `stats.sql` → (optional) `keepalive.sql` → the `load-*.sql` game loaders**. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+Prefer the SQL editor? Run the files in [`db/`](db/) in the order listed by the `ORDER` array in [`tools/sync-supabase-migrations.mjs`](tools/sync-supabase-migrations.mjs) — that array *is* the canonical order, and `supabase/migrations/` is generated from it. Two things about it are load-bearing: **`db/feedback.sql` runs LAST** (it retires the leaderboard by dropping `scores` and its `SECURITY DEFINER` functions, then creates the private `feedback` table, so it must act on tables the earlier files create), and the older `community-scores-*.sql` files still run even though the leaderboard is gone — migration history is replayed forwards, not rewritten. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
 
 > **`db/ALL-IN-ONE.sql`** bundles everything into a single file, but at ~6.7 MB it's far too big for Supabase's web editor — it's for direct `psql` restores only: `psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`. For everyone else, `npm run restore-games` is the one-command path.
 
@@ -343,7 +360,7 @@ Two copies of the same DDL drift silently, and the failure mode is bad — Supab
 |---|---:|---|
 | `games` | 16,913 | the catalog. RLS: public may read `is_working = true` |
 | `game_stats` | 71 | per-game play counters (179 plays recorded) |
-| `scores` | 1 | leaderboard, with anti-cheat `status` quarantine |
+| `feedback` | — | "Send feedback" messages. RLS is **insert-only**: anon/authenticated may `INSERT` and nothing else, so a message can never be read back by the public |
 | `recommendations` | 0 | the community wall |
 | `keepalive` | 1 | one row the `/healthz` probe pokes so a free-tier DB never pauses |
 | `game_fingerprints` · `game_duplicates` · `rejected_submissions` | 0 | the discovery engine — operational metadata, **no public access at all** |
@@ -386,9 +403,9 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, recommender, credits, game-discovery
-├── test/                # node:test suites (174 tests, no framework)
+├── test/                # node:test suites (269 tests, no framework)
 ├── public/
-│   ├── *.html           # pages (home, ai, community, leaderboard, browser, game…)
+│   ├── *.html           # pages (home, ai, community, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
 │   │   └── pollinations.js  # CLIENT-SIDE AI — the browser talks to Pollinations directly
 │   ├── gust/            # GUST proxy-browser UI (libcurl.js + Wisp)

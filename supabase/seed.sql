@@ -14,19 +14,30 @@
 -- branch if you genuinely need production-scale data.
 --
 -- These few rows are enough for the app to boot against a branch and render
--- something: the homepage needs games, and /leaderboard needs the scores table
--- to exist and be queryable.
+-- something: the homepage needs games in the grid.
 -- =============================================================================
 
--- A couple of real, license-clean games so the grid isn't empty.
+-- A couple of games so the grid isn't empty.
+--
+-- These MUST be distributor embed URLs, not a publisher's own site root. The
+-- previous pair were 'https://smashkarts.io/' and 'https://bloxd.io/' — framing
+-- someone's whole commercial website, which is the exact licensing shape
+-- data/catalog-overrides.json now blocks by host. Seeding them re-created a
+-- blocked row on every preview branch and labelled it "license-clean".
+--
+-- GameDistribution licenses its html5.gamedistribution.com URLs for embedding on
+-- any site; that is what makes these two safe to ship in the repo.
 insert into public.games (slug, title, game_url, thumbnail_url, category, is_working)
 values
-  ('smash-karts', 'Smash Karts',
-   'https://smashkarts.io/', '/thumbs/smash-karts.jpg', 'io-games', true),
-  ('bloxd-io', 'Bloxd io',
-   'https://bloxd.io/', '/thumbs/bloxd-io.jpg', 'sandbox', true)
+  ('slope-rolling', 'Slope',
+   'https://html5.gamedistribution.com/0022998ce3c54962be6ffe178229b168/',
+   '/thumbs/slope.png', 'arcade', true),
+  ('cut-the-grass-3d', 'Cut the Grass 3D',
+   'https://html5.gamedistribution.com/85e71c964bcf440aa715e4f0e69c6c76/',
+   'https://img.gamedistribution.com/85e71c964bcf440aa715e4f0e69c6c76-512x512.jpg',
+   'arcade', true)
 on conflict (slug) do nothing;
 
--- No seed scores. The leaderboard's whole point is that a row got there through
--- a signed proof-of-play session; hand-inserting rows here would model something
--- the app cannot actually produce, and would sit in the branch looking real.
+-- No seed feedback. public.feedback is insert-only to anon/authenticated by
+-- design; hand-inserting rows here would put messages in the admin queue that
+-- no one actually sent.

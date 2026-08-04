@@ -6195,8 +6195,8 @@
       "hostIncludes": "htmlgames.com"
     },
     {
-      "_note": "licensing: removed Famobi - DISABLED to allow games to load",
-      "hostIncludes": "play.famobi.com.disabled"
+      "_note": "RE-ENABLED 2026-08-04 (requested). Hides all 601 served play.famobi.com games. tools/audit-licensing.mjs classifies Famobi as tier ACCOUNT: embedding is free but must go through their official publisher programme and feed, not raw play.famobi.com hotlinks — which is what every one of these rows is. The rule was written for that reason and then suffixed '.disabled' to make the games load again, which traded the licensing position for availability. COLLATERAL: 16 titles had a www.y8.com twin already hidden by a dedupe rule that says 'kept the play.famobi.com copy' — block-painter, bottle-flip, burger-maker, car-crossing, classic-bowling, crazy-freekick, don-t-crash, emergency-surgery, fire-truck, greedy-rabbit, miner-block, park-your-car, playful-kitty, rise-up, snowball-champions, spider-solitaire. Those titles now vanish entirely. To bring them back under Y8 instead, delete the matching underscore-slug dedupe rules (block_painter, bottle_flip, ...). To restore Famobi itself, obtain a publisher account and re-embed from their feed; do not simply re-append '.disabled'.",
+      "hostIncludes": "play.famobi.com"
     },
     {
       "_note": "RE-BLOCKED 2026-07-29 (verified): distribution.gameflare.com now returns HTTP 403 + X-Frame-Options: SAMEORIGIN for third-party embeds. Probed 25 random GameFlare games — 25/25 returned 403 SAMEORIGIN under every header combination tried (no referer, self-origin referer, gameflare.com referer, and full Sec-Fetch-Dest:iframe navigation headers). GameFlare has revoked third-party embedding host-wide, so all 108 catalog rows rendered a blocked/black iframe for every visitor. The earlier \".disabled\" suffix (\"DISABLED to allow games to load\") predates that change and is now obsolete. Re-enable only if GameFlare restores embedding or a license is obtained.",
@@ -18029,6 +18029,10 @@
         "smash",
         "karts"
       ]
+    },
+    {
+      "_note": "licensing: the host itself. slug and title rules above catch the row we know about; this catches any future re-import of smashkarts.io under a name neither rule matches.",
+      "hostIncludes": "smashkarts.io"
     }
   ],
   "featured": [
@@ -18037,7 +18041,6 @@
     "stickman-hook-pro",
     "monster-paper-io",
     "driftsea",
-    "smash-karts",
     "basket-random"
   ],
   "_comment_onlinegames": "OnlineGames.io is governed by embedonlinegamesio.json (the source of truth) via tools/sync-onlinegames.mjs — run `npm run og-sync` to check, `-- --write` to apply. The 2026-07-11 blanket hostIncludes:onlinegames.io block was REMOVED on 2026-08-04: it hid all 260 canonical games, and the canonical embeds were re-probed at 10/10 HTTP 200 with framing allowed. Non-canonical OnlineGames.io titles are now hidden individually by slug instead, so the blanket rule was both redundant and blocking the licensed set. NOTE: the July report was a RUNTIME black-screen, which an HTTP probe cannot disprove — if games black-screen again, restore the host block rather than re-adding it per slug."
