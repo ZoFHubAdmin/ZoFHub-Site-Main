@@ -6105,6 +6105,15 @@
       "set": {
         "category": "racing"
       }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "strike-online"
+      },
+      "set": {
+        "title": "CS Online"
+      }
     }
   ],
   "add": [
@@ -17986,6 +17995,40 @@
     {
       "_note": "onlinegames.io: duplicate of solitaire",
       "slug": "pyramid-solitaire"
+    },
+    {
+      "_note": "onlinegames.io: duplicate of strike-online",
+      "slug": "cs-online"
+    },
+    {
+      "_note": "licensing: frames smashkarts.io directly — the publisher's own commercial site, no embedding programme. Thumbnail was also scraped from onlinegames.io.",
+      "slug": "smash-karts"
+    },
+    {
+      "_note": "licensing: Famobi title, requested removal.",
+      "slug": "dye-hard"
+    },
+    {
+      "_note": "licensing: SYBO/Kiloo trademark — never serve.",
+      "slug": "subway-surfers"
+    },
+    {
+      "_note": "licensing: SYBO/Kiloo trademark variant.",
+      "slug": "subway-surf"
+    },
+    {
+      "_note": "licensing: SYBO/Kiloo trademark",
+      "titleAllOf": [
+        "subway",
+        "surfer"
+      ]
+    },
+    {
+      "_note": "licensing: publisher site, no embed programme",
+      "titleAllOf": [
+        "smash",
+        "karts"
+      ]
     }
   ],
   "featured": [

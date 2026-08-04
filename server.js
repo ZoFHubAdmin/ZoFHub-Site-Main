@@ -4571,7 +4571,19 @@ app.get('/play/:gameSlug', async (req, res) => {
   // new tab). Verified the proxy renders Famobi identically to direct.
   const isFamobi = /(^|\.)famobi\.com$/.test(embedHost);
   // SDK-sensitive publishers that black-screen when proxied — always DIRECT.
-  const isSdkDirectOnly = /(^|\.)(gamedistribution\.com|gamemonetize\.(com|co))$/.test(embedHost);
+  // Hosts that MUST be framed directly rather than through /embed.
+  //
+  // gamedistribution / gamemonetize: their ad SDK black-screens behind a proxy.
+  //
+  // onlinegames.io: their Unity WebGL builds fetch .wasm/.data companions with
+  // Brotli content-encoding and integrity-sensitive paths relative to the game
+  // document. Routing them through /embed rewrites those URLs and the Unity
+  // loader dies with "couldn't load the content" and a JavaScript error — the
+  // black-screen that got the whole host blocked in July. They do not need the
+  // proxy at all: probed 10/10 returning HTTP 200 with no X-Frame-Options and no
+  // frame-ancestors, so a direct iframe is both simpler and the only one that
+  // works.
+  const isSdkDirectOnly = /(^|\.)(gamedistribution\.com|gamemonetize\.(com|co)|onlinegames\.io)$/.test(embedHost);
   let iframeSrc;
   if (req.query.direct === '1')                 iframeSrc = dynamicEmbedUrl;
   else if (req.query.proxy === '1')             iframeSrc = proxySrc;
