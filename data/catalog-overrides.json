@@ -18033,6 +18033,33 @@
     {
       "_note": "licensing: the host itself. slug and title rules above catch the row we know about; this catches any future re-import of smashkarts.io under a name neither rule matches.",
       "hostIncludes": "smashkarts.io"
+    },
+    {
+      "_note": "SITE-ROOT EMBEDS removed 2026-08-04. Each of these framed a publisher's entire live website (embed URL was the bare domain root, no path to a game file) rather than a distributor embed URL, so no licensing chain exists for any of them. Same shape as smash-karts. Blocked by host, which also covers a re-import under a different slug or title.",
+      "hostIncludes": "bloxd.io"
+    },
+    {
+      "_note": "suroi.io: framing the developers' own live site. Suroi's CODE is free software (GPL-3.0, github.com/HasangerGames/suroi) but that licenses you to RUN YOUR OWN copy, not to iframe theirs — the licence says nothing about their servers, traffic or ad revenue. See suroi/README.md for the self-host kit; once your own instance is live, add it back pointing at YOUR hostname and leave this rule in place so upstream can never be framed again.",
+      "hostIncludes": "suroi.io"
+    },
+    {
+      "hostIncludes": "deadshot.io"
+    },
+    {
+      "hostIncludes": "lolbeans.io"
+    },
+    {
+      "_note": "site-root embeds: slug rules alongside the host rules above, so the intent survives even if a future row reaches the same game by a different URL.",
+      "slug": "bloxd-io"
+    },
+    {
+      "slug": "deadshot-io"
+    },
+    {
+      "slug": "lolbeans-io"
+    },
+    {
+      "slug": "suroi"
     }
   ],
   "featured": [

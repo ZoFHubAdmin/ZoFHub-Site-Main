@@ -67,12 +67,17 @@ walking every page of `/api/games` against the production Supabase set:
 | Y8 (`www.y8.com` + `y8.com`) | 2,349 | 19.0% |
 | OnlineGames.io (`www.` + `cloud.onlinegames.io`) | 258 | 2.1% |
 | GameDistribution (`html5.gamedistribution.com`) | 155 | 1.3% |
-| Direct `.io` titles (suroi, bloxd, deadshot, lolbeans, turbowarp) | 5 | <0.1% |
+| TurboWarp (`turbowarp.org`) | 1 | <0.1% |
 
-Those five hosts are the complete list. A scan of all 12,333 served rows found
-**zero** URLs on `famobi`, `smashkarts`, `gamezop`, `gameflare` or `htmlgames`.
+Those are the complete list. A scan of all served rows found **zero** URLs on
+`famobi`, `smashkarts`, `gamezop`, `gameflare` or `htmlgames`.
 
-> ⚠️ Those last 5 rows embed a **publisher's own site root** (`https://bloxd.io/`, …) rather than a distributor URL, so there is no licence chain behind them. `smashkarts.io` was the sixth and was removed on 2026-08-04 for exactly that reason. The remaining four are flagged for a decision, not verified as permitted — see [`data/catalog-overrides.json`](data/catalog-overrides.json).
+**No game is embedded from a publisher's own site root any more.** Five were:
+`smashkarts.io`, `suroi.io`, `bloxd.io`, `deadshot.io` and `lolbeans.io` — each
+framed an entire live commercial website rather than a licensed embed URL. All
+five are blocked by host, so a re-import cannot bring them back under a new slug.
+Suroi is the one with a way forward: its code is GPL-3.0, so it can be
+**self-hosted** instead of framed — see [`suroi/`](suroi/).
 
 ### Why ~4,560 catalogued games are never served
 

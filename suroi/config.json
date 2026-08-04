@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/HasangerGames/suroi/85df5067b19a876cac4304232cc1e68ff1b07c7f/server/config.schema.json",
+
+  "hostname": "0.0.0.0",
+  "port": 8000,
+
+  "map": "normal",
+  "teamMode": "solo",
+  "spawn": { "mode": "default" },
+
+  "maxPlayersPerGame": 80,
+  "maxGames": 5
+}
