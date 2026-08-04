@@ -109,8 +109,6 @@ loaders.overview = async () => {
       ['Catalogued',        fmt(db.games)],
       ['Working',           fmt(db.working)],
       ['Broken',            fmt(db.broken)],
-      ['Scores',            fmt(db.scores)],
-      ['Flagged scores',    fmt(db.flagged)],
       ['Community posts',   fmt(db.recommendations)],
       ['Hidden posts',      fmt(db.hiddenRecommendations)],
     ];
@@ -215,172 +213,6 @@ $('#gamesOut').addEventListener('click', async (e) => {
   } catch (err) { say(err.message); b.disabled = false; }
 });
 
-// ── Leaderboard ────────────────────────────────────────────────────────────
-// Two views behind one tab: the browsable board, and one player's whole history.
-// The history view is the answer to the question a single flagged row cannot
-// settle — whether this is a cheat or somebody who had one strange game.
-const board = { q: '', status: 'flagged', sort: 'recent', offset: 0, limit: 40, player: null };
-
-// The actions that make sense for a row depend on where it currently sits.
-// Offering "Approve" on a score that is already public is noise, and worse, it
-// trains the reviewer to click without reading.
-function scoreActions(s) {
-  const id = esc(s.id);
-  const btn = (act, cls, text, title) =>
-    `<button class="btn-sm ${cls}" data-score="${id}" data-act="${act}" title="${esc(title)}">${text}</button>`;
-  const parts = [];
-  if (s.status === 'flagged') {
-    parts.push(btn('approve', 'ok', 'Approve', 'Publish this score to the leaderboard'));
-    parts.push(btn('reject', 'bad', 'Reject', 'Keep the row, hidden, marked rejected'));
-  } else if (s.status === 'rejected') {
-    parts.push(btn('approve', 'ok', 'Restore', 'Put this score back on the public board'));
-  } else {
-    parts.push(btn('reject', 'bad', 'Remove', 'Take this score off the public board'));
-  }
-  parts.push(btn('delete', 'bad ghost', 'Delete', 'Erase the row permanently — cannot be undone'));
-  return parts.join(' ');
-}
-
-const STATUS_PILL = {
-  ok: '<span class="pill ok">public</span>',
-  flagged: '<span class="pill warn">quarantined</span>',
-  rejected: '<span class="pill bad">rejected</span>',
-};
-
-// The evidence block. This is the reason the tab exists: the queue used to show
-// a score and the bare string 'outlier' and ask a person to judge from that.
-function verdictCell(s) {
-  const v = s.verdict;
-  if (!v) return '<span class="hint-inline">—</span>';
-  const facts = v.facts.map((f) =>
-    `<div class="fact${f.suspicious ? ' is-hot' : ''}"><span class="fact-k">${esc(f.label)}</span>` +
-    `<span class="fact-v">${esc(f.value)}</span></div>`).join('');
-  const note = v.note ? `<p class="fact-note">${esc(v.note)}</p>` : '';
-  const body = v.facts.length || v.note
-    ? `<div class="evidence">${note}${facts}</div>`
-    : '';
-  return `<details class="verdict"${v.legacy ? ' data-legacy="1"' : ''}>
-    <summary><span class="verdict-head">${esc(v.headline)}</span></summary>${body}</details>`;
-}
-
-function pager(total) {
-  const { offset, limit } = board;
-  const shown = Math.min(total, offset + limit);
-  if (total <= limit) return '';
-  return `<button class="btn-sm" data-page="prev"${offset === 0 ? ' disabled' : ''}>← Previous</button>
-    <span class="hint-inline">${fmt(offset + 1)}–${fmt(shown)} of ${fmt(total)}</span>
-    <button class="btn-sm" data-page="next"${shown >= total ? ' disabled' : ''}>Next →</button>`;
-}
-
-async function loadBoard() {
-  if (board.player) return loadPlayer(board.player);
-  const qs = new URLSearchParams({
-    q: board.q, status: board.status, sort: board.sort,
-    limit: String(board.limit), offset: String(board.offset),
-  });
-  try {
-    const d = await api('/api/admin/scores?' + qs);
-    const rows = d.scores || [];
-    const total = d.total ?? rows.length;
-
-    $('#scoreMeta').innerHTML = d.note ? esc(d.note)
-      : `${fmt(total)} score${total === 1 ? '' : 's'}` +
-        (d.capabilities && d.capabilities.evidence === false
-          ? ' · <strong>anti-cheat evidence not recorded</strong> — run db/community-scores-evidence.sql' : '');
-
-    $('#scoresOut').innerHTML = table(rows, [
-      // The player name is the entry point to their history, so it is a control,
-      // not text. Anything else means retyping the name into the search box.
-      { label: 'Player', cell: (s) => `<button class="lnk" data-player="${esc(s.player_name)}">${esc(s.player_name)}</button>` },
-      { label: 'Game',   cell: (s) => `<code>${esc(s.slug)}</code>` },
-      { label: 'Score',  cell: (s) => `<strong>${fmt(s.score)}</strong>` },
-      // Board best is the single most useful piece of context for "is this
-      // plausible?", and it was already being fetched and never displayed.
-      { label: 'Board best', cell: (s) => `<span class="hint-inline">${fmt(s.currentBest)}</span>` },
-      { label: 'Status', cell: (s) => STATUS_PILL[s.status] || esc(s.status || '—') },
-      { label: 'Why',    cell: verdictCell },
-      { label: 'When',   cell: (s) => esc(when(s.created_at)) },
-      { label: '',       cell: scoreActions },
-    ], board.q ? 'No scores match that search.'
-      : board.status === 'flagged' ? 'No scores are awaiting review.' : 'No scores here.');
-
-    $('#scorePager').innerHTML = pager(total);
-  } catch (e) { say(e.message); }
-}
-
-async function loadPlayer(name) {
-  try {
-    const d = await api('/api/admin/players/' + encodeURIComponent(name));
-    const p = d.player || {};
-    const rows = d.scores || [];
-    const risk = p.flagRate >= 50 ? 'bad' : p.flagRate > 0 ? 'warn' : 'ok';
-    $('#scoreMeta').innerHTML =
-      `<button class="btn-sm" data-player-back="1">← Back to the leaderboard</button>
-       <span class="who-line"><strong>${esc(name)}</strong> · ${fmt(p.submissions)} submissions across
-       ${fmt(p.games)} games · best ${fmt(p.bestScore)} ·
-       <span class="pill ${risk}">${fmt(p.flagRate)}% flagged</span></span>`;
-    $('#scoresOut').innerHTML = table(rows, [
-      { label: 'Game',   cell: (s) => `<code>${esc(s.slug)}</code>` },
-      { label: 'Score',  cell: (s) => `<strong>${fmt(s.score)}</strong>` },
-      { label: 'Board best', cell: (s) => `<span class="hint-inline">${fmt(s.currentBest)}</span>` },
-      { label: 'Status', cell: (s) => STATUS_PILL[s.status] || esc(s.status || '—') },
-      { label: 'Why',    cell: verdictCell },
-      { label: 'When',   cell: (s) => esc(when(s.created_at)) },
-      { label: '',       cell: scoreActions },
-    ], 'This player has no scores.');
-    $('#scorePager').innerHTML = '';
-  } catch (e) { say(e.message); }
-}
-loaders.scores = loadBoard;
-
-$('#scoreSearch').addEventListener('input', () => {
-  clearTimeout(window.__st);
-  window.__st = setTimeout(() => {
-    board.q = $('#scoreSearch').value.trim();
-    board.offset = 0;                 // a new search starting on page 4 shows nothing
-    board.player = null;
-    loadBoard();
-  }, 250);
-});
-for (const [sel, key] of [['#scoreStatus', 'status'], ['#scoreSort', 'sort']]) {
-  $(sel).addEventListener('change', () => {
-    board[key] = $(sel).value;
-    board.offset = 0;
-    board.player = null;
-    loadBoard();
-  });
-}
-$('#scorePager').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-page]');
-  if (!b) return;
-  board.offset = Math.max(0, board.offset + (b.dataset.page === 'next' ? board.limit : -board.limit));
-  loadBoard();
-});
-
-$('#scoreMeta').addEventListener('click', (e) => {
-  if (!e.target.closest('[data-player-back]')) return;
-  board.player = null;
-  loadBoard();
-});
-
-$('#scoresOut').addEventListener('click', async (e) => {
-  const p = e.target.closest('[data-player]');
-  if (p) { board.player = p.dataset.player; clear(); return loadPlayer(board.player); }
-
-  const b = e.target.closest('[data-score]');
-  if (!b) return;
-  const act = b.dataset.act;
-  // Delete is the only irreversible action on this screen. Approve and reject
-  // can be walked back from the "Every score" view; a deleted row is gone.
-  if (act === 'delete' && !confirm('Permanently delete this score? This cannot be undone.')) return;
-  clear(); b.disabled = true;
-  try {
-    await api(`/api/admin/scores/${encodeURIComponent(b.dataset.score)}/${act}`, { method: 'POST' });
-    say(act === 'delete' ? 'Score deleted.' : `Score ${act}d.`, 'ok');
-    board.player ? loadPlayer(board.player) : loadBoard();
-  } catch (err) { say(err.message); b.disabled = false; }
-});
-
 // ── Community ──────────────────────────────────────────────────────────────
 loaders.community = async () => {
   try {
@@ -405,6 +237,52 @@ $('#communityOut').addEventListener('click', async (e) => {
   try {
     await api(`/api/admin/recommendations/${encodeURIComponent(b.dataset.rec)}/${b.dataset.act}`, { method: 'POST' });
     loaders.community();
+  } catch (err) { say(err.message); b.disabled = false; }
+});
+
+// ── Feedback ───────────────────────────────────────────────────────────────
+// Private by construction: RLS denies the publishable key SELECT entirely, so
+// this is the only place feedback is readable.
+const KIND_PILL = { bug: '<span class="pill bad">bug</span>', idea: '<span class="pill ok">idea</span>' };
+
+loaders.feedback = async () => {
+  const status = $('#fbStatus').value;
+  try {
+    const d = await api('/api/admin/feedback?status=' + encodeURIComponent(status));
+    const c = d.counts || {};
+    // Counts on the labels, so a moderator can see work is waiting without
+    // switching filters to find out.
+    for (const opt of $('#fbStatus').options) {
+      const base = { new: 'Unread', read: 'Read', archived: 'Archived', all: 'All' }[opt.value];
+      opt.textContent = opt.value === 'all' ? base : `${base} (${fmt(c[opt.value] ?? 0)})`;
+    }
+    $('#feedbackOut').innerHTML = table(d.feedback || [], [
+      { label: 'When',    cell: (f) => esc(when(f.created_at)) },
+      { label: 'Type',    cell: (f) => KIND_PILL[f.kind] || '<span class="pill">other</span>' },
+      { label: 'Message', cell: (f) => `<div class="fb-text">${esc(f.message)}</div>` },
+      { label: 'Page',    cell: (f) => f.page ? `<code>${esc(f.page)}</code>` : '—' },
+      // A reply address only matters if they left one; showing "—" in a column
+      // of blanks is noise.
+      { label: 'Reply to', cell: (f) => f.email
+          ? `<a href="mailto:${esc(f.email)}">${esc(f.email)}</a>` : '<span class="hint-inline">none</span>' },
+      { label: '', cell: (f) => [
+          f.status === 'new'      ? `<button class="btn-sm" data-fb="${esc(f.id)}" data-act="read">Mark read</button>` : '',
+          f.status !== 'archived' ? `<button class="btn-sm" data-fb="${esc(f.id)}" data-act="archive">Archive</button>` : '',
+          `<button class="btn-sm bad ghost" data-fb="${esc(f.id)}" data-act="delete">Delete</button>`,
+        ].filter(Boolean).join(' ') },
+    ], status === 'new' ? 'No unread feedback.' : 'Nothing here.');
+  } catch (e) { say(e.message); }
+};
+
+$('#fbStatus').addEventListener('change', () => loaders.feedback());
+$('#feedbackOut').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-fb]');
+  if (!b) return;
+  if (b.dataset.act === 'delete' && !confirm('Permanently delete this feedback? This cannot be undone.')) return;
+  clear(); b.disabled = true;
+  try {
+    await api(`/api/admin/feedback/${encodeURIComponent(b.dataset.fb)}/${b.dataset.act}`, { method: 'POST' });
+    loaders.feedback();
   } catch (err) { say(err.message); b.disabled = false; }
 });
 

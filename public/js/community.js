@@ -1,18 +1,16 @@
-// ZoFHub · community.js — recommendations feed + submit + global leaderboard.
+// ZoFHub · community.js — recommendations feed + submit.
 import { $, el, fetchJson, escapeHtml, toast, trapFocus } from './utils.js';
 import { getPlayerName } from './identity.js';
 
 const recList  = $('#recList');
 const recEmpty = $('#recEmpty');
-const lbList   = $('#lbList');
-const lbEmpty  = $('#lbEmpty');
 
 init();
 
 async function init() {
   bindRecModal();
   bindPlayModal();
-  await Promise.all([loadRecommendations(), loadLeaderboard()]);
+  await loadRecommendations();
 }
 
 // ---------------------------------------------------------------------------
@@ -102,48 +100,6 @@ function recCard(r) {
   return card;
 }
 
-// ---------------------------------------------------------------------------
-// Leaderboard
-// ---------------------------------------------------------------------------
-// Keep only the highest score per (player_name + slug) — the SAME rule
-// leaderboard.js applies. Kept as defense-in-depth: the database now enforces
-// one visible row per player per game (db/community-scores-unique.sql), but this
-// widget and /leaderboard must never disagree about the same data, and rows
-// created before that migration ran can still be duplicated.
-function dedupeBest(raw) {
-  const best = new Map();
-  for (const s of raw) {
-    const key = `${(s.player_name || 'Player').toLowerCase()}::${s.slug}`;
-    const prev = best.get(key);
-    if (!prev || Number(s.score) > Number(prev.score)) best.set(key, s);
-  }
-  return [...best.values()].sort((a, b) => Number(b.score) - Number(a.score));
-}
-
-async function loadLeaderboard() {
-  try {
-    const data = await fetchJson('/api/scores?limit=20');
-    const scores = dedupeBest(data.scores || []);
-    lbList.innerHTML = '';
-    if (data.setup) console.info('[community] leaderboard backend not ready:', data.setup);
-    if (!scores.length) {
-      lbList.appendChild(emptyLi({ icon: 'trophy', title: 'No scores yet', sub: 'Play a game and set the first record.' }));
-      return;
-    }
-    scores.forEach((s, i) => {
-      const li = el('li', { class: `lb-row${i < 3 ? ' lb-top' : ''}` });
-      li.innerHTML = `
-        <span class="lb-rank">${i + 1}</span>
-        <span class="lb-name">${escapeHtml(s.player_name || 'Player')}</span>
-        <a class="lb-game" href="/play/${encodeURIComponent(s.slug)}">${escapeHtml(prettySlug(s.slug))}</a>
-        <span class="lb-score">${Number(s.score).toLocaleString()}</span>`;
-      lbList.appendChild(li);
-    });
-  } catch (e) {
-    lbList.innerHTML = '';
-    lbList.appendChild(emptyLi({ icon: 'warn', title: 'Couldn’t load the leaderboard', sub: 'Please check back in a moment.' }));
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Recommend modal

@@ -134,15 +134,10 @@ const { applyCatalogOverrides }            = await import('./lib/catalog-overrid
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
-const { assessScore } = await import('./lib/score-integrity.mjs');
 // The one shared AI prompt + retrieval grounding, imported by the browser as a
 // static module and by the server from disk. There is deliberately no copy.
 const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
   = await import('./public/js/ai-prompt.js');
-// The review half of the same system: parsing a reviewer's filters and turning a
-// stored flag_evidence blob back into something a person can act on.
-const { parseScoreQuery, searchFilter, explainEvidence, summarizePlayer }
-  = await import('./lib/score-review.mjs');
 // Structural catalog health — the offline half of tools/audit-catalog.mjs.
 const { auditGames, ISSUE_LABELS } = await import('./lib/catalog-quality.mjs');
 // Ops telemetry for the admin console: a bounded, redacted error buffer and the
@@ -2090,7 +2085,7 @@ app.post('/api/ai/echo', async (req, res) => {
 });
 
 // ========================================================================
-// Community: recommendations + leaderboard (Supabase: recommendations, scores)
+// Community: recommendations (Supabase: recommendations)
 // ------------------------------------------------------------------------
 // Run db/community.sql once to create the tables. Until then these endpoints
 // return empty/needs-setup responses instead of crashing.
@@ -2133,6 +2128,62 @@ const clean = (s, n) => String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f
 const needsSetup = (e) => /relation .* does not exist|42P01|could not find the table/i.test(e?.message || e?.code || '');
 
 // --- POST /api/recommendations ---------------------------------------------
+// ── Feedback ────────────────────────────────────────────────────────────────
+// Private by design. There is no GET: feedback is not a public wall, and the
+// RLS policy grants anon INSERT only — the publishable key cannot read back even
+// the row it just wrote. Review happens in the admin console via the secret key.
+app.post('/api/feedback', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // Sending feedback is a once-in-a-while act. Burst 4, then roughly one every
+  // 15s: invisible to a real person, useless to a script.
+  if (!writeAllow(req.ip || 'unknown', 4, 15_000)) {
+    return res.status(429).json({ ok: false, error: 'Too many submissions — please wait a moment.' });
+  }
+
+  const b = req.body || {};
+
+  // Honeypot. A field hidden from people but present in the DOM; bots fill every
+  // input they find. Answers 200 so the bot records success and does not retry
+  // with a different strategy — telling it that it failed only teaches it.
+  if (typeof b.website === 'string' && b.website.trim() !== '') {
+    return res.json({ ok: true, id: null });
+  }
+
+  const message = typeof b.message === 'string' ? b.message.trim() : '';
+  if (message.length < 4)    return res.status(400).json({ ok: false, error: 'Please write a little more.' });
+  if (message.length > 2000) return res.status(400).json({ ok: false, error: 'Feedback is limited to 2000 characters.' });
+
+  const kind = ['bug', 'idea', 'other'].includes(b.kind) ? b.kind : 'other';
+
+  // Empty string and absent must not become two different stored states.
+  let email = typeof b.email === 'string' ? b.email.trim().slice(0, 200) : '';
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return res.status(400).json({ ok: false, error: 'That email address does not look right. Leave it blank if you prefer.' });
+  }
+  const page = typeof b.page === 'string' ? b.page.trim().slice(0, 300) : '';
+
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Feedback is unavailable right now.' });
+
+  try {
+    const { data, error } = await supa.from('feedback').insert({
+      message, kind,
+      email: email || null,
+      page:  page  || null,
+      // Hashed, never raw — enough to spot one source filing forty, useless for
+      // identifying anybody. Same helper the admin security tables use.
+      ip_hash: adminAuth.hashIp(req.ip),
+      user_agent: (req.get('user-agent') || '').slice(0, 300) || null,
+    }).select('id').single();
+    if (error) throw error;
+    return res.json({ ok: true, id: data.id });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Feedback storage is not set up yet.' });
+    console.warn('[feedback] insert failed:', e.message);
+    return res.status(500).json({ ok: false, error: 'Could not save that — please try again.' });
+  }
+});
+
 app.post('/api/recommendations', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Posting a game is rare per user — a tight limit blocks spam without ever
@@ -2257,313 +2308,8 @@ app.post('/api/recommendations/:id/seen', async (req, res) => {
     return res.json({ ok: true });
   } catch { return res.json({ ok: false }); }
 });
-
-// --- Proof-of-play score token ---------------------------------------------
-// A signed, slug-bound, time-limited token is embedded in each /play page. A
-// score can only be saved if the request carries a valid token for that game —
-// so scores can't be blindly scripted/curled against /api/scores; you have to
-// actually load the game page. (Stateless HMAC; secret rotates on restart.)
-const SCORE_SECRET = process.env.SCORE_SECRET || randomBytes(32).toString('hex');
-const SCORE_TOKEN_TTL_MS = 6 * 60 * 60 * 1000;   // 6 hours
-function issueScoreToken(slug) {
-  const exp = Date.now() + SCORE_TOKEN_TTL_MS;
-  const sig = createHmac('sha256', SCORE_SECRET).update(`${slug}.${exp}`).digest('base64url');
-  return `${exp}.${sig}`;
-}
-function verifyScoreToken(token, slug) {
-  if (typeof token !== 'string' || !token.includes('.')) return false;
-  const i = token.indexOf('.');
-  const exp = Number(token.slice(0, i));
-  const sig = token.slice(i + 1);
-  if (!Number.isFinite(exp) || Date.now() > exp) return false;
-  const good = createHmac('sha256', SCORE_SECRET).update(`${slug}.${exp}`).digest('base64url');
-  const a = Buffer.from(sig), b = Buffer.from(good);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-// --- Play SESSIONS: single-use, IP-bound, play-time-gated ------------------
-// The static token above only proves "the page was loaded" — a cheater could
-// open the page once and fire thousands of scores. A real submission now needs
-// a SESSION: minted per play (POST /api/scores/session, itself gated by the
-// static token), bound to the caller's IP, usable ONCE, and only after the
-// player has actually been in the game for >= MIN_PLAY_MS. That turns "curl any
-// number" into "load the page, wait, and burn a one-time token for each score"
-// — rate-limited and trivial to detect. HMAC-signed + a bounded used-nonce set.
-const SCORE_SESSIONS = new Map();                 // nonce -> { slug, ip, iat, exp }
-const SESSION_TTL_MS  = 3 * 60 * 60 * 1000;       // a session stays usable for 3h
-const MIN_PLAY_MS     = 8000;                     // must play >= 8s before a score counts
-const MAX_SESSIONS    = 20000;                    // hard memory bound
-const ipTag = (ip) => createHmac('sha256', SCORE_SECRET).update(String(ip || '')).digest('base64url').slice(0, 16);
-function issueSession(slug, ip) {
-  if (SCORE_SESSIONS.size >= MAX_SESSIONS) {       // drop expired, then oldest, to stay bounded
-    const now = Date.now();
-    for (const [k, v] of SCORE_SESSIONS) if (v.exp < now) SCORE_SESSIONS.delete(k);
-    while (SCORE_SESSIONS.size >= MAX_SESSIONS) { const k = SCORE_SESSIONS.keys().next().value; if (k === undefined) break; SCORE_SESSIONS.delete(k); }
-  }
-  const nonce = randomBytes(16).toString('base64url');
-  const iat = Date.now();
-  SCORE_SESSIONS.set(nonce, { slug, ip: ipTag(ip), iat, exp: iat + SESSION_TTL_MS });
-  const sig = createHmac('sha256', SCORE_SECRET).update(`${slug}.${nonce}.${iat}`).digest('base64url');
-  return `${nonce}.${iat}.${sig}`;
-}
-function consumeSession(token, slug, ip) {
-  if (typeof token !== 'string') return { ok: false, code: 'no-session' };
-  const p = token.split('.');
-  if (p.length !== 3) return { ok: false, code: 'bad-session' };
-  const [nonce, iatStr, sig] = p;
-  const iat = Number(iatStr);
-  const good = createHmac('sha256', SCORE_SECRET).update(`${slug}.${nonce}.${iat}`).digest('base64url');
-  const a = Buffer.from(sig), b = Buffer.from(good);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, code: 'bad-session' };
-  const s = SCORE_SESSIONS.get(nonce);
-  if (!s) return { ok: false, code: 'used' };                          // single-use (or server restarted)
-  if (s.slug !== slug || s.ip !== ipTag(ip)) return { ok: false, code: 'mismatch' };
-  if (Date.now() > s.exp) { SCORE_SESSIONS.delete(nonce); return { ok: false, code: 'expired' }; }
-  const played = Date.now() - s.iat;
-  if (played < MIN_PLAY_MS) return { ok: false, code: 'too-fast', wait: Math.ceil((MIN_PLAY_MS - played) / 1000) };
-  SCORE_SESSIONS.delete(nonce);                                        // consume
-  return { ok: true, played };
-}
-setInterval(() => { const now = Date.now(); for (const [k, v] of SCORE_SESSIONS) if (v.exp < now) SCORE_SESSIONS.delete(k); }, 10 * 60 * 1000).unref?.();
-
-// --- Per-game plausibility ceilings (data/score-limits.json) ---------------
-// Replaces the useless global 2-billion cap: any score above a game's ceiling
-// is rejected outright. Edit the JSON to tune a game as you learn its real top.
-let SCORE_LIMITS = { default: 5_000_000, perGame: {} };
-function loadScoreLimits() {
-  try {
-    const f = join(__dirname, 'data', 'score-limits.json');
-    if (!existsSync(f)) return;
-    const j = JSON.parse(readFileSync(f, 'utf8'));
-    SCORE_LIMITS = {
-      default: Number(j.default) > 0 ? Number(j.default) : 5_000_000,
-      perGame: (j.perGame && typeof j.perGame === 'object') ? j.perGame : {},
-      // Per-game override for the points-per-second rule. A game that genuinely
-      // scores faster than the global bound (idle/clicker curves do) gets its
-      // own number here rather than forcing the global one up for everybody.
-      perSecond: (j.perSecond && typeof j.perSecond === 'object') ? j.perSecond : {},
-    };
-  } catch (e) { console.warn('[scores] score-limits.json load failed:', e.message); }
-}
-loadScoreLimits();
-const scoreCeiling = (slug) => { const g = Number(SCORE_LIMITS.perGame[slug]); return Number.isFinite(g) && g > 0 ? g : SCORE_LIMITS.default; };
-
-// Outlier quarantine tuning + a one-time probe for the `status` column, so this
-// all keeps working BEFORE the user runs db/community-scores-integrity.sql
-// (quarantine simply stays off until the column exists).
-// The quarantine rules themselves now live in lib/score-integrity.mjs, as a pure
-// function — inline here they could only be exercised with a live database and a
-// real play session, which meant they had no test coverage at all.
-let scoresStatusCol = null;       // null=unknown, true/false after probe
-
-// Same one-time probe, for the evidence columns added by
-// db/community-scores-evidence.sql. Probed rather than assumed so the detector
-// keeps quarantining on a database that has not had that migration applied yet —
-// it simply cannot record WHY, which is strictly better than not flagging.
-let scoresEvidenceCols = null;
-async function ensureEvidenceCols(supa) {
-  if (scoresEvidenceCols !== null) return scoresEvidenceCols;
-  try {
-    const { error } = await supa.from('scores').select('flag_evidence, ip_tag').limit(1);
-    scoresEvidenceCols = !error;
-    if (error) console.warn('[scores] flag_evidence/ip_tag not found — run db/community-scores-evidence.sql to record anti-cheat evidence. Quarantine itself is active regardless.');
-  } catch { scoresEvidenceCols = false; }
-  return scoresEvidenceCols;
-}
-
-async function ensureStatusCap(supa) {
-  if (scoresStatusCol !== null) return scoresStatusCol;
-  try {
-    const { error } = await supa.from('scores').select('status').limit(1);
-    scoresStatusCol = !error;
-    if (error) console.warn('[scores] `status` column not found — run db/community-scores-integrity.sql to enable outlier quarantine. Proof-of-play + ceilings are active regardless.');
-  } catch { scoresStatusCol = false; }
-  return scoresStatusCol;
-}
-
-// Is the atomic submit_score() upsert available? (db/community-scores-unique.sql)
-// null = not probed yet, true = use it, false = fall back to the legacy path.
-let submitScoreFn = null;
-const missingFn = (e) => /could not find the function|PGRST202|does not exist/i.test(e?.message || e?.code || '');
-
-// --- POST /api/scores/session  { slug, token } -----------------------------
-// Mint a one-time play session. Gated by the static per-page token so only a
-// real page-load can start one. The clock starts NOW (MIN_PLAY_MS is measured
-// from here), so the client requests this as the game begins.
-app.post('/api/scores/session', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  if (!writeAllow(req.ip || 'unknown', 20, 1500)) {
-    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
-  }
-  const b = req.body || {};
-  const slug = clean(b.slug, 80).toLowerCase();
-  if (!slug || !bySlug.has(slug)) return res.status(400).json({ ok: false, error: 'unknown game' });
-  if (!verifyScoreToken(b.token, slug)) return res.status(403).json({ ok: false, error: 'Open and play the game first.' });
-  return res.json({ ok: true, session: issueSession(slug, req.ip), minPlaySeconds: Math.ceil(MIN_PLAY_MS / 1000) });
-});
-
-// --- POST /api/scores  { slug, name, score, session } ----------------------
-app.post('/api/scores', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  // Scores are submitted after a game ends — generous burst, then 1 every ~4s.
-  if (!writeAllow(req.ip || 'unknown', 12, 4000)) {
-    return res.status(429).json({ ok: false, error: 'Too many requests — please slow down.' });
-  }
-  const b = req.body || {};
-  const slug  = clean(b.slug, 80).toLowerCase();
-  const name  = clean(b.name || b.player_name, 40) || 'Player';
-  const score = Math.max(0, Math.min(2_000_000_000, Math.floor(Number(b.score) || 0)));
-  if (!slug)  return res.status(400).json({ ok: false, error: 'missing slug' });
-  if (!bySlug.has(slug)) return res.status(400).json({ ok: false, error: 'unknown game' });
-
-  // Proof-of-play SESSION — single-use, IP-bound, and only after real play time.
-  const sess = consumeSession(b.session, slug, req.ip);
-  if (!sess.ok) {
-    if (sess.code === 'too-fast') return res.status(403).json({ ok: false, error: `Keep playing — scores can be submitted after ${Math.ceil(MIN_PLAY_MS / 1000)}s.`, retryAfter: sess.wait });
-    if (sess.code === 'used' || sess.code === 'expired') return res.status(409).json({ ok: false, error: 'That score session was already used — play a round and submit again.', renew: true });
-    return res.status(403).json({ ok: false, error: 'Open and play the game before submitting a score.', renew: true });
-  }
-
-  // Plausibility ceiling — reject impossible scores outright.
-  const ceiling = scoreCeiling(slug);
-  if (score > ceiling) {
-    return res.status(422).json({ ok: false, error: `That score is above this game's allowed range (max ${ceiling.toLocaleString()}).` });
-  }
-
-  // submit_score() is SECURITY DEFINER and revoked from anon/authenticated, so
-  // this path is admin-only by database design, not just by convention.
-  const supa = getSupabaseAdmin();
-  if (!supa) return res.status(503).json({ ok: false, error: 'Leaderboard not configured.' });
-  const hasStatus = await ensureStatusCap(supa);
-  const hasEvidenceCols = hasStatus && await ensureEvidenceCols(supa);
-  try {
-    // Outlier quarantine: a wild leap past an ESTABLISHED game-best is held for
-    // review (status='flagged') instead of shown. Only active once the column
-    // exists (post-migration); harmless no-op before that.
-    let verdict = { flagged: false, reason: null, evidence: null };
-    const tag = ipTag(req.ip);
-    if (hasStatus) {
-      const { data: topRow } = await supa.from('scores')
-        .select('score').eq('slug', slug).eq('status', 'ok')
-        .order('score', { ascending: false }).limit(1).maybeSingle();
-      const best = topRow?.score || 0;
-
-      // Replay probe: this exact score, for this game, from this source, seen
-      // before. Cheap — an index seek on (slug, ip_tag, score) — and it is the
-      // one signal the pure detector cannot compute for itself.
-      //
-      // SCOPE, precisely: ip_tag is written on the quarantine path below, so
-      // what this counts is REPEATED FLAGGED ATTEMPTS, not all submissions.
-      // Recording it on the clean path too would mean changing the signature of
-      // the submit_score() SECURITY DEFINER function, which is a schema change
-      // to the one write path that must not break. Someone retrying the same
-      // rejected score is exactly the behaviour worth catching, so this is
-      // narrower than it sounds — but it is narrower, and that is worth knowing
-      // before tuning DUPLICATE_THRESHOLD against it.
-      //
-      // A failed probe must never block a legitimate submission: it counts zero.
-      let duplicates = 0;
-      if (hasEvidenceCols) {
-        const { count, error: dupeErr } = await supa.from('scores')
-          .select('id', { count: 'exact', head: true })
-          .eq('slug', slug).eq('ip_tag', tag).eq('score', score);
-        if (!dupeErr) duplicates = count || 0;
-      }
-
-      verdict = assessScore({
-        score, best,
-        ceiling,
-        playedMs: sess.played,
-        duplicates,
-        maxPerSecond: SCORE_LIMITS.perSecond?.[slug],
-      });
-    }
-    if (verdict.flagged) {
-      const row = { slug, player_name: name, score, status: 'flagged', flag_reason: verdict.reason };
-      // The evidence columns arrive with db/community-scores-evidence.sql. Before
-      // that migration lands the detector still runs and still quarantines — it
-      // just cannot record why, which is strictly better than not quarantining.
-      if (hasEvidenceCols) { row.flag_evidence = verdict.evidence; row.ip_tag = tag; }
-      const { error } = await supa.from('scores').insert(row);
-      if (error) throw error;
-      return res.json({ ok: true, best: score, pending: true });
-    }
-
-    // Keep ONE row per (game, player) — the player's BEST score. This stops a
-    // single identity flooding the board and keeps the leaderboard clean.
-    //
-    // PREFERRED PATH: submit_score() does the whole keep-best rule as a single
-    // INSERT ... ON CONFLICT inside the database, so two concurrent submissions
-    // for the same (slug, player_name) can no longer both "see no existing row"
-    // and both insert. Requires db/community-scores-unique.sql; if that hasn't
-    // been run yet we fall back to the original (racy) select-then-branch below,
-    // so the endpoint keeps working either way.
-    if (submitScoreFn !== false) {
-      const { data, error } = await supa.rpc('submit_score', {
-        p_slug: slug, p_player: name, p_score: score,
-      });
-      if (!error) {
-        submitScoreFn = true;
-        const r = Array.isArray(data) ? data[0] : data;
-        if (r) {
-          const best = Number(r.best);
-          if (r.created) return res.json({ ok: true, best, created: true });
-          return res.json({ ok: true, best, updated: !!r.updated });
-        }
-      } else if (missingFn(error)) {
-        submitScoreFn = false;
-        console.warn('[scores] submit_score() not found — using the non-atomic fallback. Run db/community-scores-unique.sql to make "one row per player per game" race-proof.');
-      } else {
-        throw error;
-      }
-    }
-
-    let exQ = supa.from('scores').select('id, score').eq('slug', slug).eq('player_name', name);
-    if (hasStatus) exQ = exQ.eq('status', 'ok');
-    const { data: existing, error: selErr } = await exQ.order('score', { ascending: false }).limit(1).maybeSingle();
-    if (selErr) throw selErr;
-
-    const patch = hasStatus ? { status: 'ok', flag_reason: null } : {};
-    if (existing) {
-      if (score <= existing.score) return res.json({ ok: true, best: existing.score, updated: false });
-      const { error } = await supa.from('scores')
-        .update({ score, created_at: new Date().toISOString(), ...patch }).eq('id', existing.id);
-      if (error) throw error;
-      return res.json({ ok: true, best: score, updated: true });
-    }
-    const { error } = await supa.from('scores').insert({ slug, player_name: name, score, ...patch });
-    if (error) throw error;
-    return res.json({ ok: true, best: score, created: true });
-  } catch (e) {
-    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql to enable the leaderboard.' });
-    console.warn('[scores] insert failed:', e.message);
-    return res.status(500).json({ ok: false, error: 'Could not save score.' });
-  }
-});
-
-// --- GET /api/scores?slug=  (per-game)  OR  /api/scores (global top) --------
-app.get('/api/scores', async (req, res) => {
-  res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=45, stale-while-revalidate=120');
-  const slug = clean(req.query.slug, 80).toLowerCase();
-  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
-  const supa = getSupabase();
-  if (!supa) return res.json({ scores: [], source: 'no-supabase' });
-  try {
-    const hasStatus = await ensureStatusCap(supa);
-    let q = supa.from('scores').select('slug, player_name, score, created_at').order('score', { ascending: false }).limit(limit);
-    if (hasStatus) q = q.eq('status', 'ok');       // hide flagged/quarantined scores from the public board
-    if (slug) q = q.eq('slug', slug);
-    const { data, error } = await q;
-    if (error) throw error;
-    return res.json({ scores: data || [], slug: slug || 'global' });
-  } catch (e) {
-    if (needsSetup(e)) return res.json({ scores: [], setup: 'Run db/community.sql to enable the leaderboard.' });
-    console.warn('[scores] list failed:', e.message);
-    return res.json({ scores: [], error: 'unavailable' });           // no internal detail to clients
-  }
-});
-
 // ========================================================================
+
 // PRIVATE ADMIN REVIEW  (/admin — noindex, secret-gated)
 // ------------------------------------------------------------------------
 // Two jobs:
@@ -2860,16 +2606,14 @@ app.get('/api/admin/dashboard', async (req, res) => {
         return error ? null : n;
       } catch { return null; }
     };
-    const [games, working, broken, scores, flagged, recs, hidden] = await Promise.all([
+    const [games, working, broken, recs, hidden] = await Promise.all([
       count('games'),
       count('games', q => q.eq('is_working', true)),
       count('games', q => q.eq('is_working', false)),
-      count('scores'),
-      count('scores', q => q.neq('status', 'ok')),
       count('recommendations'),
       count('recommendations', q => q.eq('is_visible', false)),
     ]);
-    out.database = { games, working, broken, scores, flagged, recommendations: recs, hiddenRecommendations: hidden };
+    out.database = { games, working, broken, recommendations: recs, hiddenRecommendations: hidden };
   }
   res.json(out);
 });
@@ -3037,6 +2781,76 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
   } catch { return res.status(500).json({ ok: false, error: 'Update failed.' }); }
 });
 
+// --- GET /api/admin/feedback ------------------------------------------------
+// The review queue. Defaults to unread, because that is the view with work in
+// it. Never exposed publicly: there is no matching public route, and RLS denies
+// the publishable key SELECT entirely.
+app.get('/api/admin/feedback', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured.' });
+  const status = ['new', 'read', 'archived'].includes(req.query.status) ? req.query.status
+    : req.query.status === 'all' ? 'all' : 'new';
+  try {
+    let q = supa.from('feedback')
+      .select('id, created_at, message, email, page, kind, status, ip_hash', { count: 'exact' });
+    if (status !== 'all') q = q.eq('status', status);
+    const { data, error, count } = await q.order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    // Per-status counts drive the filter labels, so a moderator can see there is
+    // work waiting without switching tabs to find out.
+    const counts = {};
+    for (const s of ['new', 'read', 'archived']) {
+      const { count: n } = await supa.from('feedback')
+        .select('id', { count: 'exact', head: true }).eq('status', s);
+      counts[s] = n ?? 0;
+    }
+    return res.json({ ok: true, feedback: data || [], total: count ?? 0, status, counts });
+  } catch (e) {
+    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/feedback.sql first.' });
+    return res.status(500).json({ ok: false, error: 'Could not load feedback.' });
+  }
+});
+
+// --- POST /api/admin/feedback/:id/:action -----------------------------------
+// read | archive | delete. Validated BEFORE auditing, so the audit table cannot
+// be filled with arbitrary strings from the URL.
+app.post('/api/admin/feedback/:id/:action', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const ACTIONS = ['read', 'archive', 'delete'];
+  if (!ACTIONS.includes(req.params.action)) {
+    return res.status(400).json({ ok: false, error: `action must be one of: ${ACTIONS.join(', ')}` });
+  }
+  const id = adminAuth.parseRowId(req.params.id);
+  if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
+  auditAction(req, 'feedback.' + req.params.action, String(id));
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured.' });
+  try {
+    if (req.params.action === 'delete') {
+      // Irreversible, so what it contained goes into the append-only trail
+      // first — otherwise the delete destroys the only record it existed.
+      const { data: row } = await supa.from('feedback')
+        .select('kind, status, message').eq('id', id).maybeSingle();
+      if (!row) return res.status(404).json({ ok: false, error: 'not found' });
+      const { error } = await supa.from('feedback').delete().eq('id', id);
+      if (error) throw error;
+      auditAction(req, 'feedback.delete.detail', String(id), 'success',
+        `${row.kind} · was ${row.status} · ${String(row.message).slice(0, 120)}`);
+      return res.json({ ok: true, id, action: 'delete' });
+    }
+    const status = req.params.action === 'read' ? 'read' : 'archived';
+    const { error } = await supa.from('feedback').update({ status }).eq('id', id);
+    if (error) throw error;
+    return res.json({ ok: true, id, status });
+  } catch {
+    return res.status(500).json({ ok: false, error: 'Update failed.' });
+  }
+});
+
 // --- GET /api/admin/analytics -----------------------------------------------
 // Play distribution across the catalog. Reads the in-memory playCounts map the
 // server already maintains, so opening this panel costs no database work.
@@ -3168,213 +2982,7 @@ app.get('/api/admin/catalog/quality', (req, res) => {
   }
 });
 
-// ── Leaderboard review helpers ─────────────────────────────────────────────
-
-// Which score columns this database can actually serve. Both extra groups came
-// from later migrations, so a deployment that has not run them yet still gets a
-// working screen instead of a PostgREST error about an unknown column.
-async function reviewColumns(supa) {
-  const hasStatus = await ensureStatusCap(supa);
-  const hasEvidence = hasStatus && await ensureEvidenceCols(supa);
-  return {
-    hasStatus,
-    hasEvidence,
-    cols: 'id, slug, player_name, score, created_at'
-      + (hasStatus ? ', status, flag_reason' : '')
-      + (hasEvidence ? ', flag_evidence' : ''),
-  };
-}
-
-/**
- * Add the two things a reviewer needs that are not on the row itself: the score
- * to compare against, and the quarantine explained in words.
- *
- * The board best used to be fetched one query per row. At the 200-row limit that
- * was 200 sequential round trips to render one table, and it got slower the more
- * there was to review — exactly backwards. One `in` query covers every slug on
- * the page instead.
- */
-async function attachReviewContext(supa, rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  if (!list.length) return [];
-  const slugs = [...new Set(list.map((r) => r.slug).filter(Boolean))];
-  const best = new Map();
-  if (slugs.length) {
-    try {
-      const { data } = await supa.from('scores')
-        .select('slug, score').in('slug', slugs).eq('status', 'ok')
-        .order('score', { ascending: false });
-      for (const r of (data || [])) {
-        if (!best.has(r.slug)) best.set(r.slug, r.score);   // ordered desc, so first wins
-      }
-    } catch { /* context is a nicety; the queue must still render without it */ }
-  }
-  return list.map((s) => ({
-    ...s,
-    currentBest: best.get(s.slug) ?? 0,
-    verdict: s.status === 'ok' ? null : explainEvidence(s.flag_evidence, s.flag_reason),
-  }));
-}
-
-// --- GET /api/admin/scores --------------------------------------------------
-// The full leaderboard, not just the queue. Search by player or game, filter by
-// status, sort, paginate. Defaults to status=flagged so the URL with no query
-// string is still the review queue.
-app.get('/api/admin/scores', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  const supa = getSupabase();
-  if (!supa) return res.json({ ok: true, scores: [], total: 0, note: 'Supabase not configured.' });
-  const qy = parseScoreQuery(req.query);
-  try {
-    const { hasStatus, hasEvidence, cols } = await reviewColumns(supa);
-    let sel = supa.from('scores').select(cols, { count: 'exact' });
-    // Without the status column every row is implicitly public, so a status
-    // filter would silently return nothing rather than everything.
-    if (hasStatus && qy.status !== 'all') sel = sel.eq('status', qy.status);
-    const filter = searchFilter(qy.q);
-    if (filter) sel = sel.or(filter);
-    const { data, error, count } = await sel
-      .order(qy.column, { ascending: qy.ascending })
-      .range(qy.offset, qy.offset + qy.limit - 1);
-    if (error) throw error;
-    const scores = await attachReviewContext(supa, data || []);
-    return res.json({
-      ok: true, scores, total: count ?? scores.length,
-      query: { q: qy.q, status: qy.status, sort: qy.sort, limit: qy.limit, offset: qy.offset },
-      capabilities: { status: hasStatus, evidence: hasEvidence },
-    });
-  } catch (e) {
-    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
-    return res.status(500).json({ ok: false, error: 'Could not load scores.' });
-  }
-});
-
-// --- GET /api/admin/players/:name -------------------------------------------
-// Everything one name has ever submitted. A single flagged row cannot tell you
-// whether someone is cheating or had one odd game; their history can.
-app.get('/api/admin/players/:name', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  const supa = getSupabase();
-  if (!supa) return res.json({ ok: true, player: null, scores: [], note: 'Supabase not configured.' });
-  const name = String(req.params.name || '').slice(0, 80);
-  if (!name) return res.status(400).json({ ok: false, error: 'no player name' });
-  try {
-    const { cols } = await reviewColumns(supa);
-    // eq(), not ilike() — this is an exact identity, and a pattern match here
-    // would fold distinct players together in a way a moderator would not see.
-    const { data, error } = await supa.from('scores')
-      .select(cols).eq('player_name', name)
-      .order('created_at', { ascending: false }).limit(200);
-    if (error) throw error;
-    const rows = data || [];
-    return res.json({
-      ok: true,
-      player: { name, ...summarizePlayer(rows) },
-      scores: await attachReviewContext(supa, rows),
-    });
-  } catch (e) {
-    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
-    return res.status(500).json({ ok: false, error: 'Could not load player history.' });
-  }
-});
-
-// --- GET /api/admin/scores/flagged ------------------------------------------
-app.get('/api/admin/scores/flagged', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  const supa = getSupabase();
-  if (!supa) return res.json({ ok: true, scores: [], note: 'Supabase not configured.' });
-  try {
-    if (!(await ensureStatusCap(supa))) {
-      return res.json({ ok: true, scores: [], note: 'The `status` column is missing — run db/community-scores-integrity.sql.' });
-    }
-    // flag_evidence is what makes this queue reviewable rather than a guess:
-    // the board best at the time, the ratio, measured play time and implied
-    // points-per-second. Selected optionally so this endpoint still works on a
-    // database that has not had db/community-scores-evidence.sql applied.
-    const withEvidence = await ensureEvidenceCols(supa);
-    const cols = 'id, slug, player_name, score, status, flag_reason, created_at'
-      + (withEvidence ? ', flag_evidence' : '');
-    const { data, error } = await supa.from('scores')
-      .select(cols)
-      .eq('status', 'flagged')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (error) throw error;
-    const out = await attachReviewContext(supa, data || []);
-    return res.json({ ok: true, scores: out, count: out.length });
-  } catch (e) {
-    if (needsSetup(e)) return res.status(503).json({ ok: false, error: 'Run db/community.sql first.' });
-    return res.status(500).json({ ok: false, error: 'Could not load flagged scores.' });
-  }
-});
-
-// --- POST /api/admin/scores/:id/approve | /reject ---------------------------
-app.post('/api/admin/scores/:id/:action', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  if (!requireAdminCsrf(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  // Validate BEFORE auditing. This used to write 'score.' + the raw path segment
-  // into the audit log's action column, so any authenticated request could put
-  // an arbitrary string into an append-only table that nobody can clean up.
-  const ACTIONS = ['approve', 'reject', 'delete'];
-  if (!ACTIONS.includes(req.params.action)) {
-    return res.status(400).json({ ok: false, error: `action must be one of: ${ACTIONS.join(', ')}` });
-  }
-  const id = adminAuth.parseRowId(req.params.id);
-  if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
-  auditAction(req, 'score.' + req.params.action, String(id));
-  const supa = getSupabaseAdmin();   // approve/reject/delete a score
-  if (!supa) return res.status(503).json({ ok: false, error: 'Supabase admin key not configured — writes are disabled.' });
-  const approve = req.params.action === 'approve';
-  try {
-    // Deletion is the one irreversible action here, so what was removed goes
-    // into the audit trail first. Otherwise the delete destroys the only record
-    // that it ever existed, and an append-only log that cannot answer "what was
-    // in that row" is not much of a log.
-    if (req.params.action === 'delete') {
-      const { data: row } = await supa.from('scores')
-        .select('slug, player_name, score, status').eq('id', id).maybeSingle();
-      if (!row) return res.status(404).json({ ok: false, error: 'not found' });
-      const { error } = await supa.from('scores').delete().eq('id', id);
-      if (error) throw error;
-      auditAction(req, 'score.delete.detail', String(id), 'success',
-        `${row.player_name} · ${row.slug} · ${row.score} · was ${row.status}`);
-      return res.json({ ok: true, id, action: 'delete', deleted: row });
-    }
-    // Approving makes the score public. The UNIQUE (slug, player_name) WHERE
-    // status='ok' index (db/community-scores-unique.sql) means a player who
-    // already has a visible row would collide — so fold it into their best.
-    if (approve) {
-      const { data: row, error: rowErr } = await supa.from('scores')
-        .select('id, slug, player_name, score').eq('id', id).maybeSingle();
-      if (rowErr) throw rowErr;
-      if (!row) return res.status(404).json({ ok: false, error: 'not found' });
-      const { data: existing } = await supa.from('scores')
-        .select('id, score').eq('slug', row.slug).eq('player_name', row.player_name)
-        .eq('status', 'ok').maybeSingle();
-      if (existing) {
-        if (row.score > existing.score) {
-          const { error } = await supa.from('scores')
-            .update({ score: row.score, created_at: new Date().toISOString() }).eq('id', existing.id);
-          if (error) throw error;
-        }
-        await supa.from('scores').delete().eq('id', id);   // fold the flagged row away
-        return res.json({ ok: true, id, action: 'approve', merged: true });
-      }
-    }
-    const { error } = await supa.from('scores')
-      .update(approve ? { status: 'ok', flag_reason: null } : { status: 'rejected', flag_reason: 'rejected by admin' })
-      .eq('id', id);
-    if (error) throw error;
-    return res.json({ ok: true, id, action: req.params.action });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: 'Update failed.' });
-  }
-});
-
+// sessionStorage, and sent as a header — it is never part of a URL or the page.
 // A tiny self-contained console. The secret is typed in, kept only in
 // sessionStorage, and sent as a header — it is never part of a URL or the page.
 const ADMIN_HTML = `<!doctype html><html lang="en"><head>
@@ -5001,8 +4609,7 @@ app.get('/play/:gameSlug', async (req, res) => {
     // directOnly = GameMonetize/GameDistribution — the client loader must NEVER
     // fall back to the proxy for these (it black-screens them). Emitted as a bare
     // JS boolean into window.ZOFHUB_GAME, so no htmlEscape.
-    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false')
-    .replace(/\{\{SCORE_TOKEN\}\}/g,  htmlEscape(issueScoreToken(game.slug)));
+    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false');
   res.set('Cache-Control', 'no-cache').send(html);
 });
 
@@ -5139,7 +4746,6 @@ app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')
 // /gust/vendor/ and are served by the static mount above).
 app.get(['/gust', '/proxy'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'gust', 'index.html')));
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
-app.get('/leaderboard',(req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.html')));
 
 // ========================================================================
 // Legal pages — Privacy / Terms / DMCA / Cookies.

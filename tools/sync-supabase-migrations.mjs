@@ -56,6 +56,8 @@ const ORDER = [
    'admin console: sessions, append-only audit trail, login attempts, security events.'],
   ['20260101000900', 'scores_evidence', 'db/community-scores-evidence.sql',
    'scores.flag_evidence + ip_tag: why a score was quarantined, and the correlation handle review needs. Runs after scores_integrity, which creates status/flag_reason.'],
+  ['20260101001000', 'feedback', 'db/feedback.sql',
+   'Retires the leaderboard (drops scores + its SECURITY DEFINER functions), adds the private feedback table, and the retention sweeps. Runs LAST: the drops act on tables the earlier migrations create.'],
 ];
 
 function render(name, src, why, body) {

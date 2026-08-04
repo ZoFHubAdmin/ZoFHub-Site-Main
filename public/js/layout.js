@@ -106,6 +106,12 @@ function buildSocialCluster(className, size = 20) {
 // Built once here so all pages share one professional footer — the HTML files
 // only need an empty <footer class="site-footer">.
 // ════════════════════════════════════════════════════════════════════════
+// Feedback dialog — lazy and self-contained: it injects its own styles and
+// markup, so no page needs an empty container that could rot unnoticed.
+import('./feedback.js')
+  .then(m => m.mountFeedback())
+  .catch(() => { /* feedback unavailable → the link is inert, site unaffected */ });
+
 function mountFooter() {
   const footer = document.querySelector('.site-footer');
   if (!footer || footer.dataset.enhanced) return;
@@ -136,9 +142,11 @@ function mountFooter() {
         <h4>Explore</h4>
         <a href="/ai">AI Assistant</a>
         <a href="/community">Community</a>
-        <a href="/leaderboard">Leaderboard</a>
         <a href="/browser">Proxy Browser</a>
         <a href="/api/health" target="_blank" rel="noopener">Status</a>
+        <!-- Opens the feedback dialog (feedback.js). A real href so it still reads
+             as a link to assistive tech and survives the module failing to load. -->
+        <a href="#feedback" data-feedback>Send Feedback</a>
       </nav>
       <nav class="footer-col" aria-label="Legal">
         <h4>Legal</h4>
@@ -206,7 +214,6 @@ const NAV_LINKS = [
   { label: 'Games',         href: '/' },
   { label: 'AI Assistant',  href: '/ai' },
   { label: 'Community',     href: '/community' },
-  { label: 'Leaderboard',   href: '/leaderboard' },
   { label: 'Proxy Browser', href: '/browser' },
 ];
 function mountMobileNav() {

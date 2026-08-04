@@ -56,8 +56,6 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: SCORE_SECRET
-        generateValue: true        # stable HMAC secret for score tokens
       # Unlocks /admin + /api/admin/scores/* so quarantined scores can be
       # reviewed. Auth FAILS CLOSED, so without it those routes 503 and flagged
       # scores pile up unreviewable (community-scores-review.sql deliberately
@@ -170,9 +168,6 @@ services:
       # Alias read by lib/cache.mjs when REDIS_URL is unset. A Redis URL carries
       # its password inline, so it is a credential, not a setting.
       - key: UPSTASH_REDIS_URL
-        sync: false
-      # Optional tuning. SCORES_KEEP_PER_GAME defaults to 200.
-      - key: SCORES_KEEP_PER_GAME
         sync: false
       # Set to 1 on EVERY replica except one if you ever scale past a single
       # instance — otherwise every cron write runs once per replica.

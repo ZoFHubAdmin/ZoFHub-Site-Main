@@ -26,8 +26,8 @@
 <nav class="tabs" role="tablist" aria-label="Admin sections">
   <button class="tab is-active" data-panel="overview"  role="tab" id="tab-overview"  aria-controls="panel-overview"  aria-selected="true">Overview</button>
   <button class="tab" data-panel="games"     role="tab" id="tab-games"     aria-controls="panel-games"     aria-selected="false">Games</button>
-  <button class="tab" data-panel="scores"    role="tab" id="tab-scores"    aria-controls="panel-scores"    aria-selected="false">Leaderboard</button>
   <button class="tab" data-panel="community" role="tab" id="tab-community" aria-controls="panel-community" aria-selected="false">Community</button>
+  <button class="tab" data-panel="feedback"  role="tab" id="tab-feedback"  aria-controls="panel-feedback"  aria-selected="false">Feedback</button>
   <button class="tab" data-panel="security"  role="tab" id="tab-security"  aria-controls="panel-security"  aria-selected="false">Security</button>
   <button class="tab" data-panel="analytics" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false">Analytics</button>
   <button class="tab" data-panel="system"    role="tab" id="tab-system"    aria-controls="panel-system"    aria-selected="false">System</button>
@@ -56,36 +56,25 @@
     <div id="gamesOut" class="table-wrap"></div>
   </section>
 
-  <section class="panel" data-panel="scores" id="panel-scores" role="tabpanel" aria-labelledby="tab-scores" tabindex="0">
-    <!-- The whole leaderboard, not only the queue. Defaults to the quarantined
-         scores because that is the view with work waiting in it. -->
-    <div class="row">
-      <input id="scoreSearch" type="search" placeholder="Search by player or game…" autocomplete="off">
-      <label class="sel"><span class="sr-only">Status</span>
-        <select id="scoreStatus">
-          <option value="flagged">Awaiting review</option>
-          <option value="ok">On the public board</option>
-          <option value="rejected">Rejected</option>
-          <option value="all">Every score</option>
-        </select>
-      </label>
-      <label class="sel"><span class="sr-only">Sort</span>
-        <select id="scoreSort">
-          <option value="recent">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="highest">Highest score</option>
-          <option value="lowest">Lowest score</option>
-        </select>
-      </label>
-    </div>
-    <p id="scoreMeta" class="hint"></p>
-    <div id="scoresOut" class="table-wrap"></div>
-    <div id="scorePager" class="pager"></div>
-  </section>
 
   <section class="panel" data-panel="community" id="panel-community" role="tabpanel" aria-labelledby="tab-community" tabindex="0">
     <p class="hint">Community submissions. Hiding removes a post from the public wall without deleting it.</p>
     <div id="communityOut" class="table-wrap"></div>
+  </section>
+
+  <section class="panel" data-panel="feedback" id="panel-feedback" role="tabpanel" aria-labelledby="tab-feedback" tabindex="0">
+    <p class="hint">Feedback sent from the site. Private — never shown publicly. Archiving keeps the record; deleting is permanent.</p>
+    <div class="row">
+      <label class="sel"><span class="sr-only">Status</span>
+        <select id="fbStatus">
+          <option value="new">Unread</option>
+          <option value="read">Read</option>
+          <option value="archived">Archived</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+    </div>
+    <div id="feedbackOut" class="table-wrap"></div>
   </section>
 
   <section class="panel" data-panel="security" id="panel-security" role="tabpanel" aria-labelledby="tab-security" tabindex="0">

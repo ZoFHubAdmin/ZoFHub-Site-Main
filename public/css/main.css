@@ -103,7 +103,9 @@ html, body { margin: 0; padding: 0; min-height: 100%; }
 html {
   overflow-y: scroll;
   scrollbar-width: auto;
-  scrollbar-color: rgba(255,255,255,.55) rgba(255,255,255,.07);
+  /* Kept in step with the ::-webkit-scrollbar-thumb colour further down.
+     Firefox has no hover pseudo for the thumb, so this is the resting state. */
+  scrollbar-color: rgba(196,182,255,.55) rgba(255,255,255,.05);
 }
 body {
   /* Two soft, widely-separated colour washes over the indigo ground read as
@@ -620,11 +622,46 @@ body { letter-spacing: -0.005em; }
    "sidebar" to drag. `overflow-y: scroll` on <html> (set near the top) keeps the
    track present on every page so it never disappears. The old thumb was 14% white
    on a dark bg = nearly invisible; brand-blue at higher opacity reads clearly. */
-::-webkit-scrollbar          { width: 14px; height: 14px; }
-::-webkit-scrollbar-track    { background: rgba(255,255,255,.07); }
-::-webkit-scrollbar-thumb    { background: rgba(255,255,255,.45); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.70); background-clip: content-box; }
-::-webkit-scrollbar-thumb:active { background: rgba(255,255,255,.85); background-clip: content-box; }
+/* ── Scrollbar ──────────────────────────────────────────────────────────────
+   Chromium/Safari read the ::-webkit rules; Firefox reads scrollbar-color on
+   html (set near the top of this file). Both are kept in step deliberately —
+   styling only one leaves half the visitors with the default grey bar.
+
+   The thumb is inset with a transparent border and background-clip:content-box,
+   which is what gives it the rounded floating look instead of a bar wedged
+   against the edge. Colour carries the state: idle is quiet, hover brightens,
+   active takes the brand colour so a drag is unmistakable. */
+::-webkit-scrollbar { width: 14px; height: 14px; }
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.05);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(196,182,255,.42);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color .16s ease;
+}
+::-webkit-scrollbar-thumb:hover  { background: rgba(214,204,255,.72); background-clip: content-box; }
+::-webkit-scrollbar-thumb:active { background: var(--brand); background-clip: content-box; }
+/* Where two scrollbars meet; unstyled it renders as a bright default square. */
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Nested scrollers (menus, panels, the admin tables) get a slimmer bar — a
+   14px bar inside a 300px dropdown eats the content. */
+.search-suggest::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+.vibe-results::-webkit-scrollbar,
+.ai-orb-body::-webkit-scrollbar { width: 9px; height: 9px; }
+
+/* Touch devices overlay their own transient scrollbar; a 14px reserved gutter
+   is wasted width on a phone. */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  html { scrollbar-width: thin; }
+}
+
 
 /* Polished focus ring (replaces ugly browser default) */
 :focus-visible {

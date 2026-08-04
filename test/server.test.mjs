@@ -60,7 +60,7 @@ before(async () => {
 after(() => { if (child && !child.killed) child.kill('SIGKILL'); });
 
 describe('pages and routes', () => {
-  const pages = ['/', '/ai', '/browser', '/community', '/leaderboard',
+  const pages = ['/', '/ai', '/browser', '/community',
                  '/credits', '/licenses', '/privacy', '/terms', '/dmca', '/cookies'];
   for (const p of pages) {
     test(`GET ${p} -> 200`, async () => {
@@ -557,7 +557,7 @@ describe('admin console access control', () => {
 
   test('no admin API answers an anonymous caller', async () => {
     for (const p of ['/api/admin/me', '/api/admin/dashboard', '/api/admin/security',
-                     '/api/admin/games', '/api/admin/recommendations', '/api/admin/scores/flagged']) {
+                     '/api/admin/games', '/api/admin/recommendations']) {
       const r = await anon(p);
       assert.ok(r.status === 401 || r.status === 503,
         `${p} answered ${r.status} to an anonymous caller`);
