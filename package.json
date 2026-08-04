@@ -51,7 +51,8 @@
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "admin-hash": "node tools/hash-admin-password.mjs",
     "quality": "node tools/catalog-quality.mjs",
-    "css-tokens": "node tools/css-tokens.mjs"
+    "css-tokens": "node tools/css-tokens.mjs",
+    "og-sync": "node tools/sync-onlinegames.mjs"
   },
   "engines": {
     "node": ">=22"

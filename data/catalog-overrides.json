@@ -4601,6 +4601,1510 @@
       "set": {
         "thumbnail_url": "/thumbs/suroi.svg"
       }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "sniper-elite"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "survival-karts"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "tiny-crash-fighters"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "fnf-funk-3d"
+      },
+      "set": {
+        "category": "arcade"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "head-basketball"
+      },
+      "set": {
+        "category": "sports"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "highway-moto"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "highway-racer-2"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "jeep-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "racing-cars"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "davo"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "idle-restaurant"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "sweet-sugar-match"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "stickman-gta-city"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "snake-wars"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "darkness-survivors"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "soul-essence-adventure"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kick-the-pirate"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "american-touchdown"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "among-impostor"
+      },
+      "set": {
+        "category": "action"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "basketball-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crazy-stickman-physics"
+      },
+      "set": {
+        "category": "action"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "dino-chaos-idle"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "dont-fall-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "monster-truck-city-parking"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "army-driver"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "snake"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "jungle-mart"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kick-the-dummy"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "bandits-multiplayer-pvp"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "stickman-parkour"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "geometry-vector"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "spartahoppers"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "agent-smith"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "pixel-driver"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "draw-the-truck-bridge"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "apocalypse-truck"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "solitaire-adventure"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mob-city"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "hook-wars"
+      },
+      "set": {
+        "category": "action"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "nova-craft"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "idle-dev-startup"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kick-the-alien"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "supercars-drift"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "snake-football"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "storm-city-mafia"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "geometry-rash"
+      },
+      "set": {
+        "category": "action"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "global-guesser"
+      },
+      "set": {
+        "thumbnail_url": "https://www.onlinegames.io/media/posts/972/responsive/global-guesser-xs.jpg"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "monster-truck-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "monster-survivors"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crazy-hill-climb"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "tractor-farming-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "super-mini-racing"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "jul-moto-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "powerslide-kart-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "car-football"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "battle-royale-simulator"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "car-wash"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "draw-the-car-path"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "blocky-parkour-ninja"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "99-nights-in-the-forest"
+      },
+      "set": {
+        "category": "strategy"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mad-doctor"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "football-king"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "monster-truck-booster"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "age-of-battle"
+      },
+      "set": {
+        "thumbnail_url": "https://www.onlinegames.io/media/posts/1201/responsive/age-of-battle-xs.webp"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "tank-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "shortcut-race"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "tank-arena"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "pixel-monster-town"
+      },
+      "set": {
+        "title": "Pixelmon Town",
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "cubecraft-survival"
+      },
+      "set": {
+        "category": "strategy"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "the-farmer"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "war-simulator"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "solitaire"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "toonz-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "airplane-racer"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "war-of-ships-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "zombie-road"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "zombie-sniper"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "zombie-war-defense"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crazy-car-arena"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "armedforces-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "limousine-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "steal-brainrot-heist"
+      },
+      "set": {
+        "category": "strategy"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "evil-santa"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "galactic-driver"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "voxel-world"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "draw-the-bird-path"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "basketball-king"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "find-it"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "city-police-cars"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crazy-karts"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "draw-the-bridge"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mr-space-bullet"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "dark-ninja-hanjo"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "stick-guys-defense"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crazy-moto-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mahjong"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "gta-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "chess-freezenova"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "skibidi-toilet-io"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "poly-racing-cars"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "dublix"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "subway-idle-3d"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "moto-trials"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "fast-food-manager"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "skateboard-marathon"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "formula-1-driver"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "jeep-driver"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mini-cars-racing"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "neon-racer"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "farming-island"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "draw-here"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "crown-defense"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "cool-brainrot-clicker"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "head-soccer-football"
+      },
+      "set": {
+        "category": "sports"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "hero-dragon-power"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "hill-climb-cars"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "paw-clicker"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "legends-arena"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "pinball-simulator"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "trains-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "racing-cars-2"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "nova-billiard"
+      },
+      "set": {
+        "category": "sports"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mini-shooters"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "rome-simulator"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mech-shooter"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "jacks-village"
+      },
+      "set": {
+        "category": "strategy"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "rescue-helicopter"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "fire-and-water"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "survival-island"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "masked-special-forces"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "treasure-hunter"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "xmas-cookie-clicker"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "survival-craft"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "wasteland-shooters"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "monster-truck-race-arena"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "squid-race-simulator"
+      },
+      "set": {
+        "category": "action"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "cube-worlds"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "fall-brainrots"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "hover-racer"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kick-the-zombie"
+      },
+      "set": {
+        "category": "clicker"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "blocky-blast"
+      },
+      "set": {
+        "category": "puzzle"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "guerrillas-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kingdom-battle-3d"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "love-tester-story"
+      },
+      "set": {
+        "category": "arcade"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kings-io"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "taxi-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "four-colors"
+      },
+      "set": {
+        "category": "strategy"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "archer-hero"
+      },
+      "set": {
+        "category": "adventure"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "edys-car-simulator"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "state-io-wars"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "love-tester"
+      },
+      "set": {
+        "category": "arcade"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "stickman-destruction"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "head-soccer-2022"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "hover-racer-pro"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "dockyard-tank-parking"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kingdom-attack"
+      },
+      "set": {
+        "category": "simulator"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "2-player-crazy-racer"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "truck-racing"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "galactic-sniper"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "funny-shooter-bro"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "alien-sky-invasion"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "cobraz-io-classic"
+      },
+      "set": {
+        "category": "io-games"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "basketball-slam-dunk"
+      },
+      "set": {
+        "category": "2-player"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "ultimate-moto"
+      },
+      "set": {
+        "category": "racing"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "kawaii-shooter"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "secret-sniper-agent"
+      },
+      "set": {
+        "category": "shooting"
+      }
+    },
+    {
+      "_note": "onlinegames.io: synced from embedonlinegamesio.json",
+      "match": {
+        "slug": "mafia-getaway-cars"
+      },
+      "set": {
+        "category": "racing"
+      }
     }
   ],
   "add": [
@@ -4621,6 +6125,22 @@
       "thumbnail_url": "https://img.gamedistribution.com/308d826f20034d7b972f25258c8d0a44-512x384.jpeg",
       "category": "sports",
       "orientation": "landscape"
+    },
+    {
+      "_note": "onlinegames.io: from embedonlinegamesio.json",
+      "slug": "steal-brainrots-multiplayer",
+      "title": "Steal Brainrots Multiplayer",
+      "game_url": "https://cloud.onlinegames.io/games/2026/unity/steal-brainrots-multiplayer/game.html",
+      "thumbnail_url": "https://www.onlinegames.io/media/posts/1340/responsive/steal-brainrots-multiplayer-2-xs.webp",
+      "category": "io-games"
+    },
+    {
+      "_note": "onlinegames.io: from embedonlinegamesio.json",
+      "slug": "drako-io",
+      "title": "Drako IO",
+      "game_url": "https://cloud.onlinegames.io/games/2022/unity/drako-io/game.html",
+      "thumbnail_url": "https://www.onlinegames.io/media/posts/1304/responsive/drako-io-xs.webp",
+      "category": "io-games"
     }
   ],
   "remove": [
@@ -4660,10 +6180,6 @@
     {
       "_note": "licensing: removed Gamezop",
       "hostIncludes": "play.gamezop.com"
-    },
-    {
-      "_note": "Broken embedded 2026-07-11 (user-approved full-host block): onlinegames.io games (www + cloud) black-screen / throw the Unity \"couldn’t load the content\" error when framed on ZoFHub (cloud S3 returns Access Denied; www old-Unity builds ORB-block their assets; the /embed proxy hangs on them). Block the whole host.",
-      "hostIncludes": "onlinegames.io"
     },
     {
       "_note": "HIDDEN 2026-07-04: HTMLGames' on-page GameLib/ThirdParty.js frame-busts to about:blank / shows 'Internet allowance is over' on any UNLICENSED domain, so the ~1,200 titles load broken. Hidden at serve time until a licensed HTMLGames publisher account + licensed embed URLs are wired in. To bring back: append '.disabled' to the host below again.",
@@ -16282,6 +17798,194 @@
     {
       "_note": "auto: duplicate-url",
       "slug": "space_match"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-burgeria"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-cupcakeria"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-taco-mia"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-freezeria"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-donuteria"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "flappy-bird"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "moto-x3m-winter"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "moto-x3m-spooky-land"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "sudoku"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "spend-bill-gates-money"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "spend-elon-musk-money"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "house-of-hazards"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "supermarket-simulator"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "watermelon-game"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "car-stunt-king"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "block-world"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "among-impostor-run"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "drift-hunters"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "basketball-stars"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "car-drawing-games"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "gold-miner"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "burnout-racers"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "ragdoll-duel"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "idle-breakout"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "gun-mayhem-2"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "word-guess"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "burger-clicker"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "electric-man-2"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "soccer-random"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "friday-night-funkin"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "papa-s-pizzeria"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "ovo-online"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "run-3"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "moto-x3m"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "block-stack"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "a-small-world-cup"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "drift-city"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "moto-x3m-pool-party"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "wordle"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "tetris"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "pizza-pronto"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "planet-clicker-2"
+    },
+    {
+      "_note": "onlinegames.io: not in embedonlinegamesio.json",
+      "slug": "drift-hunters-2"
+    },
+    {
+      "_note": "onlinegames.io: duplicate of cs-online",
+      "slug": "strike-online"
+    },
+    {
+      "_note": "onlinegames.io: duplicate of five-nights-at-poppy",
+      "slug": "five-nights-of-dread"
+    },
+    {
+      "_note": "onlinegames.io: duplicate of pixel-monster-town",
+      "slug": "pixelmon-town"
+    },
+    {
+      "_note": "onlinegames.io: duplicate of solitaire",
+      "slug": "pyramid-solitaire"
     }
   ],
   "featured": [
@@ -16292,5 +17996,6 @@
     "driftsea",
     "smash-karts",
     "basket-random"
-  ]
+  ],
+  "_comment_onlinegames": "OnlineGames.io is governed by embedonlinegamesio.json (the source of truth) via tools/sync-onlinegames.mjs — run `npm run og-sync` to check, `-- --write` to apply. The 2026-07-11 blanket hostIncludes:onlinegames.io block was REMOVED on 2026-08-04: it hid all 260 canonical games, and the canonical embeds were re-probed at 10/10 HTTP 200 with framing allowed. Non-canonical OnlineGames.io titles are now hidden individually by slug instead, so the blanket rule was both redundant and blocking the licensed set. NOTE: the July report was a RUNTIME black-screen, which an HTTP probe cannot disprove — if games black-screen again, restore the host block rather than re-adding it per slug."
 }
