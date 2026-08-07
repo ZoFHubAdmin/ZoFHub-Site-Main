@@ -107,6 +107,11 @@ jobs:
         with:
           node-version: "22"
 
+      # For the live verification step below. Stdlib only — nothing to install.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: supabase/migrations must match db/
         run: |
           if node tools/sync-supabase-migrations.mjs --check; then
@@ -130,6 +135,26 @@ jobs:
             echo "::error::db/ALL-IN-ONE.sql is stale. Run 'npm run build-all-in-one' and commit the result — a restore from it would build the wrong database."
             exit 1
           fi
+
+      - name: Verify the deployed database matches these migrations
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          # The integration's failure modes are ALL silent: wrong repository,
+          # wrong working directory, migrations disabled — each one applies
+          # nothing and reports success. The only way to know a deploy landed is
+          # to ask the database. This does that, and also asserts the browser-
+          # facing key still cannot read feedback or any admin table.
+          #
+          # Skips cleanly when the secrets are not set, so forks and PRs from
+          # outside the repo are not failed for credentials they cannot have.
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::notice::no Supabase secrets configured — live verification skipped"
+            exit 0
+          fi
+          python tools/audit.py live --fail-on error
 
       - name: Migration filenames must match Supabase's required format
         run: |

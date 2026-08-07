@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-307%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 299 tests |
+| Tests | `node:test` (built in — zero test dependencies), 307 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -408,7 +408,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, recommender, credits, game-discovery
-├── test/                # node:test suites (299 tests, no framework)
+├── test/                # node:test suites (307 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -427,7 +427,7 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 299 tests, node:test — no framework, no install step
+npm test        # 307 tests, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 
@@ -449,6 +449,7 @@ Four CI jobs run on every push and PR:
 ## 🔎 Repository auditor
 
 ```bash
+npm run db:verify             # is the DEPLOYED database what these migrations say?
 npm run audit:repo            # every check, human-readable
 npm run audit:sql             # just the database
 npm run audit:repo:json       # machine-readable — includes the full import graph
@@ -466,6 +467,7 @@ Static analysis of the things this project has nothing else watching for. No bui
 | `deps` | import targets that do not exist, static import cycles, modules nothing imports |
 | `assets` | files in `public/` that nothing references |
 | `perf` | unstable pagination, unbounded selects, synchronous filesystem calls inside a request handler |
+| `live` | the **running** database vs these migrations — objects missing, objects nobody declared, columns that differ, and whether the publishable key can read a private table (needs credentials; skips cleanly without) |
 
 The `sql` check is the one that pays for the rest. Nearly every interesting question about this database — *does `scores` still exist? is that function reachable?* — is a property of the **sequence** of migrations, not of any single file, and no amount of careful reading of one file answers it. Replaying them does.
 

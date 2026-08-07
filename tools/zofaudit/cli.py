@@ -16,6 +16,7 @@ from .model import Report, SEVERITIES
 # error in one check cannot stop the others from running.
 CHECKS = {
     'sql':    ('checks_sql',    'replay the migrations; hold every Supabase call against the result'),
+    'live':   ('checks_live',   'compare the RUNNING database against the migrations (needs credentials)'),
     'json':   ('checks_json',   'parse and shape-check every JSON file the app loads'),
     'env':    ('checks_env',    'environment variables: read in code, documented, defaulted'),
     'api':    ('checks_api',    'routes the server registers vs paths the browser requests'),

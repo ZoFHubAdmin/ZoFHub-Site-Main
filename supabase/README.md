@@ -108,6 +108,53 @@ Branching is a Pro feature. On Free you get the part that matters: **merge to
 `main` → migrations apply to production.** Preview branches per PR stay off, and
 `Branch limit: 0` is expected and correct.
 
+## How to know a deploy actually landed
+
+```bash
+npm run db:verify          # compare the RUNNING database against these migrations
+```
+
+It reads the live schema through PostgREST with the secret key and reports:
+
+- objects the migrations create that the database **does not have** → the deploy
+  did not land (or the integration is pointed somewhere else)
+- objects the database has that **no migration creates** → drift, added outside
+  this repository
+- columns that differ in either direction
+- whether the **publishable key can read** `feedback` or any `admin_*` table —
+  the one property that is only ever true or false of a running database, never
+  of a file
+
+Exit 0 means the deployed schema is the schema in this repository. It runs in CI
+too (`migrations-in-sync`), and skips cleanly when no credentials are present, so
+forks are never failed for keys they cannot have.
+
+**Why this is not optional.** Every way this integration fails is silent. Connect
+it to the wrong repository, set the working directory to `supabase` instead of
+`.`, or leave `db.migrations.enabled` off, and it finds nothing, applies nothing,
+and reports success. The files look right, the tests pass, and production quietly
+keeps an older schema. Asking the database is the only check that can tell.
+
+## The rules a new migration must follow
+
+`test/migration-safety.test.mjs` enforces these, because the deploy model depends
+on them and nothing else was checking:
+
+1. **Idempotent.** `CREATE TABLE`/`INDEX` need `IF NOT EXISTS`; every `DROP` needs
+   `IF EXISTS`; `CREATE POLICY` and `CREATE TRIGGER` (which have no `IF NOT
+   EXISTS` in PG15) need a guarded `DROP` immediately before.
+2. **Never destructive.** No `TRUNCATE`, no `DROP DATABASE`/`SCHEMA`, no `DELETE`
+   without a `WHERE`. A full replay runs against populated production **on every
+   merge**.
+3. **Correctly named.** `<14-digit timestamp>_snake_case.sql`, or it is skipped
+   or applied out of order.
+4. **Registered.** Add the source to `ORDER` in
+   `tools/sync-supabase-migrations.mjs` and run `npm run sync-migrations`. A file
+   in `db/` that is not in `ORDER` is never applied anywhere.
+
+Corrections go in a **new** file that sorts last, never as an edit to an existing
+one — see the note below on why that discipline holds even without a ledger.
+
 ## What "no ledger" means in practice
 
 Because every migration re-runs on every merge, the END STATE is what matters,
@@ -124,6 +171,18 @@ migrations:
   confirmed against the running database. `db/schema-hardening.sql` drops the
   real signature and runs last.
 
+### Why corrections still go in a NEW file
+
+With no ledger, editing an earlier migration *does* take effect, since everything
+re-runs. That makes "just fix the old file" look tempting, and it is a trap: the
+moment a ledger appears — anyone running `supabase db push` once, or Supabase
+changing the integration — already-recorded migrations stop being re-applied, and
+every edit made to them silently stops being real. The database would then hold a
+schema no file describes.
+
+Appending a new file that sorts last is correct under **both** models, which is
+why it is the rule regardless of which one is in force today.
+
 ### Live objects this repository does not create
 
 Verified against production on 2026-08-07 by reading PostgREST's OpenAPI
@@ -131,18 +190,34 @@ document with the secret key:
 
 | Object | Status |
 |---|---|
-| `rls_auto_enable()` | **exists in production, in no file here.** Created outside the repo, most likely by pasting into the dashboard SQL editor. No migration creates or drops it, so deploys leave it untouched. It is not reachable by the publishable key. |
+| `rls_auto_enable()` | **exists in production, in no file here.** Created outside the repo, most likely by pasting into the dashboard SQL editor. No migration creates or drops it, so deploys leave it untouched. |
 
-That is the only drift. To see what it does, run this in the SQL editor:
+**It returns `event_trigger`**, which settles what it is: not something anything
+calls, but a DDL event trigger that fires when tables are created and switches
+RLS on for them. That is a genuine safety net — it is very likely the reason
+every table in this database has RLS enabled, including ones added by hand — and
+it is the one piece of the security posture that **would not survive a rebuild
+from this repository**.
+
+So the recommendation is **adopt it, not drop it.** Dump the real definition
+rather than writing a new one from the name, because the event trigger that
+invokes it has to come across too:
 
 ```sql
-select prosecdef as security_definer, pg_get_functiondef(oid)
-from pg_proc where proname = 'rls_auto_enable';
+select pg_get_functiondef(p.oid) as function_def,
+       pg_get_triggerdef(t.oid)  as event_trigger_def
+from pg_proc p
+left join pg_event_trigger t on t.evtfoid = p.oid
+where p.proname = 'rls_auto_enable';
 ```
 
-If it is worth keeping, add it to `db/` and to the `ORDER` array in
-`tools/sync-supabase-migrations.mjs` so it stops being invisible. If it is not,
-drop it. An object nobody can account for is the one nobody dares remove later.
+Put the output in `db/rls-auto-enable.sql`, add it to the `ORDER` array in
+`tools/sync-supabase-migrations.mjs`, and run `npm run sync-migrations`.
+`npm run db:verify` will stop reporting it at that point — which is how you know
+it is done.
+
+Until then it is flagged on every run, deliberately. An object nobody can
+account for is the one nobody dares remove later.
 
 ## Data is not here, by design
 
