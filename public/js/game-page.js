@@ -2,7 +2,6 @@
 import { $, el, fetchJson, toast, wireThumbFallback } from './utils.js';
 import { store } from './storage.js';
 import { presence, fmtCount, paintCount } from './presence.js';
-import { getPlayerName } from './identity.js';
 import { OptimizedIframeLoader } from './iframe-loader-optimized.js';
 
 const slug = window.ZOFHUB_GAME?.slug || (location.pathname.match(/\/play\/([^/?#]+)/) || [])[1];
@@ -41,7 +40,6 @@ if (slug) {
   bindFrameOptimized();
   autoFitFromEmbed();
   bindLiveCount();
-  bindScores();
   loadRelated();
 }
 
@@ -103,104 +101,12 @@ function loadViaProxy() {
   requestAnimationFrame(() => { f.src = purl; });
 }
 
-// ── Leaderboard: per-game player-reported scores ──────────────────────────
-function bindScores() {
-  const panel = $('#scorePanel');
-  const btn   = $('#scoreBtn');
-  const form  = $('#scoreForm');
-  const list  = $('#scoreList');
-  if (!panel || !btn) return;
-
-  // This device's persistent player name + the proof-of-play token from the page.
-  const playerName = getPlayerName();
-  const token = document.querySelector('meta[name="score-token"]')?.content || '';
-  const asEl = $('#scoreAs');
-  if (asEl) asEl.textContent = playerName;
-
-  // Single-use play SESSION required to submit a score (IP-bound + time-gated
-  // server-side). Minted as soon as the page is ready so the play-time clock
-  // starts at the beginning of the session; re-minted after each submit.
-  let session = null, sessionPending = null;
-  function ensureSession() {
-    if (session) return Promise.resolve(session);
-    if (sessionPending) return sessionPending;
-    sessionPending = (async () => {
-      try {
-        const r = await fetch('/api/scores/session', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug, token }),
-        });
-        const j = await r.json();
-        session = j.ok ? j.session : null;
-      } catch { session = null; }
-      finally { sessionPending = null; }
-      return session;
-    })();
-    return sessionPending;
-  }
-  ensureSession();   // start the play-time clock now
-
-  const render = (scores) => {
-    if (!list) return;
-    if (!scores || !scores.length) { list.innerHTML = '<li class="score-empty">No scores yet — be the first!</li>'; return; }
-    list.innerHTML = '';
-    scores.forEach((s, i) => {
-      const li = el('li', { class: `score-row${i < 3 ? ' top' : ''}` });
-      li.innerHTML = `<span class="score-rank">${i + 1}</span><span class="score-pname"></span><span class="score-val">${Number(s.score).toLocaleString()}</span>`;
-      li.querySelector('.score-pname').textContent = s.player_name || 'Player';
-      list.appendChild(li);
-    });
-  };
-  const load = async () => {
-    try { const d = await fetchJson(`/api/scores?slug=${encodeURIComponent(slug)}&limit=15`); render(d.scores || []); }
-    catch { /* leave default */ }
-  };
-
-  btn.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) { load(); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-  });
-
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const score = parseInt($('#scoreValue')?.value, 10);
-    if (!Number.isFinite(score) || score < 0) { toast('Enter a valid score', 'err'); return; }
-    const s = await ensureSession();
-    if (!s) { toast('Could not start a score session — reload and try again.', 'err'); return; }
-    try {
-      const r = await fetch('/api/scores', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, name: playerName, score, session: s })
-      });
-      const j = await r.json();
-      if (!j.ok) {
-        if (j.renew) { session = null; ensureSession(); }   // consumed/expired → mint a fresh one
-        toast(j.error || 'Could not submit', 'err');
-        return;
-      }
-      session = null; ensureSession();   // session was consumed — start the next one
-      // `pending` = quarantined as an outlier. This message is only honest
-      // because there is now a real review path (the private /admin console);
-      // unreviewed scores are no longer auto-deleted. See db/community-scores-review.sql.
-      if (j.pending) toast('Unusually high — held for review before it appears 🕵️', 'ok');
-      else toast(j.updated ? 'New personal best! 🏆' : (j.created ? 'Score submitted! 🏆' : 'Your best score is kept 🏆'), 'ok');
-      if ($('#scoreValue')) $('#scoreValue').value = '';
-      load();
-    } catch { toast('Network error', 'err'); }
-  });
-
-  // Best-effort: some embedded games postMessage a score; prefill the input.
-  window.addEventListener('message', (ev) => {
-    try {
-      const d = ev.data;
-      const v = (d && (d.score ?? d.points ?? (d.type === 'score' && d.value)));
-      if (typeof v === 'number' && v >= 0 && $('#scoreValue') && !$('#scoreValue').value) {
-        $('#scoreValue').value = Math.floor(v);
-        if (panel.hidden) { panel.hidden = false; }
-      }
-    } catch {}
-  });
-}
+// The per-game leaderboard lived here (bindScores). It was retired server-side
+// when db/feedback.sql dropped the `scores` table and its routes, but the client
+// was left wired: ensureSession() fired POST /api/scores/session on EVERY game
+// page open — a guaranteed 404 on every one of the ~12,300 game pages — and the
+// panel it filled could only ever read back "No scores yet". Removed with the
+// markup in game.html rather than left to fail quietly.
 
 function bindLiveCount() {
   // Add a pulsing "X playing now" pill next to the title.

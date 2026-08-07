@@ -90,21 +90,16 @@
 .cat-item.active .cat-count { color: rgba(26,21,8,.72); }
 
 /* ============ Top / bottom ad slots ============ */
-.catalog-ad-top, .catalog-ad-bottom {
-  min-height: 90px;
-  margin: 4px 0 18px;
-  border: 1px dashed var(--line-2);
-  border-radius: 14px;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-  display: grid; place-items: center;
-  color: var(--text-mute);
-  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
-  /* Ad viewability (#4): keep the reserved height and isolate from reflow so an
-     in-flight AI request can't cause layout shift around the ad. */
-  contain: layout;
-}
-.catalog-ad-bottom { margin: 26px 0 4px; }
+/* Visibility and sizing live in main.css, keyed on data-zad-filled — a slot with
+   no injected tag is display:none and reserves nothing. Only the page-specific
+   spacing belongs here.
+   The dashed border, gradient and uppercase label that used to be on these rules
+   were dead: main.css has overridden `border: 0 !important` on a transparent
+   background for as long as both files have existed, so none of it ever
+   rendered. `contain: layout` stays — it isolates a late creative's reflow. */
+.catalog-ad-top[data-zad-filled],
+.catalog-ad-bottom[data-zad-filled] { margin: 4px 0 18px; contain: layout; }
+.catalog-ad-bottom[data-zad-filled] { margin: 26px 0 4px; }
 
 /* ============ Rows ============ */
 .row { margin: 24px 0 18px; }

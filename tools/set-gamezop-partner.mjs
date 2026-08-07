@@ -59,7 +59,8 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 console.log('Reading catalog…');
 let rows = [], from = 0;
 while (true) {
-  const { data, error } = await supa.from('games').select('id, slug, game_url').range(from, from + 999);
+  const { data, error } = await supa.from('games').select('id, slug, game_url')
+    .order('id', { ascending: true }).range(from, from + 999);
   if (error) { console.error('DB read failed:', error.message); process.exit(1); }
   if (!data?.length) break;
   rows = rows.concat(data); from += 1000;

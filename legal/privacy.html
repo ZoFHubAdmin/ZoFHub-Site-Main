@@ -27,7 +27,6 @@
         <a href="/">Games</a>
         <a href="/ai">AI</a>
         <a href="/community">Community</a>
-        <a href="/leaderboard">Leaderboard</a>
         <a href="/browser">Browser</a>
       </nav>
     </div>
@@ -47,11 +46,15 @@
       <h2>1. Information we collect</h2>
       <h3>Information you provide</h3>
       <ul>
-        <li><strong>Leaderboard scores</strong> — when you submit a high score, we store the score,
-          the game it belongs to, and the display name your device generated for you.</li>
         <li><strong>Community posts &amp; recommendations</strong> — any text you choose to post.</li>
-        <li><strong>AI prompts</strong> — text or image prompts you send to the AI assistant are
-          forwarded to our AI provider to generate a response (see Section 5).</li>
+        <li><strong>Feedback</strong> — if you use "Send feedback", we store your message, the page
+          you sent it from, an <em>irreversible hash</em> of your IP address, your browser's
+          user-agent string, and an email address <em>only if you choose to enter one</em>. Feedback
+          is private: it is never shown publicly and is readable only by the site operator.</li>
+        <li><strong>AI prompts</strong> — <strong>we do not receive them.</strong> The AI assistant
+          runs in your browser and contacts the AI provider directly from your own device, so your
+          prompts, the replies, and any generated images never pass through our servers and are
+          never logged or stored by us (see Section 5).</li>
       </ul>
       <h3>Information collected automatically</h3>
       <ul>
@@ -68,7 +71,8 @@
 
       <h2>2. How we use information</h2>
       <ul>
-        <li>To provide and operate the Site (load games, show leaderboards, run the AI assistant).</li>
+        <li>To provide and operate the Site (load games, serve the community wall, and deliver the
+          AI assistant that then runs in your browser).</li>
         <li>To remember your preferences, favorites, and display name on your device.</li>
         <li>To protect the Site against abuse, fraud, and technical problems.</li>
         <li>To measure and improve performance and content.</li>
@@ -125,9 +129,12 @@
         processed by them only as needed to deliver the Site:</p>
       <ul>
         <li><strong>Hosting</strong> — our application host stores server logs and serves the Site.</li>
-        <li><strong>Database</strong> — Supabase stores leaderboard scores and community content.</li>
-        <li><strong>AI provider</strong> — prompts you send to the AI assistant are forwarded to a
-          third-party AI service to generate responses; we do not attach your identity to them.</li>
+        <li><strong>Database</strong> — Supabase stores the game catalog, community content, and
+          feedback messages.</li>
+        <li><strong>AI provider</strong> — your browser contacts the AI provider <em>directly</em>,
+          from your own device and your own IP address. We do not relay, see, or store your prompts.
+          Because the request is made by your browser rather than by us, it reaches that provider
+          under <em>their</em> privacy policy, not ours.</li>
         <li><strong>Game providers</strong> — games are embedded from third-party providers, which may
           set their own cookies inside the game frame under their own privacy policies.</li>
         <li><strong>Advertising</strong> — none currently (see Section 4).</li>
@@ -148,14 +155,16 @@
         <li>Clear cookies and local storage in your browser to remove your stored display name,
           preferences, and ad identifiers.</li>
         <li>Opt out of personalized ads using the links in Section 4.</li>
-        <li>Contact us (Section 12) to request access to or deletion of leaderboard/community data
-          associated with your display name.</li>
+        <li>Contact us (Section 12) to request access to or deletion of community content or
+          feedback you submitted.</li>
       </ul>
 
       <h2>8. Data retention</h2>
-      <p>We keep information only as long as needed for the purposes above. Leaderboards are
-        automatically trimmed to the top scores per game, and server logs are retained for a limited
-        period for security and reliability. You can ask us to remove community content you posted.</p>
+      <p>We keep information only as long as needed for the purposes above. Community posts are
+        automatically deleted once they are old and unviewed, and the wall is capped so it cannot
+        grow without limit. Operator security records (sign-in attempts and security events) are
+        pruned on a schedule. Server logs are retained for a limited period for security and
+        reliability. You can ask us to remove community content or feedback you submitted.</p>
 
       <h2>9. Security</h2>
       <p>We use reasonable technical and organizational measures to protect information, including

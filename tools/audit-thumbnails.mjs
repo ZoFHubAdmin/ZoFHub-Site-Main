@@ -178,7 +178,8 @@ async function loadGames() {
   if (!supa) { console.error('✗ Supabase not configured. Add creds to .env or use --from-export.'); process.exit(1); }
   const rows = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supa.from('games').select('id, slug, title, game_url, thumbnail_url').range(from, from + 999);
+    const { data, error } = await supa.from('games').select('id, slug, title, game_url, thumbnail_url')
+      .order('id', { ascending: true }).range(from, from + 999);
     if (error) { console.error('✗ Supabase read error:', error.message); process.exit(1); }
     rows.push(...(data || []));
     if (!data || data.length < 1000) break;

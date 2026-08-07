@@ -277,30 +277,9 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   .play-notice-btn { width: 100%; justify-content: center; }
 }
 
-/* Leaderboard panel */
-.score-panel {
-  background: var(--surface, rgba(255,255,255,.04));
-  border: 1px solid var(--line, rgba(255,255,255,.08));
-  border-radius: 14px; padding: 14px 16px 16px;
-}
-.score-panel .row-title { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; font-size: 16px; color: var(--text); }
-.score-panel .row-title svg { color: var(--brand); }
-.score-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.score-row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.03); }
-.score-row.top { background: linear-gradient(90deg, rgba(255,212,38,.14), rgba(255,212,38,.02)); }
-.score-rank { font-family: 'Lilita One', sans-serif; color: var(--brand); text-align: center; }
-.score-pname { font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.score-val { font-weight: 800; color: #6ee7b7; }
-.score-empty { color: var(--text-mute); font-size: 13px; padding: 6px 2px; }
-.score-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.score-form input {
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
-  padding: 8px 10px; color: #fff; font: inherit; font-size: 13.5px;
-}
-.score-form input#scoreName { flex: 1; min-width: 120px; }
-.score-form input#scoreValue { width: 130px; }
-.score-form input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(255,212,38,.18); }
-.score-note { margin: 9px 0 0; font-size: 11.5px; color: var(--text-mute); }
+/* The .score-* rules for the per-game leaderboard panel were removed with the
+   panel itself — the `scores` table and its routes went in db/feedback.sql, so
+   nothing has rendered a .score-panel since. */
 
 /* Related */
 .play-related {

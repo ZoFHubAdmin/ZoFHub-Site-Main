@@ -1,21 +1,27 @@
 -- ============================================================================
--- ZoFHub · ALL-IN-ONE database bootstrap  (generated 2026-07-13T20:32Z)
+-- ZoFHub · ALL-IN-ONE database bootstrap
 -- ============================================================================
--- The ENTIRE ZoFHub database in one file: schema + community/leaderboard +
--- stats + keepalive, then every game loader. Structure runs first, then all
--- loaders (each an idempotent ON CONFLICT upsert — safe to re-run).
+-- The ENTIRE ZoFHub database in one file: every schema file in dependency
+-- order (12), then every game loader (63). Each loader is an
+-- idempotent ON CONFLICT upsert, and every schema file is guarded with
+-- IF NOT EXISTS / OR REPLACE, so the whole thing is safe to re-run.
 --
--- ⚠ SIZE: this file is ~7 MB / ~35k lines. The Supabase web SQL editor will
---    NOT save/run something this large (it caps ~1000 lines). Run it with psql
---    against your project's connection string instead:
+-- GENERATED — do not edit. Regenerate with:  npm run build-all-in-one
+-- The schema half comes from the ORDER array in
+-- tools/sync-supabase-migrations.mjs, which is the same list that produces
+-- supabase/migrations/. This file therefore cannot drift from the schema
+-- that preview branches and production actually get.
+--
+-- SIZE: ~7 MB. The Supabase web SQL editor will NOT run something this
+--    large (it caps around 1000 lines). Use psql:
 --
 --      psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql
 --
---    (Get SUPABASE_DB_URL from Supabase → Project Settings → Database →
---     Connection string → URI. Or just run: npm run restore-games)
+--    (Supabase → Project Settings → Database → Connection string → URI.
+--     Or just run: npm run restore-games)
 --
--- Superseded legacy files (y8-games-0N.sql) and the y8-games-check.sql helper
--- are intentionally excluded — load-y8-games-part*.sql already covers them.
+-- Superseded legacy files (y8-games-0N.sql) and the y8-games-check.sql
+-- helper are intentionally excluded — load-y8-games-part*.sql covers them.
 -- ============================================================================
 
 
@@ -446,6 +452,236 @@ from public.scores;
 
 
 -- ============================================================================
+-- >>> community-scores-review.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · flagged-score REVIEW add-on   (run ONCE in the Supabase SQL editor)
+-- =====================================================================
+-- ADDITIVE & SAFE. Re-runnable (OR REPLACE everywhere). Run this AFTER
+-- db/community-scores-integrity.sql.
+--
+-- WHY THIS EXISTS
+-- Before this, a quarantined score's real lifecycle was:
+--     flagged -> invisible to everyone -> DELETED by prune_scores after 7 days
+-- with no code path anywhere that could ever un-flag it. The player was still
+-- told "pending review", so a genuinely great score could trip the outlier
+-- heuristic, be hidden, and then vanish a week later — a promise the app could
+-- not keep.
+--
+-- There is now a real review path (the private /admin console + the
+-- /api/admin/scores/:id/approve|reject endpoints). This migration makes the
+-- database agree with it:
+--   * UNREVIEWED ('flagged') rows are NEVER auto-deleted — they wait for you.
+--   * Only rows you actively REJECTED are purged, 7 days after rejection.
+--   * The per-game "keep top N visible" cap is unchanged.
+--
+--   Dashboard -> SQL Editor -> New query -> paste -> Run.
+-- =====================================================================
+
+-- Status-aware cleanup, review-safe.
+--   status 'ok'       -> public, capped at keep_per_game per slug
+--   status 'flagged'  -> awaiting YOUR review; kept indefinitely
+--   status 'rejected' -> you said no; purged after 7 days
+create or replace function public.prune_scores(keep_per_game integer default 200)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  removed integer := 0;
+  n integer;
+begin
+  -- 1) Purge only REJECTED rows. 'flagged' (unreviewed) rows are deliberately
+  --    NOT touched — deleting them is what made "pending review" a false promise.
+  delete from public.scores
+  where status = 'rejected'
+    and created_at < now() - interval '7 days';
+  get diagnostics n = row_count;  removed := removed + n;
+
+  -- 2) Long tail of VISIBLE scores, per game (unchanged).
+  with ranked as (
+    select id,
+           row_number() over (partition by slug order by score desc, created_at asc) as rn
+    from public.scores
+    where status is not distinct from 'ok'
+  )
+  delete from public.scores s
+  using ranked r
+  where s.id = r.id and r.rn > keep_per_game;
+  get diagnostics n = row_count;  removed := removed + n;
+
+  return removed;
+end;
+$$;
+
+revoke all on function public.prune_scores(integer) from public, anon, authenticated;
+
+-- Sanity check: what is waiting for review right now?
+select
+  count(*) filter (where status = 'ok')       as visible,
+  count(*) filter (where status = 'flagged')  as awaiting_review,
+  count(*) filter (where status = 'rejected') as rejected
+from public.scores;
+
+
+-- ============================================================================
+-- >>> community-scores-unique.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · one-row-per-player-per-game UNIQUENESS  (run ONCE in Supabase)
+-- =====================================================================
+-- ADDITIVE & SAFE. Re-runnable (IF NOT EXISTS / OR REPLACE everywhere).
+-- Run AFTER db/community.sql and db/community-scores-integrity.sql.
+--
+-- WHY THIS EXISTS
+-- "One row per player per game (their best score)" was enforced ONLY in
+-- application code: SELECT existing -> if higher UPDATE else INSERT. Between the
+-- SELECT and the INSERT nothing stopped two concurrent submissions (the same
+-- player in two tabs, a double-tap, a retry) from both seeing "no existing row"
+-- and both inserting — producing duplicate rows for the same (slug, player_name).
+-- scores_slug_player_idx was a PLAIN index, not UNIQUE, so the database happily
+-- allowed it. /leaderboard hid the damage with a client-side dedupe; /community
+-- did not, so the same data could render differently on the two pages.
+--
+-- WHAT THIS DOES
+--   1. De-duplicates existing VISIBLE rows, keeping each player's highest score
+--      per game (ties -> the earliest, matching prune_scores' ordering).
+--      'flagged' / 'rejected' rows are NOT touched (see community-scores-review.sql).
+--   2. Adds a PARTIAL UNIQUE index on (slug, player_name) WHERE status = 'ok'.
+--      Partial on purpose: a player may legitimately have one visible row AND a
+--      later attempt sitting in the flagged queue — a full unique index would
+--      make that collide and reject the quarantine insert.
+--   3. Installs submit_score(), an ATOMIC keep-the-best upsert the server calls
+--      instead of select-then-branch. INSERT ... ON CONFLICT is what actually
+--      makes the rule race-proof. (A partial unique index needs the matching
+--      WHERE predicate in ON CONFLICT, which PostgREST's upsert cannot express —
+--      that is why this is a function rather than a plain .upsert() call.)
+--
+--   Dashboard -> SQL Editor -> New query -> paste -> Run.
+-- =====================================================================
+
+-- 1) Report + remove duplicate VISIBLE rows, keeping each player's best.
+do $$
+declare dupes integer;
+begin
+  select count(*) into dupes
+  from (
+    select id, row_number() over (
+             partition by slug, player_name
+             order by score desc, created_at asc
+           ) as rn
+    from public.scores
+    where status is not distinct from 'ok'
+  ) t
+  where t.rn > 1;
+  raise notice 'Duplicate visible rows to remove: %', dupes;
+end $$;
+
+with ranked as (
+  select id, row_number() over (
+           partition by slug, player_name
+           order by score desc, created_at asc
+         ) as rn
+  from public.scores
+  where status is not distinct from 'ok'
+)
+delete from public.scores s
+using ranked r
+where s.id = r.id and r.rn > 1;
+
+-- 2) The real constraint. Partial: only VISIBLE rows must be unique.
+create unique index if not exists scores_slug_player_ok_uidx
+  on public.scores (slug, player_name)
+  where status = 'ok';
+
+-- 3) Atomic "keep the best score" upsert.
+--    Returns the resulting best plus whether this call created / raised it, so
+--    the API can keep its existing { created, updated, best } response shape.
+create or replace function public.submit_score(
+  p_slug   text,
+  p_player text,
+  p_score  bigint
+)
+returns table (best bigint, updated boolean, created boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_prev bigint;
+begin
+  select s.score into v_prev
+    from public.scores s
+   where s.slug = p_slug and s.player_name = p_player and s.status = 'ok'
+   limit 1;
+
+  -- The atomic part: concurrent callers serialize here, so a duplicate row can
+  -- never be created no matter how the requests interleave.
+  insert into public.scores (slug, player_name, score, status, flag_reason)
+  values (p_slug, p_player, p_score, 'ok', null)
+  on conflict (slug, player_name) where status = 'ok'
+  do update
+     set score      = greatest(public.scores.score, excluded.score),
+         created_at = case when excluded.score > public.scores.score
+                           then now() else public.scores.created_at end,
+         flag_reason = null;
+
+  if v_prev is null then
+    return query select p_score, false, true;
+  elsif p_score > v_prev then
+    return query select p_score, true, false;
+  else
+    return query select v_prev, false, false;
+  end if;
+end;
+$$;
+
+revoke all on function public.submit_score(text, text, bigint) from public, anon, authenticated;
+
+-- 4) Sanity check: this must return 0 rows once the constraint is in place.
+select slug, player_name, count(*) as copies
+from public.scores
+where status is not distinct from 'ok'
+group by slug, player_name
+having count(*) > 1;
+
+
+-- ============================================================================
+-- >>> keepalive.sql
+-- ============================================================================
+-- ZoFHub · keep-alive status table  (OPTIONAL but recommended)
+-- ============================================================================
+-- One row. The daily cron job and the /healthz endpoint upsert `last_pinged`
+-- here so (a) your free-tier Supabase project sees a write and never hits its
+-- 7-day inactivity pause, and (b) you can SEE the last heartbeat time.
+--
+-- The app also works WITHOUT this table — supabaseKeepAlive() falls back to a
+-- tiny read — so running this is optional. With it, you get a visible marker.
+--
+-- HOW TO RUN: Supabase -> SQL Editor -> New query -> paste -> Run. Safe to re-run.
+-- Security: RLS on. Public may read the status; only the server (service-role
+-- key, which bypasses RLS) writes it.
+-- ============================================================================
+create table if not exists public.keepalive (
+  id          smallint    primary key default 1,
+  last_pinged timestamptz not null default now(),
+  constraint keepalive_single_row check (id = 1)
+);
+
+-- Seed the single row so the first upsert has a row to update.
+insert into public.keepalive (id) values (1) on conflict (id) do nothing;
+
+alter table public.keepalive enable row level security;
+drop policy if exists "Public can read keepalive" on public.keepalive;
+create policy "Public can read keepalive"
+  on public.keepalive for select using (true);
+
+-- Sanity check
+select id, last_pinged from public.keepalive;
+
+
+-- ============================================================================
 -- >>> stats.sql
 -- ============================================================================
 -- db/stats.sql — OPTIONAL. Makes "how much each game is played" survive restarts.
@@ -482,37 +718,668 @@ create policy "Public can read game_stats"
 
 
 -- ============================================================================
--- >>> keepalive.sql
+-- >>> game-fingerprints.sql
 -- ============================================================================
--- ZoFHub · keep-alive status table  (OPTIONAL but recommended)
--- ============================================================================
--- One row. The daily cron job and the /healthz endpoint upsert `last_pinged`
--- here so (a) your free-tier Supabase project sees a write and never hits its
--- 7-day inactivity pause, and (b) you can SEE the last heartbeat time.
+-- db/game-fingerprints.sql
 --
--- The app also works WITHOUT this table — supabaseKeepAlive() falls back to a
--- tiny read — so running this is optional. With it, you get a visible marker.
+-- Storage for the game discovery engine (lib/game-discovery.mjs): the provider
+-- identity of every catalog entry, plus a record of duplicates it finds.
 --
--- HOW TO RUN: Supabase -> SQL Editor -> New query -> paste -> Run. Safe to re-run.
--- Security: RLS on. Public may read the status; only the server (service-role
--- key, which bypasses RLS) writes it.
--- ============================================================================
-create table if not exists public.keepalive (
-  id          smallint    primary key default 1,
-  last_pinged timestamptz not null default now(),
-  constraint keepalive_single_row check (id = 1)
+-- WHY A FINGERPRINT COLUMN AND NOT A UNIQUE INDEX ON game_url
+-- The same game reaches us under many URLs — different portals, different
+-- partner subdomains, tracking parameters, www or not. A unique index on
+-- game_url would treat every one of those as a distinct game, which is exactly
+-- how the catalog ended up with 4,691 rows (27.7%) sharing a title. The
+-- fingerprint is `provider:id`, which is stable across all of that, so the
+-- constraint can live where the real identity is.
+--
+-- The gamezop case is the clearest example: the partner id sits in the
+-- SUBDOMAIN, so 4665.play.gamezop.com and zv1y2i8p.play.gamezop.com are
+-- different hosts serving the same game. This catalog holds 129 games on one
+-- and 99 on the other.
+--
+-- Idempotent (IF NOT EXISTS / guarded DROPs), so re-applying it to a database
+-- that already has this schema is a no-op rather than an error.
+
+create table if not exists public.game_fingerprints (
+  id           bigserial primary key,
+  slug         text not null,
+  -- `provider:id` — e.g. gamezop:xyz789, y8:turn_and_hit
+  fingerprint  text not null,
+  provider     text not null,
+  provider_id  text not null,
+  -- Canonical URL: https, no www, no tracking params, sorted query, no hash.
+  canonical_url text not null,
+  -- Title reduced to a comparison key, for the weaker title-only signal.
+  title_key    text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
 
--- Seed the single row so the first upsert has a row to update.
-insert into public.keepalive (id) values (1) on conflict (id) do nothing;
+-- One row per catalog game.
+create unique index if not exists game_fingerprints_slug_uidx
+  on public.game_fingerprints (slug);
 
-alter table public.keepalive enable row level security;
-drop policy if exists "Public can read keepalive" on public.keepalive;
-create policy "Public can read keepalive"
-  on public.keepalive for select using (true);
+-- The lookup that answers "do we already have this game?" in one indexed hit,
+-- instead of scanning 16,913 rows in application code.
+create index if not exists game_fingerprints_fp_idx
+  on public.game_fingerprints (fingerprint);
+create index if not exists game_fingerprints_canonical_idx
+  on public.game_fingerprints (canonical_url);
+create index if not exists game_fingerprints_title_idx
+  on public.game_fingerprints (title_key);
 
--- Sanity check
-select id, last_pinged from public.keepalive;
+-- Duplicate relationships found by the engine. Kept as a RELATION rather than
+-- deleting the loser, because "same title" is evidence and not proof — two
+-- different games really are both called "Bubble Shooter". A human resolves
+-- `status`; nothing is destroyed by the detector.
+create table if not exists public.game_duplicates (
+  id            bigserial primary key,
+  slug          text not null,          -- the newer / candidate entry
+  duplicate_of  text not null,          -- the entry it appears to duplicate
+  -- same_url | same_provider_id | same_title
+  match_kind    text not null,
+  -- exact | likely
+  confidence    text not null default 'likely',
+  -- pending | confirmed | rejected
+  status        text not null default 'pending',
+  detected_at   timestamptz not null default now(),
+  resolved_at   timestamptz,
+  constraint game_duplicates_not_self check (slug <> duplicate_of)
+);
+
+create unique index if not exists game_duplicates_pair_uidx
+  on public.game_duplicates (slug, duplicate_of);
+create index if not exists game_duplicates_status_idx
+  on public.game_duplicates (status, detected_at desc);
+
+-- Submitted URLs that failed safety validation. Worth keeping: a spike of
+-- rejected submissions from one source is an abuse signal, and without a record
+-- the only evidence a submission was ever made is that it silently vanished.
+create table if not exists public.rejected_submissions (
+  id          bigserial primary key,
+  url         text not null,
+  reason      text not null,            -- not_https | internal_address | ...
+  submitted_at timestamptz not null default now()
+);
+
+create index if not exists rejected_submissions_at_idx
+  on public.rejected_submissions (submitted_at desc);
+
+-- ── RLS ───────────────────────────────────────────────────────────────────
+-- These tables are operational metadata, not public content. The anon key gets
+-- nothing; the server reaches them with the service key, which bypasses RLS.
+-- Enabling RLS with no permissive policy is therefore deny-by-default, which is
+-- the correct posture for a table the public has no reason to read.
+alter table public.game_fingerprints   enable row level security;
+alter table public.game_duplicates     enable row level security;
+alter table public.rejected_submissions enable row level security;
+
+drop policy if exists "No public access to fingerprints" on public.game_fingerprints;
+drop policy if exists "No public access to duplicates"   on public.game_duplicates;
+drop policy if exists "No public access to rejections"   on public.rejected_submissions;
+
+-- updated_at maintenance, matching the pattern used by public.games.
+create or replace function public.touch_game_fingerprints()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$;
+
+drop trigger if exists trg_game_fingerprints_updated_at on public.game_fingerprints;
+create trigger trg_game_fingerprints_updated_at
+  before update on public.game_fingerprints
+  for each row execute function public.touch_game_fingerprints();
+
+
+-- ============================================================================
+-- >>> admin.sql
+-- ============================================================================
+-- db/admin.sql
+--
+-- Storage for the administrator console: sessions, audit trail, login attempts
+-- and security events.
+--
+-- WHY THESE LIVE IN POSTGRES AND NOT IN MEMORY
+-- The app already carries four in-memory structures that make it correct only on
+-- a single instance (score sessions, rate-limit buckets, presence, play counts).
+-- Admin state must not join that list: an in-memory session table means every
+-- deploy silently logs the operator out, and a second replica would accept a
+-- session the first one never issued. It also means the audit trail — the one
+-- record that has to survive an incident — would be erased by the restart that
+-- often FOLLOWS an incident.
+--
+-- FAIL CLOSED. Every table here is reachable only with the server's secret key.
+-- If the database is unavailable the admin console cannot create or validate a
+-- session, so it refuses logins rather than falling back to something weaker.
+--
+-- Idempotent (IF NOT EXISTS / guarded DROPs), so re-applying is a no-op.
+
+-- ── Sessions ───────────────────────────────────────────────────────────────
+-- The cookie carries a random token; this table stores only its SHA-256 HASH.
+-- A dump of this table therefore grants nobody a session, exactly as a password
+-- table stores hashes rather than passwords.
+create table if not exists public.admin_sessions (
+  id             bigserial primary key,
+  -- sha256(token) — never the token itself
+  token_hash     text        not null,
+  username       text        not null,
+  -- HMAC of the client IP, not the IP. Enough to spot a session moving between
+  -- networks; useless for locating anyone.
+  ip_hash        text,
+  user_agent     text,
+  created_at     timestamptz not null default now(),
+  last_seen_at   timestamptz not null default now(),
+  -- Absolute cap: a session dies at this time no matter how active it is.
+  expires_at     timestamptz not null,
+  revoked_at     timestamptz,
+  revoked_reason text
+);
+
+create unique index if not exists admin_sessions_token_uidx
+  on public.admin_sessions (token_hash);
+-- The sweep and the "active sessions" panel both read this.
+create index if not exists admin_sessions_live_idx
+  on public.admin_sessions (expires_at desc) where revoked_at is null;
+
+-- ── Audit trail ────────────────────────────────────────────────────────────
+-- APPEND ONLY. Nothing in the dashboard can edit or delete a row here: the API
+-- exposes no update or delete path, and the trigger below refuses both at the
+-- database level, so even a bug in application code cannot rewrite history.
+create table if not exists public.admin_audit_logs (
+  id           bigserial primary key,
+  at           timestamptz not null default now(),
+  username     text,
+  action       text        not null,   -- 'score.approve', 'game.hide', …
+  target       text,                   -- what it acted on
+  outcome      text        not null,   -- success | failure | denied
+  ip_hash      text,
+  user_agent   text,
+  detail       jsonb
+);
+
+create index if not exists admin_audit_at_idx     on public.admin_audit_logs (at desc);
+create index if not exists admin_audit_action_idx on public.admin_audit_logs (action, at desc);
+
+-- Immutability enforced where it cannot be argued with.
+create or replace function public.admin_audit_is_append_only()
+returns trigger
+language plpgsql
+as $$
+begin
+  raise exception 'admin_audit_logs is append-only (attempted %)', tg_op;
+end $$;
+
+drop trigger if exists trg_admin_audit_no_update on public.admin_audit_logs;
+create trigger trg_admin_audit_no_update
+  before update or delete on public.admin_audit_logs
+  for each row execute function public.admin_audit_is_append_only();
+
+-- ── Login attempts ─────────────────────────────────────────────────────────
+-- Drives lockout and gives the Security Centre something factual to show. Both
+-- successes and failures are recorded: a success from an unfamiliar network is
+-- the more interesting event of the two.
+create table if not exists public.admin_login_attempts (
+  id         bigserial primary key,
+  at         timestamptz not null default now(),
+  username   text,                    -- as SUPPLIED; never proves the account exists
+  ok         boolean     not null,
+  ip_hash    text,
+  user_agent text,
+  reason     text                     -- bad_password | unknown_user | locked | ok
+);
+
+create index if not exists admin_login_at_idx on public.admin_login_attempts (at desc);
+create index if not exists admin_login_ip_idx on public.admin_login_attempts (ip_hash, at desc);
+
+-- ── Security events ────────────────────────────────────────────────────────
+-- Anything worth an operator's attention that is not a plain login: a session
+-- whose IP or user agent changed mid-life, a CSRF rejection, a lockout starting.
+create table if not exists public.admin_security_events (
+  id         bigserial primary key,
+  at         timestamptz not null default now(),
+  kind       text        not null,    -- session_ip_change | csrf_reject | lockout | …
+  severity   text        not null default 'info',   -- info | warn | critical
+  username   text,
+  ip_hash    text,
+  detail     jsonb
+);
+
+create index if not exists admin_sec_at_idx   on public.admin_security_events (at desc);
+create index if not exists admin_sec_kind_idx on public.admin_security_events (kind, at desc);
+
+-- ── RLS ────────────────────────────────────────────────────────────────────
+-- Deny by default, with NO permissive policy. The publishable key that reaches
+-- browsers gets nothing at all; the server reaches these with the secret key,
+-- which bypasses RLS. This is operational security data — there is no version of
+-- "the public may read some of it" that makes sense.
+alter table public.admin_sessions        enable row level security;
+alter table public.admin_audit_logs      enable row level security;
+alter table public.admin_login_attempts  enable row level security;
+alter table public.admin_security_events enable row level security;
+
+drop policy if exists "No public access to admin_sessions"        on public.admin_sessions;
+drop policy if exists "No public access to admin_audit_logs"      on public.admin_audit_logs;
+drop policy if exists "No public access to admin_login_attempts"  on public.admin_login_attempts;
+drop policy if exists "No public access to admin_security_events" on public.admin_security_events;
+
+-- ── Retention ──────────────────────────────────────────────────────────────
+-- Called by the daily cron. Expired sessions and stale attempt rows are noise;
+-- the AUDIT TRAIL IS NEVER TOUCHED by this function, deliberately — it is the
+-- record you need long after everything else has aged out.
+create or replace function public.prune_admin_state(
+  session_grace_days integer default 7,
+  attempt_days       integer default 30,
+  event_days         integer default 180
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.admin_sessions
+    where expires_at < now() - make_interval(days => session_grace_days);
+  delete from public.admin_login_attempts
+    where at < now() - make_interval(days => attempt_days);
+  delete from public.admin_security_events
+    where at < now() - make_interval(days => event_days);
+end $$;
+
+-- Only the service role may prune; never the publishable key.
+revoke all on function public.prune_admin_state(integer, integer, integer) from public, anon, authenticated;
+
+
+-- ============================================================================
+-- >>> community-scores-evidence.sql
+-- ============================================================================
+-- ============================================================================
+--  scores.flag_evidence — why a score was quarantined, in reviewable detail
+--  Run AFTER db/community-scores-integrity.sql (which adds status/flag_reason).
+--
+--  WHY THIS EXISTS
+--  Quarantine already worked, but the only thing recorded about a held score was
+--  the literal string 'outlier'. An administrator reviewing the queue therefore
+--  saw a score and a game and had to decide, from nothing, whether a human could
+--  have produced it. The numbers that triggered the flag — the board best at the
+--  time, the ratio, how long the session had actually been played, the implied
+--  points per second — all existed in the request handler and were thrown away.
+--
+--  Keeping them turns "approve or reject, on vibes" into a decision with
+--  evidence attached, and makes it possible to tune the detector afterwards:
+--  you can look at what was flagged, see the distribution of ratios, and move a
+--  threshold knowing what it would have caught.
+--
+--  jsonb, not more columns, because the detector will grow signals over time and
+--  each one should not be a migration. Nothing queries inside it in the hot path;
+--  it is read by the admin review screen, one row at a time.
+--
+--  Idempotent: safe to re-run.
+-- ============================================================================
+
+alter table public.scores add column if not exists flag_evidence jsonb;
+
+comment on column public.scores.flag_evidence is
+  'Anti-cheat detail captured when a score was flagged: the rule that fired, the '
+  'board best it was compared against, the ratio, the measured play time, and the '
+  'implied points-per-second. Read by the admin review screen. Null for scores '
+  'that were never flagged.';
+
+-- Reviewing the queue means "flagged rows, newest first". Without this the
+-- review screen sequential-scans a table that grows forever.
+create index if not exists scores_flagged_recent_idx
+  on public.scores (created_at desc)
+  where status = 'flagged';
+
+-- ---------------------------------------------------------------------------
+-- Duplicate / replay detection support.
+--
+-- The keep-best rule already collapses one player's repeated scores in a game to
+-- a single row, so floods were bounded — but only per NAME. The same client
+-- submitting an identical score under a series of names left no trace, because
+-- nothing recorded that the submissions were related.
+--
+-- ip_tag is the keyed HMAC of the submitter's address (never the address
+-- itself — same construction as the admin audit trail), so "these twelve rows
+-- came from one place" is answerable without storing anyone's IP.
+-- ---------------------------------------------------------------------------
+alter table public.scores add column if not exists ip_tag text;
+
+comment on column public.scores.ip_tag is
+  'Keyed HMAC of the submitting IP, truncated. NOT an IP address and not '
+  'reversible: it exists so repeated submissions from one source can be '
+  'correlated during review. Keyed by SCORE_SECRET, so rotating that secret '
+  'deliberately breaks correlation with older rows.';
+
+-- "Has this exact score already come from this source for this game recently?"
+create index if not exists scores_dupe_probe_idx
+  on public.scores (slug, ip_tag, score);
+
+-- The admin review screen and the duplicate probe both read these columns with
+-- the service key only. Public reads still go through the existing
+-- "Public can read visible scores" policy, which is unchanged and continues to
+-- expose status='ok' rows only — flag_evidence and ip_tag are on rows that
+-- policy already refuses to return.
+
+
+-- ============================================================================
+-- >>> feedback.sql
+-- ============================================================================
+-- db/feedback.sql — user feedback, and the retirement of the leaderboard.
+--
+-- Runs LAST in the migration order, so the drops below act on tables the earlier
+-- migrations created. Those earlier files are left untouched on purpose: they
+-- are the applied history of this database, and rewriting history so it never
+-- mentions scores would make a replay from scratch diverge from what production
+-- actually did.
+--
+-- ── Part 1: retire the leaderboard ─────────────────────────────────────────
+-- The feature is gone from the application (no routes, no page, no admin tab),
+-- so these objects are unreachable. Dropping them stops a table nobody reads
+-- from accruing rows, and removes two SECURITY DEFINER functions — code that
+-- runs with elevated rights and should not exist without a caller.
+--
+-- This DESTROYS the scores table and its data. It held 1 row at the time of
+-- writing. Anything of value would need exporting first; there was nothing.
+
+drop function if exists public.submit_score(text, text, integer, text);
+drop function if exists public.submit_score(text, text, integer);
+drop function if exists public.prune_scores(integer);
+drop view     if exists public.scores_public;
+drop table    if exists public.scores;
+
+-- ── Part 2: feedback ───────────────────────────────────────────────────────
+-- Private by construction. Feedback is not a public wall: people report bugs,
+-- mention what they were doing, and sometimes leave contact details. Read
+-- access is admin-only via the secret key, which bypasses RLS. The publishable
+-- key that ships in the browser can INSERT and nothing else.
+
+create table if not exists public.feedback (
+  id          bigint generated always as identity primary key,
+  created_at  timestamptz  not null default now(),
+  -- What the person said. Bounded in the database as well as the API, so a
+  -- direct PostgREST insert cannot store a megabyte of text.
+  message     text         not null check (length(btrim(message)) between 4 and 2000),
+  -- Optional. Empty string is normalised to NULL by the API so "no email" has
+  -- one representation rather than two.
+  email       text         check (email is null or length(email) <= 200),
+  -- Where they were when they sent it — the single most useful field for
+  -- reproducing a bug, and the one people always forget to include.
+  page        text         check (page is null or length(page) <= 300),
+  -- 'bug' | 'idea' | 'other'. Kept as text with a check rather than an enum so
+  -- adding a kind later is a one-line migration, not a type alteration.
+  kind        text         not null default 'other'
+                           check (kind in ('bug', 'idea', 'other')),
+  -- Moderation lifecycle. Archived rows stay for the record; deletion is a
+  -- separate, deliberate act in the admin UI.
+  status      text         not null default 'new'
+                           check (status in ('new', 'read', 'archived')),
+  -- Salted hash, never a raw address. Enough to spot one person filing forty
+  -- submissions; useless for identifying them.
+  ip_hash     text         check (ip_hash is null or length(ip_hash) <= 64),
+  user_agent  text         check (user_agent is null or length(user_agent) <= 300)
+);
+
+-- The review queue reads "newest first, optionally filtered by status", which is
+-- exactly this index. Without it every dashboard load is a sequential scan.
+create index if not exists feedback_status_created_idx
+  on public.feedback (status, created_at desc);
+
+-- Spam triage: "how many did this source send recently?" One partial index
+-- rather than one on the whole table, since only recent rows are ever asked about.
+create index if not exists feedback_ip_recent_idx
+  on public.feedback (ip_hash, created_at desc)
+  where ip_hash is not null;
+
+alter table public.feedback enable row level security;
+
+-- Deny-by-default plus ONE permissive policy: anonymous insert. There is
+-- deliberately no select policy, so the publishable key cannot read back a
+-- single row — not even the one it just wrote.
+drop policy if exists "Anyone may send feedback" on public.feedback;
+create policy "Anyone may send feedback"
+  on public.feedback for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "Feedback is never publicly readable" on public.feedback;
+
+revoke all on public.feedback from anon, authenticated;
+grant insert on public.feedback to anon, authenticated;
+
+comment on table public.feedback is
+  'User-submitted feedback. Insert-only for anon; readable only via the secret key. Never expose through a public view.';
+
+-- ── Part 3: retention ──────────────────────────────────────────────────────
+-- The admin security tables grow forever and are only ever read for the last
+-- ~50 rows. Left alone they become the largest tables in the database, made
+-- entirely of records nobody will look at again.
+--
+-- The audit trail is deliberately kept LONGER than the rest and is never
+-- touched by anything the dashboard can call: it is the record of what
+-- administrators did, and a log that operators can shorten is not evidence.
+
+create or replace function public.prune_admin_logs(
+  attempts_days integer default 30,
+  events_days   integer default 90,
+  audit_days    integer default 365
+)
+returns table (attempts_deleted bigint, events_deleted bigint, audit_deleted bigint)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare a bigint; e bigint; d bigint;
+begin
+  delete from public.admin_login_attempts
+    where at < now() - make_interval(days => greatest(attempts_days, 7));
+  get diagnostics a = row_count;
+
+  delete from public.admin_security_events
+    where at < now() - make_interval(days => greatest(events_days, 30));
+  get diagnostics e = row_count;
+
+  -- Floor of one year. A caller passing 0 must not be able to erase the trail.
+  delete from public.admin_audit_logs
+    where at < now() - make_interval(days => greatest(audit_days, 365));
+  get diagnostics d = row_count;
+
+  -- Expired and revoked sessions are pure garbage once they can no longer
+  -- authenticate anything.
+  delete from public.admin_sessions
+    where expires_at < now() - interval '7 days'
+       or (revoked_at is not null and revoked_at < now() - interval '7 days');
+
+  return query select a, e, d;
+end;
+$$;
+
+revoke all on function public.prune_admin_logs(integer, integer, integer) from public, anon, authenticated;
+
+comment on function public.prune_admin_logs is
+  'Retention sweep for the admin tables. SECURITY DEFINER and revoked from anon/authenticated: only the service key may call it.';
+
+-- Orphaned play counters: rows for games that no longer exist in the catalog.
+-- game_stats is written by slug with no foreign key (the catalog is refreshed
+-- wholesale, and a hard FK would make a refresh fail rather than a counter go
+-- stale), so orphans accumulate silently every time a game is delisted.
+create or replace function public.prune_orphan_game_stats()
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n bigint;
+begin
+  delete from public.game_stats gs
+   where not exists (select 1 from public.games g where g.slug = gs.slug);
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
+revoke all on function public.prune_orphan_game_stats() from public, anon, authenticated;
+
+comment on function public.prune_orphan_game_stats is
+  'Deletes game_stats rows whose slug is no longer in games. No FK exists by design — a wholesale catalog refresh must not fail on one counter.';
+
+
+-- ============================================================================
+-- >>> schema-hardening.sql
+-- ============================================================================
+-- db/schema-hardening.sql — corrections found by a full audit of the SQL layer.
+--
+-- Runs LAST, after db/feedback.sql. Like that file, it exists as a NEW migration
+-- rather than an edit to the ones before it: those have already been applied to
+-- production, and the Supabase integration will not re-run a file it has already
+-- recorded. Editing an applied migration changes only the repository's account of
+-- the database, never the database — which is the worst of both, because the two
+-- then disagree while appearing to agree.
+--
+-- Four independent corrections. Each is idempotent and each is a no-op on a
+-- database that never had the defect.
+
+
+-- ── 1. The leaderboard teardown missed the function it was aiming at ────────
+--
+-- db/feedback.sql retires the leaderboard and says, in its own header, that it
+-- "removes two SECURITY DEFINER functions — code that runs with elevated rights
+-- and should not exist without a caller." It drops:
+--
+--     submit_score(text, text, integer, text)
+--     submit_score(text, text, integer)
+--     prune_scores(integer)
+--
+-- but the function db/community-scores-unique.sql actually created is
+--
+--     submit_score(text, text, BIGINT)                     -- p_score bigint
+--
+-- and Postgres identifies a function by name AND argument types. So the two
+-- drops named above matched nothing, and the real function survived the
+-- teardown: a SECURITY DEFINER routine, still present, whose body inserts into
+-- public.scores — a table that no longer exists. Every call raises
+-- `relation "public.scores" does not exist`.
+--
+-- It is revoked from anon and authenticated, so this was never reachable from a
+-- browser. It is dead elevated-privilege code that the repository believed was
+-- already gone, which is its own problem: the next person to audit the database
+-- finds a SECURITY DEFINER function that no file admits to keeping.
+--
+-- Only the bigint spelling is dropped here. Repeating the other two would be
+-- theatre: db/feedback.sql already issues them, it always runs first, and a
+-- `drop … if exists` for a signature that was never created is a no-op whose
+-- only effect is to make the next reader wonder what it was for.
+drop function if exists public.submit_score(text, text, bigint);
+
+
+-- ── 2. Two prune functions where one is called ──────────────────────────────
+--
+-- db/admin.sql created prune_admin_state(integer, integer, integer). db/feedback.sql
+-- later created prune_admin_logs(integer, integer, integer), which does the same
+-- work plus the expired-session sweep, and that is the one lib/cron-jobs.mjs
+-- calls. Nothing anywhere calls prune_admin_state — not the server, not a tool,
+-- not a runbook.
+--
+-- It is not merely unused. prune_admin_logs deliberately floors its arguments
+-- (`greatest(attempts_days, 7)`, and a hard one-year floor on the audit trail)
+-- so that a caller passing 0 cannot erase the record. prune_admin_state has no
+-- floors at all: prune_admin_state(0, 0, 0) deletes every login attempt and every
+-- security event on the spot. Keeping the unfloored predecessor next to the
+-- floored replacement means the safety is one argument away from being bypassed.
+drop function if exists public.prune_admin_state(integer, integer, integer);
+
+
+-- ── 3. Two functions do not pin search_path ─────────────────────────────────
+--
+-- db/schema.sql sets the house standard and explains it: `security invoker` plus
+-- `set search_path = ''` clears Supabase's "Function Search Path Mutable"
+-- advisor, and now() still resolves because pg_catalog is implicitly present
+-- even with an empty search_path. games_set_updated_at() follows it.
+--
+-- These two were written later and did not. They are re-declared here with the
+-- same bodies and the hardening added, so the whole schema passes the advisor
+-- rather than most of it. CREATE OR REPLACE keeps the existing triggers bound —
+-- replacing a function does not detach the triggers that use it, so nothing has
+-- to be recreated and there is no window where the audit table is writable.
+create or replace function public.admin_audit_is_append_only()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  raise exception 'admin_audit_logs is append-only (attempted %)', tg_op;
+end $$;
+
+create or replace function public.touch_game_fingerprints()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$;
+
+
+-- ── 4. The orphan-counter sweep deletes counters for games that ARE served ──
+--
+-- prune_orphan_game_stats() deletes every game_stats row whose slug is not in
+-- public.games. That rests on an assumption which is false in this application:
+-- that public.games is the whole catalog.
+--
+-- It is not. server.js builds the served catalog in setCatalog(), which starts
+-- from the Supabase rows and then calls mergeFinalGames() — appending every
+-- entry of finalgames.json whose slug is NOT already present — and then
+-- applyCatalogOverrides(), whose `add` rules inject four more. Those games are
+-- appended precisely BECAUSE they are absent from public.games. Roughly 76 of
+-- the ~12,300 served games therefore exist only in the repository's JSON.
+--
+-- Play them and POST /api/play increments the counter; flushPlayStats() upserts
+-- it into game_stats a minute later; the weekly sweep sees a slug that is not in
+-- public.games and deletes it. Those games are pinned at zero plays forever, so
+-- popularity ranking can never learn anything about them no matter how much they
+-- are played — the one signal the ranking blend weights most heavily.
+--
+-- The intent of the sweep is right; its evidence was wrong. "Absent from
+-- public.games" does not mean delisted. What does mean delisted is that nobody
+-- has played it since: flushPlayStats() writes updated_at on every flush, so a
+-- counter that is still moving is proof the game is still reachable, whatever
+-- public.games says. A genuinely delisted game stops being played, its
+-- updated_at freezes, and it ages out on the next sweep after the grace period.
+--
+-- The signature stays zero-argument on purpose. Adding `stale_days integer
+-- default 90` would create a SECOND function of this name, and PostgREST would
+-- then refuse rpc('prune_orphan_game_stats', {}) as ambiguous — the same
+-- overload trap that let submit_score survive in section 1 above.
+create or replace function public.prune_orphan_game_stats()
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n bigint;
+  -- Long enough that a real player's counter is never collected, short enough
+  -- that a delisted game's row does not outlive its usefulness by much.
+  grace interval := interval '90 days';
+begin
+  delete from public.game_stats gs
+   where not exists (select 1 from public.games g where g.slug = gs.slug)
+     and gs.updated_at < now() - grace;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
+revoke all on function public.prune_orphan_game_stats() from public, anon, authenticated;
+
+comment on function public.prune_orphan_game_stats is
+  'Deletes game_stats rows whose slug is neither in games NOR touched in 90 days. The staleness clause is load-bearing: ~76 served games live only in finalgames.json / catalog-overrides and are absent from games by design.';
 
 
 -- ============================================================================
@@ -32541,4 +33408,3 @@ on conflict (slug) do update set
   is_working = excluded.is_working,
   last_checked = excluded.last_checked,
   updated_at = now();
-

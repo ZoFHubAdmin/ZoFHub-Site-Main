@@ -39,7 +39,8 @@ const supabase = createClient(URL, KEY, { auth: { persistSession: false } });
 console.log(`Exporting "${TABLE}" in pages of ${PAGE}…`);
 const all = [];
 for (let from = 0; ; from += PAGE) {
-  const { data, error } = await supabase.from(TABLE).select('*').range(from, from + PAGE - 1);
+  const { data, error } = await supabase.from(TABLE).select('*')
+    .order('id', { ascending: true }).range(from, from + PAGE - 1);
   if (error) {
     console.error(`✗ Supabase error on "${TABLE}":`, error.message);
     if (TABLE === 'games') console.error('  Tip: try  npm run export-games games_public');

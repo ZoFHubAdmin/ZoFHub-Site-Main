@@ -68,6 +68,12 @@
         <!-- ===== TOP LEADERBOARD AD ===== -->
         <div class="ad-slot ad-inline" data-ad-type="leaderboard" data-slot="cat-top"></div>
 
+        <!-- The grid had no heading of its own, so this page's outline ran
+             h1 → (footer) h3 — a skipped level, and the only accessibility
+             fault left on the site. Visually hidden because the h1 above
+             already names the category on screen; a screen reader still gets a
+             landmark for "the games" separate from the page title. -->
+        <h2 class="sr-only">{{CAT_LABEL}} games</h2>
         <div class="game-grid" id="categoryGrid"></div>
 
         <nav class="pagination" id="pagination" aria-label="Pagination"></nav>

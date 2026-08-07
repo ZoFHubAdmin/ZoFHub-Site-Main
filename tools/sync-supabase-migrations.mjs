@@ -58,6 +58,8 @@ const ORDER = [
    'scores.flag_evidence + ip_tag: why a score was quarantined, and the correlation handle review needs. Runs after scores_integrity, which creates status/flag_reason.'],
   ['20260101001000', 'feedback', 'db/feedback.sql',
    'Retires the leaderboard (drops scores + its SECURITY DEFINER functions), adds the private feedback table, and the retention sweeps. Runs LAST: the drops act on tables the earlier migrations create.'],
+  ['20260101001100', 'schema_hardening', 'db/schema-hardening.sql',
+   'Audit corrections: drops the submit_score overload the teardown missed and the superseded prune_admin_state, pins search_path on two trigger functions, and stops the orphan-counter sweep deleting counters for games that are served from JSON rather than the games table.'],
 ];
 
 function render(name, src, why, body) {

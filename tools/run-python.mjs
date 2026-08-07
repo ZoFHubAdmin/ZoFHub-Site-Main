@@ -24,8 +24,41 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// A project virtual environment, if one has been created, comes FIRST.
+//
+// WHY: `pip install -r tools/requirements.txt` inside a venv is the normal way
+// to set these tools up, and it puts the packages somewhere the system
+// interpreter cannot see. Probing `python` first then finds a Python 3 that
+// answers `--version` perfectly and is missing every dependency — so the tool
+// runs, prints "playwright not installed, skipping the headless fallback", and
+// does less than it was asked to. That is worse than failing, because it looks
+// like it worked.
+//
+// This is not hypothetical on this machine: .venv has requests, Pillow,
+// beautifulsoup4 AND playwright; the system Python has the first three and not
+// playwright. Same command, quietly different behaviour depending on which one
+// answered.
+//
+// VIRTUAL_ENV wins when set (the venv is activated in this shell); otherwise the
+// conventional in-repo locations are tried. Windows puts the interpreter in
+// Scripts\, everything else in bin/.
+function venvCandidates(root) {
+  const roots = [];
+  if (process.env.VIRTUAL_ENV) roots.push(process.env.VIRTUAL_ENV);
+  roots.push(join(root, '.venv'), join(root, 'venv'));
+
+  const out = [];
+  for (const base of roots) {
+    for (const rel of ['Scripts/python.exe', 'bin/python3', 'bin/python']) {
+      const exe = join(base, ...rel.split('/'));
+      if (existsSync(exe)) out.push([exe, []]);
+    }
+  }
+  return out;
+}
+
 // Ordered by how likely each is to be a REAL Python 3 rather than a stub.
-const CANDIDATES = [
+const SYSTEM_CANDIDATES = [
   ['python3', []],
   ['python', []],
   ['py', ['-3']],      // the Windows launcher, which is reliable when present
@@ -33,7 +66,7 @@ const CANDIDATES = [
 
 /** The first candidate that actually reports Python 3.x, or null. */
 export function findPython() {
-  for (const [cmd, prefix] of CANDIDATES) {
+  for (const [cmd, prefix] of [...venvCandidates(ROOT), ...SYSTEM_CANDIDATES]) {
     let out;
     try {
       out = spawnSync(cmd, [...prefix, '--version'], { encoding: 'utf8', timeout: 15_000 });

@@ -41,6 +41,43 @@ or request that failed to load.
 
 ---
 
+## Step 3b — `/browser` says "Uh oh! There was an error loading…"? Check your antivirus first
+
+If the proxy fails **locally** with a 500 and the error details say:
+
+```
+InvalidCertificate(UnknownIssuer)   ·   invalid peer certificate: UnknownIssuer
+```
+
+**this is almost certainly your antivirus, not the site.** Avast, AVG, Kaspersky,
+ESET and Bitdefender all offer "HTTPS scanning", which works by intercepting
+every secure connection and re-signing it with their own root certificate.
+
+That root is installed in **Windows'** trust store, so `curl`, Chrome and
+`npm start` (which runs `node --use-system-ca`) all accept it happily. The proxy
+engines cannot: Ultraviolet and Scramjet terminate TLS inside a **WebAssembly**
+client that ships its **own** list of trusted authorities and cannot see
+Windows' store at all. It meets a certificate signed by an issuer it has never
+heard of and refuses it, exactly as it should.
+
+**How to confirm it in ten seconds** — this prints who signed the certificate
+your machine actually receives:
+
+```bash
+node -e "const t=require('tls');const s=t.connect({host:'example.com',port:443,servername:'example.com',rejectUnauthorized:false},()=>{console.log(s.getPeerCertificate().issuer);s.end()})"
+```
+
+A real issuer (DigiCert, Let's Encrypt, Amazon) means the proxy problem is real —
+report it. Anything naming your antivirus means **the deployed site is fine** and
+only your machine is affected. This was measured here on 2026-08-07: the issuer
+came back `Avast Web/Mail Shield Root`, and it had already cost one full
+debugging session before anyone thought to look.
+
+To test the proxy properly, either use the live site, or turn off your
+antivirus' HTTPS/web-shield scanning for as long as the test takes.
+
+---
+
 ## Step 4 — Test on your own computer before blaming the live site
 1. Open a terminal in the project folder.
 2. Run:  `npm start`

@@ -16,9 +16,21 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
+// Directories that are not this project's source. Getting one wrong here does
+// not weaken the check — it INVENTS work: every credential name any third-party
+// file happens to read is reported as one this deployment must declare.
+//
+// A Python virtual environment is the non-obvious entry. It appears only after
+// someone runs `pip install -r tools/requirements.txt`, and it is not only
+// Python: playwright ships a bundled Node driver, so .venv contains JavaScript
+// that reads process.env. The day a venv was created here, this test began
+// demanding that render.yaml declare DOTENV_KEY and
+// PLAYWRIGHT_MCP_EXTENSION_TOKEN — two variables belonging to a browser
+// automation package that never runs in production.
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.cache', '.y8-cache', 'logs', 'data',
   'DayDream', 'Interstellar', 'NautilusOS', 'scramjet', 'licenses', 'legal', 'public',
+  '.venv', 'venv', 'site-packages', '.tox', '__pycache__',
 ]);
 
 function sourceFiles(dir = root, out = []) {

@@ -6,32 +6,44 @@
    ============================================================ */
 
 /* ============================================================
-   AD SLOTS — hidden until ads are actually live.
-   The site ships with NO ad client configured, so every ad
-   placeholder MUST be invisible. Otherwise empty dashed boxes
-   ("blank squares") appear in the game grid and on every page —
-   the most-reported eyesore. ads.js adds body.zad-on (real ads)
-   or body.zad-preview (?ads=preview) to reveal them. Hiding here,
-   in the FIRST stylesheet, means they never flash before the JS
-   runs and never leave a gap (display:none drops them from the
-   grid flow entirely).
-   ============================================================ */
-body:not(.zad-on):not(.zad-preview) :is(
-  .ad-slot, .ad-ingrid, .ad-rail, .ad-space, .zad-anchor
-):not(.ad-inline):not(.catalog-ad-top):not(.catalog-ad-bottom) { display: none !important; }
+   AD SLOTS — a slot occupies space only when it holds a real ad.
 
-/* Blank reserved ad space — an unobtrusive EMPTY gap where a banner can load.
-   No "Advertisement" label, no border, no visible box, no dimensions — just
-   whitespace. A proxy-friendly ad network fills it once configured; until then it
-   stays clean and empty. Only the horizontal inline leaderboard slots are reserved
-   (never the side rails / in-grid units, which would disturb the layout). */
-.ad-inline, .catalog-ad-top, .catalog-ad-bottom {
+   Every ad container in the markup is hidden by default. Nothing
+   reveals a slot except public/js/ad-slots.js, which sets
+   data-zad-filled on a slot at the moment it injects a configured
+   network tag into it. So: tag configured → the slot appears at
+   its reserved size; no tag → the slot is display:none and takes
+   no space at all. Hiding here, in the FIRST stylesheet, means a
+   slot never flashes before the JS runs.
+
+   WHY THIS CHANGED. The reveal used to be body.zad-on /
+   body.zad-preview, set by a public/js/ads.js that no longer
+   exists — so the class was never applied, and the exception list
+   below (.ad-inline, .catalog-ad-top, .catalog-ad-bottom) forced
+   six containers to display:block with min-height:90px whether or
+   not anything could ever fill them. Nothing could: the current ad
+   modules build their own containers. The result was ~520px of
+   permanently blank space on the homepage, two dead bands on every
+   category page and one on every game page. Tying visibility to
+   "a tag was actually injected here" makes an empty reserved box
+   structurally impossible rather than a thing to remember.
+   ============================================================ */
+:is(.ad-slot, .ad-ingrid, .ad-rail, .ad-space, .zad-anchor,
+    .ad-inline, .catalog-ad-top, .catalog-ad-bottom):not([data-zad-filled]) {
+  display: none !important;
+}
+
+/* A FILLED in-content slot: reserve the creative's height up-front so a late
+   ad cannot shift the page, and keep it clean — no label, no border, no box. */
+:is(.ad-inline, .catalog-ad-top, .catalog-ad-bottom)[data-zad-filled] {
   display: block !important;
   width: 100%; max-width: 970px; min-height: 90px; margin: 20px auto;
   background: transparent !important; border: 0 !important;
 }
 @media (max-width: 560px) {
-  .ad-inline, .catalog-ad-top, .catalog-ad-bottom { min-height: 60px; margin: 14px auto; }
+  :is(.ad-inline, .catalog-ad-top, .catalog-ad-bottom)[data-zad-filled] {
+    min-height: 60px; margin: 14px auto;
+  }
 }
 
 :root {
@@ -357,7 +369,11 @@ kbd {
 .footer-tagline { margin: 14px 0 18px; line-height: 1.6; color: var(--text-mute); font-size: 13px; }
 
 .footer-col { display: flex; flex-direction: column; gap: 11px; }
-.footer-col h4 {
+/* h3, not h4. These sit after the page's h2 sections, and h2 → h4 is a skipped
+   level — the one accessibility fault a sweep found, and it was on every page,
+   because this footer is built once in layout.js for the whole site. The visual
+   size is set here and is independent of the level. */
+.footer-col h3 {
   margin: 0 0 4px; font-size: 11px; font-weight: 800;
   text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim);
 }

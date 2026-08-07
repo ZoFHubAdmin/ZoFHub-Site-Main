@@ -85,7 +85,8 @@ production breaks.
 The integration has no migration ledger for this project — the schema was
 originally applied by pasting SQL into the dashboard editor, so
 `supabase_migrations.schema_migrations` does not exist. On first connection the
-integration therefore treats **all 7 migrations as unapplied and runs them.**
+integration therefore treats **all 12 migrations as unapplied and runs them, on
+every merge.**
 
 That is safe. Every migration is idempotent (`IF NOT EXISTS` / `OR REPLACE` /
 guarded `DROP`), and re-running them against the populated production database
@@ -106,6 +107,42 @@ was analysed statement by statement:
 Branching is a Pro feature. On Free you get the part that matters: **merge to
 `main` → migrations apply to production.** Preview branches per PR stay off, and
 `Branch limit: 0` is expected and correct.
+
+## What "no ledger" means in practice
+
+Because every migration re-runs on every merge, the END STATE is what matters,
+not any single file. Two consequences are worth knowing before reading the
+migrations:
+
+- `db/community.sql` re-creates the `scores` table on every deploy, and
+  `db/feedback.sql` drops it again later in the same run. Both are correct; the
+  table exists for a few hundred milliseconds per deploy and never survives one.
+- A function is only really gone once **every** file that creates it stops doing
+  so, or a later file drops the exact signature. `submit_score` was created as
+  `(text, text, bigint)` and the teardown dropped `(text, text, integer)` — so it
+  came back on every deploy and was still live in production on 2026-08-07,
+  confirmed against the running database. `db/schema-hardening.sql` drops the
+  real signature and runs last.
+
+### Live objects this repository does not create
+
+Verified against production on 2026-08-07 by reading PostgREST's OpenAPI
+document with the secret key:
+
+| Object | Status |
+|---|---|
+| `rls_auto_enable()` | **exists in production, in no file here.** Created outside the repo, most likely by pasting into the dashboard SQL editor. No migration creates or drops it, so deploys leave it untouched. It is not reachable by the publishable key. |
+
+That is the only drift. To see what it does, run this in the SQL editor:
+
+```sql
+select prosecdef as security_definer, pg_get_functiondef(oid)
+from pg_proc where proname = 'rls_auto_enable';
+```
+
+If it is worth keeping, add it to `db/` and to the `ORDER` array in
+`tools/sync-supabase-migrations.mjs` so it stops being invisible. If it is not,
+drop it. An object nobody can account for is the one nobody dares remove later.
 
 ## Data is not here, by design
 

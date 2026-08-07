@@ -6,12 +6,24 @@
 //                     bar/interstitial — formats the NETWORK places by itself).
 //   • footer-ad.js  — the isolated footer banner from PROXY_BANNER_TAG.
 //
-// What this file adds is the two placements a network CANNOT place on its own,
+// What this file adds is the placements a network CANNOT place on its own,
 // because they need a real container in OUR layout:
 //   • Header leaderboard  728×90  (desktop) / 320×50 (mobile) → PROXY_HEADER_TAG
 //   • Sidebar rectangle   300×250                             → PROXY_SIDEBAR_TAG
+//   • In-content banners  728×90 responsive                   → PROXY_INCONTENT_TAG
 // …plus `adFrequencyController`, a localStorage throttle so a network's
 // interstitial can't fire on every game launch.
+//
+// ── WHY THE IN-CONTENT MOUNT EXISTS ────────────────────────────────────────
+// index.html, category.html and game.html have always DECLARED in-content ad
+// containers (.catalog-ad-top, .ad-inline, .catalog-ad-bottom — six of them).
+// They were filled by an older public/js/ads.js that no longer exists, and the
+// header/sidebar/footer modules that replaced it build their OWN containers and
+// never touch these. So the declared slots could not be filled by any code in
+// the repo, while main.css still forced them to `display:block; min-height:90px`
+// — roughly 520px of permanently blank space on the homepage alone, and zero
+// revenue from six positions the markup advertises. This mount closes that gap:
+// one configured tag fills all six, and with no tag they collapse to nothing.
 //
 // ── DESIGN RULES (all four are load-bearing, not preferences) ───────────────
 //
@@ -64,6 +76,11 @@ const CSS = `
    300×250 block would shove the game grid off-screen. Hide it there rather than
    let it fight the layout. */
 @media(max-width:900px){.zad-side-wrap{display:none}}
+
+/* In-content: the page owns the outer box (main.css reveals it only once
+   data-zad-filled is set); this just centres the creative inside it. */
+.zad-incontent{display:grid;place-items:center;width:100%;max-width:${HEADER.w}px;margin:0 auto}
+.zad-incontent > *{max-width:100%}
 `;
 
 function injectCss() {
@@ -172,6 +189,48 @@ export function mountSidebarAd() {
   return wrap;
 }
 
+// ── In-content banners ─────────────────────────────────────────────────────
+// Fills the containers the PAGES declare, rather than creating new ones — the
+// positions were chosen with the layout (between rows, above the fold, below
+// the game) and re-inventing them here would put ads somewhere else.
+//
+// `data-zad-filled` is the signal main.css keys on: an unfilled slot collapses
+// to nothing, so no configured tag means no reserved space (rule 1). The
+// attribute is set BEFORE the markup is injected so the box reserves its height
+// up-front and a late creative cannot shift the page (rule 2).
+const IN_CONTENT_SELECTOR = '.catalog-ad-top, .catalog-ad-bottom, .ad-inline';
+
+export function mountInContentAds() {
+  if (typeof window === 'undefined' || !document.body) return 0;
+
+  const tag = readTag('ZOFHUB_INCONTENT_TAG');
+  if (!tag) return 0;                                                 // rule 1: no tag → no slot
+
+  // The AI page is a fixed-height shell; the same exclusion the header and
+  // footer slots use, for the same reason.
+  if (document.body.classList.contains('page-ai') || document.querySelector('.ai-shell')) return 0;
+
+  injectCss();
+
+  let filled = 0;
+  for (const slot of document.querySelectorAll(IN_CONTENT_SELECTOR)) {
+    if (slot.dataset.zadFilled) continue;                             // mount once per slot
+    slot.dataset.zadFilled = '1';
+    slot.classList.add('zad');
+    if (!slot.getAttribute('aria-label')) slot.setAttribute('aria-label', 'Advertisement');
+    // A fresh child per slot: the same tag markup injected N times must not
+    // share a container, or a network's loader can overwrite its own earlier
+    // creative and leave every slot but the last one blank.
+    const inner = document.createElement('div');
+    inner.className = 'zad-incontent';
+    slot.appendChild(inner);
+    injectMarkup(inner, tag);
+    filled++;
+  }
+  if (filled) console.log('[zofhub-ads] %d in-content slot(s) filled', filled);
+  return filled;
+}
+
 // ── adFrequencyController ──────────────────────────────────────────────────
 // Networks that sell interstitials (PropellerAds, Adcash, …) will happily fire
 // one on EVERY page view. On a games site that means a full-screen ad between a
@@ -257,4 +316,5 @@ if (typeof window !== 'undefined') window.adFrequencyController = adFrequencyCon
 export function mountAdSlots() {
   mountHeaderAd();
   mountSidebarAd();
+  mountInContentAds();
 }

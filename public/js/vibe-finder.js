@@ -9,7 +9,7 @@
 // nothing and could hang on "Reading your vibe…". This version is server-backed,
 // fast, and has a hard request timeout so it can never get stuck.
 // ---------------------------------------------------------------------------
-import { $, el, trapFocus } from './utils.js';
+import { $, el, trapFocus, escapeHtml, wireThumbFallback } from './utils.js';
 
 // Quick one-tap moods (sent to the same endpoint as typed text). A mix of
 // feelings and activity-moods so "how you feel" is obvious at a glance.
@@ -81,7 +81,14 @@ function injectStyles() {
   .vibe-tile{display:block;text-decoration:none;border-radius:12px;overflow:hidden;background:#0a1a38;border:1px solid rgba(255,255,255,.16);transition:.12s}
   .vibe-tile:hover{border-color:rgba(255,212,38,.5);transform:translateY(-2px)}
   .vibe-tile .vt-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:linear-gradient(135deg,#392a80,#241a55)}
-  .vibe-tile .vt-fallback{width:100%;aspect-ratio:4/3;display:grid;place-items:center;font-weight:800;font-size:20px;color:#f7f4ff;background:linear-gradient(135deg,#3a2a7a,#241a55)}
+  /* .game-tile-fallback is what the SHARED wireThumbFallback() swaps a dead
+     image for. It is styled in catalog.css, which this overlay cannot count on
+     being present (the Vibe Finder is self-contained and injects its own CSS),
+     and which sizes it for the catalog grid rather than this 4/3 tile. Giving
+     both selectors the same rule keeps a broken thumbnail looking identical to
+     a missing one, on any page. */
+  .vibe-tile .vt-fallback,
+  .vibe-tile .game-tile-fallback{width:100%;aspect-ratio:4/3;display:grid;place-items:center;font-weight:800;font-size:20px;color:#f7f4ff;background:linear-gradient(135deg,#3a2a7a,#241a55)}
   .vibe-tile span{display:block;padding:7px 8px;font-size:11.5px;color:#c3b6ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .vibe-status{margin-top:16px;font-size:13px;color:#c3b6ee;text-align:center;padding:12px}
   .vibe-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#ffd426;border-radius:50%;animation:vibeSpin .8s linear infinite;vertical-align:-3px;margin-right:8px}
@@ -92,9 +99,24 @@ function injectStyles() {
 
 function tileFor(g) {
   const a = el('a', { class: 'vibe-tile', href: `/play/${g.slug}` });
-  const safe = String(g.title || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const safe = escapeHtml(g.title || '');
   if (g.thumbnail) {
-    a.innerHTML = `<img class="vt-img" loading="lazy" src="${g.thumbnail}" alt="${safe}" onerror="this.style.display='none'"/><span>${safe}</span>`;
+    // Two things were wrong here, and they compounded.
+    //
+    // 1. The broken-image handler was an inline `onerror=` attribute, which the
+    //    site's CSP blocks outright (`script-src-attr 'none'`, from helmet's
+    //    defaults — confirmed on the live response header). It could never run,
+    //    so a dead thumbnail left the browser's broken-image icon on the tile
+    //    permanently. Every other tile surface on the site already uses the
+    //    shared wireThumbFallback() for exactly this reason; utils.js says so in
+    //    a comment right above it.
+    // 2. Even had it run, it only hid the image, leaving a labelled gap — while
+    //    the no-thumbnail branch below renders a proper branded initials tile.
+    //    The two failure paths disagreed about what a missing image looks like.
+    //
+    // buildFallback() reads data-title, so that attribute is load-bearing.
+    a.innerHTML = `<img class="vt-img" loading="lazy" src="${escapeHtml(g.thumbnail)}" alt="${safe}" data-title="${safe}" /><span>${safe}</span>`;
+    wireThumbFallback(a.querySelector('img'));
   } else {
     const initials = String(g.title || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
     a.innerHTML = `<div class="vt-fallback">${initials}</div><span>${safe}</span>`;

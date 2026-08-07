@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-156%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 269 tests |
+| Tests | `node:test` (built in — zero test dependencies), 299 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -340,7 +340,7 @@ The live catalog and community features live in Supabase. Fastest path once your
 npm run restore-games     # loads every game source into Supabase in one command
 ```
 
-Prefer the SQL editor? Run the files in [`db/`](db/) in the order listed by the `ORDER` array in [`tools/sync-supabase-migrations.mjs`](tools/sync-supabase-migrations.mjs) — that array *is* the canonical order, and `supabase/migrations/` is generated from it. Two things about it are load-bearing: **`db/feedback.sql` runs LAST** (it retires the leaderboard by dropping `scores` and its `SECURITY DEFINER` functions, then creates the private `feedback` table, so it must act on tables the earlier files create), and the older `community-scores-*.sql` files still run even though the leaderboard is gone — migration history is replayed forwards, not rewritten. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+Prefer the SQL editor? Run the files in [`db/`](db/) in the order listed by the `ORDER` array in [`tools/sync-supabase-migrations.mjs`](tools/sync-supabase-migrations.mjs) — that array *is* the canonical order, and `supabase/migrations/` is generated from it. Two things about it are load-bearing: **the teardown files run at the end** — `db/feedback.sql` retires the leaderboard by dropping `scores` and its `SECURITY DEFINER` functions and creates the private `feedback` table, then `db/schema-hardening.sql` applies the audit corrections, so both act on objects the earlier files create — and the older `community-scores-*.sql` files still run even though the leaderboard is gone: migration history is replayed forwards, not rewritten. That is also why the corrections live in a new file instead of edits to the applied ones; Supabase will not re-run a migration it has already recorded, so editing one changes the repository's account of the database without changing the database. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
 
 > **`db/ALL-IN-ONE.sql`** bundles everything into a single file, but at ~6.7 MB it's far too big for Supabase's web editor — it's for direct `psql` restores only: `psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`. For everyone else, `npm run restore-games` is the one-command path.
 
@@ -408,7 +408,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, recommender, credits, game-discovery
-├── test/                # node:test suites (269 tests, no framework)
+├── test/                # node:test suites (299 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -416,7 +416,10 @@ ZoFHub/
 │   ├── gust/            # GUST proxy-browser UI (libcurl.js + Wisp)
 │   ├── uv/  scram/      # Ultraviolet + Scramjet proxy engines
 │   └── assets/ thumbs/  # images + game thumbnails
-└── tools/               # maintenance scripts + sync-supabase-migrations.mjs
+├── tools/               # maintenance scripts + sync-supabase-migrations.mjs
+│   ├── audit.py         # entry point for the repository auditor
+│   └── zofaudit/        # the checks it runs (stdlib-only Python)
+└── db/ALL-IN-ONE.sql    # GENERATED — npm run build-all-in-one
 ```
 
 ---
@@ -424,7 +427,7 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 174 tests, node:test — no framework, no install step
+npm test        # 299 tests, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 
@@ -440,6 +443,33 @@ Four CI jobs run on every push and PR:
 | `migrations-apply` | every migration applies to a real Postgres 15, is idempotent on re-apply, and leaves RLS on for every `public` table |
 
 `migrations-apply` is **not** a deploy path — it uses a throwaway container and no secrets. Migrations reach production only through the Supabase GitHub integration; a second deploy path would be two systems racing on the same DDL.
+
+---
+
+## 🔎 Repository auditor
+
+```bash
+npm run audit:repo            # every check, human-readable
+npm run audit:sql             # just the database
+npm run audit:repo:json       # machine-readable — includes the full import graph
+npm run audit:ci              # exit 1 on anything at warn or above
+```
+
+Static analysis of the things this project has nothing else watching for. No build step means no bundler resolving imports, no type checker comparing a query to a schema, and no framework noticing a route nobody calls — so those are checked here instead. **Python 3, standard library only**: an auditor you have to `pip install` before running is one that does not get run. It needs no `.env` and reaches no network.
+
+| Check | What it decides |
+|---|---|
+| `sql` | replays all 12 migrations, then holds every `.from()` / `.rpc()` / `.select()` in the runtime against the result — missing tables, missing columns, RPCs with no function, `DROP FUNCTION` that matches nothing, `SECURITY DEFINER` without a `revoke`, functions that do not pin `search_path`, tables without RLS, redundant indexes |
+| `json` | every JSON file parses; `catalog-overrides.json` rules that contradict each other |
+| `env` | read in code vs `.env.example` vs `render.yaml`, separating required variables from tunables that carry a default |
+| `api` | routes the server registers vs paths the browser requests — in **both** directions |
+| `deps` | import targets that do not exist, static import cycles, modules nothing imports |
+| `assets` | files in `public/` that nothing references |
+| `perf` | unstable pagination, unbounded selects, synchronous filesystem calls inside a request handler |
+
+The `sql` check is the one that pays for the rest. Nearly every interesting question about this database — *does `scores` still exist? is that function reachable?* — is a property of the **sequence** of migrations, not of any single file, and no amount of careful reading of one file answers it. Replaying them does.
+
+Findings carry the text that produced them, so the tool's work can be checked at a glance rather than taken on trust. Its own precision is guarded by `test/schema-integrity.test.mjs`, which re-derives the schema independently and asserts the same invariants — if the two ever disagree, one of them is wrong.
 
 ---
 

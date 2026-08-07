@@ -140,7 +140,7 @@ main{max-width:1100px;margin:0 auto;padding:22px 20px 64px}
 .quality .fact-k em{font-style:normal;color:var(--dim);opacity:.8}
 .quality code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
 
-/* ── Leaderboard review ────────────────────────────────────────────────── */
+/* ── Shared form + link primitives ─────────────────────────────────────── */
 /* Visually hidden but still announced. Used for the labels on the filter
    selects, which are obvious by position to a sighted user and completely
    unlabelled to anyone else. */

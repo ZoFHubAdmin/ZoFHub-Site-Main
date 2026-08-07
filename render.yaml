@@ -56,11 +56,10 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      # Unlocks /admin + /api/admin/scores/* so quarantined scores can be
-      # reviewed. Auth FAILS CLOSED, so without it those routes 503 and flagged
-      # scores pile up unreviewable (community-scores-review.sql deliberately
-      # stops auto-deleting them). Generated here so it is NOT the value sitting
-      # in the committed .env.
+      # The MACHINE token for /api/admin/* (catalog, analytics, security, system,
+      # feedback), for monitors and CLI tooling that cannot hold a cookie. Auth
+      # FAILS CLOSED, so without it every admin route refuses. Generated here so
+      # the deployed value is never one that has been in a file on disk.
       - key: ADMIN_SECRET
         generateValue: true
       # ── the administrator console (username + password login) ───────────────

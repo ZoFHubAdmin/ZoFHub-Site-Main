@@ -78,7 +78,8 @@ if (FROM_EXPORT) {
   supabase = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from('games')
-      .select('id, slug, title, game_url, thumbnail_url, category, is_working').range(from, from + 999);
+      .select('id, slug, title, game_url, thumbnail_url, category, is_working')
+      .order('id', { ascending: true }).range(from, from + 999);
     if (error) { console.error('✗ Supabase read error:', error.message); process.exit(1); }
     games.push(...(data || []));
     process.stdout.write(`  loaded ${games.length}\r`);

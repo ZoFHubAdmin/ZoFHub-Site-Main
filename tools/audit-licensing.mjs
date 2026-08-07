@@ -72,7 +72,8 @@ async function loadGames() {
       if (supa) {
         const rows = [];
         for (let from = 0; ; from += 1000) {
-          const { data, error } = await supa.from('games').select('id, slug, title, game_url').range(from, from + 999);
+          const { data, error } = await supa.from('games').select('id, slug, title, game_url')
+            .order('id', { ascending: true }).range(from, from + 999);
           if (error) throw error;
           rows.push(...(data || []));
           if (!data || data.length < 1000) break;

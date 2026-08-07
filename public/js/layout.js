@@ -131,7 +131,7 @@ function mountFooter() {
         <p class="footer-tagline">Instant browser games, a free AI assistant, and a smart proxy browser — all in one hub. No downloads, no sign-up.</p>
       </div>
       <nav class="footer-col" aria-label="Play">
-        <h4>Play</h4>
+        <h3>Play</h3>
         <a href="/">All games</a>
         <a href="/category/arcade">Arcade</a>
         <a href="/category/racing">Racing</a>
@@ -139,7 +139,7 @@ function mountFooter() {
         <a href="/category/puzzle">Puzzle</a>
       </nav>
       <nav class="footer-col" aria-label="Explore">
-        <h4>Explore</h4>
+        <h3>Explore</h3>
         <a href="/ai">AI Assistant</a>
         <a href="/community">Community</a>
         <a href="/browser">Proxy Browser</a>
@@ -149,7 +149,7 @@ function mountFooter() {
         <a href="#feedback" data-feedback>Send Feedback</a>
       </nav>
       <nav class="footer-col" aria-label="Legal">
-        <h4>Legal</h4>
+        <h3>Legal</h3>
         <a href="/privacy">Privacy Policy</a>
         <a href="/terms">Terms of Service</a>
         <a href="/cookies">Cookie Policy</a>
@@ -183,7 +183,8 @@ mountHeaderSocial();
 
 // ════════════════════════════════════════════════════════════════════════
 // Player identity chip — shows the visitor's auto-generated username in the top
-// bar on EVERY page (this is the same name the leaderboard ranks you under).
+// bar on EVERY page. It is device-local: nothing is registered and no account
+// exists. It pre-fills the author field on a community post.
 // Sits on the right of the header; collapses to just the avatar on small screens.
 // ════════════════════════════════════════════════════════════════════════
 function mountHeaderUser() {
@@ -195,7 +196,7 @@ function mountHeaderUser() {
     .slice(0, 2).join('') || 'P';
   const chip = document.createElement('div');
   chip.className = 'header-user';
-  chip.title = `You are ${name} — your leaderboard name`;
+  chip.title = `You are ${name} — a name this device generated, stored only here`;
   chip.innerHTML = `<span class="header-user-av" aria-hidden="true"></span><span class="header-user-name"></span>`;
   chip.querySelector('.header-user-av').textContent = initials;
   chip.querySelector('.header-user-name').textContent = name;
@@ -362,6 +363,9 @@ fetch('/api/site-config')
     if (typeof cfg.proxySidebarTag === 'string' && cfg.proxySidebarTag.trim()) {
       window.ZOFHUB_SIDEBAR_TAG = cfg.proxySidebarTag;
     }
+    if (typeof cfg.proxyInContentTag === 'string' && cfg.proxyInContentTag.trim()) {
+      window.ZOFHUB_INCONTENT_TAG = cfg.proxyInContentTag;
+    }
   })
   .catch(() => { /* config unavailable → site still works, just no ads */ })
   .finally(() => {
@@ -372,11 +376,12 @@ fetch('/api/site-config')
     //     window.ZOFHUB_PROXY_BANNER and stays hidden until a banner tag is set,
     //     so a real banner appears the moment you configure PROXY_BANNER_TAG.
     import('./footer-ad.js?v=20260721').then(m => m.mountFooterAd()).catch(() => {});
-    // (c) header 728×90 + sidebar 300×250. Same contract: each self-checks its
-    //     own tag and does nothing when unset, so this import is free until you
-    //     configure PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG. Loaded only when at
-    //     least one is present so unconfigured visitors don't fetch it at all.
-    if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG) {
-      import('./ad-slots.js?v=20260730').then(m => m.mountAdSlots()).catch(() => {});
+    // (c) header 728×90 + sidebar 300×250 + the in-content slots the pages
+    //     already declare. Same contract: each self-checks its own tag and does
+    //     nothing when unset, so this import is free until you configure
+    //     PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG / PROXY_INCONTENT_TAG. Loaded only
+    //     when at least one is present, so unconfigured visitors never fetch it.
+    if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG || window.ZOFHUB_INCONTENT_TAG) {
+      import('./ad-slots.js?v=20260806').then(m => m.mountAdSlots()).catch(() => {});
     }
   });

@@ -49,7 +49,8 @@ async function loadCatalog({ live }) {
     const out = [];
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supa.from('games')
-        .select('id, slug, title, game_url, thumbnail_url, category').range(from, from + 999);
+        .select('id, slug, title, game_url, thumbnail_url, category')
+        .order('id', { ascending: true }).range(from, from + 999);
       if (error) throw new Error(error.message);
       out.push(...(data || []));
       if (!data || data.length < 1000) break;

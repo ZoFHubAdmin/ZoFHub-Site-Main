@@ -116,6 +116,21 @@ jobs:
             exit 1
           fi
 
+      - name: db/ALL-IN-ONE.sql must provision the same schema
+        run: |
+          # It is a documented `psql -f` restore path. It was generated once, by
+          # something that never made it into the repository, and then the schema
+          # moved on for six more files without it — so it shipped for weeks
+          # provisioning a database with no admin tables and no feedback table,
+          # while its own header called itself the entire database. Nothing could
+          # notice, because nothing connected it to what it was generated from.
+          if node tools/build-all-in-one.mjs --check; then
+            echo "✅ db/ALL-IN-ONE.sql matches the schema in db/"
+          else
+            echo "::error::db/ALL-IN-ONE.sql is stale. Run 'npm run build-all-in-one' and commit the result — a restore from it would build the wrong database."
+            exit 1
+          fi
+
       - name: Migration filenames must match Supabase's required format
         run: |
           # Supabase orders migrations lexicographically by filename and requires
@@ -221,3 +236,27 @@ jobs:
             exit 1
           fi
           echo "✅ RLS is enabled on every table in the public schema"
+
+  # Static audit of the things nothing else in this project watches for. There is
+  # no bundler resolving imports, no type checker comparing a query to a schema,
+  # and no framework noticing a route with no caller — so those are decided here,
+  # from the repository alone. Stdlib-only Python, no .env, no network.
+  repo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Audit the repository
+        run: |
+          # --fail-on warn, not error: by the time a finding is an error it is a
+          # broken query or a missing route, and those should never reach a PR.
+          if python tools/audit.py --min-severity warn --fail-on warn; then
+            echo "✅ no findings at warn or above"
+          else
+            echo "::error::the repository auditor found something. Run 'npm run audit:repo' locally for the full report."
+            exit 1
+          fi

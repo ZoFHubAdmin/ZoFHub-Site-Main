@@ -5,8 +5,8 @@
 #  node_modules are committed on purpose so a new machine can clone and run.
 #  The rules below are the deliberate exceptions.
 #
-#  ⚠  KEEP THIS REPOSITORY PRIVATE. .env is TRACKED (see the note further down)
-#     and holds live credentials.
+#  ⚠  KEEP THIS REPOSITORY PRIVATE. .env is no longer tracked, but its HISTORY
+#     still holds live credentials — see the Credentials note further down.
 #
 #  A rule here does NOT untrack a file that is already tracked — git ignores
 #  only apply to files it is not already following. Two rules below are in that
@@ -39,6 +39,19 @@ Nebula/
 __pycache__/
 *.pyc
 
+# Python virtual environment for tools/requirements.txt.
+#
+# `python -m venv` writes a .gitignore containing `*` INSIDE the directory, so
+# this is already ignored without the line below. It is here anyway because that
+# protection is a file inside the thing being protected: recreate the
+# environment with a tool that does not write it, or copy the tree, and 143 MB
+# of third-party packages becomes stageable by one `git add -A`.
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
 # Supabase CLI local state (regenerated; never part of the repo).
 supabase/.temp/
 supabase/.branches/
@@ -65,10 +78,36 @@ logs/
 # secret the server reads, which is what makes untracking safe rather than a
 # thing that breaks the deploy.
 #
-# Its previous contents remain in git history. That is not a problem for the
-# Supabase pair — the legacy anon/service_role keys are deactivated and the API
-# now answers 401 "Legacy API keys are disabled" — but any OTHER secret that
-# was committed before 1dd45a7e should be treated as exposed and rotated.
+# THE HISTORY STILL HOLDS LIVE SECRETS — accepted, not outstanding.
+# Untracking removed .env from HEAD, not from history: `git show 45821901:.env`
+# still returns it. Verified 2026-08-06 by comparing the working .env against
+# every commit that ever touched it — the values CURRENTLY IN USE are
+# byte-identical to committed ones for SUPABASE_SECRET_KEY (an active
+# sb_secret_… key that bypasses RLS entirely), ADMIN_SECRET, ADMIN_SESSION_SECRET
+# (which also keys the audit log's IP HMAC), ADMIN_PASSWORD_HASH and CRON_SECRET.
+#
+# An earlier note said history was "not a problem for the Supabase pair" because
+# the LEGACY anon/service_role JWTs are deactivated. True, and beside the point:
+# the key in use today is the new-format secret key, and it is in history too.
+#
+# DECISION (owner, 2026-08-06): this repository is private and will never be made
+# public, so rotation is not being done. Recorded here so it is a decision with a
+# reason rather than an oversight someone re-raises every audit.
+#
+# What that leaves, so the next reader can judge it for themselves rather than
+# re-derive it:
+#   · Every clone ever made still holds these values, and always will. Rotation
+#     is the only thing that expires them; deleting or rewriting history is not.
+#   · It couples two blast radii that are otherwise separate. A GitHub account or
+#     third-party-integration compromise (Render has repo access) stops being
+#     "someone read my source" and becomes "someone holds the production database
+#     key and the admin credentials".
+# Neither depends on the repo ever going public. If that trade stops looking
+# right, rotate at source (Supabase → Settings → API Keys; `npm run admin-hash`
+# for the admin trio; any random string for CRON_SECRET), set the new values in
+# the HOST dashboard, and clear them from this file so it cannot re-supply a
+# stale one. SUPABASE_SECRET_KEY alone is the two-minute version and removes most
+# of the coupling above.
 .env
 
 # node_modules is committed deliberately (see the header), so this rule does not

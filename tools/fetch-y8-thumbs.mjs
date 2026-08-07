@@ -120,7 +120,10 @@ async function getTargets() {
   for (let from = 0; ; from += 1000) {
     let q = supabase.from('games').select('id, slug, title, game_url, thumbnail_url');
     q = SELF_HOST ? q.ilike('game_url', '%y8.com%') : q.is('thumbnail_url', null);
-    const { data, error } = await q.range(from, from + 999);
+    // .order('id') is load-bearing, not cosmetic: LIMIT/OFFSET with no ORDER BY
+    // has no defined row order in Postgres, so a page walk can return one row
+    // twice and skip another. A skipped row here is a thumbnail never fetched.
+    const { data, error } = await q.order('id', { ascending: true }).range(from, from + 999);
     if (error) { console.error('✗ Supabase read error:', error.message); process.exit(1); }
     rows.push(...(data || []));
     if (!data || data.length < 1000) break;

@@ -172,4 +172,41 @@ describe('catalog analytics', () => {
     assert.equal(summarizeCatalog([]).coverage, 0);
     assert.equal(summarizeCatalog([null, 3, {}]).games, 1);
   });
+
+  // REGRESSION: every fixture above sets `provider` by hand, and summarizeCatalog
+  // read only that field. No catalog object the SERVER builds has ever carried
+  // it — refreshCatalogFromSupabase() and normalizeRuntimeEntry() both emit
+  // embed_url and no provider — so the admin Analytics panel reported a single
+  // row, "unknown: 12,329", on every live deployment while these tests passed.
+  //
+  // The fixtures were the bug: they described a shape production does not
+  // produce. This one is deliberately shaped like a REAL catalog row.
+  describe('provider breakdown works on a real catalog row', () => {
+    const production = [
+      { slug: 'a', title: 'A', category: 'arcade', embed_url: 'https://html5.gamemonetize.co/abc/' },
+      { slug: 'b', title: 'B', category: 'arcade', embed_url: 'https://html5.gamemonetize.co/def/' },
+      { slug: 'c', title: 'C', category: 'racing', embed_url: 'https://www.y8.com/embed/xyz' },
+    ];
+
+    test('the host is derived when the row carries no provider field', () => {
+      const s = summarizeCatalog(production);
+      const names = s.providers.map((p) => p.name);
+      assert.ok(!names.includes('unknown'),
+        `every game reported as "unknown" — summarizeCatalog is reading a field the server never sets: ${JSON.stringify(s.providers)}`);
+      assert.deepEqual(s.providers, [
+        { name: 'html5.gamemonetize.co', count: 2 },
+        { name: 'www.y8.com', count: 1 },
+      ]);
+    });
+
+    test('an explicit provider still wins over the derived host', () => {
+      const s = summarizeCatalog([{ slug: 'a', provider: 'y8', embed_url: 'https://html5.gamemonetize.co/x/' }]);
+      assert.equal(s.providers[0].name, 'y8');
+    });
+
+    test('a row with neither a provider nor a usable URL is still counted', () => {
+      const s = summarizeCatalog([{ slug: 'a' }, { slug: 'b', embed_url: 'not a url' }]);
+      assert.equal(s.providers.find((p) => p.name === 'unknown')?.count, 2);
+    });
+  });
 });

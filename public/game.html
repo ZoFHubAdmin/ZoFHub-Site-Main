@@ -8,7 +8,6 @@
   <!-- Send only the origin as document.referrer for the embedded game; many
        publisher SDKs accept that but reject the full /play/:slug URL. -->
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <!-- Proof-of-play token: required to submit a leaderboard score for this game. -->
   <title>{{TITLE}} · ZoFHub</title>
   <!-- Open Graph / social share (per-game) -->
   <meta property="og:site_name" content="ZoFHub" />
@@ -98,10 +97,6 @@
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
             <span>Reload</span>
           </button>
-          <button class="btn-ghost btn-sm" id="scoreBtn" title="Leaderboard">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3"/></svg>
-            <span>Leaderboard</span>
-          </button>
           <!-- No manual "Proxy" toggle: every game that CAN be proxied is already
                served through the ZoFHub proxy by default (see server /play routing),
                so a per-game switch is redundant. -->
@@ -167,22 +162,14 @@
         </button>
       </div>
 
-      <!-- ====== LEADERBOARD ====== -->
-      <section class="score-panel" id="scorePanel" hidden>
-        <h2 class="row-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg>
-          Leaderboard — {{TITLE}}
-        </h2>
-        <ol class="score-list" id="scoreList"><li class="score-empty">No scores yet — be the first!</li></ol>
-        <form class="score-form" id="scoreForm">
-          <label class="sr-only" for="scoreValue">Your score for {{TITLE}}</label>
-          <input id="scoreValue" type="number" min="0" max="2000000000" placeholder="Your score" required />
-          <button class="btn-primary btn-sm" type="submit">Submit score</button>
-        </form>
-        <p class="score-note">Submitting as <b id="scoreAs">…</b> · your best is kept. Scores are player-reported — impossible ones are rejected and suspicious spikes are held for review, so treat the board as fun, not gospel. 🏆</p>
-      </section>
+      <!-- The per-game leaderboard was retired with the `scores` table (see
+           db/feedback.sql). Its markup lived here and its client still called
+           /api/scores + /api/scores/session on every page open, which have not
+           existed since; the panel could only ever say "No scores yet" and a
+           submission could only ever fail. Removed rather than hidden, so the
+           dead request goes away with the dead UI. -->
 
-      <!-- ====== 728×90 LEADERBOARD AD (below game) ====== -->
+      <!-- ====== 728×90 BANNER (below game) ====== -->
       <div class="ad-leaderboard">
         <div class="ad-slot ad-728x90" data-ad-type="leaderboard" data-slot="below-game-leaderboard"></div>
       </div>

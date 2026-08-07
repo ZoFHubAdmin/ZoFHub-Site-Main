@@ -41,10 +41,12 @@ process.on('uncaughtException', (err) => {
 // environment — verified, not assumed. So a host's dashboard values always win
 // and a file can only FILL GAPS. Two consequences worth being explicit about:
 //
-//   1. .env is committed in this repo (deliberately — see .gitignore). On a host
-//      it therefore acts as a silent fallback for anything the dashboard didn't
-//      set. That is convenient and also how a secret quietly ends up sourced
-//      from git, so in production we log exactly which keys came from the file.
+//   1. .env is gitignored and untracked (commit 1dd45a7e). But an .env file that
+//      reaches a host by any route — baked into an image, copied by a deploy
+//      script, restored from a backup — still acts as a silent fallback for
+//      anything the dashboard did not set, and a secret sourced that way is one
+//      nobody can rotate from the dashboard. So in production we log exactly
+//      which keys came from a file rather than from the host.
 //   2. .env.example is a LAST RESORT (e.g. Docker, where .dockerignore excludes
 //      .env). It ships placeholders like "change-me-to-a-long-random-string".
 //      Letting those through would mean ADMIN_SECRET is literally the string
@@ -64,7 +66,7 @@ const PLACEHOLDER = /^(change-me|your-|YOUR_|<|\.\.\.|https:\/\/your-|sb_publish
 // These three vars are HTML by definition, so the `<` heuristic can never apply
 // to them. They are still validated properly downstream: /api/site-config strips
 // any Google ad code, and only https origins reach the CSP.
-const HTML_VALUED_KEYS = new Set(['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG']);
+const HTML_VALUED_KEYS = new Set(['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG', 'PROXY_INCONTENT_TAG']);
 const isPlaceholder = (key, value) => !HTML_VALUED_KEYS.has(key) && PLACEHOLDER.test(value);
 const envFileKeys = [];
 for (const f of ['.env', '.env.example']) {
@@ -266,6 +268,17 @@ function thumbUrl(u) {
     if (!THUMB_PROXY_HOSTS.test(new URL(s).hostname)) return s;
     return '/thumb?u=' + encodeURIComponent(s);
   } catch { return s; }
+}
+
+// The publisher host a game is served from, e.g. "html5.gamemonetize.co".
+//
+// Provider is a first-class attribute here, not a curiosity: every licensing
+// decision in this repo is made per-provider (Famobi and Gamezop removed,
+// HTMLGames excluded for frame-busting), and /play routes per-host. It was being
+// derived ad hoc at one call site and assumed pre-set at another — see the note
+// in setCatalog().
+function providerOf(url) {
+  try { return new URL(url).hostname.toLowerCase(); } catch { return null; }
 }
 
 // Normalize a raw entry from any source file into the bundled-catalog shape.
@@ -537,6 +550,15 @@ function setCatalog(games, source) {
     if (g.slug) bySlug.set(g.slug, g);
     // Re-attach the live play count (catalog objects are rebuilt each refresh).
     g.plays = playCounts.get(g.slug) || 0;
+    // Derive the publisher host ONCE, here, for the same reason category and
+    // thumbnail are derived here: every source path ends up in this loop.
+    //
+    // Nothing set this before. summarizeCatalog() in lib/ops-metrics.mjs reads
+    // g.provider to build the admin Analytics provider breakdown, so that panel
+    // reported a single row — "unknown: 12,329" — on every deployment. Its unit
+    // test passed throughout, because the fixtures set `provider` by hand and
+    // production never did.
+    if (!g.provider) g.provider = providerOf(g.embed_url || g.game_url || g.url);
     // Canonicalize every game's category here (one place for ALL sources) so the
     // nav never fragments into near-duplicate pages (e.g. "car"/"traffic" → racing,
     // "card games" → card) regardless of whether it came from Supabase or a file.
@@ -711,15 +733,36 @@ async function refreshCatalogFromSupabase() {
   // Fetch one 1000-row page with up to 3 attempts — the home-network → Supabase
   // hop occasionally aborts at the client's 8s timeout; a retry almost always
   // succeeds. (In datacenter deploys this never trips.)
-  const fetchPage = async (from) => {
+  //
+  // KEYSET, NOT OFFSET. The page is bounded by "id < the last id I saw" rather
+  // than by .range(from, from + 999). Two reasons, both live here:
+  //
+  //   • Stability. The set being paged is `is_working = true` — that is what the
+  //     games_public view selects — and the hourly link-check flips that column
+  //     on up to 200 rows WHILE this runs, while the admin refresh button can
+  //     start a second pass concurrently. Under OFFSET, a row leaving the set
+  //     between two pages shifts every later row one place forward and a game is
+  //     dropped from the catalog with no error anywhere; a row joining it serves
+  //     one game twice. Under keyset the cursor is a value, not a position, so
+  //     neither can happen.
+  //   • Cost. OFFSET makes Postgres walk and discard every row before the window,
+  //     so 17 pages read ~144k index entries instead of ~17k — quadratic in the
+  //     catalog size, on a job that runs every 30 minutes.
+  //
+  // A retry is also now genuinely idempotent: the same cursor asks for the same
+  // page, where the same OFFSET after a concurrent change asked for a different one.
+  // games_working_id_desc_idx — (is_working, id desc) — serves this directly.
+  const fetchPage = async (afterId) => {
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const { data, error } = await supa
+        let q = supa
           .from('games_public')
-          .select('slug, title, game_url, thumbnail_url, category')
+          .select('id, slug, title, game_url, thumbnail_url, category')
           .order('id', { ascending: false })
-          .range(from, from + 999);
+          .limit(1000);
+        if (afterId !== null) q = q.lt('id', afterId);
+        const { data, error } = await q;
         if (error) throw new Error(error.message || 'supabase error');
         return data || [];
       } catch (e) {
@@ -730,13 +773,15 @@ async function refreshCatalogFromSupabase() {
     throw lastErr;
   };
   try {
-    let rows = [], from = 0;
+    // Terminates because id is the primary key: every page strictly lowers the
+    // cursor, and there are finitely many rows below it.
+    let rows = [], cursor = null;
     while (true) {
-      const data = await fetchPage(from);
+      const data = await fetchPage(cursor);
       if (!data.length) break;
       rows = rows.concat(data);
-      from += 1000;
       if (data.length < 1000) break;
+      cursor = data[data.length - 1].id;
     }
     if (!rows.length) {
       console.warn('[zofhub] Supabase returned 0 games — keeping current catalog.');
@@ -776,9 +821,23 @@ async function loadPlayStats() {
   const supa = getSupabase();
   if (!supa) return;
   try {
-    let from = 0;
+    // Keyset on slug, which is game_stats' PRIMARY KEY — so the order is total,
+    // the cursor is unique, and the walk uses the PK index.
+    //
+    // The previous form was `.range(from, from + 999)` with NO .order() at all.
+    // A LIMIT/OFFSET with no ORDER BY has no defined row order in Postgres: the
+    // planner may return rows in any sequence, and an UPDATE that moves a row
+    // within the heap can push it into a page already read or past one still to
+    // come. flushPlayStats() upserts this exact table every 60 seconds, so that
+    // is not a theoretical concurrency window — a boot slow enough to overlap one
+    // flush could silently load the wrong lifetime counts, and the only symptom
+    // would be a few games quietly ranking lower than they earned.
+    let cursor = null;
     while (true) {
-      const { data, error } = await supa.from('game_stats').select('slug, plays').range(from, from + 999);
+      let q = supa.from('game_stats').select('slug, plays')
+        .order('slug', { ascending: true }).limit(1000);
+      if (cursor !== null) q = q.gt('slug', cursor);
+      const { data, error } = await q;
       if (error) {
         if (/relation|does not exist|could not find|schema cache/i.test(error.message || '')) {
           playStatsTable = false;
@@ -789,7 +848,7 @@ async function loadPlayStats() {
       }
       for (const r of (data || [])) playCounts.set(r.slug, Number(r.plays) || 0);
       if (!data || data.length < 1000) break;
-      from += 1000;
+      cursor = data[data.length - 1].slug;
     }
     for (const g of CATALOG.games) g.plays = playCounts.get(g.slug) || 0;
     orderCache.clear();
@@ -921,11 +980,12 @@ const AD_ORIGINS = (() => {
 
   for (const s of (process.env.PROXY_AD_SCRIPTS || '').split(',')) add(s);
   // The banner slots are raw HTML tags, so pull any src="…" / src=… out of them.
-  // ALL THREE must be scanned: a tag whose origin isn't allowlisted here is
+  // ALL FOUR must be scanned: a tag whose origin isn't allowlisted here is
   // refused by the browser with only a console message — it looks exactly like
-  // the network not paying out. (PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG feed the
-  // header + sidebar slots in public/js/ad-slots.js.)
-  for (const varName of ['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG']) {
+  // the network not paying out. (PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG /
+  // PROXY_INCONTENT_TAG feed the header, sidebar and in-content slots in
+  // public/js/ad-slots.js.)
+  for (const varName of ['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG', 'PROXY_INCONTENT_TAG']) {
     for (const m of String(process.env[varName] || '').matchAll(/src\s*=\s*["']?(https:\/\/[^"'\s>]+)/gi)) add(m[1]);
   }
   // Escape hatch: extra origins (wildcards allowed) for hosts the network's own
@@ -1782,8 +1842,18 @@ function ipAllow(ip) {
 }
 
 // Generic per-IP token bucket for abuse-prone WRITE endpoints (recommendations,
-// scores, view-bumps). Same bounded/swept design as the AI limiter, so a bot
-// can't flood the database from a single IP. Dependency-free.
+// feedback, view-bumps, presence). Same bounded/swept design as the AI limiter,
+// so a bot can't flood the database from a single IP. Dependency-free.
+//
+// UNITS, because getting them wrong is silent and expensive:
+//   capacity — the BURST. Requests allowed back-to-back from a cold bucket.
+//   refillMs — MILLISECONDS PER SINGLE TOKEN. NOT a window length.
+//
+// So (capacity 10, refillMs 5000) is a burst of 10 and then ONE request every
+// five seconds — a sustained 0.2/sec — not "10 requests per 5 seconds". The
+// presence endpoints were called with exactly that and a comment claiming the
+// latter, which throttled the live-visitor counter for ordinary visitors; see
+// the note on /api/presence/beat. Sustained rate is 1000/refillMs per second.
 const _writeBuckets = new Map(); // ip -> { tokens, last }
 function writeAllow(ip, capacity = WRITE_IP_BUCKET.capacity, refillMs = WRITE_IP_BUCKET.refillMs) {
   const now = Date.now();
@@ -2656,7 +2726,9 @@ app.get('/api/admin/games', (req, res) => {
     games: rows.slice(0, limit).map(g => ({
       slug: g.slug, title: g.title, category: g.category,
       embed_url: g.embed_url, is_working: g.is_working !== false,
-      provider: (() => { try { return new URL(g.embed_url).hostname; } catch { return null; } })(),
+      // Set on every catalog object by setCatalog(); derived here only for the
+      // rare row that reached this list without going through it.
+      provider: g.provider || providerOf(g.embed_url),
     })),
   });
 });
@@ -2878,12 +2950,22 @@ app.get('/api/admin/system', async (req, res) => {
   const mem = process.memoryUsage();
   const flag = (name, on, note) => ({ name, on: !!on, note: note || null });
 
+  // ASYNC fs, not the *Sync twins. This walks the whole thumbnail cache — which
+  // is unbounded and reaches thousands of files — and a readdirSync plus one
+  // statSync per file stops the event loop for the entire walk. Every other
+  // request in flight, from every other visitor, waits behind an admin opening a
+  // dashboard. Chunked so the promises do not all queue against the fs
+  // threadpool at once on a large cache.
   let thumbCache = { files: null, bytes: null };
   try {
-    const { readdirSync, statSync } = await import('node:fs');
-    const files = readdirSync(THUMB_CACHE_DIR);
+    const { readdir, stat } = await import('node:fs/promises');
+    const files = await readdir(THUMB_CACHE_DIR);
     let bytes = 0;
-    for (const f of files) { try { bytes += statSync(join(THUMB_CACHE_DIR, f)).size; } catch { /* raced */ } }
+    for (let i = 0; i < files.length; i += 256) {
+      const sizes = await Promise.all(files.slice(i, i + 256).map(
+        f => stat(join(THUMB_CACHE_DIR, f)).then(s => s.size).catch(() => 0)));  // raced deletes → 0
+      for (const n of sizes) bytes += n;
+    }
     thumbCache = { files: files.length, bytes };
   } catch { /* the directory is created lazily; absent is normal */ }
 
@@ -2941,12 +3023,18 @@ app.post('/api/admin/cache/clear', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   auditAction(req, 'cache.clear', 'thumbnails');
   try {
-    const { readdirSync, rmSync } = await import('node:fs');
+    // Async, and chunked, for the same reason as /api/admin/system above: this
+    // deletes every file in an unbounded directory, and the synchronous form
+    // holds the event loop for the whole sweep.
+    const { readdir, rm } = await import('node:fs/promises');
+    const files = await readdir(THUMB_CACHE_DIR);
     let removed = 0;
-    for (const f of readdirSync(THUMB_CACHE_DIR)) {
+    for (let i = 0; i < files.length; i += 256) {
       // Only ever files directly inside the cache directory. Never recursive,
       // never a path built from anything the caller sent.
-      try { rmSync(join(THUMB_CACHE_DIR, f), { force: true }); removed++; } catch { /* raced */ }
+      const done = await Promise.all(files.slice(i, i + 256).map(
+        f => rm(join(THUMB_CACHE_DIR, f), { force: true }).then(() => 1).catch(() => 0)));
+      for (const n of done) removed += n;
     }
     return res.json({ ok: true, removed });
   } catch (e) {
@@ -2982,9 +3070,14 @@ app.get('/api/admin/catalog/quality', (req, res) => {
   }
 });
 
-// sessionStorage, and sent as a header — it is never part of a URL or the page.
-// A tiny self-contained console. The secret is typed in, kept only in
-// sessionStorage, and sent as a header — it is never part of a URL or the page.
+// A tiny self-contained console, kept ONLY as the fallback for a deployment
+// that has not yet run `npm run admin-hash` (see the /admin route below). The
+// secret is typed in, kept only in sessionStorage, and sent as a header — it is
+// never part of a URL or the page.
+//
+// It had a second tab, "Flagged scores", backed by /api/admin/scores/flagged.
+// That route went with the leaderboard, so the tab could only ever render its
+// own error. Reviewing game requests is all this fallback does now.
 const ADMIN_HTML = `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>ZoFHub · Admin</title>
@@ -3003,10 +3096,6 @@ const ADMIN_HTML = `<!doctype html><html lang="en"><head>
    border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600}
  button:hover{border-color:var(--brand)}
  button.p{background:var(--brand);color:#241a00;border-color:var(--brand);font-weight:800}
- .tabs{display:flex;gap:8px;margin-bottom:14px}
- .tab{padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:700;color:var(--dim);
-   background:var(--surface);border:1px solid var(--line)}
- .tab.on{background:var(--brand);color:#241a00;border-color:var(--brand)}
  .row{background:var(--surface);border:1px solid var(--line);border-radius:11px;
    padding:12px 14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
  .row .main{flex:1;min-width:220px}
@@ -3025,14 +3114,10 @@ const ADMIN_HTML = `<!doctype html><html lang="en"><head>
   <button class="p" id="go">Unlock</button>
   <button id="out">Forget</button>
 </div>
-<div class="tabs">
-  <div class="tab on" data-t="recs">Game requests</div>
-  <div class="tab" data-t="scores">Flagged scores</div>
-</div>
 <div id="counts" class="counts"></div>
 <div id="list"><div class="msg">Enter your ADMIN_SECRET to load.</div></div>
 </div><script>
-const $=s=>document.querySelector(s);let tab="recs";
+const $=s=>document.querySelector(s);
 const key=()=>sessionStorage.getItem("zh_admin")||"";
 const H=()=>({"x-admin-secret":key()});
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));}
@@ -3041,37 +3126,21 @@ async function load(){
   const L=$("#list"),C=$("#counts");
   if(!key()){L.innerHTML='<div class="msg">Enter your ADMIN_SECRET to load.</div>';C.textContent="";return;}
   L.innerHTML='<div class="msg">Loading…</div>';C.textContent="";
-  if(tab==="recs"){
-    const d=await api("/api/admin/recommendations");
-    if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
-    const r=d.recommendations||[];
-    C.textContent=r.length+" submitted · "+d.counts.alreadyInCatalog+" already in catalog · "+d.counts.newToAdd+" new";
-    L.innerHTML=r.length?r.map(x=>'<div class="row">'
-      +'<span class="pill '+(x.inCatalog?"dup":"new")+'">'+(x.inCatalog?"Already in catalog":"New")+'</span>'
-      +'<div class="main"><div class="t">'+esc(x.title)+'</div>'
-      +'<div class="m">'+esc(x.embed_url)+'</div>'
-      +'<div class="m">by '+esc(x.author)+' · '+esc(x.category)+' · '+x.views+' views'
-      +(x.inCatalog?' · matches <b>'+esc(x.matchedTitle||x.matchedSlug||"")+'</b> (by '+esc(x.matchedBy)+')':'')
-      +(x.is_visible?'':' · <b>hidden</b>')+'</div></div>'
-      +'<button data-rec="'+x.id+'" data-act="'+(x.is_visible?"hide":"show")+'">'+(x.is_visible?"Hide":"Show")+'</button>'
-      +'</div>').join(""):'<div class="msg">No submissions yet.</div>';
-  }else{
-    const d=await api("/api/admin/scores/flagged");
-    if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
-    const s=d.scores||[];
-    C.textContent=(d.note?d.note+" · ":"")+s.length+" awaiting review";
-    L.innerHTML=s.length?s.map(x=>'<div class="row">'
-      +'<div class="main"><div class="t">'+esc(x.player_name)+' — <span class="num">'+Number(x.score).toLocaleString()+'</span></div>'
-      +'<div class="m">'+esc(x.slug)+' · current public best <span class="num">'+Number(x.currentBest).toLocaleString()+'</span> · '+esc(x.flag_reason||"")+'</div></div>'
-      +'<button class="p" data-sc="'+x.id+'" data-act="approve">Approve</button>'
-      +'<button data-sc="'+x.id+'" data-act="reject">Reject</button>'
-      +'</div>').join(""):'<div class="msg">Nothing flagged. 🎉</div>';
-  }
+  const d=await api("/api/admin/recommendations");
+  if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
+  const r=d.recommendations||[];
+  C.textContent=r.length+" submitted · "+d.counts.alreadyInCatalog+" already in catalog · "+d.counts.newToAdd+" new";
+  L.innerHTML=r.length?r.map(x=>'<div class="row">'
+    +'<span class="pill '+(x.inCatalog?"dup":"new")+'">'+(x.inCatalog?"Already in catalog":"New")+'</span>'
+    +'<div class="main"><div class="t">'+esc(x.title)+'</div>'
+    +'<div class="m">'+esc(x.embed_url)+'</div>'
+    +'<div class="m">by '+esc(x.author)+' · '+esc(x.category)+' · '+x.views+' views'
+    +(x.inCatalog?' · matches <b>'+esc(x.matchedTitle||x.matchedSlug||"")+'</b> (by '+esc(x.matchedBy)+')':'')
+    +(x.is_visible?'':' · <b>hidden</b>')+'</div></div>'
+    +'<button data-rec="'+x.id+'" data-act="'+(x.is_visible?"hide":"show")+'">'+(x.is_visible?"Hide":"Show")+'</button>'
+    +'</div>').join(""):'<div class="msg">No submissions yet.</div>';
 }
 document.addEventListener("click",async e=>{
-  const t=e.target.closest(".tab"); if(t){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));tab=t.dataset.t;load();return;}
-  const sc=e.target.closest("[data-sc]");
-  if(sc){sc.disabled=true;await api("/api/admin/scores/"+sc.dataset.sc+"/"+sc.dataset.act,{method:"POST"});load();return;}
   const rc=e.target.closest("[data-rec]");
   if(rc){rc.disabled=true;await api("/api/admin/recommendations/"+rc.dataset.rec+"/"+rc.dataset.act,{method:"POST"});load();return;}
 });
@@ -3250,13 +3319,39 @@ function recordBeat(sessionId, slug) {
   return changed;
 }
 
+// Beat budget. See writeAllow() for the units — the second number is ms PER
+// TOKEN, so this is a burst of 30 and a sustained 5 requests/second.
+//
+// IT USED TO BE (10, 5000), described in a comment as "10 per 5s" and sized
+// "well above the client's real cadence". It was a tenth of that: one token per
+// five seconds, i.e. 0.2/sec, against a client that beats every 2s (0.5/sec).
+// Every visitor therefore outran their own bucket. Measured against this server:
+//
+//   1 tab              40% of beats refused, 6.2s longest gap
+//   2 visitors, one IP 75% refused, 10.2s gap
+//   5 visitors, one IP 93% refused, 33s gap
+//
+// PRESENCE_TTL_MS is 8s, so from two visitors upward the gaps exceed the TTL and
+// the server expires sessions that are in fact still on the page: the live count
+// and the per-game "N playing now" badge undercount and flicker. Sharing one
+// public IP is not an edge case here — it is a school or library NAT, which is
+// this site's stated audience.
+//
+// 5/sec still bounds the two threats the limit exists for. A beat costs a Map
+// write plus presenceSnapshot(), which walks the session map, so the cap is
+// about CPU, not storage. Holding a fake session alive needs one beat per 8s, so
+// 5/sec caps one IP at ~40 fabricated players on a slug; and reaching
+// PRESENCE_MAX_SESSIONS (20,000) would need 2,500 beats/sec to keep them all
+// from expiring, which this refuses by two orders of magnitude.
+const PRESENCE_BURST = 30;
+const PRESENCE_MS_PER_TOKEN = 200;   // → 5 requests/second sustained
+
 app.post('/api/presence/beat', (req, res) => {
   // Rate-limited like every other mutating endpoint. Without this, anyone could
   // POST a flood of fresh random sessionIds at a real slug to inflate its
   // "N playing" badge, or push the map toward PRESENCE_MAX_SESSIONS to evict
-  // genuine sessions via the oldest-first sweep. Sized well above the client's
-  // real cadence (BEAT_MS = 2s in public/js/presence.js): 10 per 5s.
-  if (!writeAllow(req.ip || 'unknown', 10, 5000)) {
+  // genuine sessions via the oldest-first sweep.
+  if (!writeAllow(req.ip || 'unknown', PRESENCE_BURST, PRESENCE_MS_PER_TOKEN)) {
     return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
   }
   const { sessionId, slug, action } = req.body || {};
@@ -3279,9 +3374,12 @@ app.post('/api/presence/beat', (req, res) => {
 // object, which threw → the session was never deleted → leaves only dropped via
 // the 8s TTL. THAT was the "count takes ~11s to show 1 after closing tabs" bug.)
 app.post('/api/presence/leave', express.text({ type: '*/*', limit: '4kb' }), (req, res) => {
-  // Same gate as /beat. 204 (not 429) on trip: this is a fire-and-forget beacon
-  // the client never reads, and the session still expires via the 8s TTL.
-  if (!writeAllow(req.ip || 'unknown', 10, 5000)) return res.status(204).end();
+  // Same gate as /beat, and it must stay the same: a leave beacon that loses the
+  // race against the beat budget leaves a closed tab counted for the full 8s TTL,
+  // which is the "count takes ~11s to drop" symptom this endpoint exists to fix.
+  // 204 (not 429) on trip: this is a fire-and-forget beacon the client never
+  // reads, and the session still expires via the TTL.
+  if (!writeAllow(req.ip || 'unknown', PRESENCE_BURST, PRESENCE_MS_PER_TOKEN)) return res.status(204).end();
   let sessionId;
   const b = req.body;
   if (b && typeof b === 'object') sessionId = b.sessionId;
@@ -4701,7 +4799,10 @@ app.get('/sitemap.xml', (req, res) => {
   const add = (path, priority, changefreq) =>
     rows.push(`  <url><loc>${esc(origin + path)}</loc><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`);
   add('/', '1.0', 'daily');
-  add('/leaderboard', '0.6', 'daily');
+  // NB: no /leaderboard. It was listed here after the leaderboard was retired,
+  // so every sitemap this server generated advertised a URL that 404s — which
+  // Search Console reports as a crawl error against the whole sitemap. Only add
+  // a path here that has a route above.
   add('/community', '0.5', 'weekly');
   add('/ai', '0.5', 'monthly');
   // The copyleft source offer. Listed so it is independently discoverable even
@@ -4738,16 +4839,19 @@ app.get('/api/site-config', (req, res) => {
   // if it contains Google ad code (AdSense on a proxy domain is an ACCOUNT-level
   // ban, so this can never be allowed to slip through — same rule as the
   // page-level scripts above).
-  //   PROXY_BANNER_TAG  → footer banner   (footer-ad.js)
-  //   PROXY_HEADER_TAG  → header 728×90   (ad-slots.js)
-  //   PROXY_SIDEBAR_TAG → sidebar 300×250 (ad-slots.js)
+  //   PROXY_BANNER_TAG    → footer banner   (footer-ad.js)
+  //   PROXY_HEADER_TAG    → header 728×90   (ad-slots.js)
+  //   PROXY_SIDEBAR_TAG   → sidebar 300×250 (ad-slots.js)
+  //   PROXY_INCONTENT_TAG → the in-content slots the pages already declare
+  //                         (.catalog-ad-top / .ad-inline / .catalog-ad-bottom)
   // Unset = that slot simply never renders. No empty boxes, ever.
   const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
   const safeTag = (v) => { const s = (v || '').trim(); return GOOGLE_AD_RE.test(s) ? '' : s; };
-  const proxyBannerTag  = safeTag(process.env.PROXY_BANNER_TAG);
-  const proxyHeaderTag  = safeTag(process.env.PROXY_HEADER_TAG);
-  const proxySidebarTag = safeTag(process.env.PROXY_SIDEBAR_TAG);
-  res.json({ proxy: true, proxyAdScripts, proxyBannerTag, proxyHeaderTag, proxySidebarTag });
+  const proxyBannerTag    = safeTag(process.env.PROXY_BANNER_TAG);
+  const proxyHeaderTag    = safeTag(process.env.PROXY_HEADER_TAG);
+  const proxySidebarTag   = safeTag(process.env.PROXY_SIDEBAR_TAG);
+  const proxyInContentTag = safeTag(process.env.PROXY_INCONTENT_TAG);
+  res.json({ proxy: true, proxyAdScripts, proxyBannerTag, proxyHeaderTag, proxySidebarTag, proxyInContentTag });
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));
