@@ -31,8 +31,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const OUT = join(ROOT, 'db', 'ALL-IN-ONE.sql');
 const CHECK = process.argv.includes('--check');
+// --schema-only writes db/SCHEMA-ONLY.sql: the 12 migrations in dependency
+// order and nothing else. It exists for provisioning a FRESH project, where the
+// full file cannot be used — that one is ~7 MB of catalog INSERTs and the
+// Supabase web editor refuses anything near it. The schema alone is ~1,500 lines
+// and pastes fine, and the catalog then loads over PostgREST with
+// `npm run restore-games`, which needs no direct database connection at all.
+const SCHEMA_ONLY = process.argv.includes('--schema-only');
+const OUT = join(ROOT, 'db', SCHEMA_ONLY ? 'SCHEMA-ONLY.sql' : 'ALL-IN-ONE.sql');
 
 const BANNER = '-- ' + '='.repeat(76) + '\n';
 
@@ -61,6 +68,28 @@ const loaderOrder = () =>
   readdirSync(join(ROOT, 'db')).filter((n) => n.startsWith('load-') && n.endsWith('.sql')).sort();
 
 function header(schemaFiles, loaderFiles) {
+  if (SCHEMA_ONLY) {
+    // Built as an array of lines rather than concatenated strings: the escape
+    // sequences are what got mangled the first time this was written, and a
+    // header whose newlines are wrong produces a .sql file Postgres rejects.
+    return BANNER + [
+      '-- ZoFHub · SCHEMA ONLY — provision a fresh Supabase project',
+      BANNER.trimEnd(),
+      `-- Every schema file in dependency order (${schemaFiles.length}). No catalog data.`,
+      '--',
+      '-- GENERATED — do not edit. Regenerate with:  npm run build-schema-only',
+      '--',
+      '-- HOW TO USE ON A NEW PROJECT',
+      '--   1. Supabase Dashboard → SQL Editor → New query',
+      '--   2. Paste this whole file and Run. Expect "Success".',
+      '--   3. npm run restore-games   (loads the catalog over PostgREST — needs',
+      '--                               no database connection string at all)',
+      '--   4. npm run db:verify       (confirms the live schema matches this repo)',
+      '--',
+      '-- Idempotent throughout, so re-running it is a no-op rather than an error.',
+      '-- Small enough for the web editor, unlike db/ALL-IN-ONE.sql (~7 MB).',
+    ].join('\n') + '\n' + BANNER;
+  }
   return BANNER
     + '-- ZoFHub · ALL-IN-ONE database bootstrap\n'
     + BANNER
@@ -102,7 +131,7 @@ function build() {
   const schemaFiles = schemaOrder();
   const loaderFiles = loaderOrder();
   if (!schemaFiles.length) throw new Error('ORDER parsed to zero schema files');
-  const body = [...schemaFiles, ...loaderFiles].map(section).join('');
+  const body = (SCHEMA_ONLY ? schemaFiles : [...schemaFiles, ...loaderFiles]).map(section).join('');
   return {
     // Exactly one newline at EOF. Each section ends with a blank line to
     // separate it from the next; the last one has no next, and a file that ends
@@ -116,19 +145,30 @@ function build() {
 const { text, schemaFiles, loaderFiles } = build();
 
 if (CHECK) {
+  // Name the file being checked, not a hardcoded one. `--schema-only --check`
+  // reporting "db/ALL-IN-ONE.sql is current" is worse than no message: it tells
+  // you a different file passed than the one you asked about.
+  const name = SCHEMA_ONLY ? 'db/SCHEMA-ONLY.sql' : 'db/ALL-IN-ONE.sql';
+  const rebuild = SCHEMA_ONLY ? 'npm run build-schema-only' : 'npm run build-all-in-one';
+  const contents = SCHEMA_ONLY
+    ? `${schemaFiles.length} schema file(s)`
+    : `${schemaFiles.length} schema file(s) + ${loaderFiles.length} loader(s)`;
+
   const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
   if (current !== text) {
-    console.error('db/ALL-IN-ONE.sql is stale.\n'
-      + `  expected ${schemaFiles.length} schema file(s) + ${loaderFiles.length} loader(s), `
-      + `${text.length} bytes; found ${current.length} bytes.\n`
-      + '\nRun: npm run build-all-in-one');
+    console.error(`${name} is stale.\n`
+      + `  expected ${contents}, ${text.length} bytes; found ${current.length} bytes.\n`
+      + `\nRun: ${rebuild}`);
     process.exit(1);
   }
-  console.log(`db/ALL-IN-ONE.sql is current (${schemaFiles.length} schema + ${loaderFiles.length} loaders).`);
+  console.log(`${name} is current (${contents}).`);
   process.exit(0);
 }
 
 writeFileSync(OUT, text);
-console.log(`db/ALL-IN-ONE.sql written — ${schemaFiles.length} schema file(s), `
-  + `${loaderFiles.length} loader(s), ${(text.length / 1e6).toFixed(1)} MB.`);
+console.log(SCHEMA_ONLY
+  ? `db/SCHEMA-ONLY.sql written — ${schemaFiles.length} schema file(s), `
+    + `${text.split('\n').length} lines. Paste it into the Supabase SQL editor.`
+  : `db/ALL-IN-ONE.sql written — ${schemaFiles.length} schema file(s), `
+    + `${loaderFiles.length} loader(s), ${(text.length / 1e6).toFixed(1)} MB.`);
 for (const f of schemaFiles) console.log(`  schema  ${f}`);

@@ -136,6 +136,17 @@ jobs:
             exit 1
           fi
 
+      - name: db/SCHEMA-ONLY.sql must match too
+        run: |
+          # The paste-into-the-SQL-editor file used to provision a fresh project.
+          # Same generator, same ORDER, so it goes stale the same way.
+          if node tools/build-all-in-one.mjs --schema-only --check; then
+            echo "OK db/SCHEMA-ONLY.sql matches the schema in db/"
+          else
+            echo "::error::db/SCHEMA-ONLY.sql is stale. Run 'npm run build-schema-only' and commit it."
+            exit 1
+          fi
+
       - name: Verify the deployed database matches these migrations
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

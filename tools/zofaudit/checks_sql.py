@@ -288,7 +288,7 @@ def run(report) -> None:
         name = rel(path)
         # ALL-IN-ONE.sql is generated FROM the ordered files; it has its own
         # check below. Loaders are data.
-        if path.name.startswith(('load-', 'y8-games')) or path.name == 'ALL-IN-ONE.sql':
+        if path.name.startswith(('load-', 'y8-games')) or path.name in ('ALL-IN-ONE.sql', 'SCHEMA-ONLY.sql'):
             continue
         if name in registered:
             continue

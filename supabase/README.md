@@ -190,34 +190,20 @@ document with the secret key:
 
 | Object | Status |
 |---|---|
-| `rls_auto_enable()` | **exists in production, in no file here.** Created outside the repo, most likely by pasting into the dashboard SQL editor. No migration creates or drops it, so deploys leave it untouched. |
+| `rls_auto_enable()` | **Supabase platform default — leave it alone.** Not drift, and nothing to adopt. |
 
-**It returns `event_trigger`**, which settles what it is: not something anything
-calls, but a DDL event trigger that fires when tables are created and switches
-RLS on for them. That is a genuine safety net — it is very likely the reason
-every table in this database has RLS enabled, including ones added by hand — and
-it is the one piece of the security posture that **would not survive a rebuild
-from this repository**.
+It returns `event_trigger`: a DDL trigger that switches RLS on for newly created
+tables. The reason we know it is Supabase's and not ours is direct evidence — a
+**brand-new, completely empty project**, created on 2026-08-07 with zero tables
+and zero migrations applied, already had it and nothing else. Supabase ships it.
 
-So the recommendation is **adopt it, not drop it.** Dump the real definition
-rather than writing a new one from the name, because the event trigger that
-invokes it has to come across too:
+So do **not** copy it into `db/`. Recreating a platform object in your own
+migrations means owning something the platform also owns, and the two definitions
+drift the first time Supabase changes theirs.
 
-```sql
-select pg_get_functiondef(p.oid) as function_def,
-       pg_get_triggerdef(t.oid)  as event_trigger_def
-from pg_proc p
-left join pg_event_trigger t on t.evtfoid = p.oid
-where p.proname = 'rls_auto_enable';
-```
-
-Put the output in `db/rls-auto-enable.sql`, add it to the `ORDER` array in
-`tools/sync-supabase-migrations.mjs`, and run `npm run sync-migrations`.
-`npm run db:verify` will stop reporting it at that point — which is how you know
-it is done.
-
-Until then it is flagged on every run, deliberately. An object nobody can
-account for is the one nobody dares remove later.
+`npm run db:verify` reports it at **info**, not warn, for exactly this reason: it
+is worth knowing the trigger is there — it is part of why every table here has
+RLS on — without being something anyone needs to act on.
 
 ## Data is not here, by design
 

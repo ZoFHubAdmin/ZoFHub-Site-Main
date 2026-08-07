@@ -36,7 +36,7 @@
 # Your project ref — the subdomain in SUPABASE_URL
 # (https://jfflnuvqjlrcuqzyglnn.supabase.co). Not a secret: it is in every
 # public API URL the browser already sends.
-project_id = "jfflnuvqjlrcuqzyglnn"
+project_id = "firigopgmdgccbmfugmv"
 
 [db]
 # LOCAL-ONLY setting. This tells `supabase start` which Postgres to run in

@@ -55,6 +55,8 @@
     "audit:sql": "node tools/run-python.mjs tools/audit.py sql",
     "audit:ci": "node tools/run-python.mjs tools/audit.py sql json env api deps assets perf --min-severity warn --fail-on warn",
     "build-all-in-one": "node tools/build-all-in-one.mjs",
+    "build-schema-only": "node tools/build-all-in-one.mjs --schema-only",
+    "check-schema-only": "node tools/build-all-in-one.mjs --schema-only --check",
     "check-all-in-one": "node tools/build-all-in-one.mjs --check",
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "admin-hash": "node tools/hash-admin-password.mjs",

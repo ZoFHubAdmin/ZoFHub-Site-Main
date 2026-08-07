@@ -47,6 +47,16 @@ MUST_NOT_LEAK = (
     'admin_login_attempts', 'admin_security_events',
 )
 
+# Objects Supabase itself provides. Reporting these as drift is noise, and worse,
+# it invites someone to "adopt" a platform object into db/ — after which the
+# repository owns a definition the platform also owns, and they diverge the first
+# time Supabase changes theirs.
+#
+# rls_auto_enable() is the known case: an event trigger that switches RLS on for
+# newly created tables. A brand-new empty project, zero tables and zero
+# migrations, already has it and nothing else — which is how we know whose it is.
+PLATFORM_FUNCTIONS = {'rls_auto_enable'}
+
 
 def _env(*names: str) -> str:
     for n in names:
@@ -125,6 +135,13 @@ def run(report) -> None:
             detail='It exists only in the database. A rebuild from this repository would\n'
                    'not produce it. Adopt it into db/ or drop it.'))
     for extra in sorted(live_rpc - want_rpc):
+        if extra in PLATFORM_FUNCTIONS:
+            report.add(Finding(
+                CHECK, 'info', f'{extra}() is a Supabase platform object — not drift',
+                detail='Provided by the platform, present in a brand-new empty project.\n'
+                       'Do not copy it into db/; the repository would then own a definition\n'
+                       'the platform also owns.'))
+            continue
         report.add(Finding(
             CHECK, 'warn', f'live function {extra}() is created by no migration',
             detail='Created outside the repository, most likely in the dashboard SQL editor.\n'
