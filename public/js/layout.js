@@ -343,11 +343,24 @@ mountAIStub();
 // ad scripts (PROXY_AD_SCRIPTS) and the isolated footer banner (PROXY_BANNER_TAG)
 // — each only if configured, so the site stays clean until you set them.
 // ════════════════════════════════════════════════════════════════════════
-fetch('/api/site-config')
+// ── The proxy/ad boundary, client side ────────────────────────────────────
+// Mirrors isAdSurface() in lib/ad-providers.mjs. Deliberately duplicated rather
+// than fetched, because the whole point is to decide BEFORE asking the server
+// for anything ad-related — a page that never requests an ad config cannot
+// accidentally render one.
+//
+// browser.html imports this module for the site chrome (header, nav, theme), so
+// without this check configuring any network would have started serving ads on
+// the proxy page. That is what this exists to prevent.
+const PROXY_SURFACE_RE = /^\/(browser|gust|proxy|uv|sj|scram|epoxy|libcurl|baremux|wisp|bare|service)(\/|$)/i;
+const ADS_ALLOWED_HERE = !PROXY_SURFACE_RE.test(location.pathname);
+
+fetch(`/api/site-config?surface=${encodeURIComponent(location.pathname)}`)
   .then(r => r.json())
   .then(cfg => {
     window.ZOFHUB_PROXY = cfg.proxy !== false;
-    // Page-level proxy-friendly ad scripts (Adsterra popunder, Monetag push, …).
+    if (!ADS_ALLOWED_HERE || cfg.adsAllowed === false) return;   // proxy surface: nothing further
+    // Page-level loader scripts from whichever networks are enabled.
     if (Array.isArray(cfg.proxyAdScripts) && cfg.proxyAdScripts.length) {
       window.ZOFHUB_PROXY_ADS = cfg.proxyAdScripts;
     }
@@ -369,6 +382,10 @@ fetch('/api/site-config')
   })
   .catch(() => { /* config unavailable → site still works, just no ads */ })
   .finally(() => {
+    // Second gate. The .then() above can be skipped entirely by a network
+    // failure, and a cached window.ZOFHUB_* from an earlier navigation must not
+    // be able to start the ad stack on a proxy surface.
+    if (!ADS_ALLOWED_HERE) return;
     // (a) page-level proxy-friendly ad scripts (popunder / push / interstitial),
     //     only if configured. Loads NO Google code.
     if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260720');

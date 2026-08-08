@@ -88,18 +88,27 @@ When you click a tile you go to `/play/<game>`. The game shows inside an
   browse other sites through your server. This is the "unblocked at school"
   feature. It's powered by open-source proxies (credited in `CREDITS.md`).
 - Mainstream ad networks (like Google AdSense) reject anonymizer/proxy sites,
-  which is why ZoFHub monetizes only via **proxy-friendly networks** (see Ads
-  below) — the proxy is always on, so those are the only networks it can use.
+  which is why ZoFHub uses a fixed list of five alternative networks (see Ads
+  below). Advertising runs on the hub pages only — never on the proxy itself.
 
 ### 8. Ads
-- ZoFHub is a proxy site, so **Google AdSense is never used** (it bans proxy
-  domains at the account level) — any Google/AdSense ad code is stripped
-  server-side. Instead you wire **proxy-friendly networks** (Adsterra / HilltopAds
-  / Monetag / …) through two env vars: `PROXY_AD_SCRIPTS` (comma-separated
-  page-level loader scripts — popunder/push) and `PROXY_BANNER_TAG` (one optional
-  footer banner). Pages reserve clean blank space for banners — no labels, no
-  boxes. Leave both unset to run ad-free. (In-game ads inside the games are handled
-  by the game makers — GameMonetize/GameDistribution — and pay you separately.)
+- **Five networks are supported and no others:** HilltopAds, Adsterra, Monetag,
+  Ad-Maven, PopAds. Each is enabled independently with
+  `<NETWORK>_ENABLED=1` plus a `<NETWORK>_SCRIPT` or slot tag. Enabled without
+  configuration renders nothing, and unset means genuinely nothing — no boxes, no
+  reserved space, no requests.
+- **Google AdSense is never used** and is refused at three layers. Google bans
+  proxy domains at the *account* level, so one stray tag could take down an
+  unrelated account.
+- **Ads never run on the proxy.** `/browser`, `/gust` and every proxy asset route
+  are excluded structurally — in the registry, in the API, and in the client. What
+  renders there is somebody else's website, and monetising it would mean injecting
+  script into third-party content in transit.
+- **No network has approved this site.** All five require review of your specific
+  domain. See [`docs/ADVERTISING.md`](docs/ADVERTISING.md) for the compliance
+  matrix and what still needs verifying.
+- (In-game ads inside the games are handled by the game makers —
+  GameMonetize/GameDistribution — and pay you separately.)
 
 ### 9. The background jobs (`lib/cron-jobs.mjs`) — the night shift
 Seven tasks the server runs on a schedule, so the catalog stays healthy without

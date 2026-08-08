@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.TEST_PORT_SEC) || 3398;
@@ -95,4 +96,64 @@ describe('input validation', () => {
     assert.ok(r.status < 500, `expected a handled response, got ${r.status}`);
   });
 
+});
+
+// ── Every admin route must enforce, not merely resolve ─────────────────────
+//
+// adminGate() is mounted on /admin and /api/admin, which makes it LOOK like the
+// prefix is protected. It is not: the middleware only sets `req.admin` and calls
+// next(), and each route is expected to call requireAdmin() itself. Forgetting
+// that does not fail loudly — the route just answers 200 to the whole internet.
+//
+// That is not hypothetical. GET /api/admin/ads shipped without the call and
+// served the full advertising configuration unauthenticated; it was found only
+// by comparing its status code against /api/admin/dashboard. A structural check
+// is the only thing that catches the next one.
+describe('admin routes fail closed', () => {
+  const src = readFileSync(join(root, 'server.js'), 'utf8');
+
+  // Route registration -> the source between it and the next top-level route.
+  const routes = [];
+  const RE = /^app\.(get|post|put|patch|delete)\(\s*'(\/api\/admin\/[^']*)'/gm;
+  let m;
+  while ((m = RE.exec(src))) {
+    const start = m.index;
+    const next = src.indexOf('\napp.', start + 1);
+    routes.push({
+      method: m[1].toUpperCase(),
+      path: m[2],
+      body: src.slice(start, next === -1 ? src.length : next),
+    });
+  }
+
+  test('there are admin routes to check', () => {
+    assert.ok(routes.length >= 10, `only found ${routes.length} admin routes — the scan broke`);
+  });
+
+  test('every /api/admin route calls requireAdmin', () => {
+    const unguarded = routes
+      .filter(r => !/requireAdmin\s*\(/.test(r.body))
+      // The auth endpoints are exempt BY DESIGN, not by oversight: /auth/login
+      // is how a caller becomes an admin in the first place, and /auth/logout
+      // destroys a session, which must work even for a session already expired
+      // or otherwise unresolvable. Everything else must fail closed.
+      .filter(r => !/\/auth\/(login|logout)$/.test(r.path))
+      .map(r => `${r.method} ${r.path}`);
+    assert.deepEqual(unguarded, [],
+      'these admin routes never call requireAdmin() and answer unauthenticated:\n  '
+      + unguarded.join('\n  '));
+  });
+
+  test('every state-changing admin route also checks CSRF', () => {
+    // A browser carries an admin session cookie automatically, so a POST that
+    // only checks requireAdmin is forgeable from any page the admin visits.
+    const unguarded = routes
+      .filter(r => r.method !== 'GET')
+      .filter(r => !/requireAdminCsrf\s*\(/.test(r.body))
+      // Login/logout establish or destroy the session and are exempt by design.
+      .filter(r => !/\/auth\/(login|logout)/.test(r.path))
+      .map(r => `${r.method} ${r.path}`);
+    assert.deepEqual(unguarded, [],
+      'these state-changing admin routes have no CSRF check:\n  ' + unguarded.join('\n  '));
+  });
 });

@@ -10,6 +10,7 @@
 // fast, and has a hard request timeout so it can never get stuck.
 // ---------------------------------------------------------------------------
 import { $, el, trapFocus, escapeHtml, wireThumbFallback } from './utils.js';
+import { personalizationPayload, hasSignal, vibe as vibeSignal } from './signals.js?v=20260807';
 
 // Quick one-tap moods (sent to the same endpoint as typed text). A mix of
 // feelings and activity-moods so "how you feel" is obvious at a glance.
@@ -77,6 +78,14 @@ function injectStyles() {
   .vibe-chips button:hover{border-color:rgba(255,212,38,.5);color:#fff}
   .vibe-kw{font-size:11.5px;color:#7f96c2;margin:10px 0 0;min-height:14px}
   .vibe-kw b{color:#c3b6ee;font-weight:600}
+  .vibe-pers{color:#ffd426;font-weight:600}
+  /* The per-tile reason. Deliberately quiet — it explains the pick without
+     competing with the game's own title for attention. */
+  .vibe-tile{position:relative}
+  .vt-why{position:absolute;top:6px;left:6px;background:rgba(4,7,18,.82);color:#c3b6ee;
+    font-size:9.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;
+    padding:3px 6px;border-radius:6px;backdrop-filter:blur(3px);pointer-events:none;
+    max-width:calc(100% - 12px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .vibe-results{margin-top:10px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
   .vibe-tile{display:block;text-decoration:none;border-radius:12px;overflow:hidden;background:#0a1a38;border:1px solid rgba(255,255,255,.16);transition:.12s}
   .vibe-tile:hover{border-color:rgba(255,212,38,.5);transform:translateY(-2px)}
@@ -100,6 +109,7 @@ function injectStyles() {
 function tileFor(g) {
   const a = el('a', { class: 'vibe-tile', href: `/play/${g.slug}` });
   const safe = escapeHtml(g.title || '');
+  const why = reasonFor(g);
   if (g.thumbnail) {
     // Two things were wrong here, and they compounded.
     //
@@ -121,6 +131,11 @@ function tileFor(g) {
     const initials = String(g.title || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
     a.innerHTML = `<div class="vt-fallback">${initials}</div><span>${safe}</span>`;
   }
+  if (why) {
+    const tag = el('span', { class: 'vt-why' });
+    tag.textContent = why;
+    a.appendChild(tag);
+  }
   return a;
 }
 
@@ -128,10 +143,37 @@ function setStatus(html) {
   const s = $('.vibe-status', modal);
   if (s) s.innerHTML = html || '';
 }
-function setKw(keywords) {
+// What the server understood, in the player's own vocabulary ("relaxing · about
+// 10 min"), not the ranker's ("calm=0.92 session=10"). Showing this is the
+// difference between a search that feels intelligent and one that feels random:
+// when the results are surprising, you can see whether it misread you.
+function setKw(understood, keywords, personalized) {
   const k = $('.vibe-kw', modal);
   if (!k) return;
-  k.innerHTML = keywords && keywords.length ? `Matched genres: <b>${keywords.slice(0, 8).join(', ')}</b>` : '';
+  if (understood) {
+    k.innerHTML = `Looking for: <b>${escapeHtml(understood)}</b>`
+      + (personalized ? ' · <span class="vibe-pers">tuned to what you play</span>' : '');
+  } else if (keywords && keywords.length) {
+    k.innerHTML = `Matched genres: <b>${escapeHtml(keywords.slice(0, 8).join(', '))}</b>`;
+  } else {
+    k.innerHTML = '';
+  }
+}
+
+// Per-tile explanation. Only ever states something the ranker actually used —
+// `because.reasons` comes straight from the axes that scored the game, so a tile
+// claiming "matches your vibe" really did match on an axis.
+const REASON_LABEL = {
+  calm: 'right mood', pace: 'right speed', brainy: 'brain-teaser',
+  challenge: 'right difficulty', social: 'competitive', cozy: 'cute',
+  session: 'fits your time', keyword: 'what you asked for',
+};
+function reasonFor(g) {
+  const r = g && g.because && Array.isArray(g.because.reasons) ? g.because.reasons : [];
+  for (const key of ['session', 'keyword', 'challenge', 'social', 'cozy', 'brainy', 'calm', 'pace']) {
+    if (r.includes(key)) return REASON_LABEL[key];
+  }
+  return '';
 }
 
 async function runSearch(text) {
@@ -148,15 +190,30 @@ async function runSearch(text) {
   const btn = $('.vibe-form button', modal);
   if (btn) btn.disabled = true;
   $('.vibe-results', modal).innerHTML = '';
-  setKw([]);
+  setKw('', [], false);
   setStatus(`<span class="vibe-spin"></span>Finding games that match your vibe…`);
   try {
-    const r = await fetch(`/api/vibe?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+    // POST when there is something to personalize with, GET otherwise. The GET
+    // path stays anonymous AND server-cacheable, which is what keeps the quick
+    // mood chips instant for first-time visitors — the majority of uses.
+    const personalize = hasSignal();
+    const r = personalize
+      ? await fetch('/api/vibe', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ q, ...personalizationPayload() }),
+          signal: ctrl.signal,
+        })
+      : await fetch(`/api/vibe?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
     const d = await r.json();
     clearTimeout(timer);
     if (q !== lastQuery) return;                         // a newer search superseded this one
     const games = d.games || [];
-    setKw(d.keywords);
+    setKw(d.understood, d.keywords, d.personalized);
+    // Remember the mood so the homepage feed can lean this way for a while.
+    // Expires on its own (signals.js, VIBE_TTL_MS) — a mood is a state, not a
+    // standing preference.
+    vibeSignal.set(q);
     if (!games.length) { setStatus('No matches — try a different vibe or tap a quick mood above.'); return; }
     setStatus('');
     const wrap = $('.vibe-results', modal);

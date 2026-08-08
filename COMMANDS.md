@@ -2,9 +2,10 @@
 
 Every npm script and terminal command for the whole site, what each one does, and
 how the pieces fit together. ZoFHub is a **Node.js + Express** app (vanilla
-HTML/CSS/JS, **no build step**, Supabase for data). It is **always a proxy site**
-monetized only by **proxy-friendly ad networks** (Adsterra / HilltopAds / Monetag) —
-there is no Google AdSense and no separate "hub" mode.
+HTML/CSS/JS, **no build step**, Supabase for data). It is **always a proxy site**, with
+advertising from five supported networks (HilltopAds / Adsterra / Monetag /
+Ad-Maven / PopAds) on the hub pages only — never on the proxy, never Google
+AdSense, and no separate "hub" mode.
 
 > **Windows note:** most scripts run `node --use-system-ca …`. The `--use-system-ca`
 > flag makes Node trust the Windows certificate store (needed on some school/office
@@ -176,7 +177,10 @@ Copy `.env.example` → `.env` and fill in:
 | `SUPABASE_SECRET_KEY` | **Server-only** admin key (cron + writes + thumbnail fetch), the new `sb_secret_…` form. Preferred. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` name. **The legacy pair is disabled on this project** — presenting an old key returns `401 Legacy API keys are disabled`. Do not set it. The loader mirrors `SUPABASE_SECRET_KEY` onto this name automatically, which is the only reason the CLI tools that read it still work. |
 | `SCORE_SECRET` | Signs the leaderboard proof-of-play tokens. |
-| `PROXY_AD_SCRIPTS` | Comma-separated proxy-friendly ad loader script URL(s) (Adsterra popunder, Monetag push…). Google URLs are auto-rejected. |
+| `<NETWORK>_ENABLED` | Enable one of the five: `HILLTOPADS` `ADSTERRA` `MONETAG` `ADMAVEN` `POPADS`. Enabled without a script/tag renders nothing. |
+| `<NETWORK>_SCRIPT` | That network's loader URL(s), comma-separated, https only. Google URLs auto-rejected. |
+| `<NETWORK>_ZONE` | The zone / site ID the network issues. Never sent to the browser. |
+| `PROXY_AD_SCRIPTS` | **Deprecated** legacy loader list. Still honoured so live deploys keep earning, but carries no network identity. |
 | `PROXY_BANNER_TAG` | Footer banner tag, 728×90 (one line). Shows only when set. |
 | `PROXY_HEADER_TAG` | Header leaderboard tag, 728×90, under the site header. Shows only when set. |
 | `PROXY_SIDEBAR_TAG` | Sidebar rectangle tag, 300×250, in the category sidebar. Hidden below 900px wide. |
@@ -203,10 +207,12 @@ Copy `.env.example` → `.env` and fill in:
 - **Always-on proxy** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet let
   visitors open the web on filtered networks. The `/wisp` WebSocket tunnel carries
   the traffic. This is why ZoFHub needs a **persistent host** (not serverless).
-- **Ads** — proxy-friendly networks only, wired via `PROXY_AD_SCRIPTS` (page-level
-  popunder/push) and `PROXY_BANNER_TAG` (footer banner). Clean blank space is
-  reserved on pages for banners — no labels, no visible boxes. Google ad code can
-  never load (it's stripped server-side).
+- **Ads** — five supported networks, each enabled independently via
+  `<NETWORK>_ENABLED` + `<NETWORK>_SCRIPT` (`lib/ad-providers.mjs` is the
+  registry). Slots reserve their exact size so a late creative cannot shift the
+  page, and an unset slot collapses to nothing. **Structurally excluded from every
+  proxy surface.** Google ad code can never load — it is refused at three layers.
+  See [`docs/ADVERTISING.md`](docs/ADVERTISING.md).
 - **Cron jobs (`lib/cron-jobs.mjs`)** — 7 scheduled jobs (link-check hourly, catalog
   grow every 3 days, Y8 sync weekly, score/community prune + Supabase keep-alive
   daily). They only run **while the server process is alive**, so on a free host that

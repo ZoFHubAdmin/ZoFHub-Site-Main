@@ -1,6 +1,7 @@
 // ZoFHub · game-page.js
 import { $, el, fetchJson, toast, wireThumbFallback } from './utils.js';
 import { store } from './storage.js';
+import { dwell, skips as skipSignal } from './signals.js?v=20260807';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { OptimizedIframeLoader } from './iframe-loader-optimized.js';
 
@@ -32,8 +33,37 @@ function recordPlay() {
   } catch {}
 }
 
+// ── Dwell ──────────────────────────────────────────────────────────────────
+// How long the game was actually open, bucketed into bounce / short / long by
+// signals.js before anything is stored. This is the signal that separates "I
+// opened it and immediately left" from "I played this for twenty minutes" —
+// history alone records both identically, which is why a game you bounced off
+// used to keep seeding recommendations as strongly as a favourite.
+//
+// visibilitychange rather than beforeunload/unload: those are unreliable on
+// mobile (Safari in particular never fires unload when the app is backgrounded),
+// so a phone session would record nothing at all. `hidden` fires in every case
+// that matters, including tab-switch and app-switch.
+function bindDwell(id) {
+  const started = Date.now();
+  let recorded = false;
+  const flush = () => {
+    if (recorded) return;
+    recorded = true;
+    dwell.record(id, Math.round((Date.now() - started) / 1000));
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush();
+  });
+  window.addEventListener('pagehide', flush);
+}
+
 if (slug) {
   store.history.push(slug);
+  // Opening a game retracts any skip recorded against it — the strongest
+  // available correction, and it has to win over "you scrolled past this twice".
+  skipSignal.clear(slug);
+  bindDwell(slug);
   presence.setSlug(slug);
   recordPlay();
   bindActions();

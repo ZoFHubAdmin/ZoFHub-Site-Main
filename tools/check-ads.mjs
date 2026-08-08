@@ -42,30 +42,70 @@ const fail = s => { failures++; console.log(bad(s)); };
 const caution = s => { warnings++; console.log(warn(s)); };
 
 // ---- 1. What is configured? -----------------------------------------------
-console.log('\n1. Configuration (.env)');
-const scripts = (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim()).filter(Boolean);
-const bannerRaw = (process.env.PROXY_BANNER_TAG || '').trim();
-const bannerSrcs = [...bannerRaw.matchAll(/src\s*=\s*["']?(https?:\/\/[^"'\s>]+)/gi)].map(m => m[1]);
+// Read through lib/ad-providers.mjs — the SAME resolver the server uses — so
+// this tool can never disagree with what actually ships. Reading the env vars
+// directly (as this did before the provider layer existed) meant it only ever
+// saw the two legacy variables and would cheerfully report "no ads configured"
+// while five networks were live.
+const { resolveAdConfig, SLOTS } = await import('../lib/ad-providers.mjs');
+const cfg = resolveAdConfig(process.env);
+
+console.log('\n1. Configuration');
+for (const p of cfg.providers) {
+  const state = p.active ? 'ACTIVE'
+    : p.enabled ? 'enabled but NOT configured'
+    : p.configured ? 'configured but DISABLED'
+    : 'off';
+  const detail = p.active
+    ? `${p.scriptCount} script(s)${p.slotsProvided.length ? `, slots: ${p.slotsProvided.join('/')}` : ''}${p.zone ? ', zone set' : ''}`
+    : '';
+  console.log(`  ${p.name.padEnd(12)} ${state.padEnd(28)} ${detail}`);
+  if (p.enabled && !p.configured) {
+    caution(`${p.name}: ${p.env}_ENABLED is set but no script, zone or tag is configured — it renders nothing`);
+  }
+}
+if (cfg.legacyInUse) {
+  caution('legacy PROXY_* ad variables are in use — they work, but cannot be '
+    + 'attributed to a network or toggled individually. See docs/ADVERTISING.md.');
+}
+
+const scripts = cfg.scripts;
+const slotSrcs = [];
+for (const slot of SLOTS) {
+  for (const m of String(cfg.slots[slot] || '').matchAll(/src\s*=\s*["']?(https?:\/\/[^"'\s>]+)/gi)) {
+    slotSrcs.push(m[1]);
+  }
+}
 const extraOrigins = (process.env.PROXY_AD_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-if (!scripts.length && !bannerRaw) {
-  console.log(ok('no ad tags configured — the site runs ad-free, nothing to check'));
-  console.log('\nWhen your network gives you tags, put them in PROXY_AD_SCRIPTS');
-  console.log('(loader URLs, comma-separated) and/or PROXY_BANNER_TAG (raw tag),');
-  console.log('then run this again.\n');
+if (!cfg.anyActive) {
+  console.log('\n' + ok('no network is active — the site runs ad-free, nothing to check'));
+  console.log('\nTo enable one, set <NETWORK>_ENABLED=1 plus at least one of');
+  console.log('<NETWORK>_SCRIPT / <NETWORK>_ZONE / <NETWORK>_<SLOT>_TAG, then run this');
+  console.log('again. Networks: HILLTOPADS ADSTERRA MONETAG ADMAVEN POPADS');
+  console.log('Approval requirements: docs/ADVERTISING.md\n');
   process.exit(0);
 }
-console.log(`  PROXY_AD_SCRIPTS : ${scripts.length} url(s)`);
-console.log(`  PROXY_BANNER_TAG : ${bannerRaw ? `${bannerRaw.length} chars, ${bannerSrcs.length} src(s)` : '(empty)'}`);
+console.log(`\n  resolved: ${scripts.length} loader script(s), `
+  + `${SLOTS.filter(s => cfg.slots[s]).length} filled slot(s)`);
 if (extraOrigins.length) console.log(`  PROXY_AD_ORIGINS : ${extraOrigins.join(' ')}`);
 
-const all = [...scripts, ...bannerSrcs];
+const all = [...scripts, ...slotSrcs];
 for (const u of all) {
   if (!/^https:\/\//i.test(u)) fail(`${u} — not https (the server drops non-https tags)`);
   else if (BANNED.test(u)) fail(`${u} — Google ad code. AdSense on a proxy domain is an account-level ban; the server strips this.`);
   else console.log(ok(u.slice(0, 78)));
 }
-if (bannerRaw && BANNED.test(bannerRaw)) fail('PROXY_BANNER_TAG contains Google ad code — the server will refuse the whole tag');
+// A slot claimed by two networks is impossible by construction (first wins),
+// but a slot whose tag was rejected outright IS possible and looks identical to
+// "not configured" from the outside.
+for (const p of cfg.providers) {
+  for (const slot of p.slotsProvided) {
+    if (cfg.slotOwner[slot] !== p.id) {
+      caution(`${p.name} supplies a ${slot} tag but ${cfg.slotOwner[slot] || 'nothing'} owns that slot — only one network per slot`);
+    }
+  }
+}
 
 // ---- 2. Will the CSP permit them? -----------------------------------------
 console.log('\n2. Content-Security-Policy (the step that silently kills ads)');

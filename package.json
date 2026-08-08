@@ -62,7 +62,9 @@
     "admin-hash": "node tools/hash-admin-password.mjs",
     "quality": "node tools/catalog-quality.mjs",
     "css-tokens": "node tools/css-tokens.mjs",
-    "og-sync": "node tools/sync-onlinegames.mjs"
+    "og-sync": "node tools/sync-onlinegames.mjs",
+    "game-attributes": "node tools/run-python.mjs tools/build-game-attributes.py",
+    "eval-rec": "node tools/run-python.mjs tools/eval-recommendations.py"
   },
   "engines": {
     "node": ">=22"

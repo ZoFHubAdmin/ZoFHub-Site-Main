@@ -155,11 +155,20 @@ const { getCredits, creditsSummary } = await import('./lib/credits.mjs');
 // Admin authentication: scrypt password verification, database-backed sessions,
 // lockout, CSRF and the append-only audit trail. See lib/admin-auth.mjs.
 const adminAuth = await import('./lib/admin-auth.mjs');
-const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize } =
+const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize, neighbours: simNeighbours } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
 // recommender degrades to category affinity and logs how to build it.
 loadSimilarityIndex(join(__dirname, 'data'));
+// The Vibe Finder's two halves: a pure text->intent parser and the ranker that
+// scores the catalog against it. Both are synchronous and dependency-free, so
+// /api/vibe answers from local computation instead of waiting on a model.
+const { parseVibe, describeIntent } = await import('./lib/vibe-intent.mjs');
+const { rankByVibe, targetsFromGame } = await import('./lib/vibe-engine.mjs');
+// Advertising: the five supported networks, the surfaces that may carry them,
+// and the proxy boundary that must not. See lib/ad-providers.mjs.
+const { resolveAdConfig, adOrigins, publicAdConfig, adminAdConfig, isAdSurface } =
+  await import('./lib/ad-providers.mjs');
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -482,6 +491,32 @@ try {
     console.log('[zofhub] no data/mood-tags.json — Vibe Finder uses category matching. Build it with: python tools/build-mood-index.py');
   }
 } catch (e) { console.warn('[zofhub] mood-tags load failed:', e.message); }
+
+// ------------------------------------------------------------------------
+// Structured game attributes, from tools/build-game-attributes.py.
+//
+// mood-tags gives every game a flat SET of words, which answers "something
+// chill" by overlap. These are the same catalog expressed as six CONTINUOUS
+// axes (calm / pace / brainy / challenge / social / cozy) plus an estimated
+// session length — which is what makes "I only have 10 minutes" and
+// "challenging but not frustrating" answerable at all. Overlap scoring cannot
+// express a duration or a band.
+//
+// Optional, like every other artifact here: without the file the Vibe Finder
+// falls back to keyword matching and behaves exactly as it did before, with no
+// error. That matters because this file is built by a Python step that a fresh
+// clone will not have run.
+let GAME_ATTRS = new Map();
+try {
+  const gaFile = join(__dirname, 'data', 'game-attributes.json');
+  if (existsSync(gaFile)) {
+    GAME_ATTRS = new Map(Object.entries(JSON.parse(readFileSync(gaFile, 'utf8'))));
+    console.log(`[zofhub] game-attributes loaded: ${GAME_ATTRS.size} games`);
+  } else {
+    console.log('[zofhub] no data/game-attributes.json — Vibe Finder uses keyword '
+      + 'matching only. Build it with: npm run game-attributes');
+  }
+} catch (e) { console.warn('[zofhub] game-attributes load failed:', e.message); }
 
 // ------------------------------------------------------------------------
 // Feed ranking artifact, from tools/analyze-catalog.py (npm run feed-rank).
@@ -962,46 +997,30 @@ const companionFrameOrigins = (() => {
 // but only when the suffix is a plain single-label TLD. Skipping that check
 // would turn a network on "ads.example.co.uk" into a wildcard for ALL of
 // "*.co.uk". Anything else the chain needs goes in PROXY_AD_ORIGINS by hand.
-const AD_ORIGINS = (() => {
-  const set = new Set();
-  const GENERIC_TLDS = new Set(['com','net','org','io','co','xyz','online','site','top','pro','info','biz','app','dev','cloud','live','media','digital','space','fun','click','link','shop','store']);
-  const BANNED = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
+// Resolved ONCE at boot from lib/ad-providers.mjs — the single source of truth
+// for which of the five supported networks (HilltopAds, Adsterra, Monetag,
+// Ad-Maven, PopAds) are live, what they render, and where.
+//
+// Everything downstream reads AD_CONFIG rather than process.env, so the CSP,
+// /api/site-config and the admin panel can never disagree about what is enabled.
+const AD_CONFIG = resolveAdConfig(process.env);
+const AD_ORIGINS = adOrigins(
+  AD_CONFIG,
+  (process.env.PROXY_AD_ORIGINS || '').split(','),
+);
 
-  const add = (raw) => {
-    const s = String(raw || '').trim();
-    if (!/^https:\/\//i.test(s) || BANNED.test(s)) return;   // https only; never Google's ad stack
-    let u; try { u = new URL(s); } catch { return; }
-    set.add(u.origin);
-    const parts = u.hostname.split('.');
-    if (parts.length > 2 && GENERIC_TLDS.has(parts[parts.length - 1])) {
-      set.add(`https://*.${parts.slice(-2).join('.')}`);
-    }
-  };
-
-  for (const s of (process.env.PROXY_AD_SCRIPTS || '').split(',')) add(s);
-  // The banner slots are raw HTML tags, so pull any src="…" / src=… out of them.
-  // ALL FOUR must be scanned: a tag whose origin isn't allowlisted here is
-  // refused by the browser with only a console message — it looks exactly like
-  // the network not paying out. (PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG /
-  // PROXY_INCONTENT_TAG feed the header, sidebar and in-content slots in
-  // public/js/ad-slots.js.)
-  for (const varName of ['PROXY_BANNER_TAG', 'PROXY_HEADER_TAG', 'PROXY_SIDEBAR_TAG', 'PROXY_INCONTENT_TAG']) {
-    for (const m of String(process.env[varName] || '').matchAll(/src\s*=\s*["']?(https:\/\/[^"'\s>]+)/gi)) add(m[1]);
-  }
-  // Escape hatch: extra origins (wildcards allowed) for hosts the network's own
-  // chain pulls in. Written through verbatim — still never Google's ad stack.
-  for (const raw of (process.env.PROXY_AD_ORIGINS || '').split(',')) {
-    const s = raw.trim();
-    if (!s || !/^https:\/\//i.test(s) || BANNED.test(s)) continue;
-    set.add(s);
-    // A CSP wildcard does NOT cover its own apex: "https://*.foo.com" permits
-    // cdn.foo.com but still blocks foo.com itself. Nobody writing this by hand
-    // expects that, and the resulting failure is invisible (a console line and
-    // no revenue), so accept the obvious intent and allow the apex too.
-    if (s.startsWith('https://*.')) set.add('https://' + s.slice('https://*.'.length));
-  }
-  return [...set];
-})();
+if (AD_CONFIG.activeIds.length) {
+  console.log(`[ads] active network(s): ${AD_CONFIG.activeIds.join(', ')}`);
+} else {
+  console.log('[ads] no network enabled — the site runs ad-free.');
+}
+if (AD_CONFIG.legacyInUse) {
+  // Worth saying out loud: legacy vars still work, but they carry no network
+  // identity, so nothing can report which network is serving or switch one off.
+  console.log('[ads] NOTE: legacy PROXY_* ad variables are in use. They work, but '
+    + 'cannot be attributed to a network or toggled per-provider. Migrate to '
+    + '<NETWORK>_ENABLED / <NETWORK>_SCRIPT — see docs/ADVERTISING.md.');
+}
 if (AD_ORIGINS.length) console.log(`[ads] CSP allows ${AD_ORIGINS.length} ad origin(s): ${AD_ORIGINS.join(' ')}`);
 
 const CSP_DIRECTIVES = {
@@ -2944,6 +2963,37 @@ app.get('/api/admin/analytics', (req, res) => {
 // with, not from a settings table. There is no toggle here that nothing reads —
 // a switch in a dashboard that changes no behaviour is worse than no switch,
 // because it looks like it worked.
+// ── GET /api/admin/ads ─────────────────────────────────────────────────────
+// Which of the five networks are enabled, which are configured, and which slot
+// each one owns.
+//
+// RETURNS NO TAGS, ZONES OR CREDENTIALS — only booleans and counts. An ad tag is
+// a bearer credential for that account's revenue: anyone holding it can serve
+// ads billed to this publisher. Admin sessions are legitimate, but there is no
+// reason for a tag to travel to a browser, sit in a response cache, or land in a
+// screenshot, so it never leaves the server. adminAdConfig() enforces that shape.
+app.get('/api/admin/ads', (req, res) => {
+  // adminGate only RESOLVES an identity; it does not enforce. Every admin route
+  // has to call requireAdmin itself, and omitting it does not fail loudly — the
+  // route simply answers 200 to the whole internet. This one did exactly that
+  // until it was checked against /api/admin/dashboard's 401.
+  if (!requireAdmin(req, res)) return;
+  res.set('Cache-Control', 'private, no-store');
+  res.json({
+    ...adminAdConfig(AD_CONFIG),
+    // Surfaces are part of the compliance story an admin needs to see: it is
+    // the answer to "are we running ads on the proxy?" (no, structurally).
+    surfaces: { adsAllowedOn: 'native pages only', proxyExcluded: true },
+    cspOrigins: AD_ORIGINS.length,
+    // Changing providers means changing environment variables and restarting —
+    // deliberately NOT a runtime write. A mutable ad config endpoint is a
+    // remote script-injection primitive: whoever can POST a tag can run
+    // arbitrary JavaScript on every page of the site.
+    mutable: false,
+    howToChange: 'Set <NETWORK>_ENABLED / <NETWORK>_SCRIPT in the host environment and redeploy. See docs/ADVERTISING.md.',
+  });
+});
+
 app.get('/api/admin/system', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
@@ -3611,12 +3661,29 @@ app.post('/api/for-you', (req, res) => {
 
     const history   = clean(req.body?.history);
     const favorites = clean(req.body?.favorites);
+    // Games the visitor scrolled past without opening. Purely a ranking signal
+    // and never stored — see the privacy note in public/js/signals.js.
+    const skips     = clean(req.body?.skips);
     const limit = Math.min(FOR_YOU_MAX_LIMIT,
       Math.max(1, parseInt(req.body?.limit, 10) || 18));
+
+    // The last mood they searched, carried over as a soft preference. Sent as
+    // TEXT and re-parsed here rather than trusting a client-supplied target
+    // vector: a hand-crafted body could otherwise set arbitrary axis weights,
+    // and re-parsing costs microseconds.
+    let vibe = null;
+    const vibeText = String(req.body?.vibe || '').slice(0, 200);
+    if (vibeText && GAME_ATTRS.size) {
+      const parsed = parseVibe(vibeText);
+      if (Object.keys(parsed.targets).length) vibe = parsed;
+    }
 
     const games = recommendGames({
       history,
       favorites,
+      skips,
+      vibe,
+      attrsOf: GAME_ATTRS.size ? (slug) => GAME_ATTRS.get(slug) : null,
       limit,
       // bySlug is the LIVE catalog, which has already had catalog-overrides
       // applied — so a game the offline index still knows about but that has
@@ -3632,6 +3699,7 @@ app.post('/api/for-you', (req, res) => {
       count: games.length,
       personalized: history.length > 0 || favorites.length > 0,
       indexed: simIndexSize(),
+      vibeApplied: Boolean(vibe),
     });
   } catch (e) {
     console.warn('[for-you] failed:', e.message);
@@ -3823,27 +3891,165 @@ async function vibeKeywordsFromAI(text, req) {
   }
 }
 
-app.get('/api/vibe', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const q = (req.query.q || '').toString().trim().slice(0, 200);
-  if (!q) return res.json({ games: [], keywords: [], source: 'empty' });
-  const { keywords: local, matched } = vibeKeywords(q);
-  let keywords = local;
-  let source = 'local';
-  // Only spend time on the AI when the local mood map came up weak (no bucket
-  // fired). When a mood bucket matched, the curated keywords are already great,
-  // so we respond INSTANTLY instead of waiting on a network round-trip. This is
-  // the fix for "Vibe Finder takes too long / times out".
-  if (!matched) {
+// Result cache for the ATTRIBUTE path. Scoring is a full pass over ~16.8k games
+// (~80ms), which is fine for one interactive search and not fine when a class of
+// thirty taps the same mood chip at once. Keyed on the normalized query, so the
+// quick-mood buttons — by far the most repeated queries — are answered from
+// memory. PERSONALIZED responses are never cached: they differ per visitor, and
+// caching them would leak one visitor's results to another.
+const vibeCache = new Map();               // key -> { at, payload }
+const VIBE_CACHE_TTL = 5 * 60 * 1000;
+const VIBE_CACHE_MAX = 200;
+
+function vibeCacheGet(key) {
+  const hit = vibeCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > VIBE_CACHE_TTL) { vibeCache.delete(key); return null; }
+  return hit.payload;
+}
+function vibeCacheSet(key, payload) {
+  if (vibeCache.size >= VIBE_CACHE_MAX) {
+    // Oldest-first eviction. Map preserves insertion order, so the first key is
+    // the least recently added.
+    vibeCache.delete(vibeCache.keys().next().value);
+  }
+  vibeCache.set(key, { at: Date.now(), payload });
+}
+
+const vibeShape = (g) => ({
+  slug: g.slug,
+  title: g.title,
+  thumbnail: thumbUrl(g.thumbnail || g.thumbnail_url || ''),
+  category: g.category || 'arcade',
+  because: g.because || null,
+});
+
+// GET  /api/vibe?q=...        — anonymous, cacheable
+// POST /api/vibe {q, history, favorites}
+//                             — same ranking, personalized tie-breaks
+//
+// Both go through the same engine. The POST body is used ONLY to break ties
+// among games that already match the vibe (lib/vibe-engine.mjs, blendTaste) and
+// to resolve "something like the game I just played". It is never stored.
+async function handleVibe(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store');
+  const body = req.method === 'POST' ? (req.body || {}) : {};
+  const q = String(req.query.q ?? body.q ?? '').trim().slice(0, 200);
+  if (!q) return res.json({ games: [], keywords: [], source: 'empty', count: 0 });
+
+  const cleanSlugs = (arr) => (Array.isArray(arr) ? arr : [])
+    .map(s => String(s || '').toLowerCase().slice(0, 80)).filter(Boolean).slice(0, 40);
+  const history = cleanSlugs(body.history);
+  const favorites = cleanSlugs(body.favorites);
+  const personalized = history.length > 0 || favorites.length > 0;
+
+  const cacheKey = q.toLowerCase().replace(/\s+/g, ' ');
+  if (!personalized) {
+    const hit = vibeCacheGet(cacheKey);
+    if (hit) return res.json({ ...hit, cached: true });
+  }
+
+  const intent = parseVibe(q);
+
+  // The attribute path needs the Python artifact. Without it, fall through to
+  // the keyword map exactly as before — this is the only reason the old code
+  // below still exists, and it is a real path on a fresh clone.
+  if (GAME_ATTRS.size === 0) {
+    const { keywords: local, matched } = vibeKeywords(q);
+    let keywords = local, source = 'local-keywords';
+    if (!matched) {
+      try {
+        const ai = await vibeKeywordsFromAI(q, req);
+        if (ai.length) { keywords = [...new Set([...ai, ...local])]; source = 'ai'; }
+      } catch { /* AI slow/down → built-in mood map carries it */ }
+    }
+    let games = rankCatalogByKeywords(keywords, 18);
+    if (!games.length) games = rankCatalogByKeywords(['arcade', 'puzzle', 'run', 'race', 'ball', 'jump'], 18);
+    const payload = { games, keywords: keywords.slice(0, 10), source, count: games.length,
+      understood: '', personalized: false };
+    if (!personalized) vibeCacheSet(cacheKey, payload);
+    return res.json(payload);
+  }
+
+  // Ask the AI only when the parser genuinely could not read the request. This
+  // used to fire whenever no mood BUCKET matched, which was often; the parser
+  // now understands duration, negation and comparatives, so the low-confidence
+  // case is rare. Everything else answers with zero network calls.
+  let source = 'attributes';
+  if (intent.confidence < 0.25 && !intent.wantsReference) {
     try {
       const ai = await vibeKeywordsFromAI(q, req);
-      if (ai.length) { keywords = [...new Set([...ai, ...local])]; source = 'ai'; }
-    } catch { /* AI slow/down → built-in mood map carries it */ }
+      if (ai.length) {
+        intent.keywords = [...new Set([...ai, ...intent.keywords])].slice(0, 12);
+        source = 'attributes+ai';
+      }
+    } catch { /* parser result carries it */ }
   }
-  let games = rankCatalogByKeywords(keywords, 18);
-  if (!games.length) games = rankCatalogByKeywords(['arcade','puzzle','run','race','ball','jump'], 18);
-  res.json({ games, keywords: keywords.slice(0, 10), source, count: games.length });
-});
+
+  // "Something like the game I just played" — seed from the most recent play.
+  // Only meaningful with history, so it degrades to a plain vibe search when a
+  // visitor asks for it on their first visit.
+  const taste = new Map();
+  if (intent.wantsReference && history.length) {
+    taste.set(history[0], 1.0);
+    // Adopt the reference game's own profile as the request, unless the
+    // sentence already said what it wants ("like that but calmer" keeps the
+    // explicit clause and only borrows the axes it did not mention).
+    const refAttrs = GAME_ATTRS.get(history[0]);
+    const refTargets = targetsFromGame(refAttrs);
+    if (refTargets) {
+      for (const [axis, t] of Object.entries(refTargets)) {
+        if (!intent.targets[axis]) intent.targets[axis] = t;
+      }
+    }
+  } else if (personalized) {
+    // Recency-decayed, same curve as the feed so the two systems agree about
+    // what "recent" means.
+    history.forEach((slug, i) => {
+      const w = Math.pow(0.85, i);
+      if (w >= 0.05) taste.set(slug, (taste.get(slug) || 0) + w);
+    });
+    for (const slug of favorites) taste.set(slug, (taste.get(slug) || 0) + 1.25);
+  }
+
+  // Never re-offer something they just played — the whole point is discovery.
+  const exclude = new Set([...history.slice(0, 12), ...favorites]);
+
+  const { games: ranked, matched } = rankByVibe({
+    intent,
+    pool: () => CATALOG.games,
+    attrsOf: (slug) => GAME_ATTRS.get(slug),
+    getGame: (slug) => bySlug.get(slug),
+    limit: 18,
+    playsOf: (slug) => playCounts.get(slug) || 0,
+    taste: taste.size ? taste : null,
+    neighboursOf: simNeighbours,
+    exclude,
+  });
+
+  let games = ranked.map(vibeShape);
+  // Last-resort floor: never show an empty dialog. A query that matches nothing
+  // (a typo, a language we do not parse) still gets a usable shelf.
+  if (!games.length) {
+    games = rankCatalogByKeywords(['arcade', 'puzzle', 'run', 'race', 'ball', 'jump'], 18);
+    source = 'fallback';
+  }
+
+  const payload = {
+    games,
+    count: games.length,
+    keywords: intent.keywords.slice(0, 10),
+    understood: describeIntent(intent),
+    source,
+    personalized: taste.size > 0,
+    candidates: matched,
+  };
+  if (!personalized) vibeCacheSet(cacheKey, payload);
+  return res.json(payload);
+}
+
+app.get('/api/vibe', handleVibe);
+app.post('/api/vibe', handleVibe);
 
 app.get('/api/categories', (req, res) => {
   // Build once; invalidated by loadCatalog() which sets cachedCategoriesPayload = null.
@@ -4829,29 +5035,45 @@ app.get('/favicon.ico', (req, res) => {
 // proxy-friendly ad networks (no AdSense). Google ad code is filtered out of both
 // the page-level scripts and the footer banner so it can never load on a proxy
 // domain. layout.js reads this to wire up proxy-ads.js + the footer banner.
+// /api/site-config — what the page needs to know before it renders.
+//
+// THE AD PAYLOAD IS SURFACE-GATED. The caller tells us which page it is on (the
+// Referer, or an explicit ?surface=), and a proxy surface gets an EMPTY ad
+// config — no script URLs, no slot markup, nothing to inject.
+//
+// This is the server half of the proxy/ad separation. The client half is in
+// layout.js. Both exist because either alone is one edit away from failing
+// open: layout.js is cached in visitors' browsers for a long time, and a
+// client-side-only check would keep serving ads on the proxy page until every
+// cached copy expired.
 app.get('/api/site-config', (req, res) => {
-  res.set('Cache-Control', 'public, max-age=60');
-  // PROXY_AD_SCRIPTS — page-level loader script URL(s), comma-separated (Adsterra
-  // popunder, Monetag push, etc.). https only; any Google ad URL is dropped.
-  const proxyAdScripts = (process.env.PROXY_AD_SCRIPTS || '').split(',').map(s => s.trim())
-    .filter(s => /^https:\/\//i.test(s) && !/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(s));
-  // Raw banner tags for the three fixed display slots. Each is refused outright
-  // if it contains Google ad code (AdSense on a proxy domain is an ACCOUNT-level
-  // ban, so this can never be allowed to slip through — same rule as the
-  // page-level scripts above).
-  //   PROXY_BANNER_TAG    → footer banner   (footer-ad.js)
-  //   PROXY_HEADER_TAG    → header 728×90   (ad-slots.js)
-  //   PROXY_SIDEBAR_TAG   → sidebar 300×250 (ad-slots.js)
-  //   PROXY_INCONTENT_TAG → the in-content slots the pages already declare
-  //                         (.catalog-ad-top / .ad-inline / .catalog-ad-bottom)
-  // Unset = that slot simply never renders. No empty boxes, ever.
-  const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
-  const safeTag = (v) => { const s = (v || '').trim(); return GOOGLE_AD_RE.test(s) ? '' : s; };
-  const proxyBannerTag    = safeTag(process.env.PROXY_BANNER_TAG);
-  const proxyHeaderTag    = safeTag(process.env.PROXY_HEADER_TAG);
-  const proxySidebarTag   = safeTag(process.env.PROXY_SIDEBAR_TAG);
-  const proxyInContentTag = safeTag(process.env.PROXY_INCONTENT_TAG);
-  res.json({ proxy: true, proxyAdScripts, proxyBannerTag, proxyHeaderTag, proxySidebarTag, proxyInContentTag });
+  // Per-surface answers must not be shared by a cache. `Vary: Referer` is not
+  // reliably honoured by intermediaries, so the ad-bearing response is marked
+  // private and the whole route drops to a short private cache.
+  res.set('Cache-Control', 'private, max-age=60');
+
+  // Where is the caller? Prefer an explicit surface hint; fall back to the
+  // Referer path. Anything unrecognised is treated as NOT an ad surface —
+  // deny-by-default, because an unclassified surface is one nobody reasoned
+  // about (see isAdSurface in lib/ad-providers.mjs).
+  let surface = String(req.query.surface || '');
+  if (!surface) {
+    try { surface = new URL(req.get('referer') || '', 'http://x').pathname; }
+    catch { surface = ''; }
+  }
+  const adsAllowed = isAdSurface(surface);
+
+  const payload = { proxy: true, adsAllowed };
+  if (adsAllowed) {
+    Object.assign(payload, publicAdConfig(AD_CONFIG));
+  } else {
+    // Explicitly empty rather than absent, so a client that forgets to check
+    // `adsAllowed` still receives nothing to render.
+    Object.assign(payload, publicAdConfig({
+      scripts: [], slots: { header: '', sidebar: '', footer: '', incontent: '' },
+    }));
+  }
+  res.json(payload);
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));

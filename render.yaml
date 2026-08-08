@@ -114,8 +114,41 @@ services:
       # committed .env, remains the deliberate choice.
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      # Proxy-friendly ad loaders (comma-separated). Google/AdSense URLs are
-      # auto-rejected server-side. Leave unset to run ad-free.
+      # ── Advertising ──────────────────────────────────────────────────────
+      # Five supported networks. Each needs <NETWORK>_ENABLED=1 *and* at least
+      # one of <NETWORK>_SCRIPT / _ZONE / _<SLOT>_TAG — enabled without
+      # configuration renders nothing. All unset = the site runs ad-free.
+      #
+      # ⚠ No network has approved this site. Every one reviews your specific
+      #   domain, and ZoFHub hosts a web proxy — raise that with each of them
+      #   before enabling. See docs/ADVERTISING.md.
+      #
+      # Slot tags (<NETWORK>_HEADER_TAG / _SIDEBAR_TAG / _FOOTER_TAG /
+      # _INCONTENT_TAG) are set in the dashboard as needed; they are raw HTML
+      # and are credentials, so they are never listed here.
+      - key: HILLTOPADS_ENABLED
+        sync: false
+      - key: HILLTOPADS_SCRIPT
+        sync: false
+      - key: ADSTERRA_ENABLED
+        sync: false
+      - key: ADSTERRA_SCRIPT
+        sync: false
+      - key: MONETAG_ENABLED
+        sync: false
+      - key: MONETAG_SCRIPT
+        sync: false
+      - key: ADMAVEN_ENABLED
+        sync: false
+      - key: ADMAVEN_SCRIPT
+        sync: false
+      - key: POPADS_ENABLED
+        sync: false
+      - key: POPADS_SCRIPT
+        sync: false                # PopAds code is passed through UNMODIFIED
+      # Deprecated legacy loaders — still honoured so a live deploy keeps
+      # earning through the migration, but they carry no network identity and
+      # cannot be toggled individually. Migrate to <NETWORK>_* above.
       - key: PROXY_AD_SCRIPTS
         sync: false
       - key: PROXY_BANNER_TAG

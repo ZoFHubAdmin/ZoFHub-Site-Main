@@ -14,7 +14,7 @@ A single-server web app that bundles three things into one site:
 2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **entirely in the visitor's browser**. Keyless, and **no prompt, reply or generated image ever touches this server** — that is enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks.
 
-It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, feedback, and community data. It runs as **one always-on proxy site** that shows the proxy **and** ads together, monetized entirely by **proxy-friendly ad networks** (no Google AdSense).
+It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, feedback, and community data. It runs as **one always-on site** carrying both the games hub and the proxy, with optional advertising on the hub pages only — never on the proxy, and never Google AdSense.
 
 ---
 
@@ -27,7 +27,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for, no emails collected.
 - 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks.
-- 🧩 **Always-on proxy + ads** — one site runs the web proxy **and** ads together, monetized by proxy-friendly networks (Adsterra / HilltopAds / Monetag). No Google AdSense. See [💰 Monetization](#-monetizing-the-proxy-build).
+- 🧩 **Modular advertising** — five supported networks (HilltopAds / Adsterra / Monetag / Ad-Maven / PopAds), each independently enabled, and structurally excluded from every proxy surface. Never Google AdSense. See [💰 Advertising](#-advertising).
 - 💤 **Free-tier friendly** — a secured `/healthz` keep-alive endpoint keeps Render + Supabase awake without a paid plan.
 - 🛠️ **Self-maintaining** — scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune community posts and admin logs, and heartbeat the DB. See [`lib/cron-jobs.mjs`](lib/cron-jobs.mjs).
 
@@ -183,8 +183,10 @@ All configuration is via environment variables — copy [`.env.example`](.env.ex
 | `ADMIN_PASSWORD_HASH` | scrypt hash of the `/admin` login password, from `npm run admin-hash`. The plaintext password is never stored anywhere. |
 | `SITE_URL` | Optional. Names the site on the legal pages and pins the CORS origin. If unset, those pages derive the name from the request; CORS falls back to same-host matching. |
 | `POLLINATIONS_PUBLIC_KEY` | Optional `pk_` key served to the browser to lift the anonymous per-IP AI limit. **Publishable by design** — never put an `sk_` key here. |
-| `PROXY_AD_SCRIPTS` | Proxy-friendly ad-network loader script(s), comma-separated (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
-| `PROXY_BANNER_TAG` | Optional footer display-banner tag (**proxy build**). See [💰 Monetization](#-monetizing-the-proxy-build). |
+| `<NETWORK>_ENABLED` | Turn one of the five networks on. Prefixes: `HILLTOPADS` `ADSTERRA` `MONETAG` `ADMAVEN` `POPADS`. See [💰 Advertising](#-advertising). |
+| `<NETWORK>_SCRIPT` | That network's loader URL(s), comma-separated, https only. |
+| `<NETWORK>_<SLOT>_TAG` | Raw tag for a fixed slot — `HEADER` / `SIDEBAR` / `FOOTER` / `INCONTENT`. |
+| `PROXY_AD_SCRIPTS` | **Deprecated** legacy loader list, kept so existing deploys keep earning. Carries no network identity — migrate to `<NETWORK>_*`. |
 | `CRON_SECRET` | Protects `/healthz`; set the same value in your uptime monitor. |
 | `CRON_DISABLED` | Set `1` to disable the scheduled background jobs (e.g. on a replica/test instance). |
 | `AI_SERVER_FALLBACK` | Set `1` **only** to allow the local-dev AI routes from a non-loopback host. Never set it in production. |
@@ -205,74 +207,77 @@ A deployment holding only the publishable key still boots and serves reads, but 
 
 ---
 
-## 💰 Monetizing the proxy build
+## 💰 Advertising
 
-The proxy site runs **ads and the proxy at the same time** — it just uses a
-**proxy-friendly ad network** (Monetag / Adsterra / HilltopAds) instead of Google
-AdSense, because Google bans proxy / anonymizer sites at the **account level**.
-Nothing here can put AdSense on the proxy: Google ad code is **stripped
-server-side** ([`/api/site-config`](server.js)), so an AdSense account can never be
-put at risk. There are **two** places to paste ad code — both are environment
-variables, so no code changes are needed to go live.
+ZoFHub supports **five** networks and no others:
 
-**1. Page-level ad scripts → `PROXY_AD_SCRIPTS`**
-Your network's main loader script(s) — these run the popunder / push / interstitial
-formats the network manages itself. Comma-separate to stack multiple networks:
+**HilltopAds · Adsterra · Monetag · Ad-Maven · PopAds**
 
+Google AdSense and Ad Manager are refused at three separate layers and must never
+be enabled — Google bans proxy/anonymiser domains at the **account** level, so one
+stray tag could take down an unrelated AdSense account.
+
+> ### ⚠ No network has approved this site
+> All five require publisher review of your **specific domain**, and nothing in
+> this repository can tell you the outcome. The provider registry records every
+> network as `needs-approval`, and a test fails the build if an entry ever claims
+> otherwise. Approval for one format does not imply approval for another.
+>
+> **ZoFHub hosts a web proxy.** Several networks restrict that, and the rules are
+> not consistently published. Raise it explicitly with each network before
+> enabling. Full matrix: **[docs/ADVERTISING.md](docs/ADVERTISING.md)**.
+
+### Enabling a network
+
+Every network uses the same variables — no per-network special casing anywhere:
+
+```bash
+ADSTERRA_ENABLED=1
+ADSTERRA_SCRIPT=https://<the loader URL your dashboard gives you>
+ADSTERRA_FOOTER_TAG=<script>…</script>     # optional, for a fixed slot
 ```
-PROXY_AD_SCRIPTS=https://your-adsterra-tag.com/invoke.js,https://your-hilltop-tag.com/loader.js
+
+Prefixes: `HILLTOPADS` `ADSTERRA` `MONETAG` `ADMAVEN` `POPADS`.
+Slots: `HEADER_TAG` `SIDEBAR_TAG` `FOOTER_TAG` `INCONTENT_TAG`.
+
+```bash
+npm run check-ads      # will they actually load? env → CSP → serving → DNS
 ```
 
-**2. Footer display banner → `PROXY_BANNER_TAG`**
-An optional fixed **728×90** banner for the clean, labelled slot at the very bottom
-of the page. Paste the raw banner tag your network gives you (usually two `<script>`
-tags) as **one line**:
+**Unset everything and the site runs ad-free** — no empty boxes, no reserved
+space, no requests. That is the default and it is fully supported.
 
-```
-PROXY_BANNER_TAG=<script>atOptions={...}</script><script src="//network/invoke.js"></script>
-```
+Three rules are enforced rather than suggested: **enabled without configuration
+renders nothing**, **one slot is owned by exactly one network**, and **the same
+loader URL is never injected twice**.
 
-Leave `PROXY_BANNER_TAG` blank and the footer slot simply never appears — **no empty
-"Advertisement" boxes, ever.** The slot is isolated with a divider + spacing so it
-can't be mis-clicked as a nav button (that protects your ad-account standing).
+### Ads never touch the proxy
 
-### Recommended networks (all accept proxy sites; none require AdSense)
+`/browser`, `/gust`, `/uv/*`, `/sj/*`, Wisp and every proxy asset route **cannot**
+carry advertising. What renders there is somebody else's website, fetched on the
+visitor's behalf — monetising it would mean injecting script into third-party
+content in transit.
 
-| Network | Best format | Approval | Min payout |
-|---|---|---|---|
-| **Adsterra** | Popunder, Social Bar, Banner, Direct Link | Instant | $5 (crypto/Paxum) |
-| **HilltopAds** | Banner (728×90), Popunder, In-page Push | Instant | $20, weekly |
-| **Monetag** | Push, In-page Push, MultiTag | Instant | $5, monthly |
+Enforced in three places: `isAdSurface()` in the registry, an empty ad payload
+from `/api/site-config`, and a path check in `layout.js` that runs *before* it
+asks the server for anything. An **unclassified route gets no ads**, because a
+route nobody classified is a route nobody reasoned about.
 
-> Start with **one** (Adsterra or HilltopAds). Run at most **one popunder network**
-> plus a push and a banner — stacking several popunder tags makes them fight and
-> trips fraud checks. Adult-focused networks (ExoClick, ClickADilla) are a poor fit
-> for a mostly-teen audience — skip them.
+### Placement
 
-### Step-by-step: sign up → get your banner tag → add it to `.env`
+Four slots, all inside ZoFHub's own layout: header 728×90, sidebar 300×250,
+footer 728×90, and six in-content positions. Every slot reserves its exact size
+up front so a late creative cannot shift the page, and an unset slot collapses to
+nothing.
 
-1. **A parent/guardian registers as the _Publisher_** (the account, tax form, and
-   payout must be in an adult's name). Add your site's domain in the dashboard;
-   approval for these networks is automated (usually minutes).
-2. **Create the ad unit(s):**
-   - **Page-level script** (popunder / push): create that unit, copy its `https://…`
-     loader URL, and add it to `PROXY_AD_SCRIPTS` (comma-separated for more than one).
-   - **Footer 728×90 banner** (e.g. HilltopAds → *Banner* → 728×90, or Adsterra →
-     *Banner 728×90*): the dashboard gives you a small HTML snippet (usually two
-     `<script>` tags). Copy the whole snippet, put it on **one line**, and set it as
-     `PROXY_BANNER_TAG`.
-3. **Add them to your host** (**Render → your service → Environment**) and to your
-   local `.env`, then redeploy. The footer banner appears the moment the tag is set;
-   page-level ads start on the next load.
-4. **Add more over time.** As each network is approved, append its loader URL to
-   `PROXY_AD_SCRIPTS` (keep them comma-separated). Only ever keep **one** popunder
-   network active at a time.
+Never placed over game controls, navigation, the AI composer, or proxy content.
+Interstitials are throttled via `localStorage` so a network cannot put a
+full-screen ad between a player and the game they just clicked.
 
-> **Real talk + ethics:** proxy traffic pays low rates (often cents per 1,000
-> views), so real income needs real, steady traffic first. Keep it clean and honest
-> — **no** fake loading timers, **no** "complete an offer to unlock" gates, **no**
-> forced surveys. Clean placement is what keeps your accounts alive and your visitors
-> coming back.
+> **Honest expectations.** Proxy traffic pays low rates — often cents per 1,000
+> views — so real income needs real, steady traffic first. Keep it clean: no fake
+> loading timers, no "complete an offer to unlock" gates, no forced surveys. Clean
+> placement is what keeps accounts alive.
 
 ---
 

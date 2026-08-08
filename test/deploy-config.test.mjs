@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PROVIDERS as AD_PROVIDERS } from '../lib/ad-providers.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -59,8 +60,18 @@ function envReads() {
       .split(/\r?\n/)
       .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))
       .join('\n');
+    // `env.NAME` / `env['NAME']` counts too.
+    //
+    // lib/ad-providers.mjs takes the environment as a PARAMETER (so it can be
+    // unit-tested against a fake env with no globals). Matching only
+    // `process.env.X` therefore reported every advertising variable as
+    // "declared in render.yaml but never read" — the audit was blind to an
+    // entire module, and the fix would have looked like deleting live config.
+    // The uppercase-only capture keeps this from matching ordinary properties.
     for (const re of [/process\.env\.([A-Z_][A-Z0-9_]*)/g,
-                      /process\.env\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/g]) {
+                      /process\.env\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/g,
+                      /\benv\.([A-Z_][A-Z0-9_]*)/g,
+                      /\benv\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/g]) {
       re.lastIndex = 0;
       let m;
       while ((m = re.exec(src))) {
@@ -127,7 +138,15 @@ describe('render.yaml declares every credential the server reads', () => {
     const renderYaml = readFileSync(join(root, 'render.yaml'), 'utf8');
     const declared = [...renderYaml.matchAll(/^\s*-\s*key:\s*([A-Z_][A-Z0-9_]*)\s*$/gm)].map(m => m[1]);
     const reads = envReads();
-    const orphans = declared.filter(k => !reads.has(k) && !PLATFORM.has(k) && k !== 'NODE_VERSION');
+    // The advertising variables are built at runtime from the provider registry
+    // (`${prefix}_ENABLED`, `${prefix}_SCRIPT`, …), so no static scan can find
+    // them — the registry IS their definition. Treat a name matching a
+    // registered provider prefix as read, which also means a typo'd prefix in
+    // render.yaml still fails here.
+    const adPrefixes = AD_PROVIDERS.map(p => p.env);
+    const isAdVar = (k) => adPrefixes.some(p => k === p || k.startsWith(p + '_'));
+    const orphans = declared.filter(k =>
+      !reads.has(k) && !PLATFORM.has(k) && k !== 'NODE_VERSION' && !isAdVar(k));
     assert.deepEqual(orphans.sort(), [], `declared in render.yaml but never read: ${orphans.join(', ')}`);
   });
 });

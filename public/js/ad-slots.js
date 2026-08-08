@@ -232,8 +232,8 @@ export function mountInContentAds() {
 }
 
 // ── adFrequencyController ──────────────────────────────────────────────────
-// Networks that sell interstitials (PropellerAds, Adcash, …) will happily fire
-// one on EVERY page view. On a games site that means a full-screen ad between a
+// Networks that sell interstitial and popunder formats will happily fire one on
+// EVERY page view. On a games site that means a full-screen ad between a
 // player and the game they just clicked — the fastest way to lose the audience
 // that generates the traffic in the first place.
 //

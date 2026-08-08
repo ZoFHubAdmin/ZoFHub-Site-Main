@@ -1,19 +1,27 @@
-// ZoFHub · proxy-ads.js — monetization for the PROXY build ONLY.
+// ZoFHub · proxy-ads.js — page-level ad loader scripts.
 // ---------------------------------------------------------------------------
-// Google AdSense/AdX are prohibited on proxy / anonymizer domains (an
-// account-LEVEL ban, not per-page). So the proxy build earns from a
-// proxy-friendly ad network instead — e.g. Monetag, Adsterra, HilltopAds,
-// Galaksion. You paste your network's loader-script URL(s) into the
-// PROXY_AD_SCRIPTS env var (comma-separated https URLs); the server hands them
-// to the page via /api/site-config → window.ZOFHUB_PROXY_ADS, and this file
-// injects them.
+// NAME NOTE: "proxy-ads" means "ads on a site that HAPPENS to host a proxy",
+// not "ads on proxied pages". It has never meant the latter, and must not: this
+// module is only ever imported from layout.js, which refuses to load the ad
+// stack on a proxy surface at all. See lib/ad-providers.mjs → isAdSurface.
 //
-// HARD GUARANTEES (so your AdSense account can never be put at risk):
-//   • Runs ONLY when window.ZOFHUB_PROXY === true (the proxy build).
-//   • Injects ONLY the exact https script URLs you configured.
-//   • Loads NO Google/AdSense/AdX code and imports nothing from ads.js.
-// If nothing is configured, this file does nothing — the proxy site just runs
-// ad-free until you add a network.
+// Loads the page-level loader script URL(s) contributed by whichever of the five
+// supported networks (HilltopAds, Adsterra, Monetag, Ad-Maven, PopAds) are
+// enabled. The server resolves those in lib/ad-providers.mjs and hands the final
+// list to the page via /api/site-config → window.ZOFHUB_PROXY_ADS.
+//
+// HARD GUARANTEES:
+//   • Injects ONLY the exact https URLs the server resolved. No rewriting, no
+//     wrapping, no parameter injection — several networks require their code to
+//     run unmodified, and modifying it would also look like tampering with
+//     their attribution.
+//   • Each URL is injected AT MOST ONCE per page, so a misconfiguration that
+//     lists the same loader under two networks cannot double-load it.
+//   • Loads NO Google/AdSense/AdX code, ever. Google bans proxy domains at the
+//     ACCOUNT level, so one stray tag could take down an unrelated account.
+//   • Failure is silent and total: a blocked or offline network leaves the page
+//     exactly as it was. No retries, no reloads, no placeholder boxes.
+// If nothing is configured, this file does nothing.
 // ---------------------------------------------------------------------------
 
 (function () {

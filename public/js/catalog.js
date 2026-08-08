@@ -1,6 +1,7 @@
 // ZoFHub · catalog.js
 import { $, $$, el, debounce, fetchJson, toast, escapeHtml, buildFallback, wireThumbFallback } from './utils.js';
 import { store } from './storage.js';
+import { personalizationPayload, skips as skipSignal, searches as searchSignal } from './signals.js?v=20260807';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { rankGames, suggestions, highlightTerms } from './search.js?v=20260727';
 
@@ -271,7 +272,14 @@ function recomputeCounts() {
 
 function hydrateUrlState() {
   const p = new URLSearchParams(location.search);
-  if (p.get('q'))   state.q = p.get('q');
+  if (p.get('q')) {
+    state.q = p.get('q');
+    // Recorded HERE rather than at the search box, because this is the point a
+    // search actually produced results the visitor looked at. Keystroke-level
+    // capture would store abandoned and mistyped queries too, which is both
+    // noisier as a signal and more data than the feature needs.
+    searchSignal.add(state.q);
+  }
   if (p.get('cat')) state.category = p.get('cat');
   if (state.q) { const inp = $('#searchInput'); if (inp) inp.value = state.q; }
 }
@@ -368,10 +376,49 @@ function tileFallbackHtml(title) {
 // category, game, and search surfaces so every broken thumbnail degrades the
 // same branded way).
 
+// ── Skip detection ─────────────────────────────────────────────────────────
+// A tile that was genuinely ON SCREEN and was not opened is a weak "no". The
+// two thresholds are what keep it honest:
+//
+//   • 60% visible — a tile clipped at the fold was not really seen.
+//   • 1.2 seconds — fast scrolling past a whole grid is not a judgement on
+//     every tile in it. Without the dwell requirement, one flick to the bottom
+//     of the page would register 200 skips and poison the profile outright.
+//
+// Opening a game retracts its skip (signals.js: skips.clear), so a game you
+// scrolled past twice and then played is not suppressed.
+let skipObserver = null;
+const pendingSkips = new Map();       // slug -> timer id
+
+function observeForSkips(root) {
+  if (!('IntersectionObserver' in window)) return;   // older browsers just opt out
+  if (!skipObserver) {
+    skipObserver = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const slug = e.target.dataset.slug;
+        if (!slug) continue;
+        if (e.isIntersecting) {
+          if (pendingSkips.has(slug)) continue;
+          pendingSkips.set(slug, setTimeout(() => {
+            pendingSkips.delete(slug);
+            skipSignal.add([slug]);
+            skipObserver.unobserve(e.target);
+          }, 1200));
+        } else {
+          const t = pendingSkips.get(slug);
+          if (t) { clearTimeout(t); pendingSkips.delete(slug); }
+        }
+      }
+    }, { threshold: 0.6 });
+  }
+  root.querySelectorAll('.game-tile[data-slug]').forEach(elm => skipObserver.observe(elm));
+}
+
 function tile(game, opts = {}) {
   const t = el('a', {
     class: 'game-tile',
     href: `/play/${game.slug}`,
+    'data-slug': game.slug,
     'aria-label': `Play ${game.title}`
   });
   const fav = store.favorites.has(game.slug);
@@ -574,18 +621,33 @@ function renderForYouRow() {
     row.hidden = false;
     paintGrid(grid, items);
     // Say WHY, using the strongest attributed pick. Honest attribution matters:
-    // a row that claims a reason it cannot back up is worse than no reason.
+    // a row that claims a reason it cannot back up is worse than no reason —
+    // so every branch below is backed by something the ranker actually did.
     const seed = items.find(g => g.because && g.because.kind === 'similar' && g.because.title);
     let sub = row.querySelector('.row-sub');
-    if (seed) {
+    const setSub = (text) => {
+      if (!text) { sub?.remove(); return; }
       if (!sub) {
         sub = document.createElement('p');
         sub.className = 'row-sub';
         row.querySelector('.row-title')?.after(sub);
       }
-      sub.textContent = `Because you played ${seed.because.title}`;
-    } else if (sub) {
-      sub.remove();
+      sub.textContent = text;
+    };
+
+    if (seed) {
+      setSub(`Because you played ${seed.because.title}`);
+    } else {
+      // No single seed dominated. Fall back to the category the row leans on,
+      // which is the honest description of a category-affinity ranking.
+      const counts = new Map();
+      for (const g of items) {
+        if (g.category) counts.set(g.category, (counts.get(g.category) || 0) + 1);
+      }
+      const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+      setSub(top && top[1] >= 3
+        ? `More ${top[0].replace(/-/g, ' ')} games, based on what you play`
+        : 'Based on what you play');
     }
   };
 
@@ -595,7 +657,10 @@ function renderForYouRow() {
   _forYou.inflight = fetch('/api/for-you', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ history: histIds, favorites: favIds, limit: 18 }),
+    // personalizationPayload() is the single definition of what leaves the
+    // browser — history, favourites, skipped slugs and the last mood typed.
+    // See public/js/signals.js for exactly what each one is and why.
+    body: JSON.stringify({ ...personalizationPayload(), limit: 18 }),
   })
     .then(r => (r.ok ? r.json() : null))
     .then(j => {
@@ -622,6 +687,7 @@ function paintGrid(grid, items, opts = {}) {
   });
   grid.innerHTML = '';
   grid.appendChild(frag);
+  observeForSkips(grid);
 }
 
 // ============ Category rails ============
