@@ -151,14 +151,21 @@ describe('the integration can actually find and order these files', () => {
   test('the order encodes the dependency chain, not the alphabet', () => {
     // scores_integrity adds the `status` column that scores_review and
     // scores_unique both filter on; feedback drops tables community creates;
-    // schema_hardening corrects objects every earlier file may re-create.
+    // schema_hardening corrects objects every earlier file may re-create;
+    // grants assigns privileges over whatever survived all of that.
     const idx = (name) => FILES.findIndex((f) => f.includes(name));
     assert.ok(idx('community') < idx('scores_integrity'), 'community must precede scores_integrity');
     assert.ok(idx('scores_integrity') < idx('scores_review'), 'status column must exist first');
     assert.ok(idx('scores_integrity') < idx('scores_unique'), 'status column must exist first');
-    assert.equal(idx('feedback'), FILES.length - 2, 'feedback must run second-to-last');
-    assert.equal(idx('schema_hardening'), FILES.length - 1,
-      'schema_hardening must run LAST — it removes objects earlier files re-create on every replay');
+    assert.ok(idx('feedback') < idx('schema_hardening'), 'feedback drops what schema_hardening then corrects');
+    assert.equal(idx('schema_hardening'), FILES.length - 2,
+      'schema_hardening must run after every file that re-creates the objects it removes');
+    // grants goes last for the same reason feedback cannot: it operates on the
+    // FINAL set of relations. Granting before a drop wastes the grant; granting
+    // before a create misses it entirely, which is the 42501 failure this file
+    // was added to fix.
+    assert.equal(idx('grants'), FILES.length - 1,
+      'grants must run LAST — it grants over whatever tables survive the drops');
   });
 
   test('config.toml points at the project the app actually uses', () => {

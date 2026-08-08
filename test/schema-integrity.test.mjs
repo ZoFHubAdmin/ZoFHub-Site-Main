@@ -301,3 +301,102 @@ describe('the one-file bootstrap provisions the same database', () => {
       'tables the bootstrap leaves behind that the migrations drop');
   });
 });
+
+// ── Privileges ────────────────────────────────────────────────────────────
+//
+// CREATE TABLE grants nobody anything. Postgres gives the new table to its
+// owner and to no one else, and for most of this schema's life that was
+// invisible: the original Supabase project had been provisioned with ALTER
+// DEFAULT PRIVILEGES, so tables created in the SQL editor arrived with
+// anon / authenticated / service_role grants already attached and the schema
+// never needed to issue one.
+//
+// Moving to a new project removed that inheritance. Twelve tables came up and
+// every single read returned 42501 "permission denied for table games" — with
+// Postgres itself supplying the hint, "GRANT SELECT ON public.games TO
+// service_role". `npm run restore-games` failed all 34 batches, 0 rows written.
+//
+// Nothing caught it, because every check in this repo asked whether an object
+// EXISTS. The tables did exist. They were simply unreadable, and existence and
+// reachability had never been the same question.
+describe('every table the migrations leave behind is reachable', () => {
+  // NOT scrub(): db/grants.sql is one big DO $$…$$ block, and scrub() blanks
+  // dollar-quoted bodies. Passing it through would leave an empty string, and
+  // every assertion below is "X is absent" — the suite would go green while
+  // reading nothing at all. Strip comments only, which is what actually matters
+  // here: the file's header quotes `GRANT SELECT ON public.games TO
+  // service_role;` verbatim from the Postgres error, and prose that reads like
+  // a statement is exactly what a grant checker must not count.
+  const grantsSql = readFileSync(join(ROOT, 'db', 'grants.sql'), 'utf8')
+    .replace(/--[^\n]*/g, '');
+
+  // A blanket `grant ... on all tables in schema public` covers everything at
+  // once; anything else has to name each table.
+  const BLANKET = /grant\s+all\s+privileges\s+on\s+all\s+tables\s+in\s+schema\s+public\s+to\s+service_role/i;
+
+  test('the fixture parsed', () => {
+    assert.ok(grantsSql.length > 200, 'db/grants.sql is empty or unreadable');
+    assert.ok(DB.tables.size >= 10, `only ${DB.tables.size} tables survived the replay`);
+  });
+
+  test('service_role can reach every surviving table', () => {
+    if (BLANKET.test(grantsSql)) return;                 // covered wholesale
+    const unreachable = [...DB.tables].sort().filter(
+      (t) => !new RegExp(`grant[^;]*\\bon\\b[^;]*\\b${t}\\b[^;]*to[^;]*service_role`, 'i').test(grantsSql),
+    );
+    assert.deepEqual(unreachable, [],
+      'these tables exist but no role can read them — every query returns 42501:\n  '
+      + unreachable.join('\n  '));
+  });
+
+  test('grants run last, so a later CREATE TABLE cannot slip through ungranted', () => {
+    // The blanket grant is a snapshot of the moment it runs. It is only
+    // sufficient because ALTER DEFAULT PRIVILEGES covers what comes after.
+    assert.equal(ORDER[ORDER.length - 1], 'db/grants.sql',
+      'db/grants.sql must be the final migration');
+    assert.match(grantsSql, /alter\s+default\s+privileges\s+in\s+schema\s+public\s+grant[^;]*to\s+service_role/i,
+      'without ALTER DEFAULT PRIVILEGES the next table added lands ungranted, '
+      + 'and the failure appears at runtime rather than at deploy');
+  });
+
+  test('anon is granted only what a read policy already allows', () => {
+    // The GRANT is the outer gate, RLS the inner one. Granting anon SELECT on
+    // a table with no permissive policy is not immediately exploitable — RLS
+    // still denies — but it leaves the two out of step, so the day a policy is
+    // added or loosened the table is already exposed.
+    const policySql = scrub(ORDER.map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n'));
+    const readable = new Set(
+      [...policySql.matchAll(/create\s+policy\s+"[^"]*"\s+on\s+public\.(\w+)\s+for\s+select/gi)]
+        .map((m) => m[1]),
+    );
+    // A view has no policies of its own. games_public is SECURITY INVOKER over
+    // games, so it is governed by the policy on games.
+    const VIEWS_OVER_POLICIED_TABLES = new Set(['games_public']);
+
+    const listed = /public_read\s+constant\s+text\[\]\s*:=\s*array\[([^\]]*)\]/i.exec(grantsSql);
+    assert.ok(listed, 'could not find the public_read list in db/grants.sql');
+    const names = [...listed[1].matchAll(/'(\w+)'/g)].map((m) => m[1]);
+    assert.ok(names.length >= 3, `parsed only ${names.length} public-read relations`);
+
+    const overGranted = names.filter(
+      (n) => !readable.has(n) && !VIEWS_OVER_POLICIED_TABLES.has(n),
+    );
+    assert.deepEqual(overGranted, [],
+      'anon is granted SELECT on relations with no permissive read policy:\n  '
+      + overGranted.join('\n  '));
+  });
+
+  test('the private tables are never granted to anon', () => {
+    // The audit trail, the session store and the feedback inbox. feedback keeps
+    // INSERT — that is the contact form — but must never become readable.
+    for (const t of ['admin_sessions', 'admin_audit_logs', 'admin_login_attempts',
+      'admin_security_events', 'feedback']) {
+      if (!DB.tables.has(t)) continue;
+      assert.match(grantsSql, new RegExp(`'${t}'`),
+        `${t} is not named in db/grants.sql, so it is neither granted nor explicitly revoked`);
+      const listed = /public_read\s+constant\s+text\[\]\s*:=\s*array\[([^\]]*)\]/i.exec(grantsSql);
+      assert.ok(!new RegExp(`'${t}'`).test(listed[1]),
+        `${t} appears in the public-read list`);
+    }
+  });
+});

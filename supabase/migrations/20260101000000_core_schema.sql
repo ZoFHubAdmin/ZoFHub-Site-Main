@@ -45,7 +45,34 @@
 -- they aren't present.
 drop index if exists public.games_title_trgm_idx;
 drop index if exists public.games_title_fts_idx;
-drop extension if exists pg_trgm cascade;
+
+-- SCOPED TO public ON PURPOSE — do not simplify this back to
+-- `drop extension if exists pg_trgm cascade;`
+--
+-- This project has NO migration ledger, so every file here re-runs on EVERY
+-- merge to main, forever. An unscoped drop is therefore not a one-time cleanup:
+-- it is a statement that deletes pg_trgm on every deploy for the rest of the
+-- project's life. The moment anyone enables pg_trgm for a legitimate reason —
+-- Supabase installs it into the `extensions` schema, not public — the next
+-- deploy silently removes it, and CASCADE takes every dependent index with it.
+-- No error, no log line: the feature that depended on it just stops working.
+--
+-- The problem this cleanup actually solves is the extension being in PUBLIC,
+-- which is the only thing the advisor flags. So check for exactly that. An
+-- extension deliberately installed in `extensions` is left alone.
+do $$
+begin
+  if exists (
+    select 1
+      from pg_extension e
+      join pg_namespace n on n.oid = e.extnamespace
+     where e.extname = 'pg_trgm'
+       and n.nspname = 'public'
+  ) then
+    execute 'drop extension pg_trgm cascade';
+    raise notice 'dropped pg_trgm from the public schema (legacy cleanup)';
+  end if;
+end $$;
 
 
 -- ---------------------------------------------------------------------

@@ -60,6 +60,8 @@ const ORDER = [
    'Retires the leaderboard (drops scores + its SECURITY DEFINER functions), adds the private feedback table, and the retention sweeps. Runs LAST: the drops act on tables the earlier migrations create.'],
   ['20260101001100', 'schema_hardening', 'db/schema-hardening.sql',
    'Audit corrections: drops the submit_score overload the teardown missed and the superseded prune_admin_state, pins search_path on two trigger functions, and stops the orphan-counter sweep deleting counters for games that are served from JSON rather than the games table.'],
+  ['20260101001200', 'grants', 'db/grants.sql',
+   'Role privileges for service_role / anon / authenticated. MUST BE LAST: it grants over whatever tables exist at the end, so it has to run after feedback.sql drops the retired ones. Without it every table is 42501 "permission denied" on a project whose default privileges were not pre-provisioned.'],
 ];
 
 function render(name, src, why, body) {
