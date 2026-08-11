@@ -195,7 +195,7 @@ Run the SQL in order — full details in [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md
 2. `db/community.sql` (creates scores/recommendations)
 3. *(optional)* `db/stats.sql`, `db/keepalive.sql`
 4. Every `db/load-*.sql` game loader — run `-partNN.sql` files in numeric order
-5. `db/y8-games-check.sql` (verify totals — aim for ~16,791 working games)
+5. `db/y8-games-check.sql` (verify totals — aim for ~16,800 working games)
 
 Or skip the copy-pasting entirely: `npm run restore-games`.
 
@@ -276,7 +276,7 @@ npm start
 ## Expected Results
 
 ### Game Count
-- **Total games**: ~16,791 working (GameMonetize, Y8, Famobi, OnlineGames.io, GameDistribution, GameFlare, HTMLGames)
+- **Total games**: ~16,800 working (GameMonetize, Y8, Famobi, OnlineGames.io, GameDistribution, GameFlare, HTMLGames)
 - **All sources**: OnlineGames.io, GameDistribution, Y8.com, and more
 
 ### Loading Performance

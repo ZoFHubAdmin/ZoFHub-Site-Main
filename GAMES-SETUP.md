@@ -1,7 +1,7 @@
 # Complete 16,000+ Games Setup Guide
 
 ## Overview
-This guide provides step-by-step instructions to load all 16,000+ games from multiple sources into your ZoFHub gaming site with optimized iframe loading and enhanced visual design. (The live catalog currently holds **~16,791 working games**.)
+This guide provides step-by-step instructions to load all 16,000+ games from multiple sources into your ZoFHub gaming site with optimized iframe loading and enhanced visual design. (The live catalog currently holds **~16,800 working games**.)
 
 ## Game Sources
 
@@ -16,7 +16,9 @@ Your site pulls games from several major sources (some overlap; duplicates are c
 | Y8.com | `y8-games.json` | ~2,415 | Y8.com |
 | GameFlare / others | assorted `load-*.sql` | ~1,500 | GameFlare, misc |
 
-**Total after de-duplication: ~16,800 games (~16,791 working in the live catalog).**
+**Total after de-duplication: ~16,800 rows, ~16,780 of them working.** Of those,
+~12,300 are actually served to visitors — provider exclusions and curation
+overrides account for the difference.
 
 ## Prerequisites
 
@@ -25,7 +27,6 @@ Your site pulls games from several major sources (some overlap; duplicates are c
   ```
   SUPABASE_URL=your_supabase_url
   SUPABASE_SECRET_KEY=sb_secret_your_secret_key
-  SCORE_SECRET=your_secret_key
   ```
   Use `SUPABASE_SECRET_KEY` (Settings → API Keys → *secret*), **not** the legacy
   `SUPABASE_SERVICE_ROLE_KEY`. The legacy `anon`/`service_role` pair is disabled
@@ -59,12 +60,22 @@ save limit** (~1000 lines):
 
 Run these SQL files in **exact order** in Supabase SQL Editor:
 
-#### 1. Create Database Schema
-**File**: `db/schema.sql`
-```sql
--- Creates the games table with proper indexes and RLS
--- Run this ONCE
-```
+#### 1. Create the database schema — one file
+
+**File**: `db/SCHEMA-ONLY.sql`
+
+All 13 migrations concatenated in dependency order. Paste it, Run, done. It is
+idempotent, so re-running is safe.
+
+Do **not** assemble the schema from the individual `db/*.sql` files. The order is
+load-bearing and not alphabetical, and leaving one out is silent — picking a
+subset typically omits `db/grants.sql`, which runs last and assigns the
+privileges. Without it every table exists and every application query fails with
+`42501 permission denied`. See [db/RUN-IN-ORDER.md](db/RUN-IN-ORDER.md).
+
+The leaderboard that older versions of this guide set up has been retired:
+`db/feedback.sql` drops the `scores` table and its functions, so a fresh database
+never keeps one.
 
 #### 2. Load Game Data (All Sources)
 
@@ -80,26 +91,22 @@ re-running or running slightly out of order is safe.
 **Why parts?** Supabase's SQL editor won't *save* a snippet past ~1000 lines.
 Each file is now ~700 rows (well under that), so every one saves and runs cleanly.
 
-#### 3. Create Community Features
-**File**: `db/community.sql`
-```sql
--- Creates scores and recommendations tables
--- Enables leaderboard functionality
+#### 3. Verify the installation
+
+```bash
+npm run db:verify        # the real check
 ```
 
-#### 4. Enable Persistent Stats (Optional)
-**File**: `db/stats.sql`
-```sql
--- Creates game_stats table for persistent play counts
--- Recommended for production
-```
+It compares the running database against the migrations **and** confirms every
+relation is actually readable. A `select count(*)` in the SQL editor runs as the
+table owner, so it succeeds even when the application's role has no privileges at
+all — which is why a row count alone cannot tell you the deploy is healthy.
 
-#### 5. Verify Installation
-**File**: `db/y8-games-check.sql`
-```sql
--- Should show:
--- total_games: ~16,800+
--- working_games: ~16,800+
+For raw numbers, `db/y8-games-check.sql` reports roughly:
+
+```
+total_games:   ~16,800
+working_games: ~16,780
 ```
 
 ## Step 3: Update Server Configuration

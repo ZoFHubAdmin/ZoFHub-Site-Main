@@ -85,14 +85,14 @@ production breaks.
 The integration has no migration ledger for this project — the schema was
 originally applied by pasting SQL into the dashboard editor, so
 `supabase_migrations.schema_migrations` does not exist. On first connection the
-integration therefore treats **all 12 migrations as unapplied and runs them, on
+integration therefore treats **all 13 migrations as unapplied and runs them, on
 every merge.**
 
 That is safe. Every migration is idempotent (`IF NOT EXISTS` / `OR REPLACE` /
 guarded `DROP`), and re-running them against the populated production database
 was analysed statement by statement:
 
-- The `games` table (16,913 rows) is **never** dropped, truncated, or deleted
+- The `games` table (~16,800 rows) is **never** dropped, truncated, or deleted
   from. Only `ADD COLUMN IF NOT EXISTS` and index creation touch it. (An early
   version of `schema.sql` *did* `drop table games` and wiped the catalog — that
   is fixed, and the file carries a comment saying so.)
@@ -121,6 +121,9 @@ It reads the live schema through PostgREST with the secret key and reports:
 - objects the database has that **no migration creates** → drift, added outside
   this repository
 - columns that differ in either direction
+- whether every relation is actually **readable with the secret key** — see the
+  grants note below; a table can deploy perfectly and still answer `42501` to
+  the application
 - whether the **publishable key can read** `feedback` or any `admin_*` table —
   the one property that is only ever true or false of a running database, never
   of a file
@@ -151,9 +154,21 @@ on them and nothing else was checking:
 4. **Registered.** Add the source to `ORDER` in
    `tools/sync-supabase-migrations.mjs` and run `npm run sync-migrations`. A file
    in `db/` that is not in `ORDER` is never applied anywhere.
+5. **Ordered before `db/grants.sql`.** That file must stay the final entry: it
+   assigns privileges over whatever relations exist once every drop has run. Give
+   a new migration a timestamp between `schema_hardening` and `grants` —
+   `20260101001150`, say. `test/schema-integrity.test.mjs` fails if `grants.sql`
+   stops being last.
 
-Corrections go in a **new** file that sorts last, never as an edit to an existing
-one — see the note below on why that discipline holds even without a ledger.
+   A table created *after* it would still pick up privileges from the
+   `ALTER DEFAULT PRIVILEGES` that `grants.sql` sets, so getting this wrong is
+   not immediately fatal. But that is the same inherited-privilege mechanism
+   whose absence caused the outage described below, and it is meant as a safety
+   net, not the mechanism. Ordering ahead of `grants.sql` earns an explicit
+   `GRANT`, which is the part that is actually guaranteed.
+
+Corrections go in a **new** file, never as an edit to an existing one — see the
+note below on why that discipline holds even without a ledger.
 
 ## What "no ledger" means in practice
 
@@ -169,7 +184,13 @@ migrations:
   `(text, text, bigint)` and the teardown dropped `(text, text, integer)` — so it
   came back on every deploy and was still live in production on 2026-08-07,
   confirmed against the running database. `db/schema-hardening.sql` drops the
-  real signature and runs last.
+  real signature, and sorts after every file that creates it.
+
+  The same trap caught `prune_admin_state(integer, integer, integer)`, the
+  unfloored predecessor of `prune_admin_logs` — `prune_admin_state(0, 0, 0)`
+  erases every login attempt and security event, where the replacement floors its
+  arguments. It was found live on 2026-08-07 by `db:verify`, and cleared by
+  replaying the schema. Neither was findable by reading the files.
 
 ### Why corrections still go in a NEW file
 
@@ -182,6 +203,35 @@ schema no file describes.
 
 Appending a new file that sorts last is correct under **both** models, which is
 why it is the rule regardless of which one is in force today.
+
+### Privileges are part of the schema
+
+`CREATE TABLE` grants nobody anything. Postgres hands a new table to its owner
+and to no one else; every other role needs an explicit `GRANT`. Supabase normally
+hides that by provisioning `ALTER DEFAULT PRIVILEGES` at project creation, so
+tables made in the SQL editor arrive with `anon` / `authenticated` /
+`service_role` grants already attached — and this schema was written against such
+a project, so across twelve migrations it issued exactly one `GRANT`, and none
+for `service_role`.
+
+Moving to a new project removed the inheritance, and every table came up
+existing-but-unreachable:
+
+```
+GET /rest/v1/games -> 403
+{"code":"42501","message":"permission denied for table games",
+ "hint":"Grant the required privileges to the current role with:
+         GRANT SELECT ON public.games TO service_role;"}
+```
+
+`npm run restore-games` failed all 34 batches with 0 rows written — and
+`db:verify` reported the schema **clean**, because it enumerated relations from
+PostgREST's OpenAPI document, which describes the schema and not who may read it.
+It now probes each relation with the secret key and reports
+`live.relations_readable`; a mismatch is an error naming the table.
+
+`db/grants.sql` states the privileges outright, so the schema no longer depends
+on how a given project happened to be provisioned.
 
 ### Live objects this repository does not create
 

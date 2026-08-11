@@ -10,7 +10,7 @@
 
 A single-server web app that bundles three things into one site:
 
-1. **A games hub** — **12,333 playable games** served from official/authorized embeds (16,895 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, and a community wall.
+1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,800 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
 2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **entirely in the visitor's browser**. Keyless, and **no prompt, reply or generated image ever touches this server** — that is enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks.
 
@@ -55,9 +55,13 @@ walking every page of `/api/games` against the production Supabase set:
 
 | Layer | Count | Why |
 |---|---:|---|
-| Rows loaded from Supabase `games` | **16,895** | everything ever ingested that passes RLS |
-| Visible to the public key | 16,895 | the RLS policy is exactly `is_working = true` |
-| **Actually served to visitors** | **12,333** | after provider exclusions + curation overrides |
+| Rows loaded from Supabase `games` | **16,838** | everything ever ingested |
+| Visible to the public key (`games_public`) | 16,783 | the RLS policy is exactly `is_working = true` |
+| **Actually served to visitors** | **12,330** | after provider exclusions + curation overrides |
+
+Those counts drift as the hourly link-check and the grow job run. For the live
+numbers: `npm run db:verify` for the schema side, and `curl -s
+localhost:8080/api/games?limit=1` (the `total` field) for what is actually served.
 
 ### Where the served games come from
 
@@ -345,7 +349,7 @@ The live catalog and community features live in Supabase. Fastest path once your
 npm run restore-games     # loads every game source into Supabase in one command
 ```
 
-Prefer the SQL editor? Run the files in [`db/`](db/) in the order listed by the `ORDER` array in [`tools/sync-supabase-migrations.mjs`](tools/sync-supabase-migrations.mjs) — that array *is* the canonical order, and `supabase/migrations/` is generated from it. Two things about it are load-bearing: **the teardown files run at the end** — `db/feedback.sql` retires the leaderboard by dropping `scores` and its `SECURITY DEFINER` functions and creates the private `feedback` table, then `db/schema-hardening.sql` applies the audit corrections, so both act on objects the earlier files create — and the older `community-scores-*.sql` files still run even though the leaderboard is gone: migration history is replayed forwards, not rewritten. That is also why the corrections live in a new file instead of edits to the applied ones; Supabase will not re-run a migration it has already recorded, so editing one changes the repository's account of the database without changing the database. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+Prefer the SQL editor? Paste **[`db/SCHEMA-ONLY.sql`](db/SCHEMA-ONLY.sql)** — it is all 13 migrations concatenated in dependency order, generated from the same `ORDER` array in [`tools/sync-supabase-migrations.mjs`](tools/sync-supabase-migrations.mjs) that produces `supabase/migrations/`, so it cannot drift from what the deploy applies. Assembling the schema by hand from individual `db/*.sql` files is the one thing not to do: the order is load-bearing and not alphabetical, and omitting a file is silent. Two things about that order matter: **the teardown and privilege files run at the end** — `db/feedback.sql` retires the leaderboard by dropping `scores` and its `SECURITY DEFINER` functions and creates the private `feedback` table, then `db/schema-hardening.sql` applies the audit corrections, and `db/grants.sql` runs last of all, granting privileges over whatever survived the drops (skip it and every table exists but answers `42501 permission denied`) — and the older `community-scores-*.sql` files still run even though the leaderboard is gone: migration history is replayed forwards, not rewritten. That is also why the corrections live in a new file instead of edits to the applied ones; Supabase will not re-run a migration it has already recorded, so editing one changes the repository's account of the database without changing the database. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
 
 > **`db/ALL-IN-ONE.sql`** bundles everything into a single file, but at ~6.7 MB it's far too big for Supabase's web editor — it's for direct `psql` restores only: `psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`. For everyone else, `npm run restore-games` is the one-command path.
 
@@ -368,8 +372,8 @@ Two copies of the same DDL drift silently, and the failure mode is bad — Supab
 
 | Table | Rows (live) | Purpose |
 |---|---:|---|
-| `games` | 16,913 | the catalog. RLS: public may read `is_working = true` |
-| `game_stats` | 71 | per-game play counters (179 plays recorded) |
+| `games` | 16,838 | the catalog. RLS: public may read `is_working = true` |
+| `game_stats` | 0 | per-game play counters. Empty: the database was rebuilt on a new project, so counting restarts from zero |
 | `feedback` | — | "Send feedback" messages. RLS is **insert-only**: anon/authenticated may `INSERT` and nothing else, so a message can never be read back by the public |
 | `recommendations` | 0 | the community wall |
 | `keepalive` | 1 | one row the `/healthz` probe pokes so a free-tier DB never pauses |
@@ -465,7 +469,7 @@ Static analysis of the things this project has nothing else watching for. No bui
 
 | Check | What it decides |
 |---|---|
-| `sql` | replays all 12 migrations, then holds every `.from()` / `.rpc()` / `.select()` in the runtime against the result — missing tables, missing columns, RPCs with no function, `DROP FUNCTION` that matches nothing, `SECURITY DEFINER` without a `revoke`, functions that do not pin `search_path`, tables without RLS, redundant indexes |
+| `sql` | replays all 13 migrations, then holds every `.from()` / `.rpc()` / `.select()` in the runtime against the result — missing tables, missing columns, RPCs with no function, `DROP FUNCTION` that matches nothing, `SECURITY DEFINER` without a `revoke`, functions that do not pin `search_path`, tables without RLS, redundant indexes |
 | `json` | every JSON file parses; `catalog-overrides.json` rules that contradict each other |
 | `env` | read in code vs `.env.example` vs `render.yaml`, separating required variables from tunables that carry a default |
 | `api` | routes the server registers vs paths the browser requests — in **both** directions |

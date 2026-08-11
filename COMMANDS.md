@@ -49,6 +49,22 @@ AdSense, and no separate "hub" mode.
 | `npm run add-game` | Add one game interactively. |
 | `npm run add-slope` | Add the Slope game specifically. |
 
+### Schema: applying and proving it
+
+| Command | What it does |
+|---|---|
+| `npm run db:verify` | **Ask the running database whether the deploy landed.** Compares the live schema against the migrations, and probes that every relation is actually *readable* — a table can deploy perfectly and still answer `42501 permission denied` to the app. Exit 0 means the deployed schema is this repository's. |
+| `npm run db:verify:strict` | Same, but fails on warnings too. |
+| `npm run build-schema-only` | Regenerate `db/SCHEMA-ONLY.sql` — all 13 migrations in one paste-able file. |
+| `npm run build-all-in-one` | Regenerate `db/ALL-IN-ONE.sql` — schema **plus** the whole catalog (~6.5 MB, `psql` only). |
+| `npm run check-schema-only` | Verify `db/SCHEMA-ONLY.sql` is current without writing. CI runs this. |
+| `npm run check-all-in-one` | Same for `db/ALL-IN-ONE.sql`. |
+
+> Applying the schema is one paste: **`db/SCHEMA-ONLY.sql`** into the Supabase SQL
+> Editor. Do not assemble it from individual `db/*.sql` files — the order is
+> load-bearing, and leaving one out is silent. `db/grants.sql` must run last of
+> all; without it every table exists and nothing can read it.
+
 > **If `npm run grow` "adds 0 games":** that's normal, not a bug. It only adds games
 > that aren't already in the catalog. Once your Supabase catalog already covers the
 > local source files, it correctly finds nothing new (`no new slugs in sample`). To
@@ -91,6 +107,16 @@ AdSense, and no separate "hub" mode.
 | `npm run check-ads` | Validate your ad config **before** you find out the slow way that the CSP is blocking a network (the symptom is silent: a console line and no revenue). |
 | `npm run gamezop` | Switch Gamezop URLs to our own partner id. |
 | `npm run sync-migrations` | Regenerate `supabase/migrations/` from `db/`. Add `-- --check` to verify without writing — this is what CI runs. |
+| `npm run audit:repo` | Whole-repository audit: SQL, API surface, assets, dependencies, env, JSON, performance. Reports error/warn/info. |
+| `npm run audit:sql` | The SQL half alone — replays every migration and checks the end state. |
+| `npm run audit:repo:json` | Same as `audit:repo`, machine-readable (`data/audit-report.json`). |
+| `npm run audit:ci` | The gate CI runs — fails the build on any error. |
+| `npm run quality` | Catalog quality report. |
+| `npm run verify-thumbs` | Confirm thumbnail URLs still resolve. |
+| `npm run admin-hash` | Generate the scrypt `ADMIN_PASSWORD_HASH` for `/admin`. Never store the plaintext password. |
+| `npm run css-tokens` | Check the CSS design tokens are consistent. |
+| `npm run og-sync` | Refresh Open Graph / social preview metadata. |
+| `npm test` | The full suite — 426 tests, no network, no credentials required. |
 
 ---
 
@@ -98,10 +124,19 @@ AdSense, and no separate "hub" mode.
 
 | Command | What it does |
 |---|---|
-| `npm run mood-index` | Build `data/mood-tags.json` (the mood→game index powering the AI "Vibe Finder"). Needs **Python**. |
+| `npm run mood-index` | Build `data/mood-tags.json` (the mood→game index). Needs **Python**. |
+| `npm run game-attributes` | Build `data/game-attributes.json` — scores every game on six axes (calm, pace, brainy, challenge, social, cozy) plus session length, each with a confidence weight. This is what the Vibe Finder and "For You" rank against. Needs **Python**. |
+| `npm run rec-index` | Build the title-similarity index the recommender uses. |
+| `npm run feed-rank` | Precompute feed ranking scores and demote duplicates. |
+| `npm run eval-rec` | Score the recommender against seven synthetic player profiles — fill rate, duplicates, category entropy, personalization, coverage. Averaged over 3 runs, because a single run's diversity number swings enough to make a one-shot reading meaningless. Needs **Python**. |
 
 > The AI chat itself needs no command — it runs directly in the visitor's browser
 > via Pollinations (keyless), so there is nothing to configure or run server-side.
+>
+> **There is no trained model here.** The catalog has no recorded plays, no
+> descriptions and no database tags, so there is nothing to learn from; the
+> recommender is content-based and says so. `npm run eval-rec` is how you tell
+> whether a change to it actually helped.
 
 ### The other Python tools (thumbnails)
 
@@ -176,7 +211,11 @@ Copy `.env.example` → `.env` and fill in:
 | `SUPABASE_PUBLISHABLE_KEY` | Public (browser-safe) key. |
 | `SUPABASE_SECRET_KEY` | **Server-only** admin key (cron + writes + thumbnail fetch), the new `sb_secret_…` form. Preferred. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Legacy `eyJ…` name. **The legacy pair is disabled on this project** — presenting an old key returns `401 Legacy API keys are disabled`. Do not set it. The loader mirrors `SUPABASE_SECRET_KEY` onto this name automatically, which is the only reason the CLI tools that read it still work. |
-| `SCORE_SECRET` | Signs the leaderboard proof-of-play tokens. |
+| `ADMIN_USERNAME` | Login name for `/admin`. |
+| `ADMIN_PASSWORD_HASH` | scrypt hash of the admin password — generate with `npm run admin-hash`. The plaintext is never stored. |
+| `ADMIN_SESSION_SECRET` | Signs admin session cookies **and** keys the audit log's IP HMAC. Changing it logs everyone out. |
+| `ADMIN_SECRET` | Unlocks the admin console. Without it the console fails closed. |
+| `CRON_SECRET` | Protects `/healthz`. Set the same value in your uptime monitor. |
 | `<NETWORK>_ENABLED` | Enable one of the five: `HILLTOPADS` `ADSTERRA` `MONETAG` `ADMAVEN` `POPADS`. Enabled without a script/tag renders nothing. |
 | `<NETWORK>_SCRIPT` | That network's loader URL(s), comma-separated, https only. Google URLs auto-rejected. |
 | `<NETWORK>_ZONE` | The zone / site ID the network issues. Never sent to the browser. |

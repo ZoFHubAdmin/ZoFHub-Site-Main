@@ -26,10 +26,26 @@ or a VPS.
   **one** service only so you stay under Render's 750 free hours/month.
 
 ## 2. Database (Supabase)
-- [ ] Run `db/schema.sql` (games).
-- [ ] Run `db/community.sql` (leaderboard + recommendations + the `prune_scores`
-      cap so the DB can't balloon).
-- [ ] Copy the project URL + anon key + **service-role** key for env vars below.
+- [ ] Paste **`db/SCHEMA-ONLY.sql`** into the SQL Editor and Run. One file, all 13
+      schema migrations in dependency order, idempotent — re-running is safe.
+      Do **not** paste `db/ALL-IN-ONE.sql`: at ~6.5 MB the web editor refuses it,
+      and it is meant for `psql` restores.
+- [ ] Load the catalog: `npm run restore-games` (~16,800 games over PostgREST, so
+      no database connection string is needed).
+- [ ] `npm run db:verify` — must report **0 error**. Do not skip this. Every way
+      this deploy fails is silent: a schema that never applied, an integration
+      pointed at the wrong repository, or tables that exist but no role can read
+      (see the note on grants below). Asking the database is the only check that
+      distinguishes those from success.
+- [ ] Copy the project URL and the `sb_publishable_…` + `sb_secret_…` keys from
+      Settings → API Keys for the env vars below.
+
+> **Grants are part of the schema, not an afterthought.** `CREATE TABLE` grants
+> nobody anything — a table its owner alone can read is indistinguishable from a
+> working one until something queries it. `db/grants.sql` runs last and assigns
+> the privileges explicitly rather than inheriting whatever a given project was
+> provisioned with. If you ever see `42501 permission denied for table …`, that
+> file did not run.
 
 ## 3. Environment variables (set in the host dashboard — never commit)
 | Var | Required | Notes |
@@ -38,8 +54,10 @@ or a VPS.
 | `SUPABASE_ANON_KEY` | ✓ | public/browser key (`SUPABASE_PUBLISHABLE_KEY` accepted too) |
 | `SUPABASE_SECRET_KEY` | ✓ | server-only; bypasses RLS. The new `sb_secret_…` key from Settings → API Keys — **use this one** |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | legacy `eyJ…` JWT. **Disabled on this project** — the API answers `401 Legacy API keys are disabled`. Leave unset; `SUPABASE_SECRET_KEY` is mirrored onto this name for the CLI tools |
-| `SCORE_SECRET` | ✓ | random 32+ chars; stable so score tokens survive restarts |
-| `ADMIN_SECRET` | ✓ | random 32+ chars; unlocks `/admin` to review scores the anti-cheat layer flagged/quarantined. Without it the panel fails closed and flagged scores can never be released |
+| `ADMIN_USERNAME` | ✓ | login name for `/admin` |
+| `ADMIN_PASSWORD_HASH` | ✓ | scrypt hash of the admin password — generate it with `npm run admin-hash`. The plaintext is never stored anywhere |
+| `ADMIN_SESSION_SECRET` | ✓ | random 32+ chars; signs admin session cookies **and** keys the audit log's IP HMAC. Changing it logs everyone out and breaks correlation on existing audit rows |
+| `ADMIN_SECRET` | ✓ | random 32+ chars; without it the admin console fails closed |
 | `<NETWORK>_ENABLED` | — | `1` enables one of the five. Prefixes: `HILLTOPADS` `ADSTERRA` `MONETAG` `ADMAVEN` `POPADS`. All unset = ad-free |
 | `<NETWORK>_SCRIPT` | — | that network's loader URL(s), comma-separated, https only; Google URLs auto-rejected |
 | `<NETWORK>_<SLOT>_TAG` | — | raw tag for `HEADER` / `SIDEBAR` / `FOOTER` / `INCONTENT` |
@@ -82,7 +100,11 @@ for an always-proxy games hub, in order:
 - [ ] `/api/health` returns 200.
 - [ ] Home loads; click a game → it plays without a refresh; Fullscreen on one line.
 - [ ] Mobile: hamburger menu works; layout fits phone + iPad.
-- [ ] Leaderboard: submit a score in a game → appears on `/leaderboard`.
+- [ ] Vibe Finder: type "something calm I can play in 10 minutes" → returns games,
+      and each one shows why it was picked.
+- [ ] "For You" fills after playing a few games, and no single category owns the row.
+- [ ] Admin: log in at `/admin`; confirm a logged-out request to
+      `/api/admin/dashboard` returns **401**, not 200.
 - [ ] `/browser` loads and `/api/site-config` shows `"proxy": true` (always-on proxy).
 
 ## 6. Domain & DNS

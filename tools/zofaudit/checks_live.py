@@ -166,6 +166,51 @@ def run(report) -> None:
                 CHECK, 'info', f'{name}.{c} exists live but no migration creates it',
                 detail='A rebuild from this repository would not produce this column.'))
 
+    # ── The server's own key must be able to READ what the migrations create ─
+    # CREATE TABLE grants nobody anything. A relation whose privileges were never
+    # granted is indistinguishable, in every catalog the checks above read, from
+    # a working one — the OpenAPI document lists relations from the SCHEMA, so it
+    # reports them present no matter who may actually touch them.
+    #
+    # That gap is not theoretical, and this check is here because it was missed.
+    # Twelve tables once deployed cleanly and then answered `42501 permission
+    # denied` to every request the application made, while this file reported
+    # 0 errors and `npm run restore-games` wrote 0 rows across 34 batches. The
+    # schema was correct; nothing could read it. Existence and reachability are
+    # different questions and only the first one was being asked.
+    unreachable: list[str] = []
+    readable = 0
+    for name in sorted(live_rel & want_rel):
+        try:
+            _get(f'{base}/rest/v1/{name}?select=*&limit=1', secret)
+            readable += 1
+        except urllib.error.HTTPError as e:
+            # Match on the SQLSTATE, not the HTTP status. PostgREST reports the
+            # same `42501 permission denied` as 401 for the anonymous role and
+            # 403 for an authenticated one, so a status-only test silently misses
+            # half the cases — and which half depends on which key is configured.
+            # Anything else (404, 416, …) is a different problem that the checks
+            # above already report, so counting it here would double-report.
+            try:
+                code = json.loads(e.read() or b'{}').get('code')
+            except (ValueError, OSError):
+                code = None
+            if code == '42501' or e.code in (401, 403):
+                unreachable.append(name)
+            else:
+                readable += 1
+        except (urllib.error.URLError, OSError):
+            continue
+    report.fact('live.relations_readable', readable)
+    for name in unreachable:
+        report.add(Finding(
+            CHECK, 'error', f'{name} exists but the secret key cannot read it',
+            detail='PostgREST answers 42501 "permission denied for table". The relation\n'
+                   'deployed and its GRANT did not, so every application query against it\n'
+                   'fails while the schema itself looks correct.\n'
+                   'Fix: re-run db/grants.sql — it is the final migration and assigns\n'
+                   'privileges over whatever the drops leave behind.'))
+
     # ── The browser-facing key must not be able to read private tables ──────
     # This is the one property that cannot be checked from the files at all:
     # RLS is only true or false of a running database.

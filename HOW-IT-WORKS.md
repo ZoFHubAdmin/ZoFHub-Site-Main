@@ -34,16 +34,24 @@ A single long-running program (built with **Express**). It:
 A hosted Postgres database. The main tables:
 - **`games`** — every game (`slug` = short name, `title`, `game_url` = the
   game's address, `thumbnail_url` = its picture, `category`, `is_working`).
-- **`scores`** — leaderboard entries (one best score per player per game).
 - **`recommendations`** — community "you should add this" submissions.
 - **`game_stats`** — play counts, so they survive restarts.
+- **`feedback`** — messages from the contact form. Write-only to the public; only
+  the server can read them.
+- **`admin_sessions`, `admin_audit_logs`, `admin_login_attempts`,
+  `admin_security_events`** — the admin console's session store and append-only
+  audit trail.
 - **`keepalive`** — a one-row heartbeat that stops a free-tier DB from pausing.
-You set these up by pasting the files in `db/` into Supabase's SQL Editor,
-**in order** (see `db/RUN-IN-ORDER.md`): `schema.sql` (games) →
-`community.sql` (scores + recommendations) → optional `stats.sql` + `keepalive.sql`
-→ then the numbered `load-*.sql` game loaders (split into small `-partNN.sql`
-files so the editor saves them reliably; each prints a running count as proof it
-saved). Or just run `npm run restore-games` to load every source at once.
+
+There used to be a `scores` table and a leaderboard. It was retired:
+`db/feedback.sql` drops the table and its functions, so a fresh database never
+keeps one.
+
+Setting it up is one paste: **`db/SCHEMA-ONLY.sql`** into Supabase's SQL Editor
+→ Run. That file is generated from the canonical migration order, so it cannot
+drift from what the deploy applies. Then `npm run restore-games` loads the
+catalog, and `npm run db:verify` proves the schema actually landed — including
+that the tables are *readable*, which is not the same thing as existing.
 
 ### 3. The catalog (the list of games shown on the homepage)
 - On startup the server loads **all working games into memory** (a fast in-memory
@@ -57,9 +65,11 @@ saved). Or just run `npm run restore-games` to load every source at once.
 ### 4. The pages (what the visitor sees) — in `public/`
 - `index.html` — homepage grid (built by `js/catalog.js`).
 - `game.html` — the template for every `/play/<game>` page (the player + the game
-  iframe + leaderboard). Filled in per-game by the server.
+  iframe). Filled in per-game by the server.
+- `category.html` — one category's grid.
 - `ai.html` — the AI assistant chat (`js/ai.js`).
-- `community.html`, `leaderboard.html` — community + global high scores.
+- `community.html` — community submissions.
+- `credits.html`, `404.html` — attribution and the not-found page.
 - `browser.html` / `gust/` — the proxy browser (only on the proxy deployment).
 - `css/` styles, `js/` behavior. `js/layout.js` runs on every page (header,
   footer, mobile menu, ads).
@@ -111,16 +121,20 @@ When you click a tile you go to `/play/<game>`. The game shows inside an
   GameMonetize/GameDistribution — and pay you separately.)
 
 ### 9. The background jobs (`lib/cron-jobs.mjs`) — the night shift
-Seven tasks the server runs on a schedule, so the catalog stays healthy without
+Eight tasks the server runs on a schedule, so the catalog stays healthy without
 you touching it:
 - **link-check** (hourly) — hides games whose link is truly dead (404/410).
-- **grow** — adds new verified games over time.
-- **y8-sync** (weekly) — re-scrapes Y8's embed directory and refreshes the games.
-- **scores-prune** (daily) — trims the leaderboard to the top 200 per game so the
-  database can't balloon.
+- **grow** (hourly trigger, 3-day gate inside) — adds render-verified games over time.
+- **y8-sync** (Sundays) — re-scrapes Y8's embed directory and refreshes the games.
 - **keepalive** (daily) — writes a heartbeat row so a free-tier Supabase project
   never hits its inactivity pause.
-- **health** + **rec-cleanup** — housekeeping.
+- **retention** (daily) — trims the admin logs. The function it calls floors its
+  own arguments, so this can shrink the audit trail but never erase it.
+- **orphan-stats** (Mondays) — clears play counters for games that no longer exist.
+- **health** + **rec-cleanup** (daily) — housekeeping.
+
+Run more than one replica and they all share one database, so set
+`CRON_DISABLED=1` on every replica but one.
 
 ### 10. One deployment — always a proxy site
 ZoFHub deploys **once**, as a single always-on proxy site (the web proxy is never

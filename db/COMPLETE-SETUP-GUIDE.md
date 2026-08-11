@@ -20,25 +20,36 @@ npm run restore-games
 ```
 
 Loads every game source into Supabase at once. This is how the live database
-(~16,791 working games) was populated.
+(~16,800 games) was populated.
 
-**B) Supabase SQL Editor (manual)** — paste + Run each file in this order:
+**B) Supabase SQL Editor (manual)** — two pastes:
 
-1. `schema.sql` — the `games` table + `games_public` view *(required, once)*
-2. `community.sql` — `scores` + `recommendations` *(required, once)*
-3. `community-scores-integrity.sql` — leaderboard anti-cheat: quarantine column,
-   tightened RLS, and the cleanup functions *(required for the leaderboard)*
-4. `stats.sql` — `game_stats` for persistent play counts *(optional)*
-5. `keepalive.sql` — heartbeat row for free-tier uptime *(optional)*
-6. Every `load-*.sql` game loader — big ones are split into `-partNN.sql`;
+1. **`SCHEMA-ONLY.sql`** — the entire schema, all 13 migrations in dependency
+   order, idempotent *(once; safe to re-run)*.
+2. Every `load-*.sql` game loader — big ones are split into `-partNN.sql`;
    run the parts in numeric order. All are idempotent upserts, so re-running is safe.
+
+Do **not** assemble the schema from the individual `db/*.sql` files. The order is
+load-bearing and not alphabetical, and picking a subset silently omits
+`grants.sql` — which leaves every table existing but unreadable. See
+[RUN-IN-ORDER.md](RUN-IN-ORDER.md).
 
 ## Verify
 
-```sql
-select count(*) from public.games;          -- total rows
-select count(*) from public.games_public;   -- working games shown on the site  (~16,791)
+```bash
+npm run db:verify        # the real check — schema match AND reachability
 ```
+
+Or in SQL:
+
+```sql
+select count(*) from public.games;          -- total rows                       (~16,800)
+select count(*) from public.games_public;   -- working games shown on the site  (~16,760)
+```
+
+A row count run in the SQL editor executes as the table owner, so it succeeds
+even when the application's role has no privileges at all. `db:verify` connects
+the way the app does, which is why it catches that and a bare `count(*)` cannot.
 
 ## After loading
 - Restart the server (`npm run restart`) or wait up to 30 min — the catalog
