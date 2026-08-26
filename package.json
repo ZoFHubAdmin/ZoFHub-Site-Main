@@ -64,7 +64,8 @@
     "css-tokens": "node tools/css-tokens.mjs",
     "og-sync": "node tools/sync-onlinegames.mjs",
     "game-attributes": "node tools/run-python.mjs tools/build-game-attributes.py",
-    "eval-rec": "node tools/run-python.mjs tools/eval-recommendations.py"
+    "eval-rec": "node tools/run-python.mjs tools/eval-recommendations.py",
+    "verify-catalog": "node --use-system-ca tools/verify-catalog.mjs"
   },
   "engines": {
     "node": ">=22"

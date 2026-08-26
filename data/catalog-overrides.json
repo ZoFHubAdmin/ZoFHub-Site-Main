@@ -18060,6 +18060,139 @@
     },
     {
       "slug": "suroi"
+    },
+    {
+      "_note": "DEAD GAMES verified 2026-08-26 by tools/verify-catalog.mjs (full sweep of all 12,346 served games) and re-probed 3x each. 33 of 12,346 were genuinely broken — 0.27%. Reasons: 17 hard 404, 11 connection reset, 3 soft-404, 1 framing-blocked, 1 HTTP 403. Re-run `npm run verify-catalog -- --all` to re-check; delete a rule if a publisher restores the game.",
+      "slug": "strainz",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "tonkwars-io",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "teen-g",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "vex-x3m",
+      "_why": "HTTP 200 whose body is GameDistribution’s \"Not found at origin!\" page"
+    },
+    {
+      "slug": "the-one-bullet",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "b",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "decor-my-t",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "multiplayer-battle-royale",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "angry-boss-torture",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "command-strike-fps-2",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "pro-fairy-princess-dress-up-vs-witch-makeup",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "basket-clash",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "pancake-pile",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "blonde-sofia-e",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "motorbike-beach-festival",
+      "_why": "HTTP 200 whose body is GameDistribution’s \"Not found at origin!\" page"
+    },
+    {
+      "slug": "deathmatch-combat-io",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "anti",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "sniper-traffic-hunter",
+      "_why": "HTTP 200 whose body is GameDistribution’s \"Not found at origin!\" page"
+    },
+    {
+      "slug": "carnival-balloon-shoot-challenge",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "battle-robot-t",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "dress-up-for-girls",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "mini-tanks-io",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "pinball-machine",
+      "_why": "HTTP 403 on 3/3 attempts"
+    },
+    {
+      "slug": "last-resistance",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "among-arena",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "e",
+      "_why": "serves X-Frame-Options that forbids framing — renders as a blank iframe"
+    },
+    {
+      "slug": "hospital-e",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "bullet-stop-3d",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "planet-clicker",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "crazy-match",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "boxing-master-3d",
+      "_why": "connection reset by the CDN on 3/3 attempts (ECONNRESET; reproduced with curl, while other games on the same host return 200)"
+    },
+    {
+      "slug": "ice",
+      "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "slug": "space-match",
+      "_why": "upstream returns 404 on 3/3 attempts"
     }
   ],
   "featured": [

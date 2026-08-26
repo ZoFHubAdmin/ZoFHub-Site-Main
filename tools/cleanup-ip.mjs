@@ -22,7 +22,7 @@
 
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -30,7 +30,7 @@ const ROOT = join(__dirname, '..');
 // ---------- blocklist ----------
 // Each entry: [label, pattern].  Patterns match against title (case-insensitive)
 // or against tags / source URL.  Word boundaries used to avoid false positives.
-const BLOCK = [
+export const BLOCK = [
   // Rockstar / Take-Two
   ['Rockstar — GTA',          /\bgta\b/i],
   ['Rockstar — GTA',          /grand\s*theft\s*auto/i],
@@ -263,7 +263,7 @@ const BLOCK = [
 ];
 
 // Pirate / unauthorized mirror hosts — remove ANY entry whose URL is on these.
-const BLOCK_HOSTS = [
+export const BLOCK_HOSTS = [
   /\bduckmath\.org\b/i,
   /\bunblockedgames\b/i,
   /\b1v1\.lol\b/i,
@@ -274,7 +274,7 @@ const BLOCK_HOSTS = [
 // (e.g. https://smashkarts.io/) rather than a licensed iframe embed.  They
 // almost always send X-Frame-Options: DENY, so they show a blank frame on /play.
 // Drop any entry whose URL is the bare hostname of a competitor game studio.
-const BLOCK_BARE_HOSTS = new Set([
+export const BLOCK_BARE_HOSTS = new Set([
   'smashkarts.io',
   'deadshot.io',
   'lolbeans.io',
@@ -311,12 +311,12 @@ function looksFakeGdId(id) {
 }
 
 // ---------- helpers ----------
-function titleMatches(title) {
+export function titleMatches(title) {
   if (!title) return null;
   for (const [label, re] of BLOCK) if (re.test(title)) return label;
   return null;
 }
-function urlMatches(url) {
+export function urlMatches(url) {
   if (!url) return null;
   for (const re of BLOCK_HOSTS) if (re.test(url)) return 'pirate-host: ' + url.match(re)[0];
   // Bare hostname check — strip protocol/path/trailing slash, lowercase host
@@ -333,7 +333,7 @@ function urlMatches(url) {
   }
   return null;
 }
-function tagsMatch(tags) {
+export function tagsMatch(tags) {
   if (!tags) return null;
   const s = Array.isArray(tags) ? tags.join(' ') : String(tags);
   // Only check tags for the most blatant trademarks — the title check already
@@ -377,6 +377,13 @@ function cleanArray(arr, label) {
 }
 
 // ---------- run ----------
+// GUARDED. Everything below REWRITES master_games.json, somethingrandom.json and
+// data/top_games.json in place and overwrites cleanup-ip.report.json. Without
+// this guard that happened on plain `import` — importing the BLOCK list to reuse
+// it elsewhere silently rewrote three source catalogs and blanked a committed
+// 45-row report to []. A module whose exports are worth reusing must not do its
+// work just because someone read it.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 const files = [
   { path: 'master_games.json',      label: 'master_games.json' },
   { path: 'somethingrandom.json',   label: 'somethingrandom.json' },
@@ -399,4 +406,5 @@ for (const f of files) {
 writeFileSync(join(ROOT, 'tools', 'cleanup-ip.report.json'),
               JSON.stringify(allDropped, null, 2), 'utf8');
 console.log(`\nFull list of dropped entries → tools/cleanup-ip.report.json (${allDropped.length} rows)`);
-console.log('Next:  node tools/build-supabase.mjs');
+console.log('Next:  npm run migrate:dry  (then npm run migrate)');
+}
