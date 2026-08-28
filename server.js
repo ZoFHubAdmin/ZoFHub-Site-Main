@@ -169,6 +169,14 @@ const { rankByVibe, targetsFromGame } = await import('./lib/vibe-engine.mjs');
 // and the proxy boundary that must not. See lib/ad-providers.mjs.
 const { resolveAdConfig, adOrigins, publicAdConfig, adminAdConfig, isAdSurface } =
   await import('./lib/ad-providers.mjs');
+// GameFlare: a supplied, self-contained catalog kept OUT of the main CATALOG.
+// It is a separate source of truth with its own eligibility rule, and the main
+// catalog blocks gameflare.com host-wide at the serve layer, so merging the two
+// would put each one's rules in the other's way. See lib/gameflare-catalog.mjs.
+const { parseCatalog: parseGameflare, filterGames: filterGameflare,
+        findBySlug: findGameflareBySlug, categoriesOf: gameflareCategories,
+        parseCandidates: parseGameflareCandidates } =
+  await import('./lib/gameflare-catalog.mjs');
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -517,6 +525,82 @@ try {
       + 'matching only. Build it with: npm run game-attributes');
   }
 } catch (e) { console.warn('[zofhub] game-attributes load failed:', e.message); }
+
+// ------------------------------------------------------------------------
+// GameFlare — supplied dataset, parsed and validated ONCE at boot.
+//
+// Parsed here rather than per request because the file is 1.4 MB and never
+// changes while the process runs. The parse cannot throw (see the module), so a
+// malformed or missing file leaves GAMEFLARE.ok false and every route below
+// renders a first-party unavailable state instead of failing.
+//
+// As supplied this yields ZERO public games — 298 traceability records, none of
+// them verified_working. That is the dataset's own verdict
+// (integration_readiness.ready_for_public_catalog = false), and the empty
+// catalog is the correct output, not a defect.
+let GAMEFLARE = { ok: false, error: 'not loaded', dataset: null, games: [], counts: null, rejected: [] };
+try {
+  const gfFile = join(__dirname, 'data', 'gameflare_verified_games.json');
+  if (existsSync(gfFile)) {
+    GAMEFLARE = parseGameflare(readFileSync(gfFile, 'utf8'));
+    if (!GAMEFLARE.ok) {
+      console.warn(`[gameflare] dataset rejected: ${GAMEFLARE.error} — catalog will show as unavailable`);
+    } else {
+      const c = GAMEFLARE.counts;
+      console.log(`[gameflare] ${c.records} record(s), ${c.eligible} playable`
+        + `${c.eligible === 0 ? ' — public catalog is empty by design' : ''}`
+        + ` (excluded ${c.excludedByStatus}, invalid ${c.rejectedInvalid}, duplicate ${c.duplicates})`);
+    }
+  } else {
+    GAMEFLARE = { ...GAMEFLARE, error: 'data/gameflare_verified_games.json not present' };
+    console.log('[gameflare] no data/gameflare_verified_games.json — /gameflare shows an empty catalog.');
+  }
+} catch (e) {
+  GAMEFLARE = { ok: false, error: e.message, dataset: null, games: [], counts: null, rejected: [] };
+  console.warn('[gameflare] load failed:', e.message);
+}
+
+// The candidate pool the verification pipeline draws from — structurally valid
+// records regardless of verification status. These are NEVER served publicly.
+// The only way to reach one is the player route's verification preview, which
+// requires GAMEFLARE_VERIFY_TOKEN; with that variable unset the preview does not
+// exist at all and this pool is inert.
+let GAMEFLARE_CANDIDATES = [];
+try {
+  const gfFile = join(__dirname, 'data', 'gameflare_verified_games.json');
+  if (existsSync(gfFile)) {
+    // Embed URLs recovered from GameFlare's own published embed code, as an
+    // overlay. It only fills records the dataset left null, and it grants no
+    // eligibility whatsoever: a recovered URL makes a record TESTABLE, and the
+    // public catalog still requires iframe_compatibility.status to be exactly
+    // "verified_working", which only a browser run can produce.
+    const embedOverlay = new Map();
+    const discFile = join(__dirname, 'data', 'gameflare-embed-discovery.json');
+    if (existsSync(discFile)) {
+      const disc = JSON.parse(readFileSync(discFile, 'utf8'));
+      for (const r of disc.results || []) {
+        if (r.status === 'embed_url_found' && r.embedUrl) embedOverlay.set(r.slug, r.embedUrl);
+      }
+    }
+    const { candidates, counts } = parseGameflareCandidates(readFileSync(gfFile, 'utf8'), { embedOverlay });
+    GAMEFLARE_CANDIDATES = candidates;
+    console.log(`[gameflare] candidate pool: ${counts.usable} verifiable of ${counts.considered}`
+      + ` (${counts.unusable} have no usable embed URL, ${counts.fromOverlay} recovered)`);
+  }
+} catch (e) { console.warn('[gameflare] candidate pool failed:', e.message); }
+
+// Verification preview token. Unset (the default, including production) means
+// the preview path is disabled outright rather than merely unlikely to be
+// guessed — an operator turns it on for a verification run and off afterwards.
+const GAMEFLARE_VERIFY_TOKEN = (process.env.GAMEFLARE_VERIFY_TOKEN || '').trim();
+
+/** Constant-time token check. Returns false when the feature is disabled. */
+function gameflareVerifyAllowed(req) {
+  if (!GAMEFLARE_VERIFY_TOKEN) return false;
+  const supplied = String(req.get('x-gameflare-verify') || req.query.verify || '');
+  if (supplied.length !== GAMEFLARE_VERIFY_TOKEN.length) return false;
+  return timingSafeEqual(Buffer.from(supplied), Buffer.from(GAMEFLARE_VERIFY_TOKEN));
+}
 
 // ------------------------------------------------------------------------
 // Feed ranking artifact, from tools/analyze-catalog.py (npm run feed-rank).
@@ -2972,6 +3056,32 @@ app.get('/api/admin/analytics', (req, res) => {
 // ads billed to this publisher. Admin sessions are legitimate, but there is no
 // reason for a tag to travel to a browser, sit in a response cache, or land in a
 // screenshot, so it never leaves the server. adminAdConfig() enforces that shape.
+// GameFlare audit view — the ONLY place the excluded candidates are visible.
+//
+// The public API returns eligible games and nothing else, so failure evidence,
+// legal notes and the test-harness origin never reach a visitor. An operator
+// still needs to see why 298 records produced 0 playable games, and this is the
+// authenticated surface for that. It reports COUNTS and reasons, not the raw
+// records, so the evidence blobs stay out of any response.
+app.get('/api/admin/gameflare-audit', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.set('Cache-Control', 'private, no-store');
+  if (!GAMEFLARE.ok) {
+    return res.json({ ok: false, error: GAMEFLARE.error, counts: null });
+  }
+  res.json({
+    ok: true,
+    dataset: GAMEFLARE.dataset,
+    counts: GAMEFLARE.counts,
+    publicCatalogEmpty: GAMEFLARE.counts.eligible === 0,
+    // Why each rejected record failed, without the record itself.
+    rejected: GAMEFLARE.rejected.slice(0, 200),
+    note: 'Only iframe_compatibility.status === "verified_working" inside the top-level '
+        + '`games` array is publicly exposable. Commercial use is NOT verified in this '
+        + 'dataset; external advertising around these embeds stays disabled.',
+  });
+});
+
 app.get('/api/admin/ads', (req, res) => {
   // adminGate only RESOLVES an identity; it does not enforce. Every admin route
   // has to call requireAdmin itself, and omitting it does not fail loudly — the
@@ -5084,6 +5194,81 @@ app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')
 // /gust/vendor/ and are served by the static mount above).
 app.get(['/gust', '/proxy'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'gust', 'index.html')));
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
+
+// ========================================================================
+// GameFlare — catalog + internal player.
+//
+// Deliberately NOT routed through /play/:slug. That route sends Y8, HTMLGames
+// and Famobi through the embed proxy (see injectGdReferrer and the isY8 branch
+// below it), and the supplied dataset's embedding policy forbids proxying,
+// mirroring or modifying a GameFlare embed. Reusing it would break that rule
+// silently the moment PROXY_ENABLED is on, so GameFlare gets its own player
+// whose iframe src is the exact embed_url and nothing else.
+//
+// Both routes serve static HTML; the data arrives from /api/gameflare/games.
+app.get('/gameflare', (req, res) => res.sendFile(join(PUBLIC_DIR, 'gameflare.html')));
+app.get('/gameflare/play/:slug', (req, res) => res.sendFile(join(PUBLIC_DIR, 'gameflare-play.html')));
+
+// The public payload. Only eligible games ever appear here, so the client
+// cannot render an unverified candidate even if it tried — the data is simply
+// not in the response.
+app.get('/api/gameflare/games', (req, res) => {
+  if (!GAMEFLARE.ok) {
+    return res.status(503).json({
+      ok: false,
+      error: 'catalog_unavailable',
+      // Public-facing text: no parser internals, no file paths, no evidence.
+      message: 'The game catalog is temporarily unavailable.',
+      games: [], categories: [],
+    });
+  }
+  const games = filterGameflare(GAMEFLARE.games, {
+    q: typeof req.query.q === 'string' ? req.query.q.slice(0, 100) : '',
+    category: typeof req.query.category === 'string' ? req.query.category.slice(0, 60) : '',
+    developer: typeof req.query.developer === 'string' ? req.query.developer.slice(0, 60) : '',
+    sort: typeof req.query.sort === 'string' ? req.query.sort : 'rank',
+  });
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    ok: true,
+    dataset: GAMEFLARE.dataset,
+    total: GAMEFLARE.games.length,
+    count: games.length,
+    categories: gameflareCategories(GAMEFLARE.games),
+    games,
+  });
+});
+
+// One game, for the internal player. 404 rather than a redirect: an ineligible
+// or unknown slug must land on a first-party state, never on gameflare.com.
+app.get('/api/gameflare/games/:slug', (req, res) => {
+  if (!GAMEFLARE.ok) {
+    return res.status(503).json({ ok: false, error: 'catalog_unavailable',
+      message: 'The game catalog is temporarily unavailable.' });
+  }
+  const game = findGameflareBySlug(GAMEFLARE.games, req.params.slug);
+  if (game) {
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({ ok: true, game });
+  }
+
+  // Verification preview. The browser worker needs the REAL player route to load
+  // a candidate that is not yet verified — testing a bespoke harness page would
+  // verify the harness, not the product (spec §12). This is the narrowest way to
+  // allow that: same route, same script, same iframe, same CSS, and a candidate
+  // is reachable only with the operator's token. Never cached, and flagged in
+  // the payload so the player can label itself.
+  if (gameflareVerifyAllowed(req)) {
+    const candidate = findGameflareBySlug(GAMEFLARE_CANDIDATES, req.params.slug);
+    if (candidate) {
+      res.set('Cache-Control', 'private, no-store');
+      return res.json({ ok: true, game: candidate, preview: true });
+    }
+  }
+
+  return res.status(404).json({ ok: false, error: 'not_found',
+    message: 'This game is not available.' });
+});
 
 // ========================================================================
 // Legal pages — Privacy / Terms / DMCA / Cookies.

@@ -114,3 +114,7 @@ logs/
 # untrack the ~2,500 files already following. It only stops NEW package
 # directories being added by accident.
 node_modules
+
+# Browser-verification screenshots. Real evidence, but regenerated on every
+# run and not something the deploy needs. Retention is handled by the runner.
+verification-evidence/

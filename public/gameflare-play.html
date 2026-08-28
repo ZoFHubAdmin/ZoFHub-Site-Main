@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <title>Play · ZoFHub</title>
+  <meta name="robots" content="noindex,follow" />
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="/css/main.css?v=20260801a" />
+  <link rel="stylesheet" href="/css/gameflare.css?v=20260814" />
+</head>
+<body class="page-gameflare-play">
+
+  <a class="skip-link" href="#gf-player-main">Skip to player</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav" aria-label="Primary">
+        <a href="/gameflare">GameFlare</a>
+        <a href="/">Games</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="gf-player-main" class="gf-player-main">
+
+    <!-- ADVERTISING SLOT — ABOVE the player, outside the frame.
+         Intentionally empty and rendered by nothing. The supplied dataset marks
+         commercial_use as "not_verified" and external ads around the embed as
+         "unclear; do not show external advertising around GameFlare embeds
+         unless written permission is obtained". This element exists so that a
+         future authorised banner has a lawful place to go that does not overlay
+         the iframe — it is not a hook anything currently writes to. -->
+    <div class="gf-ad-slot" data-gf-ad="above" hidden></div>
+
+    <nav class="gf-breadcrumb" aria-label="Breadcrumb">
+      <a href="/gameflare">← Back to catalog</a>
+    </nav>
+
+    <div class="gf-player-head">
+      <h1 class="gf-player-title" id="gf-title">Loading…</h1>
+      <p class="gf-player-meta" id="gf-meta"></p>
+      <button type="button" class="gf-fullscreen" id="gf-fullscreen" hidden>Fullscreen</button>
+    </div>
+
+    <p class="gf-status" id="gf-player-status" role="status" aria-live="polite"></p>
+
+    <!-- The frame lives alone in here. Nothing is ever layered over it: no
+         overlay, no floating control, no interstitial. The GameFlare bottom bar
+         renders inside the frame and must stay visible. -->
+    <div class="gf-stage" id="gf-stage"></div>
+
+    <section class="gf-player-state" id="gf-state" hidden>
+      <h2 id="gf-state-title"></h2>
+      <p id="gf-state-body"></p>
+      <div class="gf-state-actions">
+        <button type="button" class="gf-retry" id="gf-retry" hidden>Try again</button>
+        <a class="gf-link" href="/gameflare">Back to catalog</a>
+      </div>
+    </section>
+
+    <!-- ADVERTISING SLOT — BELOW the player. Same rules as above. -->
+    <div class="gf-ad-slot" data-gf-ad="below" hidden></div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p class="footer-legal">
+        This game is served by GameFlare inside an embedded frame. ZoFHub does not
+        host, mirror, proxy or modify it.
+      </p>
+    </div>
+  </footer>
+
+  <script src="/js/gameflare-player.js?v=20260814" defer></script>
+</body>
+</html>

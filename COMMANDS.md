@@ -87,6 +87,42 @@ AdSense, and no separate "hub" mode.
 
 ---
 
+## 🕹️ GameFlare verification (separate from the main catalog)
+
+GameFlare is a self-contained dataset in `data/gameflare_verified_games.json`,
+kept out of `CATALOG` with its own eligibility rule. **Nothing from it is served
+publicly until a browser run marks it `verified_working`** — as supplied, that
+is zero games.
+
+| Command | What it does |
+|---|---|
+| `npm run gameflare:embeds` | Reads each game page and extracts the embed URL **GameFlare itself publishes** in its "Embed code" widget. Writes `data/gameflare-embed-discovery.json`. Never constructs a URL from a slug. |
+| `npm run gameflare:embeds -- --slug NAME` | Just one game. |
+| `npm run gameflare:embeds -- --recheck` | Re-visit games already resolved (they are skipped by default). |
+| `npm run gameflare:verify` | Real Chromium: opens the site's own player route, clicks Play, sits through the ad, then checks whether a game actually came up. Writes `data/gameflare-verification.json` + `verification-evidence/`. |
+| `npm run gameflare:verify -- --slug a,b,c` | Verify specific games. |
+| `npm run gameflare:verify -- --resume` | Keep earlier results and only test what is missing. |
+
+⚠️ **Leave concurrency at 1.** It is a correctness setting, not a speed knob.
+Every candidate sits through a real pre-roll video ad, and parallel browsers
+starve each other's video decode. Measured on the same nine games: observed ad
+duration went **32s at 1 → 35–55s at 2 → ~70s at 3**, and titles that pass on
+their own (`sprunki-phase-6`) time out or report blank when run alongside
+others. Raising it manufactures false negatives. Budget ~75 s per candidate.
+
+**Both need `npm install --include=dev` and `npx playwright install chromium`.**
+Playwright is a devDependency and Render builds with `--omit=dev`, so **neither
+runs on the deployed service** — that is deliberate. Run them locally, or use the
+`GameFlare verification` GitHub Actions workflow (manual trigger).
+
+**Reading the results:** a candidate passes only with screenshot evidence, and
+the screenshots are the point. Three separate rounds of false positives — a black
+frame, a pre-roll video ad, and a loading splash with a banner on it — were each
+caught by opening `verification-evidence/<slug>/` and looking. Do that before
+believing any pass.
+
+---
+
 ## 🧹 Auditing & maintenance
 
 | Command | What it does |

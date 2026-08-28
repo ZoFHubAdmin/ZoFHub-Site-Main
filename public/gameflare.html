@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="GameFlare catalog on ZoFHub — games verified for embedding." />
+  <title>GameFlare Catalog · ZoFHub</title>
+  <!-- Not indexed: with no verified entries this page is an empty state, and an
+       empty page in search results helps nobody. Remove when the catalog fills. -->
+  <meta name="robots" content="noindex,follow" />
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="/css/main.css?v=20260801a" />
+  <link rel="stylesheet" href="/css/gameflare.css?v=20260814" />
+</head>
+<body class="page-gameflare">
+
+  <a class="skip-link" href="#gf-main">Skip to catalog</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav" aria-label="Primary">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="gf-main" class="gf-main">
+    <h1 class="gf-title">GameFlare Catalog</h1>
+    <p class="gf-sub" id="gf-subtitle">Games verified as embeddable.</p>
+
+    <!-- Controls are hidden until there is something to control. Rendering a
+         search box over an empty catalog invites the reader to believe their
+         query failed rather than that the catalog is empty. -->
+    <form class="gf-controls" id="gf-controls" role="search" aria-label="Filter the catalog" hidden>
+      <div class="gf-field">
+        <label for="gf-search">Search by title</label>
+        <input type="search" id="gf-search" name="q" autocomplete="off" placeholder="Game name…" />
+      </div>
+      <div class="gf-field">
+        <label for="gf-category">Category</label>
+        <select id="gf-category" name="category"><option value="">All categories</option></select>
+      </div>
+      <div class="gf-field" id="gf-developer-field" hidden>
+        <label for="gf-developer">Developer</label>
+        <select id="gf-developer" name="developer"><option value="">All developers</option></select>
+      </div>
+      <div class="gf-field">
+        <label for="gf-sort">Sort by</label>
+        <select id="gf-sort" name="sort">
+          <option value="rank">Ranking</option>
+          <option value="rating">Rating</option>
+          <option value="plays">Play count</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
+      </div>
+    </form>
+
+    <!-- Status changes are announced, but politely: a screen-reader user typing
+         in the search box must not be interrupted on every keystroke. -->
+    <p class="gf-status" id="gf-status" role="status" aria-live="polite"></p>
+
+    <ul class="gf-grid" id="gf-grid" aria-labelledby="gf-subtitle"></ul>
+
+    <section class="gf-empty" id="gf-empty" hidden>
+      <h2 id="gf-empty-title">No games are currently available in this catalog.</h2>
+      <p id="gf-empty-body">
+        Entries appear here only after their embed has been verified as working.
+        Nothing in the supplied dataset has passed that check yet.
+      </p>
+      <p><a class="gf-link" href="/">Browse the main ZoFHub catalog</a></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p class="footer-legal">
+        Games are served from GameFlare. ZoFHub does not host, mirror or modify them.
+      </p>
+    </div>
+  </footer>
+
+  <script src="/js/gameflare-catalog.js?v=20260814" defer></script>
+</body>
+</html>

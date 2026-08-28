@@ -1,0 +1,190 @@
+/* public/css/gameflare.css — GameFlare catalog + internal player.
+   --------------------------------------------------------------------------
+   Layered on top of main.css and reusing its tokens rather than redefining a
+   palette, so this section inherits the site's theme instead of drifting from
+   it. Every selector is prefixed .gf- (or scoped to the two page classes) so
+   nothing here can reach the main catalog by accident.
+
+   The one structural rule worth stating in CSS: nothing is ever positioned over
+   .gf-frame. No overlay, no floating control, no ad. The GameFlare bottom bar
+   renders at the bottom of that frame and must stay visible and clickable.
+   -------------------------------------------------------------------------- */
+
+.gf-main,
+.gf-player-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.gf-title {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  margin: 0 0 .25rem;
+  text-wrap: balance;
+}
+.gf-sub { margin: 0 0 1.5rem; opacity: .8; }
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+.gf-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.gf-field { display: flex; flex-direction: column; gap: .35rem; min-width: 12rem; flex: 1 1 12rem; }
+.gf-field label { font-size: .8rem; font-weight: 600; letter-spacing: .02em; opacity: .85; }
+.gf-field input,
+.gf-field select {
+  font: inherit;
+  padding: .55rem .7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .06);
+  color: inherit;
+}
+.gf-field input:focus-visible,
+.gf-field select:focus-visible,
+.gf-play:focus-visible,
+.gf-retry:focus-visible,
+.gf-fullscreen:focus-visible,
+.gf-link:focus-visible {
+  outline: 3px solid #eaff00;
+  outline-offset: 2px;
+}
+
+.gf-status { min-height: 1.25rem; margin: 0 0 1rem; font-size: .9rem; opacity: .85; }
+
+/* ── Grid ───────────────────────────────────────────────────────────────── */
+.gf-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.gf-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+.gf-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: rgba(0, 0, 0, .25);
+}
+/* Replaces only the broken image, never the card. */
+.gf-thumb-missing {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, .55);
+  font-size: .8rem;
+}
+.gf-thumb-missing::after { content: 'No image'; }
+
+.gf-card-body { display: flex; flex-direction: column; gap: .5rem; padding: .8rem; flex: 1; }
+.gf-card-title { font-size: 1rem; margin: 0; line-height: 1.3; }
+.gf-card-meta { margin: 0; font-size: .8rem; opacity: .75; flex: 1; }
+
+.gf-play,
+.gf-retry,
+.gf-fullscreen {
+  display: inline-block;
+  text-align: center;
+  font: inherit;
+  font-weight: 700;
+  padding: .5rem .9rem;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  background: #eaff00;
+  color: #10052b;
+  text-decoration: none;
+}
+
+/* ── Empty / error states ───────────────────────────────────────────────── */
+.gf-empty,
+.gf-player-state {
+  margin: 2rem auto;
+  max-width: 42rem;
+  text-align: center;
+  padding: 2rem 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+.gf-empty h2, .gf-player-state h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.gf-empty p, .gf-player-state p { margin: 0 0 .75rem; opacity: .85; }
+.gf-state-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; align-items: center; }
+.gf-link { color: #eaff00; }
+
+/* ── Player ─────────────────────────────────────────────────────────────── */
+.gf-breadcrumb { margin-bottom: .75rem; font-size: .9rem; }
+.gf-breadcrumb a { color: inherit; opacity: .85; }
+
+.gf-player-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem 1rem;
+  margin-bottom: .5rem;
+}
+.gf-player-title { font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(1.4rem, 3vw, 2rem); margin: 0; }
+.gf-player-meta { margin: 0; font-size: .85rem; opacity: .75; flex: 1 1 100%; }
+.gf-fullscreen { margin-left: auto; }
+
+/* A bounded 16:9 stage. min-height keeps GameFlare's own controls and bottom
+   bar legible on short viewports instead of letting the frame collapse. */
+.gf-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 360px;
+  max-height: 80vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+.gf-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.gf-stage:fullscreen { border-radius: 0; max-height: none; aspect-ratio: auto; }
+
+/* On a phone, a 16:9 box is unreadably short. Give it height instead, and never
+   force sideways scrolling. */
+@media (max-width: 600px) {
+  .gf-stage { aspect-ratio: auto; height: 70vh; min-height: 320px; }
+}
+
+/* Advertising slots. Present in the markup, empty by default, and OUTSIDE the
+   stage — never over it. Commercial use is not verified for this dataset, so
+   nothing renders into these without explicit written authorisation. */
+.gf-ad-slot { margin: 1rem 0; min-height: 0; }
+.gf-ad-slot[hidden] { display: none; }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  padding: .6rem 1rem;
+  background: #eaff00;
+  color: #10052b;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-card, .gf-play, .gf-retry, .gf-fullscreen { transition: none !important; }
+}

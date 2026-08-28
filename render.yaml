@@ -62,6 +62,14 @@ services:
       # the deployed value is never one that has been in a file on disk.
       - key: ADMIN_SECRET
         generateValue: true
+      # GameFlare verification preview. UNSET IN PRODUCTION ON PURPOSE.
+      # Setting it lets the player route resolve an unverified CANDIDATE, which
+      # is needed only while a browser-verification run is in progress and is run
+      # from an operator machine, not from this service (Playwright is a
+      # devDependency and the build omits dev). Declared here so it is a decision
+      # rather than an omission — leave it blank.
+      - key: GAMEFLARE_VERIFY_TOKEN
+        sync: false
       # ── the administrator console (username + password login) ───────────────
       # Declared here for the reason spelled out above: anything NOT listed is
       # silently sourced from the committed .env, and a login credential read

@@ -1,0 +1,4633 @@
+{
+  "generated_at": "2026-08-15T14:20:41.813Z",
+  "browser": "Chromium",
+  "source": "data/gameflare_verified_games.json",
+  "method": "official GameFlare \"Embed code\" widget, cross-checked against the page player iframe",
+  "totals": {
+    "total_records": 298,
+    "records_with_embed_url_before": 9,
+    "records_with_embed_url_after": 291,
+    "records_still_missing": 7,
+    "invalid_embed_urls": 0,
+    "unavailable": 7,
+    "duplicate_embed_urls": 0
+  },
+  "by_reason": {
+    "page_publishes_no_embed_code": 7,
+    "embed_code_published": 282
+  },
+  "duplicates": [],
+  "skipped_before_request": [],
+  "results": [
+    {
+      "slug": "adventure-capitalist",
+      "name": "Adventure Capitalist",
+      "gameflareUrl": "https://www.gameflare.com/online-game/adventure-capitalist/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/adventure-capitalist/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/adventure-capitalist/",
+      "checkedAt": "2026-08-15T14:18:51.731Z"
+    },
+    {
+      "slug": "age-of-war-2",
+      "name": "Age of War 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/age-of-war-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/age-of-war-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/age-of-war-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/age-of-war-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/age-of-war-2/",
+      "checkedAt": "2026-08-15T14:16:42.789Z"
+    },
+    {
+      "slug": "angry-birds-halloween",
+      "name": "Angry Birds Halloween",
+      "gameflareUrl": "https://www.gameflare.com/online-game/angry-birds-halloween/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/angry-birds-halloween/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/angry-birds-halloween/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/angry-birds-halloween/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/angry-birds-halloween/",
+      "checkedAt": "2026-08-15T14:20:21.993Z"
+    },
+    {
+      "slug": "angry-birds-rio",
+      "name": "Angry Birds Rio",
+      "gameflareUrl": "https://www.gameflare.com/online-game/angry-birds-rio/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/angry-birds-rio/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/angry-birds-rio/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/angry-birds-rio/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/angry-birds-rio/",
+      "checkedAt": "2026-08-15T14:13:11.200Z"
+    },
+    {
+      "slug": "angry-birds-showdown",
+      "name": "Angry Birds Showdown",
+      "gameflareUrl": "https://www.gameflare.com/online-game/angry-birds-showdown/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/angry-birds-showdown/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/angry-birds-showdown/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/angry-birds-showdown/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/angry-birds-showdown/",
+      "checkedAt": "2026-08-15T14:19:07.405Z"
+    },
+    {
+      "slug": "angry-birds-space-hd",
+      "name": "Angry Birds Space HD",
+      "gameflareUrl": "https://www.gameflare.com/online-game/angry-birds-space-hd/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/angry-birds-space-hd/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/angry-birds-space-hd/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/angry-birds-space-hd/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/angry-birds-space-hd/",
+      "checkedAt": "2026-08-15T14:13:41.974Z"
+    },
+    {
+      "slug": "angry-birds-stella",
+      "name": "Angry Birds Stella",
+      "gameflareUrl": "https://www.gameflare.com/online-game/angry-birds-stella/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/angry-birds-stella/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/angry-birds-stella/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/angry-birds-stella/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/angry-birds-stella/",
+      "checkedAt": "2026-08-15T14:17:44.832Z"
+    },
+    {
+      "slug": "aod-art-of-defense",
+      "name": "AOD: Art Of Defense",
+      "gameflareUrl": "https://www.gameflare.com/online-game/aod-art-of-defense/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/aod-art-of-defense/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/aod-art-of-defense/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/aod-art-of-defense/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/aod-art-of-defense/",
+      "checkedAt": "2026-08-15T14:18:32.056Z"
+    },
+    {
+      "slug": "autobots-stronghold",
+      "name": "Autobots Stronghold",
+      "gameflareUrl": "https://www.gameflare.com/online-game/autobots-stronghold/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/autobots-stronghold/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/autobots-stronghold/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/autobots-stronghold/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/autobots-stronghold/",
+      "checkedAt": "2026-08-15T14:15:10.823Z"
+    },
+    {
+      "slug": "avatar-world",
+      "name": "Avatar World",
+      "gameflareUrl": "https://www.gameflare.com/online-game/avatar-world/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/avatar-world/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/avatar-world/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/avatar-world/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/avatar-world/",
+      "checkedAt": "2026-08-15T14:18:47.693Z"
+    },
+    {
+      "slug": "awesome-pirates",
+      "name": "Awesome Pirates",
+      "gameflareUrl": "https://www.gameflare.com/online-game/awesome-pirates/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/awesome-pirates/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/awesome-pirates/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/awesome-pirates/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/awesome-pirates/",
+      "checkedAt": "2026-08-15T14:15:00.185Z"
+    },
+    {
+      "slug": "bad-cat-prankster-mom-s-return",
+      "name": "Bad Cat Prankster - Mom’s Return",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bad-cat-prankster-mom-s-return/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bad-cat-prankster-mom-s-return/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bad-cat-prankster-mom-s-return/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bad-cat-prankster-mom-s-return/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bad-cat-prankster-mom-s-return/",
+      "checkedAt": "2026-08-15T14:20:12.506Z"
+    },
+    {
+      "slug": "bad-piggies",
+      "name": "Bad Piggies",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bad-piggies/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bad-piggies/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bad-piggies/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bad-piggies/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bad-piggies/",
+      "checkedAt": "2026-08-15T14:16:05.417Z"
+    },
+    {
+      "slug": "bad-piggies-online-2016",
+      "name": "Bad Piggies Online 2016",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bad-piggies-online-2016/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bad-piggies-online-2016/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bad-piggies-online-2016/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bad-piggies-online-2016/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bad-piggies-online-2016/",
+      "checkedAt": "2026-08-15T14:19:07.320Z"
+    },
+    {
+      "slug": "baldi-s-basics-classic-online",
+      "name": "Baldi’s Basics Classic Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/baldi-s-basics-classic-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/baldi-s-basics-classic-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/baldi-s-basics-classic-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/baldi-s-basics-classic-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/baldi-s-basics-classic-online/",
+      "checkedAt": "2026-08-15T14:16:16.483Z"
+    },
+    {
+      "slug": "baldi-s-basics-classic-remastered",
+      "name": "Baldi’s Basics Classic Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/baldi-s-basics-classic-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/baldi-s-basics-classic-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/baldi-s-basics-classic-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/baldi-s-basics-classic-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/baldi-s-basics-classic-remastered/",
+      "checkedAt": "2026-08-15T14:12:39.691Z"
+    },
+    {
+      "slug": "bandit-ludo",
+      "name": "Bandit Ludo",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bandit-ludo/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bandit-ludo/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bandit-ludo/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bandit-ludo/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bandit-ludo/",
+      "checkedAt": "2026-08-15T14:15:47.489Z"
+    },
+    {
+      "slug": "battle-panic",
+      "name": "Battle Panic",
+      "gameflareUrl": "https://www.gameflare.com/online-game/battle-panic/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/battle-panic/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/battle-panic/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/battle-panic/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/battle-panic/",
+      "checkedAt": "2026-08-15T14:20:17.836Z"
+    },
+    {
+      "slug": "beauty-resort",
+      "name": "Beauty Resort",
+      "gameflareUrl": "https://www.gameflare.com/online-game/beauty-resort/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/beauty-resort/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/beauty-resort/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/beauty-resort/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/beauty-resort/",
+      "checkedAt": "2026-08-15T14:19:23.383Z"
+    },
+    {
+      "slug": "bloons-tower-defense-4",
+      "name": "Bloons TD 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bloons-tower-defense-4/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bloons-tower-defense-4/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bloons-tower-defense-4/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bloons-tower-defense-4/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bloons-tower-defense-4/",
+      "checkedAt": "2026-08-15T14:18:13.122Z"
+    },
+    {
+      "slug": "bloxdhop-io",
+      "name": "BloxdHop",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bloxdhop-io/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bloxdhop-io/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bloxdhop-io/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bloxdhop-io/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bloxdhop-io/",
+      "checkedAt": "2026-08-15T14:13:51.777Z"
+    },
+    {
+      "slug": "bow-master-japan",
+      "name": "Bow Master Japan",
+      "gameflareUrl": "https://www.gameflare.com/online-game/bow-master-japan/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/bow-master-japan/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/bow-master-japan/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/bow-master-japan/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/bow-master-japan/",
+      "checkedAt": "2026-08-15T14:18:05.020Z"
+    },
+    {
+      "slug": "burger-restaurant-3",
+      "name": "Burger Restaurant 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/burger-restaurant-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/burger-restaurant-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/burger-restaurant-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/burger-restaurant-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/burger-restaurant-3/",
+      "checkedAt": "2026-08-15T14:19:26.776Z"
+    },
+    {
+      "slug": "cactus-mccoy",
+      "name": "Cactus McCoy",
+      "gameflareUrl": "https://www.gameflare.com/online-game/cactus-mccoy/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/cactus-mccoy/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/cactus-mccoy/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/cactus-mccoy/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/cactus-mccoy/",
+      "checkedAt": "2026-08-15T14:13:12.258Z"
+    },
+    {
+      "slug": "cactus-mccoy-2",
+      "name": "Cactus McCoy 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/cactus-mccoy-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/cactus-mccoy-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/cactus-mccoy-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/cactus-mccoy-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/cactus-mccoy-2/",
+      "checkedAt": "2026-08-15T14:14:16.036Z"
+    },
+    {
+      "slug": "call-of-duty-zombies-demake",
+      "name": "Call of Duty: Zombies (Demake)",
+      "gameflareUrl": "https://www.gameflare.com/online-game/call-of-duty-zombies-demake/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/call-of-duty-zombies-demake/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/call-of-duty-zombies-demake/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/call-of-duty-zombies-demake/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/call-of-duty-zombies-demake/",
+      "checkedAt": "2026-08-15T14:15:32.907Z"
+    },
+    {
+      "slug": "camo-troll-tower",
+      "name": "Camo Troll Tower",
+      "gameflareUrl": "https://www.gameflare.com/online-game/camo-troll-tower/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/camo-troll-tower/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/camo-troll-tower/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/camo-troll-tower/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/camo-troll-tower/",
+      "checkedAt": "2026-08-15T14:14:35.056Z"
+    },
+    {
+      "slug": "can-your-pet",
+      "name": "Can Your Pet?",
+      "gameflareUrl": "https://www.gameflare.com/online-game/can-your-pet/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/can-your-pet/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/can-your-pet/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/can-your-pet/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/can-your-pet/",
+      "checkedAt": "2026-08-15T14:17:10.501Z"
+    },
+    {
+      "slug": "cartoon-strike",
+      "name": "Cartoon Strike: Lite Version",
+      "gameflareUrl": "https://www.gameflare.com/online-game/cartoon-strike/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/cartoon-strike/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/cartoon-strike/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/cartoon-strike/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/cartoon-strike/",
+      "checkedAt": "2026-08-15T14:18:37.535Z"
+    },
+    {
+      "slug": "caveman",
+      "name": "Caveman",
+      "gameflareUrl": "https://www.gameflare.com/online-game/caveman/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/caveman/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/caveman/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/caveman/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/caveman/",
+      "checkedAt": "2026-08-15T14:16:00.375Z"
+    },
+    {
+      "slug": "charlie-the-steak",
+      "name": "Charlie the Steak",
+      "gameflareUrl": "https://www.gameflare.com/online-game/charlie-the-steak/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/charlie-the-steak/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/charlie-the-steak/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/charlie-the-steak/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/charlie-the-steak/",
+      "checkedAt": "2026-08-15T14:13:55.437Z"
+    },
+    {
+      "slug": "colorbox-mustard",
+      "name": "Colorbox Mustard",
+      "gameflareUrl": "https://www.gameflare.com/online-game/colorbox-mustard/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/colorbox-mustard/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/colorbox-mustard/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/colorbox-mustard/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/colorbox-mustard/",
+      "checkedAt": "2026-08-15T14:18:07.830Z"
+    },
+    {
+      "slug": "combat-online",
+      "name": "Combat Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/combat-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/combat-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/combat-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/combat-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/combat-online/",
+      "checkedAt": "2026-08-15T14:17:07.157Z"
+    },
+    {
+      "slug": "commando-2",
+      "name": "Commando 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/commando-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/commando-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/commando-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/commando-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/commando-2/",
+      "checkedAt": "2026-08-15T14:19:06.515Z"
+    },
+    {
+      "slug": "commando-assault",
+      "name": "Commando Assault",
+      "gameflareUrl": "https://www.gameflare.com/online-game/commando-assault/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/commando-assault/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/commando-assault/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/commando-assault/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/commando-assault/",
+      "checkedAt": "2026-08-15T14:14:26.512Z"
+    },
+    {
+      "slug": "corruptbox-2-but-sprunki",
+      "name": "Corruptbox 2 but Sprunki",
+      "gameflareUrl": "https://www.gameflare.com/online-game/corruptbox-2-but-sprunki/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/corruptbox-2-but-sprunki/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/corruptbox-2-but-sprunki/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/corruptbox-2-but-sprunki/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/corruptbox-2-but-sprunki/",
+      "checkedAt": "2026-08-15T14:15:54.510Z"
+    },
+    {
+      "slug": "corruptbox-but-sprunki",
+      "name": "Corruptbox But Sprunki",
+      "gameflareUrl": "https://www.gameflare.com/online-game/corruptbox-but-sprunki/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/corruptbox-but-sprunki/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/corruptbox-but-sprunki/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/corruptbox-but-sprunki/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/corruptbox-but-sprunki/",
+      "checkedAt": "2026-08-15T14:19:01.681Z"
+    },
+    {
+      "slug": "corruptbox3-x-sprunki",
+      "name": "Corruptbox3 x Sprunki",
+      "gameflareUrl": "https://www.gameflare.com/online-game/corruptbox3-x-sprunki/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/corruptbox3-x-sprunki/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/corruptbox3-x-sprunki/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/corruptbox3-x-sprunki/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/corruptbox3-x-sprunki/",
+      "checkedAt": "2026-08-15T14:14:15.783Z"
+    },
+    {
+      "slug": "dashmetry",
+      "name": "Dashmetry",
+      "gameflareUrl": "https://www.gameflare.com/online-game/dashmetry/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/dashmetry/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/dashmetry/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/dashmetry/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/dashmetry/",
+      "checkedAt": "2026-08-15T14:19:44.482Z"
+    },
+    {
+      "slug": "dead-plate",
+      "name": "Dead Plate",
+      "gameflareUrl": "https://www.gameflare.com/online-game/dead-plate/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/dead-plate/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/dead-plate/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/dead-plate/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/dead-plate/",
+      "checkedAt": "2026-08-15T14:17:23.311Z"
+    },
+    {
+      "slug": "deal-or-no-deal",
+      "name": "Deal or No Deal",
+      "gameflareUrl": "https://www.gameflare.com/online-game/deal-or-no-deal/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/deal-or-no-deal/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/deal-or-no-deal/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/deal-or-no-deal/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/deal-or-no-deal/",
+      "checkedAt": "2026-08-15T14:10:56.573Z"
+    },
+    {
+      "slug": "dig-to-china",
+      "name": "Dig To China",
+      "gameflareUrl": "https://www.gameflare.com/online-game/dig-to-china/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/dig-to-china/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/dig-to-china/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/dig-to-china/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/dig-to-china/",
+      "checkedAt": "2026-08-15T14:20:06.144Z"
+    },
+    {
+      "slug": "dinosaur-park-primeval-zoo",
+      "name": "Dinosaur Park – Primeval Zoo",
+      "gameflareUrl": "https://www.gameflare.com/online-game/dinosaur-park-primeval-zoo/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/dinosaur-park-primeval-zoo/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/dinosaur-park-primeval-zoo/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/dinosaur-park-primeval-zoo/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/dinosaur-park-primeval-zoo/",
+      "checkedAt": "2026-08-15T14:18:52.512Z"
+    },
+    {
+      "slug": "douchebags-chick",
+      "name": "Douchebags Chick",
+      "gameflareUrl": "https://www.gameflare.com/online-game/douchebags-chick/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/douchebags-chick/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/douchebags-chick/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/douchebags-chick/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/douchebags-chick/",
+      "checkedAt": "2026-08-15T14:19:50.403Z"
+    },
+    {
+      "slug": "dude-theft-wars",
+      "name": "Dude Theft Wars",
+      "gameflareUrl": "https://www.gameflare.com/online-game/dude-theft-wars/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/dude-theft-wars/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/dude-theft-wars/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/dude-theft-wars/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/dude-theft-wars/",
+      "checkedAt": "2026-08-15T14:11:54.738Z"
+    },
+    {
+      "slug": "earn-to-die",
+      "name": "Earn to Die",
+      "gameflareUrl": "https://www.gameflare.com/online-game/earn-to-die/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/earn-to-die/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/earn-to-die/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/earn-to-die/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/earn-to-die/",
+      "checkedAt": "2026-08-15T14:19:12.222Z"
+    },
+    {
+      "slug": "fairyland-merge-and-magic",
+      "name": "Fairyland Merge & Magic",
+      "gameflareUrl": "https://www.gameflare.com/online-game/fairyland-merge-and-magic/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/fairyland-merge-and-magic/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/fairyland-merge-and-magic/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/fairyland-merge-and-magic/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/fairyland-merge-and-magic/",
+      "checkedAt": "2026-08-15T14:20:40.122Z"
+    },
+    {
+      "slug": "farm-frenzy-3",
+      "name": "Farm Frenzy 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/farm-frenzy-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/farm-frenzy-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/farm-frenzy-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/farm-frenzy-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/farm-frenzy-3/",
+      "checkedAt": "2026-08-15T14:14:01.661Z"
+    },
+    {
+      "slug": "farming-simulator",
+      "name": "Farming Simulator",
+      "gameflareUrl": "https://www.gameflare.com/online-game/farming-simulator/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/farming-simulator/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/farming-simulator/",
+      "checkedAt": "2026-08-15T14:19:34.778Z"
+    },
+    {
+      "slug": "feed-and-grow",
+      "name": "Feed and Grow",
+      "gameflareUrl": "https://www.gameflare.com/online-game/feed-and-grow/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/feed-and-grow/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/feed-and-grow/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/feed-and-grow/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/feed-and-grow/",
+      "checkedAt": "2026-08-15T14:16:58.703Z"
+    },
+    {
+      "slug": "fiddlebops-a-funny-sprunki-mod",
+      "name": "FiddleBops: A Funny Incredibox mod",
+      "gameflareUrl": "https://www.gameflare.com/online-game/fiddlebops-a-funny-sprunki-mod/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/fiddlebops-a-funny-sprunki-mod/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/fiddlebops-a-funny-sprunki-mod/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/fiddlebops-a-funny-sprunki-mod/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/fiddlebops-a-funny-sprunki-mod/",
+      "checkedAt": "2026-08-15T14:17:29.047Z"
+    },
+    {
+      "slug": "five-nights-at-epstein-s",
+      "name": "Five Nights at Epstein’s",
+      "gameflareUrl": "https://www.gameflare.com/online-game/five-nights-at-epstein-s/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/five-nights-at-epstein-s/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/five-nights-at-epstein-s/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/five-nights-at-epstein-s/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/five-nights-at-epstein-s/",
+      "checkedAt": "2026-08-15T14:13:27.903Z"
+    },
+    {
+      "slug": "five-nights-at-freddys",
+      "name": "Five Nights at Freddy's",
+      "gameflareUrl": "https://www.gameflare.com/online-game/five-nights-at-freddys/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/five-nights-at-freddys/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/five-nights-at-freddys/",
+      "checkedAt": "2026-08-15T14:20:27.468Z"
+    },
+    {
+      "slug": "five-nights-at-freddys-4",
+      "name": "Five Nights at Freddy's 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/five-nights-at-freddys-4/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/five-nights-at-freddys-4/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/five-nights-at-freddys-4/",
+      "checkedAt": "2026-08-15T14:18:23.205Z"
+    },
+    {
+      "slug": "flight-of-the-hamsters",
+      "name": "Flight of the Hamsters",
+      "gameflareUrl": "https://www.gameflare.com/online-game/flight-of-the-hamsters/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/flight-of-the-hamsters/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/flight-of-the-hamsters/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/flight-of-the-hamsters/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/flight-of-the-hamsters/",
+      "checkedAt": "2026-08-15T14:11:55.177Z"
+    },
+    {
+      "slug": "flip-master",
+      "name": "Flip Master",
+      "gameflareUrl": "https://www.gameflare.com/online-game/flip-master/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/flip-master/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/flip-master/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/flip-master/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/flip-master/",
+      "checkedAt": "2026-08-15T14:18:53.598Z"
+    },
+    {
+      "slug": "floating-sandbox",
+      "name": "Floating Sandbox",
+      "gameflareUrl": "https://www.gameflare.com/online-game/floating-sandbox/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/floating-sandbox/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/floating-sandbox/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/floating-sandbox/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/floating-sandbox/",
+      "checkedAt": "2026-08-15T14:12:15.073Z"
+    },
+    {
+      "slug": "fly-like-a-bird-3",
+      "name": "Fly Like a bird 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/fly-like-a-bird-3/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/fly-like-a-bird-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/fly-like-a-bird-3/",
+      "checkedAt": "2026-08-15T14:16:19.975Z"
+    },
+    {
+      "slug": "fnaf-world",
+      "name": "FNaF World",
+      "gameflareUrl": "https://www.gameflare.com/online-game/fnaf-world/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/fnaf-world/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/fnaf-world/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/fnaf-world/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/fnaf-world/",
+      "checkedAt": "2026-08-15T14:19:51.335Z"
+    },
+    {
+      "slug": "fun-clicker-wenda",
+      "name": "Fun Clicker: Wenda",
+      "gameflareUrl": "https://www.gameflare.com/online-game/fun-clicker-wenda/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/fun-clicker-wenda/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/fun-clicker-wenda/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/fun-clicker-wenda/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/fun-clicker-wenda/",
+      "checkedAt": "2026-08-15T14:18:56.915Z"
+    },
+    {
+      "slug": "garfield-s-scary-scavenger-hunt",
+      "name": "Garfield's Scary Scavenger Hunt",
+      "gameflareUrl": "https://www.gameflare.com/online-game/garfield-s-scary-scavenger-hunt/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/garfield-s-scary-scavenger-hunt/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/garfield-s-scary-scavenger-hunt/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/garfield-s-scary-scavenger-hunt/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/garfield-s-scary-scavenger-hunt/",
+      "checkedAt": "2026-08-15T14:19:31.465Z"
+    },
+    {
+      "slug": "garry-s-mod",
+      "name": "Garry's Mod",
+      "gameflareUrl": "https://www.gameflare.com/online-game/garry-s-mod/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/garry-s-mod/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/garry-s-mod/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/garry-s-mod/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/garry-s-mod/",
+      "checkedAt": "2026-08-15T14:11:17.912Z"
+    },
+    {
+      "slug": "goodgame-big-farm",
+      "name": "Goodgame Big Farm",
+      "gameflareUrl": "https://www.gameflare.com/online-game/goodgame-big-farm/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/goodgame-big-farm/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/goodgame-big-farm/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/goodgame-big-farm/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/goodgame-big-farm/",
+      "checkedAt": "2026-08-15T14:19:56.067Z"
+    },
+    {
+      "slug": "governor-of-poker",
+      "name": "Governor of poker",
+      "gameflareUrl": "https://www.gameflare.com/online-game/governor-of-poker/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/governor-of-poker/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/governor-of-poker/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/governor-of-poker/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/governor-of-poker/",
+      "checkedAt": "2026-08-15T14:12:31.191Z"
+    },
+    {
+      "slug": "governor-of-poker-2",
+      "name": "Governor of Poker 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/governor-of-poker-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/governor-of-poker-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/governor-of-poker-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/governor-of-poker-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/governor-of-poker-2/",
+      "checkedAt": "2026-08-15T14:16:45.800Z"
+    },
+    {
+      "slug": "granny-it-s-you-catch-the-prisoner",
+      "name": "Granny It’s You: Catch the Prisoner",
+      "gameflareUrl": "https://www.gameflare.com/online-game/granny-it-s-you-catch-the-prisoner/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/granny-it-s-you-catch-the-prisoner/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/granny-it-s-you-catch-the-prisoner/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/granny-it-s-you-catch-the-prisoner/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/granny-it-s-you-catch-the-prisoner/",
+      "checkedAt": "2026-08-15T14:19:28.049Z"
+    },
+    {
+      "slug": "granny-legacy",
+      "name": "Granny Legacy",
+      "gameflareUrl": "https://www.gameflare.com/online-game/granny-legacy/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/granny-legacy/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/granny-legacy/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/granny-legacy/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/granny-legacy/",
+      "checkedAt": "2026-08-15T14:14:43.091Z"
+    },
+    {
+      "slug": "harvest-honors",
+      "name": "Harvest Honors",
+      "gameflareUrl": "https://www.gameflare.com/online-game/harvest-honors/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/harvest-honors/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/harvest-honors/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/harvest-honors/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/harvest-honors/",
+      "checkedAt": "2026-08-15T14:19:58.042Z"
+    },
+    {
+      "slug": "haunt-the-house",
+      "name": "Haunt the House",
+      "gameflareUrl": "https://www.gameflare.com/online-game/haunt-the-house/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/haunt-the-house/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/haunt-the-house/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/haunt-the-house/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/haunt-the-house/",
+      "checkedAt": "2026-08-15T14:17:57.438Z"
+    },
+    {
+      "slug": "heal-infected-sprunkies",
+      "name": "Heal Infected Sprunkies",
+      "gameflareUrl": "https://www.gameflare.com/online-game/heal-infected-sprunkies/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/heal-infected-sprunkies/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/heal-infected-sprunkies/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/heal-infected-sprunkies/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/heal-infected-sprunkies/",
+      "checkedAt": "2026-08-15T14:15:06.440Z"
+    },
+    {
+      "slug": "hex-empires-grave-consequences",
+      "name": "Hex Empires: Grave Consequences",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hex-empires-grave-consequences/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hex-empires-grave-consequences/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hex-empires-grave-consequences/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hex-empires-grave-consequences/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hex-empires-grave-consequences/",
+      "checkedAt": "2026-08-15T14:18:43.517Z"
+    },
+    {
+      "slug": "hide-online",
+      "name": "Hide Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hide-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hide-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hide-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hide-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hide-online/",
+      "checkedAt": "2026-08-15T14:15:42.167Z"
+    },
+    {
+      "slug": "hobo-3-wanted",
+      "name": "Hobo 3 Wanted",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hobo-3-wanted/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hobo-3-wanted/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hobo-3-wanted/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hobo-3-wanted/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hobo-3-wanted/",
+      "checkedAt": "2026-08-15T14:20:40.386Z"
+    },
+    {
+      "slug": "hobo-6-hell",
+      "name": "Hobo 6: Hell",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hobo-6-hell/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hobo-6-hell/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hobo-6-hell/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hobo-6-hell/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hobo-6-hell/",
+      "checkedAt": "2026-08-15T14:18:57.312Z"
+    },
+    {
+      "slug": "hobo-7-heaven",
+      "name": "Hobo 7: Heaven",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hobo-7-heaven/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hobo-7-heaven/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hobo-7-heaven/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hobo-7-heaven/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hobo-7-heaven/",
+      "checkedAt": "2026-08-15T14:18:28.595Z"
+    },
+    {
+      "slug": "hobo-prison-brawl",
+      "name": "Hobo 2: Prison Brawl",
+      "gameflareUrl": "https://www.gameflare.com/online-game/hobo-prison-brawl/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/hobo-prison-brawl/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/hobo-prison-brawl/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/hobo-prison-brawl/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/hobo-prison-brawl/",
+      "checkedAt": "2026-08-15T14:15:17.926Z"
+    },
+    {
+      "slug": "home-sheep-home",
+      "name": "Home Sheep Home",
+      "gameflareUrl": "https://www.gameflare.com/online-game/home-sheep-home/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/home-sheep-home/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/home-sheep-home/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/home-sheep-home/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/home-sheep-home/",
+      "checkedAt": "2026-08-15T14:14:15.223Z"
+    },
+    {
+      "slug": "i-am-monkey",
+      "name": "I Am Monkey",
+      "gameflareUrl": "https://www.gameflare.com/online-game/i-am-monkey/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/i-am-monkey/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/i-am-monkey/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/i-am-monkey/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/i-am-monkey/",
+      "checkedAt": "2026-08-15T14:19:35.603Z"
+    },
+    {
+      "slug": "i-am-security",
+      "name": "I Am Security",
+      "gameflareUrl": "https://www.gameflare.com/online-game/i-am-security/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/i-am-security/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/i-am-security/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/i-am-security/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/i-am-security/",
+      "checkedAt": "2026-08-15T14:18:26.643Z"
+    },
+    {
+      "slug": "kick-a-lucky-block",
+      "name": "Kick a Lucky Block",
+      "gameflareUrl": "https://www.gameflare.com/online-game/kick-a-lucky-block/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/kick-a-lucky-block/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/kick-a-lucky-block/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/kick-a-lucky-block/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/kick-a-lucky-block/",
+      "checkedAt": "2026-08-15T14:18:03.010Z"
+    },
+    {
+      "slug": "kingdom-rush-frontiers",
+      "name": "Kingdom Rush Frontiers",
+      "gameflareUrl": "https://www.gameflare.com/online-game/kingdom-rush-frontiers/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/kingdom-rush-frontiers/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/kingdom-rush-frontiers/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/kingdom-rush-frontiers/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/kingdom-rush-frontiers/",
+      "checkedAt": "2026-08-15T14:15:39.726Z"
+    },
+    {
+      "slug": "lazy-bear",
+      "name": "Lazy Bear",
+      "gameflareUrl": "https://www.gameflare.com/online-game/lazy-bear/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/lazy-bear/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/lazy-bear/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/lazy-bear/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/lazy-bear/",
+      "checkedAt": "2026-08-15T14:14:45.914Z"
+    },
+    {
+      "slug": "learn-to-fly-3",
+      "name": "Learn to Fly 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/learn-to-fly-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/learn-to-fly-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/learn-to-fly-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/learn-to-fly-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/learn-to-fly-3/",
+      "checkedAt": "2026-08-15T14:14:58.932Z"
+    },
+    {
+      "slug": "little-big-snake",
+      "name": "Little Big Snake",
+      "gameflareUrl": "https://www.gameflare.com/online-game/little-big-snake/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/little-big-snake/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/little-big-snake/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/little-big-snake/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/little-big-snake/",
+      "checkedAt": "2026-08-15T14:20:17.447Z"
+    },
+    {
+      "slug": "ludo-with-friends",
+      "name": "Ludo With Friends",
+      "gameflareUrl": "https://www.gameflare.com/online-game/ludo-with-friends/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/ludo-with-friends/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/ludo-with-friends/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/ludo-with-friends/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/ludo-with-friends/",
+      "checkedAt": "2026-08-15T14:13:29.612Z"
+    },
+    {
+      "slug": "mad-arrow",
+      "name": "Mad Arrow",
+      "gameflareUrl": "https://www.gameflare.com/online-game/mad-arrow/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/mad-arrow/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/mad-arrow/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/mad-arrow/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/mad-arrow/",
+      "checkedAt": "2026-08-15T14:13:58.048Z"
+    },
+    {
+      "slug": "madness-project-nexus",
+      "name": "Madness Project Nexus",
+      "gameflareUrl": "https://www.gameflare.com/online-game/madness-project-nexus/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/madness-project-nexus/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/madness-project-nexus/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/madness-project-nexus/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/madness-project-nexus/",
+      "checkedAt": "2026-08-15T14:18:48.134Z"
+    },
+    {
+      "slug": "meccha-chameleon",
+      "name": "Meccha Chameleon",
+      "gameflareUrl": "https://www.gameflare.com/online-game/meccha-chameleon/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/meccha-chameleon/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/meccha-chameleon/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/meccha-chameleon/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/meccha-chameleon/",
+      "checkedAt": "2026-08-15T14:11:24.444Z"
+    },
+    {
+      "slug": "meccha-hunt",
+      "name": "Meccha Hunt",
+      "gameflareUrl": "https://www.gameflare.com/online-game/meccha-hunt/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/meccha-hunt/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/meccha-hunt/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/meccha-hunt/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/meccha-hunt/",
+      "checkedAt": "2026-08-15T14:12:50.666Z"
+    },
+    {
+      "slug": "microsoft-jewel-2",
+      "name": "Microsoft Jewel 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/microsoft-jewel-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/microsoft-jewel-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/microsoft-jewel-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/microsoft-jewel-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/microsoft-jewel-2/",
+      "checkedAt": "2026-08-15T14:12:34.722Z"
+    },
+    {
+      "slug": "microsoft-solitaire-collection",
+      "name": "Microsoft Solitaire Collection",
+      "gameflareUrl": "https://www.gameflare.com/online-game/microsoft-solitaire-collection/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/microsoft-solitaire-collection/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/microsoft-solitaire-collection/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/microsoft-solitaire-collection/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/microsoft-solitaire-collection/",
+      "checkedAt": "2026-08-15T14:19:14.929Z"
+    },
+    {
+      "slug": "mighty-knight-2",
+      "name": "Mighty Knight 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/mighty-knight-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/mighty-knight-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/mighty-knight-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/mighty-knight-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/mighty-knight-2/",
+      "checkedAt": "2026-08-15T14:18:22.253Z"
+    },
+    {
+      "slug": "min-hero-tower-of-sages",
+      "name": "Min Hero: Tower Of Sages",
+      "gameflareUrl": "https://www.gameflare.com/online-game/min-hero-tower-of-sages/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/min-hero-tower-of-sages/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/min-hero-tower-of-sages/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/min-hero-tower-of-sages/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/min-hero-tower-of-sages/",
+      "checkedAt": "2026-08-15T14:13:47.367Z"
+    },
+    {
+      "slug": "minefun-io",
+      "name": "Minefun",
+      "gameflareUrl": "https://www.gameflare.com/online-game/minefun-io/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/minefun-io/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/minefun-io/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/minefun-io/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/minefun-io/",
+      "checkedAt": "2026-08-15T14:11:41.078Z"
+    },
+    {
+      "slug": "monopoly-online",
+      "name": "Monopoly Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/monopoly-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/monopoly-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/monopoly-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/monopoly-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/monopoly-online/",
+      "checkedAt": "2026-08-15T14:10:44.310Z"
+    },
+    {
+      "slug": "mutant-fighting-cup",
+      "name": "Mutant Fighting Cup",
+      "gameflareUrl": "https://www.gameflare.com/online-game/mutant-fighting-cup/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/mutant-fighting-cup/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/mutant-fighting-cup/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/mutant-fighting-cup/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/mutant-fighting-cup/",
+      "checkedAt": "2026-08-15T14:17:20.503Z"
+    },
+    {
+      "slug": "mutant-fighting-cup-2",
+      "name": "Mutant Fighting Cup 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/mutant-fighting-cup-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/mutant-fighting-cup-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/mutant-fighting-cup-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/mutant-fighting-cup-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/mutant-fighting-cup-2/",
+      "checkedAt": "2026-08-15T14:19:34.011Z"
+    },
+    {
+      "slug": "mutilate-a-doll-2",
+      "name": "Mutilate-a-Doll 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/mutilate-a-doll-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/mutilate-a-doll-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/mutilate-a-doll-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/mutilate-a-doll-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/mutilate-a-doll-2/",
+      "checkedAt": "2026-08-15T14:20:07.718Z"
+    },
+    {
+      "slug": "my-free-zoo",
+      "name": "My Free Zoo",
+      "gameflareUrl": "https://www.gameflare.com/online-game/my-free-zoo/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/my-free-zoo/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/my-free-zoo/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/my-free-zoo/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/my-free-zoo/",
+      "checkedAt": "2026-08-15T14:19:52.365Z"
+    },
+    {
+      "slug": "nyan-cat-lost-in-space",
+      "name": "Nyan Cat: Lost In Space",
+      "gameflareUrl": "https://www.gameflare.com/online-game/nyan-cat-lost-in-space/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/nyan-cat-lost-in-space/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/nyan-cat-lost-in-space/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/nyan-cat-lost-in-space/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/nyan-cat-lost-in-space/",
+      "checkedAt": "2026-08-15T14:14:20.017Z"
+    },
+    {
+      "slug": "obby-supercar-race-on-a-giant-keyboard",
+      "name": "Obby: Supercar Race on a Giant Keyboard",
+      "gameflareUrl": "https://www.gameflare.com/online-game/obby-supercar-race-on-a-giant-keyboard/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/obby-supercar-race-on-a-giant-keyboard/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/obby-supercar-race-on-a-giant-keyboard/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/obby-supercar-race-on-a-giant-keyboard/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/obby-supercar-race-on-a-giant-keyboard/",
+      "checkedAt": "2026-08-15T14:19:39.447Z"
+    },
+    {
+      "slug": "paint-hide-and-seek",
+      "name": "Paint Hide & Seek",
+      "gameflareUrl": "https://www.gameflare.com/online-game/paint-hide-and-seek/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/paint-hide-and-seek/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/paint-hide-and-seek/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/paint-hide-and-seek/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/paint-hide-and-seek/",
+      "checkedAt": "2026-08-15T14:14:52.745Z"
+    },
+    {
+      "slug": "paladog",
+      "name": "Paladog",
+      "gameflareUrl": "https://www.gameflare.com/online-game/paladog/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/paladog/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/paladog/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/paladog/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/paladog/",
+      "checkedAt": "2026-08-15T14:15:22.513Z"
+    },
+    {
+      "slug": "papa-louie-2-when-burgers-attack",
+      "name": "Papa Louie 2: When Burgers Attack",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papa-louie-2-when-burgers-attack/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papa-louie-2-when-burgers-attack/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papa-louie-2-when-burgers-attack/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papa-louie-2-when-burgers-attack/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papa-louie-2-when-burgers-attack/",
+      "checkedAt": "2026-08-15T14:12:58.237Z"
+    },
+    {
+      "slug": "papa-louie-3-when-sundaes-attack",
+      "name": "Papa Louie 3: When Sundaes Attack!",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papa-louie-3-when-sundaes-attack/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papa-louie-3-when-sundaes-attack/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papa-louie-3-when-sundaes-attack/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papa-louie-3-when-sundaes-attack/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papa-louie-3-when-sundaes-attack/",
+      "checkedAt": "2026-08-15T14:12:55.508Z"
+    },
+    {
+      "slug": "papas-bakeria",
+      "name": "Papa's Bakeria",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papas-bakeria/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papas-bakeria/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papas-bakeria/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papas-bakeria/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papas-bakeria/",
+      "checkedAt": "2026-08-15T14:18:00.646Z"
+    },
+    {
+      "slug": "papas-cheeseria",
+      "name": "Papas Cheeseria",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papas-cheeseria/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papas-cheeseria/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papas-cheeseria/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papas-cheeseria/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papas-cheeseria/",
+      "checkedAt": "2026-08-15T14:16:22.391Z"
+    },
+    {
+      "slug": "papas-donuteria",
+      "name": "Papas Donuteria",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papas-donuteria/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papas-donuteria/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papas-donuteria/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papas-donuteria/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papas-donuteria/",
+      "checkedAt": "2026-08-15T14:18:06.609Z"
+    },
+    {
+      "slug": "papas-scooperia",
+      "name": "Papa's Scooperia",
+      "gameflareUrl": "https://www.gameflare.com/online-game/papas-scooperia/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/papas-scooperia/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/papas-scooperia/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/papas-scooperia/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/papas-scooperia/",
+      "checkedAt": "2026-08-15T14:16:28.141Z"
+    },
+    {
+      "slug": "party-hard",
+      "name": "Party Hard",
+      "gameflareUrl": "https://www.gameflare.com/online-game/party-hard/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/party-hard/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/party-hard/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/party-hard/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/party-hard/",
+      "checkedAt": "2026-08-15T14:20:02.837Z"
+    },
+    {
+      "slug": "people-playground",
+      "name": "Humans Playground",
+      "gameflareUrl": "https://www.gameflare.com/online-game/people-playground/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/people-playground/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/people-playground/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/people-playground/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/people-playground/",
+      "checkedAt": "2026-08-15T14:19:22.116Z"
+    },
+    {
+      "slug": "pico-park",
+      "name": "Pico Park",
+      "gameflareUrl": "https://www.gameflare.com/online-game/pico-park/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/pico-park/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/pico-park/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/pico-park/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/pico-park/",
+      "checkedAt": "2026-08-15T14:16:10.397Z"
+    },
+    {
+      "slug": "pinch-hitter-2",
+      "name": "Pinch hitter 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/pinch-hitter-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/pinch-hitter-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/pinch-hitter-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/pinch-hitter-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/pinch-hitter-2/",
+      "checkedAt": "2026-08-15T14:20:36.223Z"
+    },
+    {
+      "slug": "pixel-world-online",
+      "name": "Pixel World Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/pixel-world-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/pixel-world-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/pixel-world-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/pixel-world-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/pixel-world-online/",
+      "checkedAt": "2026-08-15T14:19:03.348Z"
+    },
+    {
+      "slug": "plazma-burst-2",
+      "name": "Plazma Burst 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/plazma-burst-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/plazma-burst-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/plazma-burst-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/plazma-burst-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/plazma-burst-2/",
+      "checkedAt": "2026-08-15T14:17:49.255Z"
+    },
+    {
+      "slug": "police-pursuit-2",
+      "name": "Police Pursuit 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/police-pursuit-2/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/police-pursuit-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/police-pursuit-2/",
+      "checkedAt": "2026-08-15T14:19:59.997Z"
+    },
+    {
+      "slug": "racer-pro-racing-3d",
+      "name": "Racer Pro: Racing 3D",
+      "gameflareUrl": "https://www.gameflare.com/online-game/racer-pro-racing-3d/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/racer-pro-racing-3d/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/racer-pro-racing-3d/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/racer-pro-racing-3d/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/racer-pro-racing-3d/",
+      "checkedAt": "2026-08-15T14:19:02.168Z"
+    },
+    {
+      "slug": "radioactive-teddy-bear-zombies",
+      "name": "Radioactive Teddy Bear Zombies",
+      "gameflareUrl": "https://www.gameflare.com/online-game/radioactive-teddy-bear-zombies/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/radioactive-teddy-bear-zombies/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/radioactive-teddy-bear-zombies/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/radioactive-teddy-bear-zombies/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/radioactive-teddy-bear-zombies/",
+      "checkedAt": "2026-08-15T14:20:34.324Z"
+    },
+    {
+      "slug": "red-ball-3",
+      "name": "Red Ball 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/red-ball-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/red-ball-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/red-ball-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/red-ball-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/red-ball-3/",
+      "checkedAt": "2026-08-15T14:20:34.777Z"
+    },
+    {
+      "slug": "red-beard",
+      "name": "Red Beard",
+      "gameflareUrl": "https://www.gameflare.com/online-game/red-beard/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/red-beard/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/red-beard/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/red-beard/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/red-beard/",
+      "checkedAt": "2026-08-15T14:17:10.040Z"
+    },
+    {
+      "slug": "renegade-racing",
+      "name": "Renegade Racing",
+      "gameflareUrl": "https://www.gameflare.com/online-game/renegade-racing/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/renegade-racing/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/renegade-racing/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/renegade-racing/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/renegade-racing/",
+      "checkedAt": "2026-08-15T14:16:47.639Z"
+    },
+    {
+      "slug": "resort-empire",
+      "name": "Resort Empire",
+      "gameflareUrl": "https://www.gameflare.com/online-game/resort-empire/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/resort-empire/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/resort-empire/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/resort-empire/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/resort-empire/",
+      "checkedAt": "2026-08-15T14:18:18.516Z"
+    },
+    {
+      "slug": "rivals-roblox",
+      "name": "RIVALS - Roblox",
+      "gameflareUrl": "https://www.gameflare.com/online-game/rivals-roblox/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/rivals-roblox/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/rivals-roblox/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/rivals-roblox/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/rivals-roblox/",
+      "checkedAt": "2026-08-15T14:12:29.130Z"
+    },
+    {
+      "slug": "road-of-the-dead",
+      "name": "Road of the Dead",
+      "gameflareUrl": "https://www.gameflare.com/online-game/road-of-the-dead/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/road-of-the-dead/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/road-of-the-dead/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/road-of-the-dead/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/road-of-the-dead/",
+      "checkedAt": "2026-08-15T14:12:22.252Z"
+    },
+    {
+      "slug": "roblox-barry-s-prison-run",
+      "name": "Roblox: Barry's Prison Run",
+      "gameflareUrl": "https://www.gameflare.com/online-game/roblox-barry-s-prison-run/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/roblox-barry-s-prison-run/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/roblox-barry-s-prison-run/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/roblox-barry-s-prison-run/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/roblox-barry-s-prison-run/",
+      "checkedAt": "2026-08-15T14:19:18.419Z"
+    },
+    {
+      "slug": "rogue-soul",
+      "name": "Rogue Soul",
+      "gameflareUrl": "https://www.gameflare.com/online-game/rogue-soul/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/rogue-soul/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/rogue-soul/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/rogue-soul/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/rogue-soul/",
+      "checkedAt": "2026-08-15T14:11:36.714Z"
+    },
+    {
+      "slug": "scrunkly-revamped",
+      "name": "Scrunkly Revamped",
+      "gameflareUrl": "https://www.gameflare.com/online-game/scrunkly-revamped/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/scrunkly-revamped/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/scrunkly-revamped/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/scrunkly-revamped/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/scrunkly-revamped/",
+      "checkedAt": "2026-08-15T14:19:46.743Z"
+    },
+    {
+      "slug": "security-breach",
+      "name": "Security Breach",
+      "gameflareUrl": "https://www.gameflare.com/online-game/security-breach/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/security-breach/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/security-breach/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/security-breach/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/security-breach/",
+      "checkedAt": "2026-08-15T14:20:11.873Z"
+    },
+    {
+      "slug": "shadow-fight-2",
+      "name": "Shadow Fight 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/shadow-fight-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/shadow-fight-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/shadow-fight-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/shadow-fight-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/shadow-fight-2/",
+      "checkedAt": "2026-08-15T14:14:40.836Z"
+    },
+    {
+      "slug": "shop-empire-2",
+      "name": "Shop Empire 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/shop-empire-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/shop-empire-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/shop-empire-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/shop-empire-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/shop-empire-2/",
+      "checkedAt": "2026-08-15T14:16:54.122Z"
+    },
+    {
+      "slug": "shopaholic-new-york",
+      "name": "Shopaholic: New York",
+      "gameflareUrl": "https://www.gameflare.com/online-game/shopaholic-new-york/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/shopaholic-new-york/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/shopaholic-new-york/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/shopaholic-new-york/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/shopaholic-new-york/",
+      "checkedAt": "2026-08-15T14:20:30.294Z"
+    },
+    {
+      "slug": "skydom",
+      "name": "Skydom",
+      "gameflareUrl": "https://www.gameflare.com/online-game/skydom/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/skydom/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/skydom/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/skydom/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/skydom/",
+      "checkedAt": "2026-08-15T14:16:31.711Z"
+    },
+    {
+      "slug": "snake-and-ladders-multiplayer",
+      "name": "Snake and Ladders Multiplayer",
+      "gameflareUrl": "https://www.gameflare.com/online-game/snake-and-ladders-multiplayer/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/snake-and-ladders-multiplayer/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/snake-and-ladders-multiplayer/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/snake-and-ladders-multiplayer/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/snake-and-ladders-multiplayer/",
+      "checkedAt": "2026-08-15T14:19:41.443Z"
+    },
+    {
+      "slug": "solarmax-2",
+      "name": "Solarmax 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/solarmax-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/solarmax-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/solarmax-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/solarmax-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/solarmax-2/",
+      "checkedAt": "2026-08-15T14:17:49.095Z"
+    },
+    {
+      "slug": "sonic-exe",
+      "name": "Sonic",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sonic-exe/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sonic-exe/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sonic-exe/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sonic-exe/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sonic-exe/",
+      "checkedAt": "2026-08-15T14:14:33.222Z"
+    },
+    {
+      "slug": "sonic-exe-the-original-game",
+      "name": "Sonic",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sonic-exe-the-original-game/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sonic-exe-the-original-game/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sonic-exe-the-original-game/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sonic-exe-the-original-game/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sonic-exe-the-original-game/",
+      "checkedAt": "2026-08-15T14:12:26.438Z"
+    },
+    {
+      "slug": "sonic-robo-blast-2",
+      "name": "Sonic Robo Blast 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sonic-robo-blast-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sonic-robo-blast-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sonic-robo-blast-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sonic-robo-blast-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sonic-robo-blast-2/",
+      "checkedAt": "2026-08-15T14:16:38.289Z"
+    },
+    {
+      "slug": "speedescape-io",
+      "name": "SpeedEscape",
+      "gameflareUrl": "https://www.gameflare.com/online-game/speedescape-io/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/speedescape-io/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/speedescape-io/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/speedescape-io/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/speedescape-io/",
+      "checkedAt": "2026-08-15T14:15:09.507Z"
+    },
+    {
+      "slug": "sports-heads-cards-squad-swap",
+      "name": "Sports Heads Cards: Squad Swap",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sports-heads-cards-squad-swap/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sports-heads-cards-squad-swap/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sports-heads-cards-squad-swap/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sports-heads-cards-squad-swap/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sports-heads-cards-squad-swap/",
+      "checkedAt": "2026-08-15T14:14:47.922Z"
+    },
+    {
+      "slug": "sprunkalicious",
+      "name": "Sprunkalicious",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunkalicious/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunkalicious/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunkalicious/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunkalicious/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunkalicious/",
+      "checkedAt": "2026-08-15T14:17:37.836Z"
+    },
+    {
+      "slug": "sprunked",
+      "name": "Sprunked",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunked/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunked/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunked/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunked/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunked/",
+      "checkedAt": "2026-08-15T14:13:18.908Z"
+    },
+    {
+      "slug": "sprunki",
+      "name": "Incredibox Sprunki",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki/",
+      "checkedAt": "2026-08-15T14:11:11.542Z"
+    },
+    {
+      "slug": "sprunki-1996",
+      "name": "Sprunki 1996",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-1996/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-1996/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-1996/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-1996/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-1996/",
+      "checkedAt": "2026-08-15T14:12:38.855Z"
+    },
+    {
+      "slug": "sprunki-abgerny",
+      "name": "Incredibox Abgerny",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-abgerny/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-abgerny/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-abgerny/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-abgerny/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-abgerny/",
+      "checkedAt": "2026-08-15T14:18:10.141Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted",
+      "name": "Sprunki Anti-Shifted",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted/",
+      "checkedAt": "2026-08-15T14:15:24.265Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted-but-bad-ending",
+      "name": "Sprunki : Anti-Shifted But Bad Ending",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-but-bad-ending/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted-but-bad-ending/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted-but-bad-ending/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted-but-bad-ending/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-but-bad-ending/",
+      "checkedAt": "2026-08-15T14:13:40.249Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted-phase-3",
+      "name": "Sprunki Anti-Shifted: Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-3/",
+      "checkedAt": "2026-08-15T14:15:32.174Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted-phase-4",
+      "name": "Sprunki Anti-Shifted: Phase 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-4/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-4/",
+      "checkedAt": "2026-08-15T14:13:49.122Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted-phase-4-but-misfitmix",
+      "name": "Sprunki Anti-Shifted Phase 4 but MisfitMIX",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-4-but-misfitmix/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4-but-misfitmix/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4-but-misfitmix/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-4-but-misfitmix/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-4-but-misfitmix/",
+      "checkedAt": "2026-08-15T14:14:23.249Z"
+    },
+    {
+      "slug": "sprunki-anti-shifted-phase-5",
+      "name": "Sprunki Anti-Shifted: Phase 5",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-5/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-5/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-5/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-anti-shifted-phase-5/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-anti-shifted-phase-5/",
+      "checkedAt": "2026-08-15T14:13:18.832Z"
+    },
+    {
+      "slug": "sprunki-aria-treatment",
+      "name": "Sprunki: Aria Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-aria-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-aria-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-aria-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-aria-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-aria-treatment/",
+      "checkedAt": "2026-08-15T14:18:48.323Z"
+    },
+    {
+      "slug": "sprunki-asylum-treatment",
+      "name": "Sprunki Asylum Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-asylum-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-asylum-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-asylum-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-asylum-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-asylum-treatment/",
+      "checkedAt": "2026-08-15T14:14:09.523Z"
+    },
+    {
+      "slug": "sprunki-beat-attack",
+      "name": "Sprunki: Beat Attack",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-beat-attack/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-beat-attack/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-beat-attack/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-beat-attack/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-beat-attack/",
+      "checkedAt": "2026-08-15T14:17:04.146Z"
+    },
+    {
+      "slug": "sprunki-beat-up-wenda",
+      "name": "Sprunki: Beat Up Wenda",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-beat-up-wenda/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-beat-up-wenda/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-beat-up-wenda/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-beat-up-wenda/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-beat-up-wenda/",
+      "checkedAt": "2026-08-15T14:16:59.749Z"
+    },
+    {
+      "slug": "sprunki-betters-and-loses",
+      "name": "Sprunki: Betters And Loses",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-betters-and-loses/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-betters-and-loses/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-betters-and-loses/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-betters-and-loses/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-betters-and-loses/",
+      "checkedAt": "2026-08-15T14:12:20.955Z"
+    },
+    {
+      "slug": "sprunki-brud-edition",
+      "name": "Sprunki Brud Edition",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-brud-edition/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-brud-edition/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-brud-edition/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-brud-edition/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-brud-edition/",
+      "checkedAt": "2026-08-15T14:18:37.016Z"
+    },
+    {
+      "slug": "sprunki-chaotic-good",
+      "name": "Sprunki: Chaotic Good",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-chaotic-good/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-chaotic-good/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-chaotic-good/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-chaotic-good/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-chaotic-good/",
+      "checkedAt": "2026-08-15T14:19:56.425Z"
+    },
+    {
+      "slug": "sprunki-cool-as-ice-original-2-0",
+      "name": "Sprunki: Cool As Ice Original 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-cool-as-ice-original-2-0/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-cool-as-ice-original-2-0/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-cool-as-ice-original-2-0/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-cool-as-ice-original-2-0/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-cool-as-ice-original-2-0/",
+      "checkedAt": "2026-08-15T14:18:42.665Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-10",
+      "name": "Sprunki Definitive Phase 10",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-10/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-10/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-10/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-10/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-10/",
+      "checkedAt": "2026-08-15T14:12:08.931Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-12",
+      "name": "Sprunki Definitive Phase 12",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-12/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-12/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-12/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-12/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-12/",
+      "checkedAt": "2026-08-15T14:11:19.798Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-3",
+      "name": "Sprunki Definitive Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-3/",
+      "checkedAt": "2026-08-15T14:12:15.836Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-4",
+      "name": "Sprunki Definitive Phase 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-4/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-4/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-4/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-4/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-4/",
+      "checkedAt": "2026-08-15T14:11:55.373Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-6",
+      "name": "Sprunki Phase 6 Definitive",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-6/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-6/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-6/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-6/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-6/",
+      "checkedAt": "2026-08-15T14:12:47.777Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-7",
+      "name": "Sprunki Definitive Phase 7",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-7/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-7/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-7/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-7/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-7/",
+      "checkedAt": "2026-08-15T14:14:09.274Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-8",
+      "name": "Sprunki Definitive Phase 8",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-8/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-8/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-8/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-8/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-8/",
+      "checkedAt": "2026-08-15T14:14:04.400Z"
+    },
+    {
+      "slug": "sprunki-definitive-phase-9",
+      "name": "Sprunki Definitive Phase 9",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-9/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-definitive-phase-9/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-definitive-phase-9/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-definitive-phase-9/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-definitive-phase-9/",
+      "checkedAt": "2026-08-15T14:15:38.136Z"
+    },
+    {
+      "slug": "sprunki-double-date",
+      "name": "Sprunki: Double Date",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-double-date/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-double-date/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-double-date/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-double-date/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-double-date/",
+      "checkedAt": "2026-08-15T14:12:22.773Z"
+    },
+    {
+      "slug": "sprunki-durple-treatment",
+      "name": "Sprunki Durple Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-durple-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-durple-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-durple-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-durple-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-durple-treatment/",
+      "checkedAt": "2026-08-15T14:13:53.701Z"
+    },
+    {
+      "slug": "sprunki-footlong-s-sandbox",
+      "name": "Sprunki - Footlong's Sandbox",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-footlong-s-sandbox/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-footlong-s-sandbox/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-footlong-s-sandbox/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-footlong-s-sandbox/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-footlong-s-sandbox/",
+      "checkedAt": "2026-08-15T14:17:15.937Z"
+    },
+    {
+      "slug": "sprunki-icebox-cold-as-frost",
+      "name": "Sprunki Icebox: Cold As Frost",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-icebox-cold-as-frost/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-icebox-cold-as-frost/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-icebox-cold-as-frost/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-icebox-cold-as-frost/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-icebox-cold-as-frost/",
+      "checkedAt": "2026-08-15T14:16:10.016Z"
+    },
+    {
+      "slug": "sprunki-infected",
+      "name": "Sprunki Infected",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-infected/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-infected/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-infected/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-infected/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-infected/",
+      "checkedAt": "2026-08-15T14:17:55.351Z"
+    },
+    {
+      "slug": "sprunki-interactive",
+      "name": "Sprunki Interactive",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-interactive/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-interactive/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-interactive/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-interactive/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-interactive/",
+      "checkedAt": "2026-08-15T14:19:45.346Z"
+    },
+    {
+      "slug": "sprunki-jevin-treatment",
+      "name": "Sprunki: Jevin Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-jevin-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-jevin-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-jevin-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-jevin-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-jevin-treatment/",
+      "checkedAt": "2026-08-15T14:20:06.768Z"
+    },
+    {
+      "slug": "sprunki-ketchup",
+      "name": "Sprunki Ketchup",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-ketchup/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-ketchup/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-ketchup/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-ketchup/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-ketchup/",
+      "checkedAt": "2026-08-15T14:16:18.935Z"
+    },
+    {
+      "slug": "sprunki-kissing-mod",
+      "name": "Sprunki Sinner Mod",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-kissing-mod/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-kissing-mod/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-kissing-mod/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-kissing-mod/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-kissing-mod/",
+      "checkedAt": "2026-08-15T14:14:52.104Z"
+    },
+    {
+      "slug": "sprunki-megaswap-footlong-s-take",
+      "name": "Sprunki Megaswap (Footlong's Take)",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-megaswap-footlong-s-take/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-megaswap-footlong-s-take/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-megaswap-footlong-s-take/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-megaswap-footlong-s-take/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-megaswap-footlong-s-take/",
+      "checkedAt": "2026-08-15T14:12:27.986Z"
+    },
+    {
+      "slug": "sprunki-misfitmix-2",
+      "name": "Sprunki Misfitmix 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-misfitmix-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-misfitmix-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-misfitmix-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-misfitmix-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-misfitmix-2/",
+      "checkedAt": "2026-08-15T14:13:03.760Z"
+    },
+    {
+      "slug": "sprunki-modded",
+      "name": "Sprunki Modded",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-modded/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-modded/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-modded/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-modded/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-modded/",
+      "checkedAt": "2026-08-15T14:14:32.605Z"
+    },
+    {
+      "slug": "sprunki-msi",
+      "name": "Sprunki",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-msi/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-msi/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-msi/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-msi/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-msi/",
+      "checkedAt": "2026-08-15T14:15:55.876Z"
+    },
+    {
+      "slug": "sprunki-msi-phase-3",
+      "name": "Sprunki MSI Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-msi-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-msi-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-msi-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-msi-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-msi-phase-3/",
+      "checkedAt": "2026-08-15T14:18:43.077Z"
+    },
+    {
+      "slug": "sprunki-mustard",
+      "name": "Sprunki Mustard",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-mustard/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-mustard/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-mustard/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-mustard/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-mustard/",
+      "checkedAt": "2026-08-15T14:11:26.287Z"
+    },
+    {
+      "slug": "sprunki-night-time",
+      "name": "Sprunki: Night Time",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-night-time/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-night-time/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-night-time/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-night-time/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-night-time/",
+      "checkedAt": "2026-08-15T14:16:12.783Z"
+    },
+    {
+      "slug": "sprunki-parasite",
+      "name": "Sprunki Parasite",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-parasite/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-parasite/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-parasite/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-parasite/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-parasite/",
+      "checkedAt": "2026-08-15T14:16:00.977Z"
+    },
+    {
+      "slug": "sprunki-parodybox",
+      "name": "Sprunki Parodybox",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-parodybox/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-parodybox/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-parodybox/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-parodybox/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-parodybox/",
+      "checkedAt": "2026-08-15T14:16:04.629Z"
+    },
+    {
+      "slug": "sprunki-phase-1-5",
+      "name": "Sprunki Phase 1",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-1-5/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-1-5/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-1-5/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-1-5/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-1-5/",
+      "checkedAt": "2026-08-15T14:12:48.585Z"
+    },
+    {
+      "slug": "sprunki-phase-10",
+      "name": "Sprunki Phase 10",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-10/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-10/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-10/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-10/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-10/",
+      "checkedAt": "2026-08-15T14:11:17.058Z"
+    },
+    {
+      "slug": "sprunki-phase-100",
+      "name": "Sprunki Phase 100",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-100/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-100/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-100/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-100/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-100/",
+      "checkedAt": "2026-08-15T14:12:10.157Z"
+    },
+    {
+      "slug": "sprunki-phase-11",
+      "name": "Sprunki Phase 11",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-11/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-11/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-11/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-11/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-11/",
+      "checkedAt": "2026-08-15T14:11:20.457Z"
+    },
+    {
+      "slug": "sprunki-phase-12",
+      "name": "Sprunki Phase 12",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-12/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-12/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-12/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-12/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-12/",
+      "checkedAt": "2026-08-15T14:10:52.679Z"
+    },
+    {
+      "slug": "sprunki-phase-12-remastered",
+      "name": "Sprunki Phase 12 Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-12-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-12-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-12-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-12-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-12-remastered/",
+      "checkedAt": "2026-08-15T14:11:41.237Z"
+    },
+    {
+      "slug": "sprunki-phase-13",
+      "name": "Sprunki Phase 13",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-13/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-13/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-13/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-13/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-13/",
+      "checkedAt": "2026-08-15T14:11:16.318Z"
+    },
+    {
+      "slug": "sprunki-phase-2-5-definitive-edition",
+      "name": "Sprunki: Phase 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-2-5-definitive-edition/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-2-5-definitive-edition/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-2-5-definitive-edition/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-2-5-definitive-edition/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-2-5-definitive-edition/",
+      "checkedAt": "2026-08-15T14:10:52.533Z"
+    },
+    {
+      "slug": "sprunki-phase-3",
+      "name": "Sprunki Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-3/",
+      "checkedAt": "2026-08-15T14:10:48.739Z"
+    },
+    {
+      "slug": "sprunki-phase-3-remastered",
+      "name": "Sprunki Phase 3 Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-3-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-3-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-3-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-3-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-3-remastered/",
+      "checkedAt": "2026-08-15T14:11:30.424Z"
+    },
+    {
+      "slug": "sprunki-phase-3-the-carnage-continues",
+      "name": "Sprunki Phase 3: The Carnage Continues",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-3-the-carnage-continues/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-3-the-carnage-continues/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-3-the-carnage-continues/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-3-the-carnage-continues/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-3-the-carnage-continues/",
+      "checkedAt": "2026-08-15T14:15:18.064Z"
+    },
+    {
+      "slug": "sprunki-phase-4-gore-galore",
+      "name": "Sprunke Phase 4: Gore Galore",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-4-gore-galore/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-4-gore-galore/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-4-gore-galore/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-4-gore-galore/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-4-gore-galore/",
+      "checkedAt": "2026-08-15T14:17:30.891Z"
+    },
+    {
+      "slug": "sprunki-phase-4-remastered",
+      "name": "Sprunki Phase 4 Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-4-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-4-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-4-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-4-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-4-remastered/",
+      "checkedAt": "2026-08-15T14:16:35.715Z"
+    },
+    {
+      "slug": "sprunki-phase-5-definitive-the-truth",
+      "name": "Sprunki Phase 5 Definitive The Truth",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-definitive-the-truth/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-5-definitive-the-truth/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-5-definitive-the-truth/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-5-definitive-the-truth/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-definitive-the-truth/",
+      "checkedAt": "2026-08-15T14:11:50.098Z"
+    },
+    {
+      "slug": "sprunki-phase-5-remastered",
+      "name": "Sprunki Phase 5 Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-5-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-5-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-5-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-remastered/",
+      "checkedAt": "2026-08-15T14:12:01.934Z"
+    },
+    {
+      "slug": "sprunki-phase-5-the-blackened-killer",
+      "name": "Sprunki Phase 5: The Blackened Killer",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-the-blackened-killer/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-5-the-blackened-killer/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-5-the-blackened-killer/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-5-the-blackened-killer/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-5-the-blackened-killer/",
+      "checkedAt": "2026-08-15T14:16:31.161Z"
+    },
+    {
+      "slug": "sprunki-phase-6",
+      "name": "Sprunki Phase 6",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-6/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-6/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-6/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-6/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-6/",
+      "checkedAt": "2026-08-15T14:10:48.567Z"
+    },
+    {
+      "slug": "sprunki-phase-6-the-scarlet-sun",
+      "name": "Sprunki Phase 6: The Scarlet Sun",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-6-the-scarlet-sun/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-6-the-scarlet-sun/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-6-the-scarlet-sun/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-6-the-scarlet-sun/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-6-the-scarlet-sun/",
+      "checkedAt": "2026-08-15T14:15:10.128Z"
+    },
+    {
+      "slug": "sprunki-phase-69",
+      "name": "Sprunki Phase 69",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-69/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-69/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-69/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-69/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-69/",
+      "checkedAt": "2026-08-15T14:15:02.264Z"
+    },
+    {
+      "slug": "sprunki-phase-7",
+      "name": "Sprunki Phase 7",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-7/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-7/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-7/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-7/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-7/",
+      "checkedAt": "2026-08-15T14:11:10.950Z"
+    },
+    {
+      "slug": "sprunki-phase-7-ongoing-onslaught",
+      "name": "Sprunki Phase 7: Ongoing Onslaught",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-7-ongoing-onslaught/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-7-ongoing-onslaught/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-7-ongoing-onslaught/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-7-ongoing-onslaught/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-7-ongoing-onslaught/",
+      "checkedAt": "2026-08-15T14:12:03.020Z"
+    },
+    {
+      "slug": "sprunki-phase-777",
+      "name": "Sprunki Phase 777",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-777/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-777/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-777/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-777/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-777/",
+      "checkedAt": "2026-08-15T14:14:51.987Z"
+    },
+    {
+      "slug": "sprunki-phase-8",
+      "name": "Sprunki Phase 8",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-8/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-8/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-8/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-8/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-8/",
+      "checkedAt": "2026-08-15T14:10:56.667Z"
+    },
+    {
+      "slug": "sprunki-phase-8-battered-and-bleak",
+      "name": "Sprunki Phase 8: Battered & Bleak",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-8-battered-and-bleak/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-8-battered-and-bleak/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-8-battered-and-bleak/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-8-battered-and-bleak/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-8-battered-and-bleak/",
+      "checkedAt": "2026-08-15T14:13:22.683Z"
+    },
+    {
+      "slug": "sprunki-phase-9",
+      "name": "Sprunki Phase 9",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-9/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-9/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-9/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-9/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-9/",
+      "checkedAt": "2026-08-15T14:11:12.008Z"
+    },
+    {
+      "slug": "sprunki-phase-9-a-dose-of-hope",
+      "name": "Sprunki Phase 9: A Dose Of Hope",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-a-dose-of-hope/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-9-a-dose-of-hope/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-9-a-dose-of-hope/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-9-a-dose-of-hope/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-a-dose-of-hope/",
+      "checkedAt": "2026-08-15T14:13:34.451Z"
+    },
+    {
+      "slug": "sprunki-phase-9-alive-and-malediction",
+      "name": "Sprunki Phase 9: Alive And Malediction",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-alive-and-malediction/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-9-alive-and-malediction/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-9-alive-and-malediction/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-9-alive-and-malediction/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-alive-and-malediction/",
+      "checkedAt": "2026-08-15T14:12:06.291Z"
+    },
+    {
+      "slug": "sprunki-phase-9-ggtp",
+      "name": "Sprunki Phase 9 GGTP",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-ggtp/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-9-ggtp/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-9-ggtp/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-9-ggtp/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-9-ggtp/",
+      "checkedAt": "2026-08-15T14:11:29.568Z"
+    },
+    {
+      "slug": "sprunki-phase-playground-create-sprunki-and-music",
+      "name": "Sprunki Phase Playground: Create Sprunki and Music",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-phase-playground-create-sprunki-and-music/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-phase-playground-create-sprunki-and-music/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-phase-playground-create-sprunki-and-music/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-phase-playground-create-sprunki-and-music/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-phase-playground-create-sprunki-and-music/",
+      "checkedAt": "2026-08-15T14:16:36.823Z"
+    },
+    {
+      "slug": "sprunki-pink-eye-treatment",
+      "name": "Sprunki: Pink Eye Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pink-eye-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pink-eye-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pink-eye-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pink-eye-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pink-eye-treatment/",
+      "checkedAt": "2026-08-15T14:20:16.553Z"
+    },
+    {
+      "slug": "sprunki-playground",
+      "name": "Sprunki Playground",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-playground/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-playground/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-playground/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-playground/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-playground/",
+      "checkedAt": "2026-08-15T14:14:22.607Z"
+    },
+    {
+      "slug": "sprunki-pyramix-ultimate-port",
+      "name": "Sprunki Pyramix Ultimate Port",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pyramix-ultimate-port/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pyramix-ultimate-port/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pyramix-ultimate-port/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pyramix-ultimate-port/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pyramix-ultimate-port/",
+      "checkedAt": "2026-08-15T14:19:39.945Z"
+    },
+    {
+      "slug": "sprunki-pyramixed",
+      "name": "Sprunki Pyramixed",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pyramixed/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pyramixed/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pyramixed/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed/",
+      "checkedAt": "2026-08-15T14:11:47.315Z"
+    },
+    {
+      "slug": "sprunki-pyramixed-but-little-minis-deluxe",
+      "name": "Sprunki Pyramixed: But Little Minis Deluxe",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-but-little-minis-deluxe/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pyramixed-but-little-minis-deluxe/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pyramixed-but-little-minis-deluxe/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pyramixed-but-little-minis-deluxe/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-but-little-minis-deluxe/",
+      "checkedAt": "2026-08-15T14:17:06.171Z"
+    },
+    {
+      "slug": "sprunki-pyramixed-finished-animations",
+      "name": "Sprunki Pyramixed - Finished Animations",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-finished-animations/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pyramixed-finished-animations/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pyramixed-finished-animations/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pyramixed-finished-animations/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-finished-animations/",
+      "checkedAt": "2026-08-15T14:14:26.092Z"
+    },
+    {
+      "slug": "sprunki-pyramixed-phase-3",
+      "name": "Sprunki Pyramixed Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-pyramixed-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-pyramixed-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-pyramixed-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-pyramixed-phase-3/",
+      "checkedAt": "2026-08-15T14:16:51.995Z"
+    },
+    {
+      "slug": "sprunki-raddy-treatment",
+      "name": "Sprunki Raddy Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-raddy-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-raddy-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-raddy-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-raddy-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-raddy-treatment/",
+      "checkedAt": "2026-08-15T14:18:34.201Z"
+    },
+    {
+      "slug": "sprunki-rareshifted",
+      "name": "Sprunki Rareshifted",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-rareshifted/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-rareshifted/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-rareshifted/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-rareshifted/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-rareshifted/",
+      "checkedAt": "2026-08-15T14:11:47.944Z"
+    },
+    {
+      "slug": "sprunki-re-remastered",
+      "name": "Sprunki Re-Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-re-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-re-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-re-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-re-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-re-remastered/",
+      "checkedAt": "2026-08-15T14:13:40.217Z"
+    },
+    {
+      "slug": "sprunki-remastered-2-0",
+      "name": "Sprunki Remastered 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-remastered-2-0/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-remastered-2-0/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-remastered-2-0/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-remastered-2-0/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-remastered-2-0/",
+      "checkedAt": "2026-08-15T14:18:37.748Z"
+    },
+    {
+      "slug": "sprunki-retake",
+      "name": "Sprunki Retake",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-retake/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-retake/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-retake/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-retake/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-retake/",
+      "checkedAt": "2026-08-15T14:11:37.576Z"
+    },
+    {
+      "slug": "sprunki-retake-human-new",
+      "name": "Sprunki Retake Human New",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-retake-human-new/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-retake-human-new/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-retake-human-new/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-retake-human-new/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-retake-human-new/",
+      "checkedAt": "2026-08-15T14:16:12.315Z"
+    },
+    {
+      "slug": "sprunki-retake-phase-3",
+      "name": "Sprunki Retake: Phase 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-retake-phase-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-retake-phase-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-retake-phase-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-retake-phase-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-retake-phase-3/",
+      "checkedAt": "2026-08-15T14:17:51.256Z"
+    },
+    {
+      "slug": "sprunki-reversed-official",
+      "name": "Sprunki REVERSED [OFFICIAL]",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-reversed-official/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-reversed-official/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-reversed-official/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-reversed-official/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-reversed-official/",
+      "checkedAt": "2026-08-15T14:16:24.580Z"
+    },
+    {
+      "slug": "sprunki-sandbox-ragdoll-playground-mode",
+      "name": "Sprunki Sandbox: Ragdoll Playground Mode",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-sandbox-ragdoll-playground-mode/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-sandbox-ragdoll-playground-mode/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-sandbox-ragdoll-playground-mode/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-sandbox-ragdoll-playground-mode/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-sandbox-ragdoll-playground-mode/",
+      "checkedAt": "2026-08-15T14:18:01.560Z"
+    },
+    {
+      "slug": "sprunki-septuple-shifted-phase-3-the-oozing-paradox",
+      "name": "Sprunki: Septuple Shifted Phase 3 - The Oozing Paradox",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-septuple-shifted-phase-3-the-oozing-paradox/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-septuple-shifted-phase-3-the-oozing-paradox/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-septuple-shifted-phase-3-the-oozing-paradox/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-septuple-shifted-phase-3-the-oozing-paradox/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-septuple-shifted-phase-3-the-oozing-paradox/",
+      "checkedAt": "2026-08-15T14:15:15.545Z"
+    },
+    {
+      "slug": "sprunki-shifted-pepper-s-take",
+      "name": "Sprunki Shifted Pepper’s Take",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-shifted-pepper-s-take/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-shifted-pepper-s-take/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-shifted-pepper-s-take/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-shifted-pepper-s-take/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-shifted-pepper-s-take/",
+      "checkedAt": "2026-08-15T14:10:44.387Z"
+    },
+    {
+      "slug": "sprunki-shifted-remastered",
+      "name": "Sprunki Shifted Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-shifted-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-shifted-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-shifted-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-shifted-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-shifted-remastered/",
+      "checkedAt": "2026-08-15T14:17:14.159Z"
+    },
+    {
+      "slug": "sprunki-shifted-skiyak-s-take",
+      "name": "Sprunki Shifted: Skiyak’s Take",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-shifted-skiyak-s-take/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-shifted-skiyak-s-take/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-shifted-skiyak-s-take/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-shifted-skiyak-s-take/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-shifted-skiyak-s-take/",
+      "checkedAt": "2026-08-15T14:18:18.398Z"
+    },
+    {
+      "slug": "sprunki-simon-treatment",
+      "name": "Sprunki: Simon Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-simon-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-simon-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-simon-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-simon-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-simon-treatment/",
+      "checkedAt": "2026-08-15T14:18:13.096Z"
+    },
+    {
+      "slug": "sprunki-simons-realm",
+      "name": "Sprunki: Simons Realm",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-simons-realm/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-simons-realm/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-simons-realm/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-simons-realm/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-simons-realm/",
+      "checkedAt": "2026-08-15T14:15:28.773Z"
+    },
+    {
+      "slug": "sprunki-sprinkle",
+      "name": "Sprunki Sprinkle",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-sprinkle/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-sprinkle/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-sprinkle/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-sprinkle/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-sprinkle/",
+      "checkedAt": "2026-08-15T14:18:32.250Z"
+    },
+    {
+      "slug": "sprunki-sprunkfection-apocalypse-now",
+      "name": "Sprunki: Sprunkfection Apocalypse Now!",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-sprunkfection-apocalypse-now/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-sprunkfection-apocalypse-now/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-sprunkfection-apocalypse-now/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-sprunkfection-apocalypse-now/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-sprunkfection-apocalypse-now/",
+      "checkedAt": "2026-08-15T14:16:07.028Z"
+    },
+    {
+      "slug": "sprunki-sprunkr-2-0",
+      "name": "Sprunki Sprunkr 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-sprunkr-2-0/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-sprunkr-2-0/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-sprunkr-2-0/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-sprunkr-2-0/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-sprunkr-2-0/",
+      "checkedAt": "2026-08-15T14:17:43.946Z"
+    },
+    {
+      "slug": "sprunki-spruted",
+      "name": "Sprunki Spruted",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-spruted/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-spruted/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-spruted/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-spruted/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-spruted/",
+      "checkedAt": "2026-08-15T14:15:40.252Z"
+    },
+    {
+      "slug": "sprunki-spruted-remastered",
+      "name": "Sprunki Spruted Remastered",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-spruted-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-spruted-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-spruted-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-spruted-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-spruted-remastered/",
+      "checkedAt": "2026-08-15T14:15:49.954Z"
+    },
+    {
+      "slug": "sprunki-spupil",
+      "name": "Sprunki Spupil",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-spupil/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-spupil/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-spupil/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-spupil/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-spupil/",
+      "checkedAt": "2026-08-15T14:17:39.304Z"
+    },
+    {
+      "slug": "sprunki-super-quadtruple-date",
+      "name": "Sprunki Super Quadtruple Date",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-super-quadtruple-date/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-super-quadtruple-date/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-super-quadtruple-date/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-super-quadtruple-date/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-super-quadtruple-date/",
+      "checkedAt": "2026-08-15T14:14:39.939Z"
+    },
+    {
+      "slug": "sprunki-surviving-trio",
+      "name": "Sprunki Surviving Trio",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-surviving-trio/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-surviving-trio/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-surviving-trio/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-surviving-trio/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-surviving-trio/",
+      "checkedAt": "2026-08-15T14:18:58.496Z"
+    },
+    {
+      "slug": "sprunki-swapped-version",
+      "name": "Sprunki Swapped Version",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-swapped-version/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-swapped-version/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-swapped-version/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-swapped-version/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-swapped-version/",
+      "checkedAt": "2026-08-15T14:13:22.064Z"
+    },
+    {
+      "slug": "sprunki-symphony-of-pride",
+      "name": "Sprunki: Symphony of Pride",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-symphony-of-pride/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-symphony-of-pride/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-symphony-of-pride/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-symphony-of-pride/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-symphony-of-pride/",
+      "checkedAt": "2026-08-15T14:13:27.444Z"
+    },
+    {
+      "slug": "sprunki-talking-gray-and-wenda-news",
+      "name": "Sprunki: Talking Gray & Wenda News",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-talking-gray-and-wenda-news/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-talking-gray-and-wenda-news/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-talking-gray-and-wenda-news/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-talking-gray-and-wenda-news/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-talking-gray-and-wenda-news/",
+      "checkedAt": "2026-08-15T14:16:24.182Z"
+    },
+    {
+      "slug": "sprunki-the-definitive-phase-11",
+      "name": "Sprunki The Definitive Phase 11",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-the-definitive-phase-11/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-the-definitive-phase-11/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-the-definitive-phase-11/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-the-definitive-phase-11/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-the-definitive-phase-11/",
+      "checkedAt": "2026-08-15T14:11:36.835Z"
+    },
+    {
+      "slug": "sprunki-ultimate-deluxe",
+      "name": "Sprunki Ultimate Deluxe",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-ultimate-deluxe/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-ultimate-deluxe/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-ultimate-deluxe/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-ultimate-deluxe/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-ultimate-deluxe/",
+      "checkedAt": "2026-08-15T14:15:55.035Z"
+    },
+    {
+      "slug": "sprunki-wenda-treatment",
+      "name": "Sprunki Wenda Treatment",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-wenda-treatment/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-wenda-treatment/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-wenda-treatment/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-wenda-treatment/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-wenda-treatment/",
+      "checkedAt": "2026-08-15T14:11:43.360Z"
+    },
+    {
+      "slug": "sprunki-wenda-treatment-4-0-retextured",
+      "name": "Sprunki Wenda Treatment 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-wenda-treatment-4-0-retextured/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-wenda-treatment-4-0-retextured/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-wenda-treatment-4-0-retextured/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-wenda-treatment-4-0-retextured/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-wenda-treatment-4-0-retextured/",
+      "checkedAt": "2026-08-15T14:19:11.326Z"
+    },
+    {
+      "slug": "sprunki-with-oc",
+      "name": "Sprunki with OC",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-with-oc/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-with-oc/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-with-oc/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-with-oc/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-with-oc/",
+      "checkedAt": "2026-08-15T14:16:00.340Z"
+    },
+    {
+      "slug": "sprunki-world-online",
+      "name": "Sprunki World Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunki-world-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunki-world-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunki-world-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunki-world-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunki-world-online/",
+      "checkedAt": "2026-08-15T14:20:22.354Z"
+    },
+    {
+      "slug": "sprunkilairity",
+      "name": "Sprukilairity",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunkilairity/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunkilairity/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunkilairity/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunkilairity/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunkilairity/",
+      "checkedAt": "2026-08-15T14:15:43.706Z"
+    },
+    {
+      "slug": "sprunkilairity-remake",
+      "name": "Sprunkilairity Remake",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunkilairity-remake/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunkilairity-remake/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunkilairity-remake/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunkilairity-remake/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunkilairity-remake/",
+      "checkedAt": "2026-08-15T14:20:01.533Z"
+    },
+    {
+      "slug": "sprunklings",
+      "name": "Sprunklings: Sprunki Daycare",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunklings/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunklings/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunklings/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunklings/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunklings/",
+      "checkedAt": "2026-08-15T14:19:20.873Z"
+    },
+    {
+      "slug": "sprunksters",
+      "name": "Sprunksters",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sprunksters/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sprunksters/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sprunksters/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sprunksters/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sprunksters/",
+      "checkedAt": "2026-08-15T14:18:23.100Z"
+    },
+    {
+      "slug": "stick-war-ii-order-empire",
+      "name": "Stick War II Order Empire",
+      "gameflareUrl": "https://www.gameflare.com/online-game/stick-war-ii-order-empire/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/stick-war-ii-order-empire/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/stick-war-ii-order-empire/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/stick-war-ii-order-empire/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/stick-war-ii-order-empire/",
+      "checkedAt": "2026-08-15T14:11:23.662Z"
+    },
+    {
+      "slug": "strike-force-heroes-3",
+      "name": "Strike Force Heroes 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/strike-force-heroes-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/strike-force-heroes-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/strike-force-heroes-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/strike-force-heroes-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/strike-force-heroes-3/",
+      "checkedAt": "2026-08-15T14:15:49.768Z"
+    },
+    {
+      "slug": "superheroio",
+      "name": "SuperHero.io",
+      "gameflareUrl": "https://www.gameflare.com/online-game/superheroio/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/superheroio/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/superheroio/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/superheroio/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/superheroio/",
+      "checkedAt": "2026-08-15T14:20:11.450Z"
+    },
+    {
+      "slug": "surgeon-simulator-2013",
+      "name": "Surgeon Simulator",
+      "gameflareUrl": "https://www.gameflare.com/online-game/surgeon-simulator-2013/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/surgeon-simulator-2013/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/surgeon-simulator-2013/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/surgeon-simulator-2013/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/surgeon-simulator-2013/",
+      "checkedAt": "2026-08-15T14:19:16.701Z"
+    },
+    {
+      "slug": "surviv-io",
+      "name": "Surviv",
+      "gameflareUrl": "https://www.gameflare.com/online-game/surviv-io/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/surviv-io/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/surviv-io/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/surviv-io/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/surviv-io/",
+      "checkedAt": "2026-08-15T14:16:52.519Z"
+    },
+    {
+      "slug": "sword-masters",
+      "name": "Sword Masters",
+      "gameflareUrl": "https://www.gameflare.com/online-game/sword-masters/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/sword-masters/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/sword-masters/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/sword-masters/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/sword-masters/",
+      "checkedAt": "2026-08-15T14:14:28.002Z"
+    },
+    {
+      "slug": "swords-and-sandals-3",
+      "name": "Swords and sandals 3",
+      "gameflareUrl": "https://www.gameflare.com/online-game/swords-and-sandals-3/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/swords-and-sandals-3/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/swords-and-sandals-3/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/swords-and-sandals-3/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/swords-and-sandals-3/",
+      "checkedAt": "2026-08-15T14:13:46.308Z"
+    },
+    {
+      "slug": "swords-and-sandals-4",
+      "name": "Swords and Sandals 4",
+      "gameflareUrl": "https://www.gameflare.com/online-game/swords-and-sandals-4/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/swords-and-sandals-4/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/swords-and-sandals-4/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/swords-and-sandals-4/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/swords-and-sandals-4/",
+      "checkedAt": "2026-08-15T14:17:52.854Z"
+    },
+    {
+      "slug": "tabs-epic-battle-simulator",
+      "name": "TABS: Epic Battle Simulator",
+      "gameflareUrl": "https://www.gameflare.com/online-game/tabs-epic-battle-simulator/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/tabs-epic-battle-simulator/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/tabs-epic-battle-simulator/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/tabs-epic-battle-simulator/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/tabs-epic-battle-simulator/",
+      "checkedAt": "2026-08-15T14:16:41.716Z"
+    },
+    {
+      "slug": "terraria-online",
+      "name": "Terraria Online",
+      "gameflareUrl": "https://www.gameflare.com/online-game/terraria-online/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/terraria-online/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/terraria-online/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/terraria-online/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/terraria-online/",
+      "checkedAt": "2026-08-15T14:19:29.703Z"
+    },
+    {
+      "slug": "the-amazing-fix",
+      "name": "The Amazing Fix",
+      "gameflareUrl": "https://www.gameflare.com/online-game/the-amazing-fix/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/the-amazing-fix/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/the-amazing-fix/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/the-amazing-fix/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/the-amazing-fix/",
+      "checkedAt": "2026-08-15T14:14:31.905Z"
+    },
+    {
+      "slug": "the-definitive-phase-9-revenge",
+      "name": "The Definitive Phase 9: Revenge",
+      "gameflareUrl": "https://www.gameflare.com/online-game/the-definitive-phase-9-revenge/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/the-definitive-phase-9-revenge/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/the-definitive-phase-9-revenge/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/the-definitive-phase-9-revenge/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/the-definitive-phase-9-revenge/",
+      "checkedAt": "2026-08-15T14:14:03.221Z"
+    },
+    {
+      "slug": "toca-life-neighborhood",
+      "name": "Toca Life: Neighborhood",
+      "gameflareUrl": "https://www.gameflare.com/online-game/toca-life-neighborhood/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/toca-life-neighborhood/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/toca-life-neighborhood/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/toca-life-neighborhood/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/toca-life-neighborhood/",
+      "checkedAt": "2026-08-15T14:19:24.997Z"
+    },
+    {
+      "slug": "toca-life-vacation",
+      "name": "Toca Life: Vacation",
+      "gameflareUrl": "https://www.gameflare.com/online-game/toca-life-vacation/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/toca-life-vacation/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/toca-life-vacation/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/toca-life-vacation/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/toca-life-vacation/",
+      "checkedAt": "2026-08-15T14:17:56.786Z"
+    },
+    {
+      "slug": "toca-life-world",
+      "name": "Toca Life World",
+      "gameflareUrl": "https://www.gameflare.com/online-game/toca-life-world/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/toca-life-world/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/toca-life-world/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/toca-life-world/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/toca-life-world/",
+      "checkedAt": "2026-08-15T14:13:33.707Z"
+    },
+    {
+      "slug": "tower-bloxx",
+      "name": "Tower Bloxx",
+      "gameflareUrl": "https://www.gameflare.com/online-game/tower-bloxx/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/tower-bloxx/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/tower-bloxx/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/tower-bloxx/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/tower-bloxx/",
+      "checkedAt": "2026-08-15T14:17:43.905Z"
+    },
+    {
+      "slug": "tribals-io",
+      "name": "Tribals",
+      "gameflareUrl": "https://www.gameflare.com/online-game/tribals-io/",
+      "status": "embed_url_unavailable",
+      "reason": "page_publishes_no_embed_code",
+      "embedUrl": null,
+      "evidence": {
+        "embedCodeSrcs": [],
+        "playerIframeSrc": "https://www.gameflare.com/embed/tribals-io/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/tribals-io/",
+      "checkedAt": "2026-08-15T14:16:41.641Z"
+    },
+    {
+      "slug": "tuerk-jevin-s-phase-9-remastered",
+      "name": "Türk Jevin's Phase 9 REMASTERED",
+      "gameflareUrl": "https://www.gameflare.com/online-game/tuerk-jevin-s-phase-9-remastered/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/tuerk-jevin-s-phase-9-remastered/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/tuerk-jevin-s-phase-9-remastered/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/tuerk-jevin-s-phase-9-remastered/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/tuerk-jevin-s-phase-9-remastered/",
+      "checkedAt": "2026-08-15T14:12:33.905Z"
+    },
+    {
+      "slug": "ultimate-custom-night",
+      "name": "Ultimate Custom Night",
+      "gameflareUrl": "https://www.gameflare.com/online-game/ultimate-custom-night/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/ultimate-custom-night/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/ultimate-custom-night/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/ultimate-custom-night/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/ultimate-custom-night/",
+      "checkedAt": "2026-08-15T14:20:28.500Z"
+    },
+    {
+      "slug": "ultrakill",
+      "name": "UltraKill",
+      "gameflareUrl": "https://www.gameflare.com/online-game/ultrakill/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/ultrakill/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/ultrakill/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/ultrakill/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/ultrakill/",
+      "checkedAt": "2026-08-15T14:12:41.765Z"
+    },
+    {
+      "slug": "uphill-rush",
+      "name": "Uphill Rush",
+      "gameflareUrl": "https://www.gameflare.com/online-game/uphill-rush/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/uphill-rush/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/uphill-rush/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/uphill-rush/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/uphill-rush/",
+      "checkedAt": "2026-08-15T14:18:17.992Z"
+    },
+    {
+      "slug": "warzone-tower-defense",
+      "name": "Warzone tower defense",
+      "gameflareUrl": "https://www.gameflare.com/online-game/warzone-tower-defense/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/warzone-tower-defense/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/warzone-tower-defense/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/warzone-tower-defense/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/warzone-tower-defense/",
+      "checkedAt": "2026-08-15T14:15:06.494Z"
+    },
+    {
+      "slug": "where-s-my-water",
+      "name": "Where's My Water ?",
+      "gameflareUrl": "https://www.gameflare.com/online-game/where-s-my-water/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/where-s-my-water/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/where-s-my-water/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/where-s-my-water/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/where-s-my-water/",
+      "checkedAt": "2026-08-15T14:16:57.455Z"
+    },
+    {
+      "slug": "world-cup-2026",
+      "name": "World Cup 2026",
+      "gameflareUrl": "https://www.gameflare.com/online-game/world-cup-2026/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/world-cup-2026/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/world-cup-2026/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/world-cup-2026/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/world-cup-2026/",
+      "checkedAt": "2026-08-15T14:19:11.164Z"
+    },
+    {
+      "slug": "world-of-warcraft-connect-2",
+      "name": "World of Warcraft - Connect 2",
+      "gameflareUrl": "https://www.gameflare.com/online-game/world-of-warcraft-connect-2/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/world-of-warcraft-connect-2/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/world-of-warcraft-connect-2/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/world-of-warcraft-connect-2/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/world-of-warcraft-connect-2/",
+      "checkedAt": "2026-08-15T14:20:22.923Z"
+    },
+    {
+      "slug": "world-wars",
+      "name": "World Wars",
+      "gameflareUrl": "https://www.gameflare.com/online-game/world-wars/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/world-wars/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/world-wars/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/world-wars/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/world-wars/",
+      "checkedAt": "2026-08-15T14:13:33.131Z"
+    },
+    {
+      "slug": "yeti-sports-bloody",
+      "name": "Yeti Sports - Bloody Penguin Baseball",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yeti-sports-bloody/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yeti-sports-bloody/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yeti-sports-bloody/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yeti-sports-bloody/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yeti-sports-bloody/",
+      "checkedAt": "2026-08-15T14:16:47.671Z"
+    },
+    {
+      "slug": "yetisports-albatros-overload",
+      "name": "Yetisports - Albatros overload",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yetisports-albatros-overload/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yetisports-albatros-overload/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yetisports-albatros-overload/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yetisports-albatros-overload/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yetisports-albatros-overload/",
+      "checkedAt": "2026-08-15T14:17:19.752Z"
+    },
+    {
+      "slug": "yetisports-flamingo-drive",
+      "name": "Yetisports - Flamingo drive",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yetisports-flamingo-drive/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yetisports-flamingo-drive/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yetisports-flamingo-drive/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yetisports-flamingo-drive/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yetisports-flamingo-drive/",
+      "checkedAt": "2026-08-15T14:11:49.559Z"
+    },
+    {
+      "slug": "yetisports-orca-slap",
+      "name": "Yetisports - Orca Slap",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yetisports-orca-slap/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yetisports-orca-slap/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yetisports-orca-slap/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yetisports-orca-slap/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yetisports-orca-slap/",
+      "checkedAt": "2026-08-15T14:18:15.250Z"
+    },
+    {
+      "slug": "yetisports-pingu-throw",
+      "name": "Yetisports - Pingu throw",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yetisports-pingu-throw/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yetisports-pingu-throw/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yetisports-pingu-throw/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yetisports-pingu-throw/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yetisports-pingu-throw/",
+      "checkedAt": "2026-08-15T14:14:09.326Z"
+    },
+    {
+      "slug": "yetisports-seal-bounce",
+      "name": "Yetisports - Seal bounce",
+      "gameflareUrl": "https://www.gameflare.com/online-game/yetisports-seal-bounce/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/yetisports-seal-bounce/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/yetisports-seal-bounce/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/yetisports-seal-bounce/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/yetisports-seal-bounce/",
+      "checkedAt": "2026-08-15T14:15:33.152Z"
+    },
+    {
+      "slug": "zoo-2-animal-park",
+      "name": "Zoo 2: Animal Park",
+      "gameflareUrl": "https://www.gameflare.com/online-game/zoo-2-animal-park/",
+      "status": "embed_url_found",
+      "reason": "embed_code_published",
+      "embedUrl": "https://www.gameflare.com/embed/zoo-2-animal-park/",
+      "evidence": {
+        "embedCodeSrcs": [
+          "https://www.gameflare.com/embed/zoo-2-animal-park/"
+        ],
+        "playerIframeSrc": "https://www.gameflare.com/embed/zoo-2-animal-park/"
+      },
+      "finalUrl": "https://www.gameflare.com/online-game/zoo-2-animal-park/",
+      "checkedAt": "2026-08-15T14:18:27.086Z"
+    }
+  ]
+}

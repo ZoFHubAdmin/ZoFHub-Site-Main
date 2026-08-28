@@ -1,0 +1,101 @@
+# GameFlare browser verification — the WORKER, deliberately not the web service.
+# ─────────────────────────────────────────────────────────────────────────────
+# WHY THIS IS A SEPARATE WORKFLOW AND NOT A CRON JOB IN THE SERVER
+# ZoFHub's Render service builds with `npm ci --omit=dev`, and Playwright is a
+# devDependency, so Chromium does not exist in production. That is deliberate,
+# not an oversight: a 300 MB browser has no business in a request-serving dyno,
+# and the ~90 seconds a single candidate takes (a 30s pre-roll plus load and
+# interaction time) is not work a web process should be holding open.
+#
+# The repo's eight node-cron jobs therefore CANNOT run this one. The split is:
+#
+#   Render web service   serves the site; reads durable verification results
+#   this workflow        runs Chromium; writes those results
+#
+# WHY MANUAL ONLY, FOR NOW
+# No `schedule:` trigger. The rotation system this feeds — 120 active slots, the
+# 3-day refresh, promotion and retirement — is explicitly NOT to be built until
+# the verifier is trustworthy and the candidate pool is known to contain real
+# games. Adding a cron schedule now would be building that machinery early. The
+# trigger is a one-line change once that milestone is genuinely reached.
+#
+# WHAT IT DOES NOT DO
+# It does not publish. Results and screenshots are uploaded as an artifact for a
+# human to inspect. Nothing here writes to the live catalog.
+name: GameFlare verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "Comma-separated slugs to verify (blank = use the limit)"
+        required: false
+        default: ""
+      limit:
+        description: "Maximum candidates to verify"
+        required: false
+        default: "9"
+      concurrency:
+        description: "Parallel browser contexts — LEAVE AT 1, see below"
+        required: false
+        default: "1"
+
+# One run at a time. Two concurrent runs would double this repo's request rate
+# against gameflare.com for no benefit.
+concurrency:
+  group: gameflare-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # Wall-clock is dominated by waiting, not compute: ~75s per candidate, of
+    # which a ~30s pre-roll ad and a ~17s loading splash are pure waiting. And
+    # it cannot be parallelised away — concurrent browsers starve each other's
+    # video decode and turn passing games into false negatives, so the runner
+    # is deliberately serial. Budget accordingly before raising `limit`.
+    timeout-minutes: 90
+    env:
+      CRON_DISABLED: "1"
+      NODE_ENV: test
+      NO_OPEN: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # WITH devDependencies here — the opposite of every other job in this
+      # repo, and the whole reason this workflow exists separately. Playwright
+      # is the point of this runner.
+      - name: Install dependencies (including Playwright)
+        run: npm ci --include=dev
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run verification
+        run: |
+          ARGS="--concurrency ${{ inputs.concurrency }}"
+          if [ -n "${{ inputs.slugs }}" ]; then
+            ARGS="$ARGS --slug ${{ inputs.slugs }}"
+          else
+            ARGS="$ARGS --limit ${{ inputs.limit }}"
+          fi
+          npm run gameflare:verify -- $ARGS
+
+      # The screenshots ARE the evidence. A verification record whose images
+      # nobody can look at is exactly the situation that let three rounds of
+      # false positives through, so they are always uploaded — including, and
+      # especially, when the run failed.
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameflare-verification-evidence
+          path: |
+            verification-evidence/
+            data/gameflare-verification.json
+          retention-days: 30
+          if-no-files-found: warn
