@@ -118,6 +118,12 @@ export const BLOCK = [
   // Coffee Stain — Cluster Rush (paid Steam game)
   ['Cluster Rush',            /\bcluster[\s-]*rush\b/i],
 
+  // Fingersoft — Hill Climb Racing
+  ['Fingersoft — Hill Climb', /\bhill[\s-]*climb[\s-]*racing\b/i],
+
+  // Oslo Albet / Armor Games — Fireboy & Watergirl
+  ['Fireboy & Watergirl',     /\bfire[\s-]*boy\b.{0,6}\bwater[\s-]*girl\b/i],
+
   // Tall Team — Smash Karts
   ['Smash Karts',             /\bsmash[\s-]*karts?\b/i],
 

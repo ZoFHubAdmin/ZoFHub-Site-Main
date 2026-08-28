@@ -65,7 +65,8 @@
     "og-sync": "node tools/sync-onlinegames.mjs",
     "game-attributes": "node tools/run-python.mjs tools/build-game-attributes.py",
     "eval-rec": "node tools/run-python.mjs tools/eval-recommendations.py",
-    "verify-catalog": "node --use-system-ca tools/verify-catalog.mjs"
+    "verify-catalog": "node --use-system-ca tools/verify-catalog.mjs",
+    "audit-served": "node tools/audit-served.mjs"
   },
   "engines": {
     "node": ">=22"

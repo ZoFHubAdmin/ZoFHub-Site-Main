@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-307%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-526%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -20,7 +20,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 ## ✨ Features
 
-- 🎮 **12,333 playable games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — all via their official embed URLs. (Another ~4,560 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
+- 🎮 **12,289 playable games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — all via their official embed URLs, every one from a distributor that licenses third-party embedding. (Another ~4,630 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
 - ⚡ **Instant catalog** — the full game list is held in memory and refreshed from Supabase every 30 min; API responses are edge-cached.
 - 🌟 **Game of the Day** — a deterministic daily pick (same for every visitor, changes at UTC midnight), genre-weighted toward what players actually play.
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
@@ -42,7 +42,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 307 tests |
+| Tests | `node:test` (built in — zero test dependencies), 526 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -50,62 +50,90 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 
 ## 🎮 The catalog: what is actually served
 
-The numbers differ at each layer, on purpose. Measured live on 2026-08-04 by
-walking every page of `/api/games` against the production Supabase set:
+The numbers differ at each layer, on purpose. Measured from
+`data/games-export.json` with `data/catalog-overrides.json` applied — the same
+path the server takes, and reproducible offline:
 
 | Layer | Count | Why |
 |---|---:|---|
-| Rows loaded from Supabase `games` | **16,838** | everything ever ingested |
+| Rows in `data/games-export.json` | **16,916** | everything ever ingested |
 | Visible to the public key (`games_public`) | 16,783 | the RLS policy is exactly `is_working = true` |
-| **Actually served to visitors** | **12,330** | after provider exclusions + curation overrides |
+| **Actually served to visitors** | **12,289** | after provider exclusions + curation overrides |
 
-Those counts drift as the hourly link-check and the grow job run. For the live
-numbers: `npm run db:verify` for the schema side, and `curl -s
+Those counts drift as the hourly link-check and the grow job run. Reproduce every
+number in this section with **`npm run audit-served`** — it applies
+`data/catalog-overrides.json` to the export and prints exactly this breakdown. For
+the live database instead: `npm run db:verify`, and `curl -s
 localhost:8080/api/games?limit=1` (the `total` field) for what is actually served.
 
 ### Where the served games come from
 
 | Provider | Served | Share |
 |---|---:|---:|
-| GameMonetize (`html5.gamemonetize.co`) | 9,566 | 77.6% |
-| Y8 (`www.y8.com` + `y8.com`) | 2,349 | 19.0% |
-| OnlineGames.io (`www.` + `cloud.onlinegames.io`) | 258 | 2.1% |
-| GameDistribution (`html5.gamedistribution.com`) | 155 | 1.3% |
-| TurboWarp (`turbowarp.org`) | 1 | <0.1% |
+| GameMonetize (`html5.gamemonetize.co`) | 9,546 | 77.7% |
+| Y8 (`www.y8.com` + `y8.com`) | 2,347 | 19.1% |
+| OnlineGames.io (`www.` + `cloud.onlinegames.io`) | 248 | 2.0% |
+| GameDistribution (`html5.gamedistribution.com`) | 148 | 1.2% |
 
-Those are the complete list. A scan of all served rows found **zero** URLs on
-`famobi`, `smashkarts`, `gamezop`, `gameflare` or `htmlgames`.
+**Every served game now comes from a distributor that licenses third-party
+embedding.** That is the whole list — no single-title hosts, no site roots, no
+`famobi` / `smashkarts` / `gamezop` / `gameflare` / `htmlgames` URLs anywhere in
+the served set.
 
-**No game is embedded from a publisher's own site root any more.** Five were:
-`smashkarts.io`, `suroi.io`, `bloxd.io`, `deadshot.io` and `lolbeans.io` — each
-framed an entire live commercial website rather than a licensed embed URL. All
-five are blocked by host, so a re-import cannot bring them back under a new slug.
-Suroi is the one with a way forward: its code is GPL-3.0, so it can be
+**No game is embedded from a publisher's own site root any more.** Six were:
+`smashkarts.io`, `suroi.io`, `bloxd.io`, `deadshot.io`, `lolbeans.io` and a
+TurboWarp remake — each framing an entire live website rather than a licensed
+embed URL. All are blocked by host, so a re-import cannot bring them back under a
+new slug. Suroi is the one with a way forward: its code is GPL-3.0, so it can be
 **self-hosted** instead of framed — see [`suroi/`](suroi/).
 
-### Why ~4,560 catalogued games are never served
+### Why ~4,630 catalogued games are never served
 
 This is deliberate, and it is the single most surprising thing about the catalog.
-**Two different reasons** get confused constantly, so they are separated here:
+**Three different reasons** get confused constantly, so they are separated here:
 
 **Excluded because they do not render**
 
 - **HTMLGames (1,195)** — frame-busts via its on-page `GameLib/ThirdParty.js`, so an embed renders a broken or hijacked page.
-- **GameFlare (154)** — returns `403` + `X-Frame-Options: SAMEORIGIN` for third-party embeds (re-verified 2026-07-29, 25/25 probes).
+- **GameFlare (154)** — every one of these rows points at **`distribution.gameflare.com/embed/`**, which returns `403` + `X-Frame-Options: SAMEORIGIN` for third-party embeds (re-verified 2026-07-29, 25/25 probes).
+  The host matters: **`www.gameflare.com/embed/` behaves differently** and does frame — measured 2026-08-15, HTTP 200 with a readable child document. It is not a way to unblock these 154 rows, because it gates every game behind a mandatory ~30s AdInPlay pre-roll video ad whose revenue is GameFlare's, and because most titles tested still fail to start after it. See [`data/gameflare-embed-discovery.json`](data/gameflare-embed-discovery.json) and `npm run gameflare:verify`.
 
 **Excluded for licensing**
 
 - **Famobi (603)** — blocked 2026-08-04. `tools/audit-licensing.mjs` puts Famobi in tier **ACCOUNT**: embedding is free but must run through their publisher programme and feed, and every catalog row is a raw `play.famobi.com` hotlink instead. Also removed as a catalog-growth source, so no new ones arrive.
 - **Gamezop (228)** — tier **PARTNER-ID**: the embeds carry a *different* publisher's partner id, not ours.
-- **Trademark / publisher-site titles** — e.g. Subway Surfers (SYBO/Kiloo), Smash Karts (`smashkarts.io` framed whole). Blocked by slug, by title **and** by host, because a re-import can change a slug but not a name.
+- **Trademark titles (24)** — names that carry a third party's registered mark: Tetris, GTA, Minecraft, Fruit Ninja, Cookie Clicker, Five Nights at Freddy's, Geometry Dash, Fireboy & Watergirl, Hill Climb Racing, Subway Surfers, Smash Karts and others. Blocked by slug, by title **and** by host, because a re-import can change a slug but not a name. Found by running the repo's own 107-pattern list ([`tools/cleanup-ip.mjs`](tools/cleanup-ip.mjs)) against the *served* catalog for the first time — it had only ever been pointed at the three source JSON files, so nothing had checked what visitors actually see.
 
-**Excluded as duplicates or dead embeds**
+**Excluded because they are dead**
 
-- **Curation overrides (2,400 remove rules — 2,389 by slug, 6 by host, 4 by title)** in [`data/catalog-overrides.json`](data/catalog-overrides.json). Most are the same game ingested twice under a hyphen and an underscore slug.
+- **33 games (0.27%)** proved broken by a full end-to-end probe of all 12,346 then-served games, each re-checked three times: 17 hard 404s, 11 connection resets, 3 soft-404s (a `200` whose body is GameDistribution's *"Not found at origin!"* page), 1 that forbids framing, 1 `403`. Re-run with **`npm run verify-catalog -- --all`**.
 
-Rows stay in the database rather than being deleted, so every exclusion is reversible from one file if a provider's policy or our licence position changes.
+**Excluded as duplicates**
 
-**20 categories in the served set.** Largest: arcade (2,372), racing (1,228), girls (1,130), puzzle (1,100), action (1,081), shooting (1,065), sports (1,028).
+- **Curation overrides (2,465 remove rules — 2,450 by slug, 10 by host, 4 by title)** in [`data/catalog-overrides.json`](data/catalog-overrides.json). Most are the same game ingested twice under a hyphen and an underscore slug.
+
+Rows stay in the database rather than being deleted, so every exclusion is reversible from one file if a provider's policy or our licence position changes. Each rule carries a `_note` or `_why` recording the evidence.
+
+**21 categories in the served set.** Largest: arcade (2,271), racing (1,223), girls (1,128), puzzle (1,095), action (1,081), shooting (1,056), sports (1,026).
+
+### Keeping it that way
+
+Two commands, and they answer different questions:
+
+| Command | Asks | Cost |
+|---|---|---|
+| `npm run audit-served` | *Should this game be here, and is the row coherent?* Trademark names, site-root embeds, hotlinked thumbnails, duplicate slugs/embeds, missing fields, unrouted hosts, missing thumbnail files. | offline, instant |
+| `npm run verify-catalog -- --all` | *Does it actually load?* Status after redirects, **framing headers**, content-type, soft-404 bodies. | ~37 min for all 12,289 |
+
+The second exists because the first cannot see it, and because the hourly
+link-checker only asks *"did it 404?"*. **A game can return a clean `200` and
+still be a black rectangle**, because the response says it may not be framed.
+GameFlare did exactly that — `200` to a browser, `403` + `SAMEORIGIN` to an
+iframe — and 108 games rendered blank while the link checker called them healthy.
+
+Sampled by default (`npm run verify-catalog`, ~570 probes, under a minute), and it
+fails only on a **systemic** problem — one host over 20% broken — because failing
+on ordinary catalog decay trains people to ignore the check.
 
 ---
 
@@ -372,7 +400,7 @@ Two copies of the same DDL drift silently, and the failure mode is bad — Supab
 
 | Table | Rows (live) | Purpose |
 |---|---:|---|
-| `games` | 16,838 | the catalog. RLS: public may read `is_working = true` |
+| `games` | ~16,900 | the catalog. RLS: public may read `is_working = true`. ~12,300 of these reach visitors — see [Catalog](#-the-catalog-what-is-actually-served) |
 | `game_stats` | 0 | per-game play counters. Empty: the database was rebuilt on a new project, so counting restarts from zero |
 | `feedback` | — | "Send feedback" messages. RLS is **insert-only**: anon/authenticated may `INSERT` and nothing else, so a message can never be read back by the public |
 | `recommendations` | 0 | the community wall |
@@ -417,7 +445,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, recommender, credits, game-discovery
-├── test/                # node:test suites (307 tests, no framework)
+├── test/                # node:test suites (526 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -436,7 +464,7 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 307 tests, node:test — no framework, no install step
+npm test        # 526 tests, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 

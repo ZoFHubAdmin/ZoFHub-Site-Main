@@ -6114,6 +6114,312 @@
       "set": {
         "title": "CS Online"
       }
+    },
+    {
+      "_note": "THUMBNAIL SOURCING fixed 2026-08: these GameDistribution games were hotlinking their card image from www.onlinegames.io — another aggregator’s file, served off their bandwidth. The game itself is licensed; only the picture was borrowed. Replaced with GameDistribution’s own image, derived from the same hash already present in the embed URL. Every replacement was probed and returns an image.",
+      "match": {
+        "slug": "car-crash-test-abandoned-city"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/31724ff3e3554daf8359c719aa4304d6-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "gt-cars-city-racing"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/60a97d022db7432eb82dd30fa7938e03-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "mega-lamba-ramp"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/08f7196aa8c241dc81f27f118fa1f61e-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "lambo-traffic-racer"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/ab3a6a3d3c534770b4a3a91fff18df2b-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "wave-dash"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/50d154abb6c5483b847cbeea848e73ff-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "color-sand-puzzle"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/9520342c66da4ea9ad470dd2b2103c6a-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "crazy-traffic-racer"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/d0b8e5ba257d4f888738a7ec722443f1-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "stickman-kombat-2d"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/6d3928f393774157a7aed692f08ee011-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "formula-traffic-racer"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/940c7c7f620b46f0ba61998e9a98b8fb-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "charger-city-driver"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/3f0aec385266424bb0529dfcecfe30b4-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "luxury-highway-cars"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/5439e7734cf14dd082fe993be28b99db-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "tank-stars"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/659090e00bfc4650899550d63f8a130d-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "drunken-fighters"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/d0c31b0603f24b43b33e4b93d13d64bf-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "burger-empire"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/63dd731e83704e13b300deff8109f39a-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "ultimate-flying-car"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/044b890ea5b8461e9c6e69fdcdc8a432-512x512.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "ultimate-flying-car-2"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/33ac31671df249cb964b7b0fd44ec464-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "crazy-motorcycle"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/30637801603e46ec82b342b77f539cf3-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "aventador-vice-crime-city"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/be4f7b9d1f3c4370a27cd86ba14fe15e-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "snow-ball-racing-multiplayer"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/061faa6d2cd34e89a507fd435d040946-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "basketball-stars-2026"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/516d6908fbc848bdb89e65a58a43a7dc-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "vice-city-driver"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/b450025a35a0458493e9de730a67aff5-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "cop-simulator"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/38a011ec30b9476796e3e452576b16fa-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "m5-city-driver"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/ce70177ea1894fcb9421898b1e56a290-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "conquer-io"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/53fc51e1231447d5b5b85e03c2829e47-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "moto-traffic-rider"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-512x384.jpg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "racing-horizon"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/4aae27f8b4cf45d69291815ba95de748-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "motor-tour"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/635b4ece400845cea372258dee3882b8-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "car-parking-city-duel"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/988495b0353c4b8b96dd92f3772bef4c-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "highway-road-racing"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/6210bcbbdc2c473bb57a827c3cddc036-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "police-real-chase-car-simulator"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/29a8ceefb8994b35b2ed76e4ab8c88e6-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "traffic-jam-3d"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/337302b23b5943d8bcfc501d81d50cdb-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "pool-club"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/bd64b14f79bd47188f9acb4d3786ee86-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "truck-driver-snowy-roads"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/4af5b7f1402f4cb29fc1b5be42afe392-512x384.jpeg"
+      }
+    },
+    {
+      "_note": "thumbnail: publisher’s own image instead of an onlinegames.io hotlink",
+      "match": {
+        "slug": "hurakan-city-driver-hd"
+      },
+      "set": {
+        "thumbnail_url": "https://img.gamedistribution.com/fc3920c3173240b1a7dadf448aa5437d-512x384.jpeg"
+      }
     }
   ],
   "add": [
@@ -18193,6 +18499,104 @@
     {
       "slug": "space-match",
       "_why": "upstream returns 404 on 3/3 attempts"
+    },
+    {
+      "_note": "TRADEMARK TITLES hidden 2026-08. Found by running the repo’s own 105-pattern list (tools/cleanup-ip.mjs) against the SERVED catalog for the first time — it had only ever been run against the three source JSON files, so nothing had checked what visitors actually see. These name a third party’s registered mark in the title; the game may be a clone or a fan remake, but the NAME is the exposure. Not a licensing verdict on the game itself.",
+      "slug": "tetris-cube",
+      "_why": "Tetris LLC"
+    },
+    {
+      "slug": "tetris-sand",
+      "_why": "Tetris LLC"
+    },
+    {
+      "slug": "fnaf-strike-shooter",
+      "_why": "Five Nights at Freddy’s (Scott Cawthon)"
+    },
+    {
+      "slug": "five-nights-at-poppy",
+      "_why": "Five Nights at Freddy’s naming convention"
+    },
+    {
+      "slug": "stickman-gta-city",
+      "_why": "Rockstar — Grand Theft Auto"
+    },
+    {
+      "slug": "gta-simulator",
+      "_why": "Rockstar — Grand Theft Auto"
+    },
+    {
+      "slug": "cookie-clicker-pro",
+      "_why": "Orteil — Cookie Clicker"
+    },
+    {
+      "slug": "xmas-cookie-clicker",
+      "_why": "Orteil — Cookie Clicker"
+    },
+    {
+      "slug": "fnf-funk-3d",
+      "_why": "Funkin’ Crew — Friday Night Funkin’"
+    },
+    {
+      "slug": "animation-vs-minecraft",
+      "_why": "Mojang — Minecraft"
+    },
+    {
+      "slug": "fruit-ninja",
+      "_why": "Halfbrick — Fruit Ninja"
+    },
+    {
+      "slug": "pixel-monster-town",
+      "_why": "Pokémon / Pixelmon"
+    },
+    {
+      "slug": "connect-4",
+      "_why": "Hasbro — Connect 4"
+    },
+    {
+      "slug": "block-blast",
+      "_why": "Hungry Studio — Block Blast"
+    },
+    {
+      "slug": "magic-tiles-3",
+      "_why": "Amanotes — Magic Tiles 3"
+    },
+    {
+      "slug": "skibidi-toilet-io",
+      "_why": "Skibidi Toilet (DaFuq!?Boom!)"
+    },
+    {
+      "slug": "geometry-dash-freezenova",
+      "_why": "RobTop — Geometry Dash"
+    },
+    {
+      "slug": "fireboy-and-watergirl-2",
+      "_why": "Oslo Albet / Armor Games — Fireboy & Watergirl"
+    },
+    {
+      "slug": "hill-climb-racing-scratch",
+      "_why": "Fingersoft — Hill Climb Racing. Also hotlinked its thumbnail from onlinegames.io and was the only game on an unrouted host (turbowarp.org)."
+    },
+    {
+      "_note": "Second trademark pass: adding the Hill Climb Racing and Fireboy & Watergirl patterns to tools/cleanup-ip.mjs made five more titles visible that no pattern had covered before. This is the point of keeping the list and the served catalog in sync - a pattern that does not exist cannot find anything.",
+      "slug": "fireboy-and-watergirl-go-fishing",
+      "_why": "Oslo Albet / Armor Games - Fireboy & Watergirl"
+    },
+    {
+      "slug": "fireboy-and-watergirl-forest-temple",
+      "_why": "Oslo Albet / Armor Games - Fireboy & Watergirl"
+    },
+    {
+      "slug": "unblocked-forest-fireboy-and-watergirl",
+      "_why": "Oslo Albet / Armor Games - Fireboy & Watergirl"
+    },
+    {
+      "slug": "fireboy-and-watergirl-6",
+      "_why": "Oslo Albet / Armor Games - Fireboy & Watergirl"
+    },
+    {
+      "slug": "hill-climb-racing-adventure",
+      "_why": "Fingersoft - Hill Climb Racing"
     }
   ],
   "featured": [
