@@ -133,6 +133,7 @@ const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs')
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
+const { getDonateConfig }                  = await import('./lib/donate.mjs');
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
@@ -2301,6 +2302,29 @@ const clean = (s, n) => String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f
 const needsSetup = (e) => /relation .* does not exist|42P01|could not find the table/i.test(e?.message || e?.code || '');
 
 // --- POST /api/recommendations ---------------------------------------------
+// ── Donations ──────────────────────────────────────────────────────────────────
+// Read-only, and everything it returns is public by definition — a donation
+// address is meant to be handed out. There is deliberately NO write route and no
+// payment processing: this server never touches a card, never holds a balance,
+// and never learns who donated. It hands over an address and gets out of the way,
+// which is also why there is nothing here worth attacking.
+//
+// Methods whose address fails its checksum are dropped in lib/donate.mjs and
+// never reach this response, so a typo shows up as a missing button rather than
+// as donations going to nobody.
+app.get('/api/donate', (req, res) => {
+  const cfg = getDonateConfig();
+  // Short cache: the config hot-reloads, and an operator fixing a wrong address
+  // should not have to wait out a long TTL for the bad one to disappear.
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+  res.json({
+    enabled: cfg.enabled,
+    heading: cfg.heading,
+    blurb: cfg.blurb,
+    methods: cfg.methods,
+  });
+});
+
 // ── Feedback ────────────────────────────────────────────────────────────────
 // Private by design. There is no GET: feedback is not a public wall, and the
 // RLS policy grants anon INSERT only — the publishable key cannot read back even

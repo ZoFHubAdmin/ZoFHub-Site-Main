@@ -112,6 +112,12 @@ import('./feedback.js')
   .then(m => m.mountFeedback())
   .catch(() => { /* feedback unavailable → the link is inert, site unaffected */ });
 
+// Donation dialog — same lazy, self-contained pattern. It collects nothing and
+// posts nothing; it fetches /api/donate and shows addresses.
+import('./donate.js')
+  .then(m => m.mountDonate())
+  .catch(() => { /* donate unavailable → the link is inert, site unaffected */ });
+
 function mountFooter() {
   const footer = document.querySelector('.site-footer');
   if (!footer || footer.dataset.enhanced) return;
@@ -147,6 +153,8 @@ function mountFooter() {
         <!-- Opens the feedback dialog (feedback.js). A real href so it still reads
              as a link to assistive tech and survives the module failing to load. -->
         <a href="#feedback" data-feedback>Send Feedback</a>
+        <!-- Opens the donation dialog (donate.js). Real href for the same reason. -->
+        <a href="#donate" data-donate>Donate</a>
       </nav>
       <nav class="footer-col" aria-label="Legal">
         <h3>Legal</h3>
