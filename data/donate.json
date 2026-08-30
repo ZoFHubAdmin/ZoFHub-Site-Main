@@ -1,16 +1,11 @@
 {
-  "_comment": "Donation methods. Validated at load by lib/donate.mjs — any method whose address fails its checksum is DROPPED and logged, because a wrong address loses every donation silently. Addresses are public data by definition; nothing here is a secret. Fill in `address` to switch a method on; leave it empty and the method never appears.",
-
-  "_setup": "1. Paste YOUR OWN receiving address into each method you want. 2. Restart is not needed — the file hot-reloads. 3. Watch the server log: it prints which methods went live and which were dropped and why. 4. Send yourself a tiny test transaction on each chain BEFORE announcing it, especially Monero (see _monero_warning).",
-
+  "_comment": "Donation methods. Validated at load by lib/donate.mjs — any method whose address fails its checksum is DROPPED and logged, because a wrong address loses every donation silently. ADDRESSES ARE NOT STORED HERE: each crypto method names an `addressEnv`, and the deployment supplies that environment variable. A receiving address is public once live, but committing it would bind it permanently to this repository and its history.",
+  "_setup": "1. Set the env var named by each method's `addressEnv` to YOUR receiving address (see .env.example). Addresses are deliberately NOT committed. 2. The file hot-reloads; no restart needed. 3. Watch the server log for which methods went live and which were dropped and why. 4. Send a tiny test transaction on each chain BEFORE announcing it, especially Monero (see _monero_warning).",
   "_monero_warning": "XMR is shape-checked only, not checksum-verified — Monero uses Keccak-256, which node:crypto does not provide. A typo in an XMR address may pass this check. Test it.",
-
   "_privacy_note": "Privacy differs enormously between these. ARRR and XMR hide sender, receiver and amount on-chain. FIRO is transparent by default — its Lelantus Spark privacy is opt-in per transaction, so a plain Firo address behaves like Bitcoin: every donation is public forever and links donors to each other. BTC/LTC are fully transparent. The `privacy` field is shown to donors so they can choose knowingly rather than assuming a coin is private because it is on this list.",
-
   "enabled": true,
   "heading": "Support ZoFHub",
   "blurb": "ZoFHub is free, has no accounts, and never sells your data. Donations are voluntary, non-refundable, and buy nothing — no perks, no ad removal, no special access.",
-
   "methods": [
     {
       "id": "monero",
@@ -19,7 +14,8 @@
       "ticker": "XMR",
       "uriScheme": "monero",
       "address": "",
-      "note": "Private by default. The most widely held private coin, so the most donors can actually send it."
+      "note": "Private by default. The most widely held private coin, so the most donors can actually send it.",
+      "addressEnv": "DONATE_XMR_ADDRESS"
     },
     {
       "id": "pirate",
@@ -28,7 +24,8 @@
       "ticker": "ARRR",
       "uriScheme": "pirate",
       "address": "",
-      "note": "Every transaction shielded, no exceptions. Strongest privacy here; also the hardest for a donor to obtain."
+      "note": "Every transaction shielded, no exceptions. Strongest privacy here; also the hardest for a donor to obtain.",
+      "addressEnv": "DONATE_ARRR_ADDRESS"
     },
     {
       "id": "firo",
@@ -37,7 +34,8 @@
       "ticker": "FIRO",
       "uriScheme": "firo",
       "address": "",
-      "note": "TRANSPARENT unless the sender uses Lelantus Spark. Treat a plain Firo address as public."
+      "note": "TRANSPARENT unless the sender uses Lelantus Spark. Treat a plain Firo address as public.",
+      "addressEnv": "DONATE_FIRO_ADDRESS"
     },
     {
       "id": "bitcoin",
@@ -46,7 +44,8 @@
       "ticker": "BTC",
       "uriScheme": "bitcoin",
       "address": "",
-      "note": "Public ledger — every donation is permanently visible and linkable. Included for reach, not privacy."
+      "note": "Public ledger — every donation is permanently visible and linkable. Included for reach, not privacy.",
+      "addressEnv": "DONATE_BTC_ADDRESS"
     },
     {
       "id": "litecoin",
@@ -55,7 +54,8 @@
       "ticker": "LTC",
       "uriScheme": "litecoin",
       "address": "",
-      "note": "Public ledger. Cheap and fast; widely available on every exchange."
+      "note": "Public ledger. Cheap and fast; widely available on every exchange.",
+      "addressEnv": "DONATE_LTC_ADDRESS"
     },
     {
       "id": "kofi",

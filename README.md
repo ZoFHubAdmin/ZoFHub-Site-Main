@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-546%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-562%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -24,7 +24,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - ⚡ **Instant catalog** — the full game list is held in memory and refreshed from Supabase every 30 min; API responses are edge-cached.
 - 🌟 **Game of the Day** — a deterministic daily pick (same for every visitor, changes at UTC midnight), genre-weighted toward what players actually play.
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
-- 🙏 **Donations** — an optional "Support ZoFHub" dialog that shows a payment address and nothing else: no form, no amount field, no processing, no record of who gave. Addresses are **checksum-verified at load** ([`lib/donate.mjs`](lib/donate.mjs)) and a method that fails is dropped rather than served, because a one-character typo loses every donation silently. Each coin is labelled *private* or *public ledger* so donors choose knowingly.
+- 🙏 **Donations** — an optional "Support ZoFHub" dialog. Addresses live in the **environment, never in git**, are **checksum-verified at boot**, and a method that fails is dropped rather than served. Optional **swap donations** let a donor pay BTC/LTC/SOL/ETH/DOGE while a non-custodial provider settles to Monero — no invoice, session or IP is stored anywhere. See [`lib/swap.mjs`](lib/swap.mjs) for exactly which party can and cannot see what.
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for, no emails collected.
 - 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks.
@@ -43,7 +43,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 546 tests |
+| Tests | `node:test` (built in — zero test dependencies), 562 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -446,7 +446,7 @@ ZoFHub/
 ├── legal/               # privacy / terms / DMCA / cookies source
 ├── lib/                 # server modules — supabase, supabase-keys, cron-jobs, cache,
 │                        #   ai-pipeline, recommender, credits, game-discovery
-├── test/                # node:test suites (546 tests, no framework)
+├── test/                # node:test suites (562 tests, no framework)
 ├── public/
 │   ├── *.html           # pages (home, ai, community, browser, game…)
 │   ├── css/  js/        # styles + vanilla frontend modules
@@ -465,7 +465,7 @@ ZoFHub/
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 546 tests, node:test — no framework, no install step
+npm test        # 562 tests, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 

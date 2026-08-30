@@ -134,6 +134,7 @@ const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
 const { getDonateConfig }                  = await import('./lib/donate.mjs');
+const { createInvoice, swapConfig, swapStatusLine, SwapError, DEPOSIT_COINS } = await import('./lib/swap.mjs');
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
@@ -2312,16 +2313,55 @@ const needsSetup = (e) => /relation .* does not exist|42P01|could not find the t
 // Methods whose address fails its checksum are dropped in lib/donate.mjs and
 // never reach this response, so a typo shows up as a missing button rather than
 // as donations going to nobody.
+// POST /api/donate/invoice — one-time deposit address for a public coin,
+// auto-converted to Monero by a non-custodial swap provider.
+//
+// NOTHING IS PERSISTED. There is no invoice table, no session, no cookie and no
+// row anywhere joining this request to a visitor, an IP, or a gameplay history.
+// The response is built, sent, and forgotten. That is a stronger guarantee than
+// a retention policy, because there is no store to leak, subpoena or misconfigure.
+//
+// The rate limiter DOES see the IP — it has to, to work — but it is the same
+// in-memory bucket every other write route uses: a counter keyed by address that
+// decays, never written to disk and never associated with what was requested.
+//
+// If a donor needs support later, the provider's own reference (returned to
+// them, not stored by us) is the handle. We deliberately cannot look it up.
+app.post('/api/donate/invoice', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // A swap creates a real third-party API call, so this is tighter than
+  // feedback: burst 3, then one every 20s.
+  if (!writeAllow(req.ip || 'unknown', 3, 20_000)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — wait a moment.' });
+  }
+  try {
+    const invoice = await createInvoice({ from: req.body?.coin });
+    return res.json({ ok: true, invoice });
+  } catch (e) {
+    const status = e instanceof SwapError ? e.status : 502;
+    // e.message from SwapError is already sanitised in lib/swap.mjs; anything
+    // else is replaced rather than echoed.
+    const msg = e instanceof SwapError ? e.message : 'could not create a deposit address';
+    return res.status(status).json({ ok: false, error: msg });
+  }
+});
+
 app.get('/api/donate', (req, res) => {
   const cfg = getDonateConfig();
   // Short cache: the config hot-reloads, and an operator fixing a wrong address
   // should not have to wait out a long TTL for the bad one to disappear.
   res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+  const swap = swapConfig();
   res.json({
-    enabled: cfg.enabled,
+    enabled: cfg.enabled || swap.enabled,
     heading: cfg.heading,
     blurb: cfg.blurb,
     methods: cfg.methods,
+    // Which public coins can be swapped to XMR. Names only — the collection
+    // address and the provider key never appear in a client response.
+    swap: swap.enabled
+      ? { enabled: true, coins: swap.coins.map(c => ({ id: c, label: DEPOSIT_COINS[c].label })) }
+      : { enabled: false, coins: [] },
   });
 });
 
@@ -5719,6 +5759,7 @@ function startListening(host, isFallback = false) {
     console.log(`  → Open in your browser: ${url}`);
     console.log(`  → catalog: ${CATALOG.source}`);
     console.log(`  → proxy:   ${enabled.length ? enabled.join(', ') : 'offline'}`);
+    console.log('  ' + swapStatusLine());
     console.log(`  → press Ctrl+C in this terminal to stop the server\n`);
     openInBrowser(url);
   });
