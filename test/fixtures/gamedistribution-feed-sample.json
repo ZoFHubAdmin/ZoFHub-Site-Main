@@ -1,0 +1,371 @@
+{
+ "_source": "Real records from https://catalog.api.gamedistribution.com/api/v2.0/rss/All/ fetched 2026-09-26; descriptions trimmed to 600 chars. Six are the games the owner asked for; the rest are the first real example of each rejection or review case.",
+ "items": [
+  {
+   "Title": "Cross the Road",
+   "Md5": "888abfd4058149059db1e1e778d6bfa6",
+   "Description": "Experience the classic arcade action of Crossy Road in Roblox style! Navigate through endless roads, rivers, and train tracks, dodging obstacles and aiming for the highest score. With its vibrant voxel-style graphics and simple yet challenging gameplay, it's a nostalgic journey for both new and seasoned players.",
+   "Instructions": "Start Moving: Use your keyboard or device controls to move forward, left, right, or backward.\nAvoid Obstacles: Dodge cars, jump over logs, and steer clear of trains.\nKeep Going: The further you go, the higher your score.\nStay Alert: Don't stay idle for too long, or you might get caught!",
+   "Type": "html5",
+   "SubType": "WebGL",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 800,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/888abfd4058149059db1e1e778d6bfa6/",
+   "Asset": [
+    "https://img.gamedistribution.com/888abfd4058149059db1e1e778d6bfa6-512x512.jpg",
+    "https://img.gamedistribution.com/888abfd4058149059db1e1e778d6bfa6-512x384.jpg",
+    "https://img.gamedistribution.com/888abfd4058149059db1e1e778d6bfa6-200x120.jpg"
+   ],
+   "Category": [
+    "Agility",
+    "Casual"
+   ],
+   "Tag": [
+    "road",
+    "runner",
+    "roblox",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Flip Duel",
+   "Md5": "d48120b598174ba48e3d35e2733fa575",
+   "Description": "Ready to find out how stylishly you can land a backflip, or how spectacularly you can fail one? Flip Duel is a fast-paced parkour flipping game built around timing, skill combos, challenging landing zones, and hilarious ragdoll crashes. \n\nPlay through the full parkour adventure in 1 Player mode, challenge a friend in a local 2 Player flip duel, or enter FreeStyle and keep moving through obstacles for as long as your life bar allows.",
+   "Instructions": "Player 1: WASD – Character control and skill selection\nPlayer 2: ARROW KEYS – Character control and skill selection\n\nTouch Controls: Tap the screen to control your character and perform flips.\n\n\n\n",
+   "Type": "html5",
+   "SubType": "WebGL",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 960,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/d48120b598174ba48e3d35e2733fa575/",
+   "Asset": [
+    "https://img.gamedistribution.com/d48120b598174ba48e3d35e2733fa575-512x384.jpg",
+    "https://img.gamedistribution.com/d48120b598174ba48e3d35e2733fa575-512x512.jpg",
+    "https://img.gamedistribution.com/d48120b598174ba48e3d35e2733fa575-200x120.jpg",
+    "https://img.gamedistribution.com/d48120b598174ba48e3d35e2733fa575-1280x720.jpg",
+    "https://img.gamedistribution.com/d48120b598174ba48e3d35e2733fa575-1280x550.jpg"
+   ],
+   "Category": [
+    "Sports",
+    "Agility"
+   ],
+   "Tag": [
+    "1player",
+    "flip",
+    "2players",
+    "backflip",
+    "3d",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Arena Strike Battle",
+   "Md5": "1bd090f478884877be24fb1e1fea1f23",
+   "Description": "You will have a shootout in the arena with enemies. Choose any weapon, destroy your opponents.\nDifferent types of weapons, characters and arena maps are already waiting, it's going to be hot! No distracting events, just endless gunfights!\nDestroy as many opponents as possible to collect glory points and take the first place in the leaderboard.",
+   "Instructions": "PC Controls:\n- Use the arrow keys or WASD keys to move.\n- Move the mouse to aim.\n- Left-click to fire.\n\nMobile Controls:\n- Use the left blue stick to move.\n- Use the right red stick to aim.\n- Release the right red stick to fire.\n\nDestroy as many enemies as possible.",
+   "Type": "html5",
+   "SubType": "WebGL",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 1080,
+   "Width": 1920,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23/",
+   "Asset": [
+    "https://img.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23-512x512.jpg",
+    "https://img.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23-512x384.jpg",
+    "https://img.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23-200x120.jpg",
+    "https://img.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23-1280x720.jpg",
+    "https://img.gamedistribution.com/1bd090f478884877be24fb1e1fea1f23-1280x550.jpg"
+   ],
+   "Category": [
+    "Shooter",
+    "Battle"
+   ],
+   "Tag": [
+    "1player",
+    "brawl",
+    "battleroyale",
+    "battlefield",
+    "3d",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Blockland Oneblock Skyblock",
+   "Md5": "7a4f5e733d4b4de8afba79c38f6ddb18",
+   "Description": "Are you ready for an adventure that starts with a small island and a single block in the sky? In OneBlock Skyblock, use your resources wisely to expand your island, discover new resources, and build your own world. As you break the single block, different resources and surprises will appear. Expand your island, build structures, manage your resources, and become stronger as you progress. Start with a single block, build a huge island in the sky, and try to complete all the levels!",
+   "Instructions": "Move using the \"WASD\" keys. Use \"Shift\" to prevent yourself from falling. Press \"Space\" to jump. Use the mouse to break or place blocks. Mobile touch controls are also available.\n",
+   "Type": "html5",
+   "SubType": "Javascript",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 800,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18/",
+   "Asset": [
+    "https://img.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18-512x384.jpg",
+    "https://img.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18-512x512.jpg",
+    "https://img.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18-200x120.jpg",
+    "https://img.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18-1280x720.jpg",
+    "https://img.gamedistribution.com/7a4f5e733d4b4de8afba79c38f6ddb18-1280x550.jpg"
+   ],
+   "Category": [
+    "Casual",
+    "Simulation"
+   ],
+   "Tag": [
+    "1player",
+    "minecraft",
+    "survival",
+    "3d",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Roller Coaster: Obby Race",
+   "Md5": "6322e360cffc45f188d111985753b274",
+   "Description": "Race along narrow rails where every turn can be your last. Speed, reaction, and precise minecart control matter here: accelerate, brake, and pass dangerous sections without falling.\nTracks become harder, obstacles get trickier, and each run becomes more intense. Unlock new minecarts, try different routes, and prove you can complete every challenge. Dangerous tracks with sharp turns await you.",
+   "Instructions": "The goal of the game is to reach the finish, stay on the rails, and complete all dangerous sections. Control your speed, jump in time, interact with objects, and keep your balance on turns.\nControls: on desktop, use WASD to move, Space to jump, E to interact, and LMB to control the camera. On mobile, use touch and swipe.",
+   "Type": "html5",
+   "SubType": "WebGL",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 1080,
+   "Width": 1920,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/6322e360cffc45f188d111985753b274/",
+   "Asset": [
+    "https://img.gamedistribution.com/6322e360cffc45f188d111985753b274-512x384.jpg",
+    "https://img.gamedistribution.com/6322e360cffc45f188d111985753b274-512x512.jpg",
+    "https://img.gamedistribution.com/6322e360cffc45f188d111985753b274-200x120.jpg",
+    "https://img.gamedistribution.com/6322e360cffc45f188d111985753b274-1280x720.jpg",
+    "https://img.gamedistribution.com/6322e360cffc45f188d111985753b274-1280x550.jpg"
+   ],
+   "Category": [
+    "Simulation"
+   ],
+   "Tag": [
+    "control",
+    "speed",
+    "track",
+    "roblox",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Moto Traffic Rider",
+   "Md5": "9bde41f232834eff9ea81554ecee8279",
+   "Description": "Throttle the roaring engines of 6 awesome superbikes with insane speed limits and ride them through 3 landscape highways without crashing. Show how well you can ride and control these bikes and conquer 3 awesome game modes. Use replenishing nitro to overtake slow cars and drive in speed at all times. Upgrade your bikes with the best upgrades and get the most out of all the rides. Are you ready to show your bike riding skills? Prove yourself in Moto Traffic Rider",
+   "Instructions": "W, A, S, D/ Arrow Keys: Drive/Steer/Brake , F: Nitro , C: Change Camera",
+   "Type": "html5",
+   "SubType": "WebGL",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 800,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/9bde41f232834eff9ea81554ecee8279/",
+   "Asset": [
+    "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-512x384.jpg",
+    "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-200x120.jpg",
+    "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-512x512.jpg",
+    "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-1280x720.jpg",
+    "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-1280x550.jpg"
+   ],
+   "Category": [
+    "Racing & Driving"
+   ],
+   "Tag": [
+    "bike",
+    "motorbike",
+    "motorcycle",
+    "winter",
+    "highway",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "3D Supermarket Tycoon",
+   "Md5": "8da6f454aceb4c1b9c7a0644f020d6ca",
+   "Description": "3D Supermarket Tycoon is a relaxing idle supermarket management game where you build and grow your own store. Stock shelves, serve customers, collect cash and expand your business from a small market into a supermarket and hypermarket. Hire cashiers and stock clerks, unlock new shelves and upgrade your store, prices, speed and customer traffic. Build your supermarket empire and become a successful store tycoon!",
+   "Instructions": "Desktop: Move with WASD or arrow keys. Press E to open upgrades.\nMobile: Tap and drag anywhere to move.\nPick up boxes in the stockroom, walk to a shelf to restock it, and collect the cash at the checkout. Stand on price tags on the floor to unlock shelves and hire staff.",
+   "Type": "html5",
+   "SubType": "Javascript",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 800,
+   "Https": true,
+   "Status": 1,
+   "Url": "https://html5.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca/",
+   "Asset": [
+    "https://img.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca-512x512.jpg",
+    "https://img.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca-200x120.jpg",
+    "https://img.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca-512x384.jpg",
+    "https://img.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca-1280x720.jpg",
+    "https://img.gamedistribution.com/8da6f454aceb4c1b9c7a0644f020d6ca-1280x550.jpg"
+   ],
+   "Category": [
+    "Simulation",
+    "Strategy"
+   ],
+   "Tag": [
+    "business",
+    "supermarket",
+    "tycoon",
+    "manager",
+    "3d",
+    "Kids Friendly"
+   ]
+  },
+  {
+   "Title": "Monster Vs Zombie",
+   "Md5": "bb51276fc78a4c4eac99723013dd7e04",
+   "Description": "Slide the monster to help it eat all the zombies in the way. Use your strategic thinking and problem solving skill to avoid all obstacle and reach the gate to go to the next level.",
+   "Instructions": "Slide the monster. The monster will keep going until it hits the wall or an obstacle. Move it in a different direction until it finishes all the target.",
+   "Type": "html5",
+   "SubType": "Javascript",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 1920,
+   "Width": 1080,
+   "Https": null,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04/",
+   "Asset": [
+    "https://img.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04-512x384.jpg",
+    "https://img.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04-512x512.jpg",
+    "https://img.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04-1280x720.jpg",
+    "https://img.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04-1280x550.jpg",
+    "https://img.gamedistribution.com/bb51276fc78a4c4eac99723013dd7e04-200x120.jpg"
+   ],
+   "Category": [
+    "Puzzle",
+    "Strategy"
+   ],
+   "Tag": [
+    "2d",
+    "levels",
+    "logic",
+    "relax",
+    "arcade",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Flappy Copter",
+   "Md5": "044291f8d2604a89872bf0e5abe71c75",
+   "Description": "Flappy Copter is a HTML5 game where you where you controls the copter to past through the pipes without crashing in the rounded world.",
+   "Instructions": "Touch anywhere on the screen.",
+   "Type": "html5",
+   "SubType": "Javascript",
+   "Mobile": "true",
+   "MobileMode": null,
+   "Height": 768,
+   "Width": 1280,
+   "Https": false,
+   "Status": 2,
+   "Url": "http://html5.gamedistribution.com/044291f8d2604a89872bf0e5abe71c75/",
+   "Asset": [
+    "http://img.gamedistribution.com/044291f8d2604a89872bf0e5abe71c75-512x384.jpeg",
+    "http://img.gamedistribution.com/044291f8d2604a89872bf0e5abe71c75-512x512.jpeg",
+    "http://img.gamedistribution.com/044291f8d2604a89872bf0e5abe71c75-512x340.jpeg"
+   ],
+   "Category": [
+    "Casual"
+   ],
+   "Tag": [
+    "2d",
+    "arcade",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Fire Ball and Water Ball: Parkour Love Balls",
+   "Md5": "2a47f95c576b4a6ebdd29d73b372b8ad",
+   "Description": "Fire Ball and Water Ball: Parkour Love Balls is an interesting parkour adventure and addictive ball game in the platform genre where orange fire ball and blue water ball running races. \n\nHelp orange ball to get to the portal faster than the blue ball doing parkour tricks! The game is similar to mario.\n\nGame Features:\n- Multiple levels with colorful balls\n- Various biomes\n- Secrets in the back\n- Orange fire and blue water ball skins\n- The water ball girl goes through the levels with you!",
+   "Instructions": "You can move and jump using the arrow keys, the WASD buttons (for PC) or by tapping the virtual buttons located on the screen (for smartphones and tablets).\n\nDon't fall into the pits and don't fall into the traps.\nTo win, you need to get to the portal.\nAt the same time, it is not necessary to overtake another ball, because you are friends, not rivals :)",
+   "Type": "html5",
+   "SubType": "Construct 3",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 600,
+   "Width": 800,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad/",
+   "Asset": [
+    "https://img.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad-512x384.jpg",
+    "https://img.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad-512x512.jpg",
+    "https://img.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad-200x120.jpg",
+    "https://img.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad-1280x720.jpg",
+    "https://img.gamedistribution.com/2a47f95c576b4a6ebdd29d73b372b8ad-1280x550.jpg"
+   ],
+   "Category": [
+    "Agility",
+    "Casual"
+   ],
+   "Tag": [
+    "1player",
+    "ball",
+    "mario",
+    "platformer",
+    "runner",
+    "Kids Friendly",
+    "No Blood"
+   ]
+  },
+  {
+   "Title": "Hextetris",
+   "Md5": "c4fadbb98e904ef091111b268b1204b7",
+   "Description": "Suppose you are a big fan of the Tetris game. This game will make you excited about it. It is the compound of Tetris and match-3 games. Let make more score as you can. The higher level will be more difficult. Some features need to discover.",
+   "Instructions": "You can use the keyboard to play it. (arrow button and space bar).",
+   "Type": "html5",
+   "SubType": "Construct 3",
+   "Mobile": "false",
+   "MobileMode": null,
+   "Height": 1280,
+   "Width": 720,
+   "Https": true,
+   "Status": 2,
+   "Url": "https://html5.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7/",
+   "Asset": [
+    "https://img.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7-512x512.jpeg",
+    "https://img.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7-512x384.jpeg",
+    "https://img.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7-512x340.jpeg",
+    "https://img.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7-1280x720.jpeg",
+    "https://img.gamedistribution.com/c4fadbb98e904ef091111b268b1204b7-1280x550.jpeg"
+   ],
+   "Category": [
+    "Puzzle"
+   ],
+   "Tag": [
+    "matching",
+    "pixel",
+    "retro",
+    "tetris",
+    "pixelart",
+    "No Blood",
+    "No Cruelty"
+   ]
+  }
+ ]
+}
