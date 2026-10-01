@@ -22,12 +22,16 @@ CHECK = 'api'
 _ROUTE = re.compile(r"\bapp\.(get|post|put|patch|delete|all)\(\s*'([^']+)'")
 # Routes registered by looping a table — the legal pages do this — are real
 # routes with no literal app.get() to find. Their paths come from the array.
+# The control-plane API registers every route through one gating helper,
+# add('<method>', '/api/admin/...', '<permission>', ...), in lib/admin-api.mjs.
+_ADD_ROUTE = re.compile(r"\badd\(\s*'(get|post|put|patch|delete)'\s*,\s*'(/api/admin/[^']+)'")
 _TABLE_ROUTE = re.compile(r"for\s*\(\s*const\s+\[?\s*\w+.*?of\s+(\w+)\s*\)", re.S)
 
 # `api(…)` as well as `fetch(…)`: admin-ui/assets/admin.js wraps every call in a
 # helper that adds the CSRF header, so a check that only knew about fetch()
 # thought the entire admin API had no callers.
-_CALL = r'(?:fetch|api|apiGet|apiPost|request)'
+# `call(...)` is admin-ui/assets/admin-control.js's wrapper (CSRF + step-up retry).
+_CALL = r'(?:fetch|api|apiGet|apiPost|request|call)'
 _FETCH = re.compile(_CALL + r"""\(\s*(?:'|")(/[^'"?#]*)(?:'|")\s*(\+)?""")
 _TEMPLATE_FETCH = re.compile(_CALL + r'\(\s*`(/[^`]*)`')
 # `${r.id}` is one path segment whose value is not known statically. Substituting
@@ -66,6 +70,11 @@ def collect_routes() -> list[tuple[str, str, int]]:
             out.append(('get', lit, line_of(src, decl.start())))
         for slug in re.findall(r"'([a-z0-9-]+)'", decl.group(1)):
             out.append(('get', '/' + slug, line_of(src, decl.start())))
+
+    api = ROOT / 'lib' / 'admin-api.mjs'
+    if api.exists():
+        asrc = strip_js_comments(read(api))
+        out += [(m.group(1), m.group(2), line_of(asrc, m.start())) for m in _ADD_ROUTE.finditer(asrc)]
     return out
 
 

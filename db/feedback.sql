@@ -1,25 +1,27 @@
--- db/feedback.sql — user feedback, and the retirement of the leaderboard.
+-- db/feedback.sql — user feedback.
 --
--- Runs LAST in the migration order, so the drops below act on tables the earlier
--- migrations created. Those earlier files are left untouched on purpose: they
--- are the applied history of this database, and rewriting history so it never
--- mentions scores would make a replay from scratch diverge from what production
--- actually did.
+-- Earlier files are left untouched on purpose: they are the applied history of
+-- this database, and rewriting history so it never mentions scores would make a
+-- replay from scratch diverge from what production actually did.
 --
--- ── Part 1: retire the leaderboard ─────────────────────────────────────────
--- The feature is gone from the application (no routes, no page, no admin tab),
--- so these objects are unreachable. Dropping them stops a table nobody reads
--- from accruing rows, and removes two SECURITY DEFINER functions — code that
--- runs with elevated rights and should not exist without a caller.
---
--- This DESTROYS the scores table and its data. It held 1 row at the time of
--- writing. Anything of value would need exporting first; there was nothing.
+-- ── Part 1: the leaderboard retirement, undone ─────────────────────────────
 
-drop function if exists public.submit_score(text, text, integer, text);
-drop function if exists public.submit_score(text, text, integer);
-drop function if exists public.prune_scores(integer);
-drop view     if exists public.scores_public;
-drop table    if exists public.scores;
+-- RETIREMENT REVERSED. The leaderboard is back in the application (lib/scores.mjs,
+-- GET/POST /api/scores, /leaderboard), so this file no longer drops the table it
+-- reads. The drops are kept below, commented, because they DID run against
+-- production once and a reader of this file needs to know that -- deleting the
+-- lines outright would make the applied history unexplainable.
+--
+--   drop function if exists public.submit_score(text, text, integer, text);
+--   drop function if exists public.submit_score(text, text, integer);
+--   drop function if exists public.prune_scores(integer);
+--   drop view     if exists public.scores_public;
+--   drop table    if exists public.scores;
+--
+-- Because Supabase tracks migrations by FILENAME, editing this file does not
+-- un-drop anything on a database where it already ran. That is what
+-- db/scores-restore.sql is for: a forward migration that re-creates the table.
+-- A replay from scratch now keeps the table all the way through.
 
 -- ── Part 2: feedback ───────────────────────────────────────────────────────
 -- Private by construction. Feedback is not a public wall: people report bugs,

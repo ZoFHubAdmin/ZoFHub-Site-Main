@@ -4,6 +4,9 @@ import { store } from './storage.js';
 import { dwell, skips as skipSignal } from './signals.js?v=20260807';
 import { presence, fmtCount, paintCount } from './presence.js';
 import { OptimizedIframeLoader } from './iframe-loader-optimized.js';
+// The page's shared /api/site-config request (see site-config.js). Same
+// specifier as layout.js, so this is the same promise, not a second fetch.
+import { siteConfig } from './site-config.js';
 
 const slug = window.ZOFHUB_GAME?.slug || (location.pathname.match(/\/play\/([^/?#]+)/) || [])[1];
 
@@ -67,10 +70,38 @@ if (slug) {
   presence.setSlug(slug);
   recordPlay();
   bindActions();
-  bindFrameOptimized();
-  autoFitFromEmbed();
+  startGame();
   bindLiveCount();
   loadRelated();
+}
+
+// ── The game frame, behind the optional video pre-roll ─────────────────────
+// The frame gets its src only after the pre-roll (preroll.js) settles — it
+// completed, was skipped, failed, had no fill, was blocked or hung. Three caps
+// keep the player from ever waiting on an ad:
+//   • the server says whether a pre-roll exists anywhere (ZOFHUB_GAME.preroll);
+//     when it does not, the frame binds immediately, exactly as before;
+//   • site-config gets PREROLL_CONFIG_WAIT_MS to say whether THIS visitor gets
+//     one — a slow answer means no pre-roll, not a slow game;
+//   • PREROLL_HARD_CAP_MS binds the frame whatever preroll.js is doing (it has
+//     its own failsafe; this one also covers a module that failed to load).
+const PREROLL_CONFIG_WAIT_MS = 2500;
+const PREROLL_HARD_CAP_MS = 50000;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function prerollGate() {
+  if (window.ZOFHUB_GAME?.preroll !== true) return;
+  const cfg = await Promise.race([siteConfig, wait(PREROLL_CONFIG_WAIT_MS).then(() => null)]);
+  if (!cfg || cfg.adsAllowed === false || !cfg.preroll || typeof cfg.preroll.vast !== 'string') return;
+  const { runPreroll } = await import('./preroll.js');
+  await runPreroll({ vast: cfg.preroll.vast, box: $('#frameBox') });
+}
+
+async function startGame() {
+  try { await Promise.race([prerollGate(), wait(PREROLL_HARD_CAP_MS)]); }
+  catch { /* an ad problem is never a game problem */ }
+  bindFrameOptimized();
+  autoFitFromEmbed();
 }
 
 // Shape the frame-box to the game's TRUE aspect ratio. Proxied publishers (Y8
@@ -113,6 +144,9 @@ function autoFitFromEmbed() {
 function loadViaProxy() {
   const f = $('#gameFrame');
   if (!f) return;
+  // Before the frame is bound (the pre-roll is still playing) there is nothing
+  // to switch; startGame() binds it moments later.
+  if (!f._loader) return;
   toast('Loading via ZoFHub proxy…', 'ok');
   
   // Use the optimized loader's proxy method
@@ -199,6 +233,8 @@ function bindActions() {
 function reloadGame() {
   const frame = $('#gameFrame');
   if (!frame) return;
+  // Nothing to reload while the pre-roll is still in front of the frame.
+  if (!frame._loader) return;
   toast('Reloading game…', 'ok');
   
   // Use the optimized loader's restart method
@@ -320,16 +356,21 @@ async function loadRelated() {
 
 function buildTile(g) {
   const a = el('a', { class: 'game-tile', href: `/play/${g.slug}` });
-  const safe = String(g.title).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  // Every catalog field is third-party data. The thumbnail was interpolated RAW
+  // into src="…", so a feed row whose URL contained a quote could add its own
+  // attributes (an onerror handler) to this tile. Escaped like the title now,
+  // including the single quote.
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const safe = esc(g.title);
   if (g.thumbnail) {
-    a.innerHTML = `<img loading="lazy" src="${g.thumbnail}" alt="${safe}" data-title="${safe}" />`;
+    a.innerHTML = `<img loading="lazy" src="${esc(g.thumbnail)}" alt="${safe}" data-title="${safe}" />`;
     wireThumbFallback(a.querySelector('img'));
   } else {
     let h = 0; for (let i = 0; i < g.title.length; i++) h = (h * 31 + g.title.charCodeAt(i)) >>> 0;
     const palette = ['#3a2a7a','#442f8c','#33246b','#4a3596','#382874','#402d84','#2e2160'];
     const c1 = palette[h % palette.length], c2 = palette[(h >> 8) % palette.length];
     const initials = g.title.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase();
-    a.innerHTML = `<div class="game-tile-fallback" style="--c1:${c1};--c2:${c2}">${initials}</div>`;
+    a.innerHTML = `<div class="game-tile-fallback" style="--c1:${c1};--c2:${c2}">${esc(initials)}</div>`;
   }
   a.insertAdjacentHTML('beforeend', `<span class="game-tile-label">${safe}</span>`);
   return a;

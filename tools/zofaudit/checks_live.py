@@ -122,7 +122,7 @@ def run(report) -> None:
         report.add(Finding(
             CHECK, 'error', f'migrations create {missing}, the live database does not have it',
             detail='Either the migration has not been applied, or the integration is not\n'
-                   'connected to the repository you push to. See supabase/README.md.'))
+                   'connected to the repository you push to. See docs/database/SUPABASE-MIGRATIONS.md.'))
     for missing in sorted(want_rpc - live_rpc):
         report.add(Finding(
             CHECK, 'error', f'migrations create {missing}(), the live database does not have it',

@@ -705,7 +705,13 @@ def merge_overrides(path, rules, dry, source="scrape_thumbnails"):
 
 
 def audit_report(tel, games_seen, path, dry):
+    # The banner is emitted HERE, not hand-added to the output: this function
+    # rewrites the whole file, so anything added by hand is lost on the next run.
     lines = ["# Thumbnail scrape audit", "",
+             "> **Generated file — do not edit by hand.** Written by",
+             "> [`tools/scrape_thumbnails.py`](../../tools/scrape_thumbnails.py)",
+             "> (`npm run scrape-thumbs`). It records **one run**, not current state;",
+             "> re-run the tool to refresh it.", "",
              f"- games processed: **{games_seen}**",
              f"- fixed: **{len(tel.fixed)}**",
              f"- still missing: **{len(tel.failed)}**",
@@ -745,6 +751,7 @@ def audit_report(tel, games_seen, path, dry):
 
     text = "\n".join(lines)
     if not dry:
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
     return text
 
@@ -765,7 +772,7 @@ def main():
     ap.add_argument("--thumbnails-json", default=str(ROOT / "data" / "thumbnails.json"))
     ap.add_argument("--img-dir", default=str(ROOT / "public" / "thumbs"))
     ap.add_argument("--url-prefix", default="/thumbs")
-    ap.add_argument("--report", default=str(ROOT / "data" / "thumbnail-scrape-report.md"))
+    ap.add_argument("--report", default=str(ROOT / "docs" / "reports" / "thumbnail-scrape-report.md"))
     ap.add_argument("--only", help="comma-separated slugs")
     ap.add_argument("--all", action="store_true",
                     help="process every game, not just unresolved ones")

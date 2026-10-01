@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SERVER = readFileSync(join(ROOT, 'server.js'), 'utf8');
+const ADMIN_API = readFileSync(join(ROOT, 'lib', 'admin-api.mjs'), 'utf8');
 
 /**
  * Every path the server registers.
@@ -60,6 +61,13 @@ function declaredRoutes(src) {
   };
   table('const LEGAL_PAGES =', '{', '}');
   table('const LEGAL_HTML_TWINS =', '[', ']');
+
+  // 3. The control-plane API registers its routes through ONE helper,
+  //    add('<method>', '/api/admin/…', …), in lib/admin-api.mjs — the helper is
+  //    what guarantees every one is permission-gated (test/admin-control-api.test.mjs
+  //    proves that). Read from that file rather than exempted, so a console call
+  //    to a route that module no longer registers still fails here.
+  for (const m of ADMIN_API.matchAll(/\badd\(\s*'(?:get|post|put|patch|delete)'\s*,\s*('[^']*')/g)) collect(m[1]);
 
   return routes;
 }
@@ -118,8 +126,17 @@ describe('the server declares every route the site points at', () => {
                         ...walk(join(ROOT, 'admin-ui'), ['.js'])]) {
       const src = readFileSync(file, 'utf8');
       for (const m of src.matchAll(API_CALL)) {
-        // Template literals interpolate an id — compare the static prefix only.
+        if (m[0].startsWith('`')) continue;          // template literals: handled below, whole
         const path = m[1].replace(/\/$/, '');
+        if (!isReachable(path)) offenders.push(`${rel(file)} → ${path}`);
+      }
+      // A template literal is compared WHOLE, each ${…} standing for one path
+      // segment — the same rule tools/zofaudit/checks_api.py uses. Comparing only
+      // the static prefix used to require a route at `/api/x/engines` just
+      // because a client calls `/api/x/engines/${id}`, which is how a route with
+      // no caller gets added to satisfy a test.
+      for (const m of src.matchAll(/`(\/api\/[^`]*)`/g)) {
+        const path = m[1].replace(/\$\{[^}]*\}/g, 'X').split(/[?#]/)[0].replace(/\/$/, '');
         if (!isReachable(path)) offenders.push(`${rel(file)} → ${path}`);
       }
     }
@@ -136,7 +153,7 @@ describe('the server declares every route the site points at', () => {
                    ...walk(join(ROOT, 'admin-ui'), ['.html'])];
     for (const file of pages) {
       // The vendored GUST proxy app owns its own root and its own paths.
-      if (rel(file).startsWith('public/gust/')) continue;
+      if (rel(file).startsWith('proxy-engine/assets/gust/')) continue;
       const src = readFileSync(file, 'utf8');
       for (const m of src.matchAll(HREF)) {
         if (!isReachable(m[1])) offenders.push(`${rel(file)} → ${m[1]}`);
@@ -159,22 +176,39 @@ describe('the server declares every route the site points at', () => {
   });
 });
 
-describe('the retired leaderboard is gone from the client, not just the server', () => {
-  // A removal that leaves the UI behind is worse than one that leaves the API
-  // behind: the API 404s silently, but the UI keeps inviting people to use it.
-  test('server.js defines no /api/scores route', () => {
-    const scoreRoutes = ROUTES.filter(r => /\/scores(\/|$)/.test(r));
-    assert.deepEqual(scoreRoutes, [],
-      'the scores API is back — if that is intended, the client and db/ must come with it');
+describe('the leaderboard is present on every layer, or on none', () => {
+  // This block used to assert the leaderboard was gone. It is back, so the same
+  // guard now points at the current intent — and it is still worth having: a
+  // HALF-restored feature is the same class of bug in the other direction. A
+  // page that invites a score the server cannot store, or a write API no client
+  // calls, both fail quietly and both waste somebody's afternoon.
+  test('server.js defines the scores API', () => {
+    const scoreRoutes = ROUTES.filter((r) => /\/scores(\/|$)/.test(r));
+    assert.ok(scoreRoutes.length >= 2,
+      `expected the board + submit routes, found: ${scoreRoutes.join(', ') || 'none'}`);
   });
 
-  test('nothing in public/ or admin-ui/ still calls the scores API', () => {
-    const offenders = [];
+  test('the client that calls it exists', () => {
+    const callers = [];
     for (const file of [...walk(join(ROOT, 'public'), ['.js', '.html']),
                         ...walk(join(ROOT, 'admin-ui'), ['.js', '.html'])]) {
-      if (rel(file).startsWith('public/gust/')) continue;
-      if (/['"`]\/api\/(admin\/)?scores/.test(readFileSync(file, 'utf8'))) offenders.push(rel(file));
+      if (rel(file).startsWith('proxy-engine/assets/gust/')) continue;
+      if (/['"`]\/api\/(admin\/)?scores/.test(readFileSync(file, 'utf8'))) callers.push(rel(file));
     }
-    assert.deepEqual(offenders, [], 'dead leaderboard client code');
+    assert.ok(callers.includes('public/js/leaderboard.js'),
+      'the board page does not read the scores API');
+    assert.ok(callers.includes('public/js/score-submit.js'),
+      'nothing on the site can submit a score');
+  });
+
+  test('the client never sends its own moderation verdict', () => {
+    // status and flag_reason are decided in lib/scores.mjs, server-side. A
+    // client that sent them would be marking its own homework, and the whole
+    // quarantine would be advisory.
+    for (const f of ['public/js/score-submit.js', 'public/js/leaderboard.js']) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      assert.ok(!/\bstatus\s*:\s*['"]/.test(src), `${f} sends a status field`);
+      assert.ok(!/flag_reason/.test(src), `${f} sends a flag_reason`);
+    }
   });
 });

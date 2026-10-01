@@ -1,0 +1,63 @@
+# ZoFHub + sing-box — the deployment shape that actually works.
+# ---------------------------------------------------------------------------
+# WHY THIS FILE EXISTS. ZoFHub's default deploy (render.yaml) is ONE Node web
+# service behind a platform edge that terminates TLS. A REALITY inbound cannot
+# live there: REALITY borrows a real site's TLS handshake and must own :443
+# itself, which the platform edge already owns. So sing-box needs a host where
+# you control the network edge — a VPS or any container host — and this compose
+# file is that arrangement.
+#
+# sing-box (github.com/SagerNet/sing-box) is GPL-3.0, runs here as its own
+# unmodified upstream image, and is not bundled into or derived from ZoFHub.
+# ZoFHub is not affiliated with or endorsed by its authors. The two communicate
+# only over sing-box's HTTP management API on a private network.
+#
+#   docker compose up -d
+#   docker compose exec singbox sing-box check -c /etc/sing-box/config.json
+# ---------------------------------------------------------------------------
+
+services:
+  zofhub:
+    build: ../..
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      # The admin panel reads sing-box over the PRIVATE compose network. This
+      # address is not reachable from outside the compose project, which is the
+      # point — see the ports note on the singbox service below.
+      SINGBOX_API_URL: http://singbox:9090
+      SINGBOX_API_SECRET: ${SINGBOX_API_SECRET:?set SINGBOX_API_SECRET in .env}
+      SINGBOX_API_TIMEOUT_MS: "1500"
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - singbox
+
+  singbox:
+    image: ghcr.io/sagernet/sing-box:latest
+    restart: unless-stopped
+    command: ["run", "-c", "/etc/sing-box/config.json"]
+    volumes:
+      # Rendered from config.template.json with your real values substituted.
+      # Read-only: the container has no business rewriting its own config, and
+      # the panel's hot-reload writes through the host path, not the container.
+      - ./config.json:/etc/sing-box/config.json:ro
+      - singbox-cache:/var/lib/sing-box
+    ports:
+      # ONLY 443. The Clash API on 9090 is deliberately NOT published — it stays
+      # on the internal compose network where only the zofhub service can reach
+      # it. Publishing it would expose routing rewrite + full connection
+      # enumeration to the internet.
+      - "443:443"
+    cap_add:
+      # Required for the tun inbound only. Drop this if you use the VLESS/REALITY
+      # inbound alone, as config.template.json does — least privilege by default.
+      - NET_ADMIN
+    environment:
+      SINGBOX_API_SECRET: ${SINGBOX_API_SECRET:?set SINGBOX_API_SECRET in .env}
+
+volumes:
+  singbox-cache:

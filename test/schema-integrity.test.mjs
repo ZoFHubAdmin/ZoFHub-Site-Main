@@ -134,14 +134,23 @@ describe('the schema the migrations actually produce', () => {
       'the fixture this file is about was not found — the parser stopped working');
   });
 
-  test('the retired leaderboard leaves nothing behind', () => {
-    assert.ok(!DB.tables.has('scores'), 'the scores table survived the teardown');
+  test('the restored leaderboard is coherent', () => {
+    // The leaderboard was retired (db/feedback.sql) and is now restored
+    // (db/scores-restore.sql). This test used to assert the teardown left
+    // nothing behind; it now asserts the RESTORE leaves the right things behind,
+    // which is the same guard pointed at the current intent.
+    assert.ok(DB.tables.has('scores'),
+      'scores is missing — db/scores-restore.sql must run AFTER db/feedback.sql');
+    assert.ok([...DB.functions.keys()].some((s) => s.startsWith('prune_scores(')),
+      'prune_scores is missing — the table has no sweep and would grow unbounded');
+
     for (const sig of DB.functions.keys()) {
+      // submit_score stays dead on purpose. Scores are written by the Node
+      // server, which is where the proof-of-play token, the ceiling and the
+      // outlier quarantine live (lib/scores.mjs). A SECURITY DEFINER function
+      // callable straight from the anon key would route around all three.
       assert.ok(!sig.startsWith('submit_score('),
-        `${sig} survived — a DROP matches by name AND argument types, and the ` +
-        'teardown in db/feedback.sql names the integer overloads while the ' +
-        'function created is the bigint one');
-      assert.ok(!sig.startsWith('prune_scores('), `${sig} survived the teardown`);
+        `${sig} survived — writes must go through the server, not a database function`);
     }
   });
 

@@ -15,6 +15,10 @@
 //    truncated "bc1q…f3t4" is unverifiable, and verifying the first and last
 //    characters is exactly how people catch clipboard-hijacking malware.
 
+// The QR is generated from the same address string this page prints, so the two
+// can never disagree — see the header of qr.js.
+import { qrSvg } from './qr.js';
+
 const ENDPOINT = '/api/donate';
 let dialog = null;
 let cfg = null;
@@ -201,4 +205,161 @@ export function mountDonate() {
     e.preventDefault();
     openDonate();
   });
+}
+
+/**
+ * Render the donation methods into a container on a PAGE, rather than into the
+ * modal. Shares methodCard() and the same /api/donate response as the dialog,
+ * so the two can never drift into showing different addresses — which, for a
+ * page whose whole job is displaying wallet addresses, is the failure that
+ * matters most.
+ */
+export async function renderDonateInto(container) {
+  if (!container) return;
+  injectStyles();
+  container.textContent = '';
+  const loading = document.createElement('p');
+  loading.className = 'dn-empty';
+  loading.textContent = 'Loading…';
+  container.appendChild(loading);
+
+  let data = null;
+  try {
+    const r = await fetch(ENDPOINT, { headers: { Accept: 'application/json' } });
+    data = await r.json();
+  } catch { data = null; }
+
+  container.textContent = '';
+  if (!data || !data.enabled || !data.methods?.length) {
+    const p = document.createElement('p');
+    p.className = 'dn-empty';
+    p.textContent = 'Donations are not set up yet — check back soon.';
+    container.appendChild(p);
+    return;
+  }
+  cfg = data;
+  const h = document.getElementById('donateHeading');
+  if (h && data.heading) h.textContent = data.heading;
+  const b = document.getElementById('donateBlurb');
+  if (b && data.blurb) b.textContent = data.blurb;
+
+  buildPicker(container, data.methods);
+}
+
+/**
+ * The payment page: pick a coin, then see exactly one address.
+ *
+ * Showing every wallet at once is how a donor pastes a Monero address into a
+ * Bitcoin wallet. One selection, one address, one QR, and the network named on
+ * screen — the whole layout exists to make that mistake harder.
+ */
+function buildPicker(container, methods) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pay';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'pay-tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', 'Choose a currency');
+
+  const panel = document.createElement('div');
+  panel.className = 'pay-panel';
+  panel.setAttribute('role', 'tabpanel');
+
+  methods.forEach((m, i) => {
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.className = 'pay-tab';
+    t.id = `paytab-${m.id}`;
+    t.setAttribute('role', 'tab');
+    t.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    t.tabIndex = i === 0 ? 0 : -1;
+    t.innerHTML =
+      `<span class="pay-tick">${escapeHtml(m.ticker || '')}</span>` +
+      `<span class="pay-name">${escapeHtml(m.label || m.id)}</span>`;
+    t.addEventListener('click', () => select(i));
+    tabs.appendChild(t);
+  });
+
+  // Arrow keys move between tabs, which is what a tablist is expected to do and
+  // what makes this usable without a mouse.
+  tabs.addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const cur = methods.findIndex((m) => document.getElementById(`paytab-${m.id}`).tabIndex === 0);
+    select((cur + keys[e.key] + methods.length) % methods.length, true);
+  });
+
+  function select(index, focus = false) {
+    methods.forEach((m, i) => {
+      const t = document.getElementById(`paytab-${m.id}`);
+      t.setAttribute('aria-selected', i === index ? 'true' : 'false');
+      t.tabIndex = i === index ? 0 : -1;
+    });
+    const m = methods[index];
+    if (focus) document.getElementById(`paytab-${m.id}`).focus();
+    renderMethod(panel, m);
+  }
+
+  wrap.appendChild(tabs);
+  wrap.appendChild(panel);
+  container.appendChild(wrap);
+  select(0);
+}
+
+const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function renderMethod(panel, m) {
+  panel.setAttribute('aria-labelledby', `paytab-${m.id}`);
+  // The QR encodes the payment URI when there is one, because that carries the
+  // network and any token id with it; otherwise the bare address. Either way it
+  // is generated from the SAME string printed below it, so the two cannot drift.
+  const payload = m.uri || m.address || '';
+  let qr = '<p class="pay-qr-fail">QR unavailable for this address.</p>';
+  try {
+    qr = qrSvg(payload, { ecl: 'M', label: `${m.label} address` });
+  } catch { /* leave the fallback; the address text is the thing that matters */ }
+
+  const verified = m.verified === 'checksum'
+    ? '<span class="pay-badge ok">Checksum verified</span>'
+    : '<span class="pay-badge warn">Format checked only</span>';
+
+  panel.innerHTML = `
+    <div class="pay-grid">
+      <figure class="pay-qr">${qr}<figcaption>Scan with a ${escapeHtml(m.label)} wallet</figcaption></figure>
+      <div class="pay-detail">
+        <h3>${escapeHtml(m.label)} <span class="pay-chip">${escapeHtml(m.ticker || '')}</span></h3>
+        ${m.note ? `<p class="pay-note">${escapeHtml(m.note)}</p>` : ''}
+        <label class="pay-lbl" for="payAddr">Address — ${escapeHtml(m.label)} network only</label>
+        <div class="pay-addr-row">
+          <code class="pay-addr" id="payAddr">${escapeHtml(m.address || '')}</code>
+          <button type="button" class="pay-copy" id="payCopy">Copy</button>
+        </div>
+        <p class="pay-verify">${verified}</p>
+        ${m.uri ? `<a class="pay-open" href="${escapeHtml(m.uri)}">Open in a wallet app</a>` : ''}
+      </div>
+    </div>`;
+
+  const copy = panel.querySelector('#payCopy');
+  if (copy) {
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(m.address || '');
+        copy.textContent = 'Copied';
+      } catch {
+        // Clipboard can be refused (insecure context, permissions). Select the
+        // text instead so the donor can still copy it by hand, rather than
+        // showing a success message for something that did not happen.
+        const range = document.createRange();
+        range.selectNodeContents(panel.querySelector('#payAddr'));
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        copy.textContent = 'Select & copy';
+      }
+      setTimeout(() => { copy.textContent = 'Copy'; }, 2200);
+    });
+  }
 }

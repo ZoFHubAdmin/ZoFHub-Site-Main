@@ -68,12 +68,18 @@
     "gameflare:embeds": "node tools/gameflare-embed-discovery.mjs",
     "gameflare:verify": "node tools/gameflare-verify.mjs",
     "verify-catalog": "node --use-system-ca tools/verify-catalog.mjs",
-    "audit-served": "node tools/audit-served.mjs"
+    "audit-served": "node tools/audit-served.mjs",
+    "fetch-anura": "node tools/fetch-anura.mjs",
+    "eval-ai": "node --use-system-ca tools/eval-ai.mjs",
+    "curate-ai": "node tools/run-python.mjs tools/curate-ai-dataset.py",
+    "verify-proxy": "node --use-system-ca tools/verify-proxy.mjs",
+    "gd:import": "node --use-system-ca tools/gamedistribution-import.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.30",
     "@mercuryworkshop/bare-mux": "^2.1.7",
     "@mercuryworkshop/epoxy-transport": "^2.1.20",
     "@mercuryworkshop/libcurl-transport": "^2.0.5",
@@ -83,16 +89,18 @@
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "express": "^4.22.3",
     "helmet": "^7.1.0",
     "ioredis": "^5.11.1",
     "libcurl.js": "0.7.4",
     "node-cron": "^4.2.1",
-    "stream-chain": "^4.2.5",
-    "stream-json": "^1.9.1"
+    "stream-chain": "^4.2.5"
   },
   "devDependencies": {
-    "playwright": "^1.62.1"
+    "@electric-sql/pglite": "^0.5.8",
+    "jsqr": "^1.4.0",
+    "playwright": "^1.62.1",
+    "stream-json": "^3.7.0"
   },
   "license": "SEE LICENSE IN LICENSE",
   "private": true,

@@ -27,6 +27,18 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// This is a CLI script, not a module: its top level mutates the live catalog.
+// ESM runs that top level on import, so importing it would perform the write.
+// Refuse loudly instead. Running it normally is unaffected.
+import { isMain } from './_is-main.mjs';
+if (!isMain(import.meta.url)) {
+  throw new Error(
+    'tools/add-slope.mjs is a command-line script and must not be imported — ' +
+    'importing it would run it against the live database. Run it with node instead.'
+  );
+}
+
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 

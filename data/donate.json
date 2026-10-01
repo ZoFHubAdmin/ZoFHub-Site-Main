@@ -1,41 +1,35 @@
 {
   "_comment": "Donation methods. Validated at load by lib/donate.mjs — any method whose address fails its checksum is DROPPED and logged, because a wrong address loses every donation silently. ADDRESSES ARE NOT STORED HERE: each crypto method names an `addressEnv`, and the deployment supplies that environment variable. A receiving address is public once live, but committing it would bind it permanently to this repository and its history.",
-  "_setup": "1. Set the env var named by each method's `addressEnv` to YOUR receiving address (see .env.example). Addresses are deliberately NOT committed. 2. The file hot-reloads; no restart needed. 3. Watch the server log for which methods went live and which were dropped and why. 4. Send a tiny test transaction on each chain BEFORE announcing it, especially Monero (see _monero_warning).",
-  "_monero_warning": "XMR is shape-checked only, not checksum-verified — Monero uses Keccak-256, which node:crypto does not provide. A typo in an XMR address may pass this check. Test it.",
-  "_privacy_note": "Privacy differs enormously between these. ARRR and XMR hide sender, receiver and amount on-chain. FIRO is transparent by default — its Lelantus Spark privacy is opt-in per transaction, so a plain Firo address behaves like Bitcoin: every donation is public forever and links donors to each other. BTC/LTC are fully transparent. The `privacy` field is shown to donors so they can choose knowingly rather than assuming a coin is private because it is on this list.",
+  "_setup": "1. Set the env var named by each method's `addressEnv` to YOUR receiving address (see .env.example). Addresses are deliberately NOT committed. 2. The file hot-reloads; no restart needed. 3. Watch the server log for which methods went live and which were dropped and why. 4. Send a tiny test transaction on each chain BEFORE announcing it — especially XMR and SOL, which are shape-checked only (see _shape_only_warning).",
+  "_shape_only_warning": "XMR and SOL are shape-checked, NOT checksum-verified. Monero uses Keccak-256, which node:crypto does not provide. Solana addresses are raw Ed25519 public keys and carry no checksum at all — a typo that still decodes to 32 bytes is undetectable. A wrong address on either loses every donation sent to it. Test both.",
+  "_privacy_note": "Privacy differs enormously between these. XMR hides sender, receiver and amount on-chain. BTC, LTC and SOL are fully transparent: every donation to those addresses is public forever and links donors to each other, and anyone can read the full history of this site's income. The `privacy` field is shown to donors so they choose knowingly rather than assuming a coin is private because it is on this list.",
+  "_why_these_six": "ALL ARE CRYPTO: there is no card option, so a visitor without a wallet cannot donate at all — a deliberate choice, not an oversight. SOL and USDC are ONE address and one wallet (`DONATE_SOL_ADDRESS`), listed separately only because a donor holding dollars should not have to know that USDC is an SPL token on Solana. ETH is listed with an explicit push toward L2s: the same 0x address receives on Ethereum, Base, Arbitrum and Optimism, and mainnet gas frequently exceeds the size of a donation this site receives. A donor holding DOGE can still pay through the optional swap path, which settles to Monero.",
   "enabled": true,
   "heading": "Support ZoFHub",
   "blurb": "ZoFHub is free, has no accounts, and never sells your data. Donations are voluntary, non-refundable, and buy nothing — no perks, no ad removal, no special access.",
   "methods": [
     {
-      "id": "monero",
+      "id": "solana",
       "kind": "crypto",
-      "label": "Monero",
-      "ticker": "XMR",
-      "uriScheme": "monero",
+      "label": "Solana",
+      "ticker": "SOL",
+      "uriScheme": "solana",
       "address": "",
-      "note": "Private by default. The most widely held private coin, so the most donors can actually send it.",
-      "addressEnv": "DONATE_XMR_ADDRESS"
+      "privacy": "transparent",
+      "note": "Cheapest and fastest here — fees are a fraction of a cent. This same address also receives USDC. Public ledger.",
+      "addressEnv": "DONATE_SOL_ADDRESS"
     },
     {
-      "id": "pirate",
+      "id": "usdc",
       "kind": "crypto",
-      "label": "Pirate Chain",
-      "ticker": "ARRR",
-      "uriScheme": "pirate",
+      "label": "USDC (on Solana)",
+      "ticker": "USDC",
+      "uriScheme": "solana",
+      "uriSuffix": "?spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
       "address": "",
-      "note": "Every transaction shielded, no exceptions. Strongest privacy here; also the hardest for a donor to obtain.",
-      "addressEnv": "DONATE_ARRR_ADDRESS"
-    },
-    {
-      "id": "firo",
-      "kind": "crypto",
-      "label": "Firo",
-      "ticker": "FIRO",
-      "uriScheme": "firo",
-      "address": "",
-      "note": "TRANSPARENT unless the sender uses Lelantus Spark. Treat a plain Firo address as public.",
-      "addressEnv": "DONATE_FIRO_ADDRESS"
+      "privacy": "transparent",
+      "note": "A dollar-pegged token, so the value does not swing. SOLANA NETWORK ONLY — USDC sent on Ethereum, Base, Polygon or any other chain to this address is lost permanently. Public ledger.",
+      "addressEnv": "DONATE_SOL_ADDRESS"
     },
     {
       "id": "bitcoin",
@@ -44,7 +38,8 @@
       "ticker": "BTC",
       "uriScheme": "bitcoin",
       "address": "",
-      "note": "Public ledger — every donation is permanently visible and linkable. Included for reach, not privacy.",
+      "privacy": "transparent",
+      "note": "Most widely held. On-chain fees can exceed a small donation — use Lightning for anything under about $20. Public ledger.",
       "addressEnv": "DONATE_BTC_ADDRESS"
     },
     {
@@ -54,15 +49,31 @@
       "ticker": "LTC",
       "uriScheme": "litecoin",
       "address": "",
-      "note": "Public ledger. Cheap and fast; widely available on every exchange.",
+      "privacy": "transparent",
+      "note": "Cheap, fast, and on every exchange and PayPal. Public ledger.",
       "addressEnv": "DONATE_LTC_ADDRESS"
     },
     {
-      "id": "kofi",
-      "kind": "link",
-      "label": "Ko-fi (card / PayPal)",
-      "url": "https://ko-fi.com/",
-      "note": "For donors who do not use crypto. The platform sees your legal identity; donors do not."
+      "id": "ethereum",
+      "kind": "crypto",
+      "label": "Ethereum",
+      "ticker": "ETH",
+      "uriScheme": "ethereum",
+      "address": "",
+      "privacy": "transparent",
+      "note": "Mainnet gas often costs more than a small donation — send on an L2 (Base, Arbitrum, Optimism) instead, where fees are cents. The SAME address works on all of them. Public ledger.",
+      "addressEnv": "DONATE_ETH_ADDRESS"
+    },
+    {
+      "id": "monero",
+      "kind": "crypto",
+      "label": "Monero",
+      "ticker": "XMR",
+      "uriScheme": "monero",
+      "address": "",
+      "privacy": "private",
+      "note": "Private by default — sender, receiver and amount are all hidden. The only option here that is not a public ledger.",
+      "addressEnv": "DONATE_XMR_ADDRESS"
     }
   ]
 }

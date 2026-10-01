@@ -30,7 +30,14 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 // automation package that never runs in production.
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.cache', '.y8-cache', 'logs', 'data',
-  'DayDream', 'Interstellar', 'NautilusOS', 'scramjet', 'licenses', 'legal', 'public',
+  // Companion apps that run as their OWN service on their own origin. Their
+  // source is not ZoFHub's source and the variables inside it are not ZoFHub's
+  // to declare. `vendor` is where tools/fetch-anura.mjs unpacks AnuraOS —
+  // without it, a developer who runs `npm run fetch-anura` makes this test
+  // start demanding render.yaml declare PWD, TMP and minimatch's internal
+  // __MINIMATCH_TESTING_PLATFORM__.
+  'DayDream', 'Interstellar', 'NautilusOS', 'scramjet', 'vendor',
+  'licenses', 'legal', 'public',
   '.venv', 'venv', 'site-packages', '.tox', '__pycache__',
 ]);
 
@@ -145,8 +152,28 @@ describe('render.yaml declares every credential the server reads', () => {
     // render.yaml still fails here.
     const adPrefixes = AD_PROVIDERS.map(p => p.env);
     const isAdVar = (k) => adPrefixes.some(p => k === p || k.startsWith(p + '_'));
+
+    // Same shape of exemption, different mechanism. These are substituted INTO
+    // deploy/singbox/config.template.json by renderConfig(), which resolves
+    // them from a `${NAME}` regex match rather than naming them in code — so no
+    // static scan can see the read. The TEMPLATE is their definition, so that
+    // is what gets checked: a name declared in render.yaml but absent from the
+    // template is still reported, which is the typo this test exists to catch.
+    // BOTH shipped profiles: the default local-egress one and the REALITY one
+    // selected via SINGBOX_CONFIG_TEMPLATE. Reading only the default would make
+    // every REALITY placeholder look like an undeclared variable.
+    const tplDir = join(root, 'deploy', 'singbox');
+    const templateVars = new Set(
+      readdirSync(tplDir)
+        .filter((f) => f.endsWith('.template.json'))
+        .flatMap((f) => [...readFileSync(join(tplDir, f), 'utf8')
+          .matchAll(/\$\{([A-Z0-9_]+)\}/g)].map((m) => m[1])),
+    );
+    const isSingboxTemplateVar = (k) => templateVars.has(k);
+
     const orphans = declared.filter(k =>
-      !reads.has(k) && !PLATFORM.has(k) && k !== 'NODE_VERSION' && !isAdVar(k));
+      !reads.has(k) && !PLATFORM.has(k) && k !== 'NODE_VERSION'
+      && !isAdVar(k) && !isSingboxTemplateVar(k));
     assert.deepEqual(orphans.sort(), [], `declared in render.yaml but never read: ${orphans.join(', ')}`);
   });
 });

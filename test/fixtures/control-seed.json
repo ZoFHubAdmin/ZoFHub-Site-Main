@@ -1,0 +1,13 @@
+{
+  "_note": "CONTROL_MEMORY_SEED for test/admin-control-api.test.mjs. Honoured only with no database configured.",
+  "settings": {
+    "features.ai": false,
+    "site.announcement": { "active": true, "text": "Scheduled maintenance tonight at 22:00 UTC.", "level": "warning" }
+  },
+  "games": [
+    { "slug": "seeded-pending", "title": "Seeded Pending", "provider_id": "gamedistribution", "category": "arcade",
+      "game_url": "https://html5.gamedistribution.com/9bde41f232834eff9ea81554ecee8279/",
+      "thumbnail_url": "https://img.gamedistribution.com/9bde41f232834eff9ea81554ecee8279-512x384.jpg",
+      "status": "pending_review" }
+  ]
+}

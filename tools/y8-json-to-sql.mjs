@@ -32,14 +32,22 @@
 //   * Trademark titles + the Slope duplicates are skipped.
 //
 // USAGE:  node tools/y8-json-to-sql.mjs
-//   → writes db/y8-games-01.sql, db/y8-games-02.sql, …  (run db/schema.sql
-//     FIRST, then these in order), plus db/y8-games-check.sql + RUN-IN-ORDER.md
+//   → writes db/y8-games-01.sql, db/y8-games-02.sql, … plus db/y8-games-check.sql.
+//     Apply the schema FIRST with db/SCHEMA-ONLY.sql — see
+//     docs/database/RUN-IN-ORDER.md for the run order.
+//
+// IT NO LONGER WRITES A RUN-ORDER FILE. It used to overwrite db/RUN-IN-ORDER.md
+// with its own table naming schema.sql + community.sql as "the structure". That
+// is the exact omission the real guide warns about: no grants.sql, so every
+// table answers 42501. Running this tool silently replaced the maintained guide
+// with those instructions. The order is now printed, and the guide is left alone.
 // ---------------------------------------------------------------------------
 import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isTrademarkTitle } from '../lib/cron-jobs.mjs';
 import { guessCategory } from '../lib/categorize.mjs';
+import { isMain } from './_is-main.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..');
@@ -205,42 +213,13 @@ function build() {
   ].join('\n');
   writeFileSync(join(DB_DIR, 'y8-games-check.sql'), chk);
 
-  // Run-order cheat sheet for a beginner.
-  const readme = [
-    '# Loading the games into Supabase — run these IN THIS ORDER',
-    '',
-    'Each step: **Supabase → SQL Editor → New query → paste the whole file → Run.**',
-    '',
-    'You will see **"Success. No rows returned"** for the INSERTs — that is normal.',
-    'The last line of each part runs a `count(*)` so you also see a **number**: that',
-    'number is your real proof the data is saved. It should climb with each part.',
-    '',
-    '| Order | File | What it does |',
-    '|------:|------|--------------|',
-    '| 1 | `schema.sql` | Creates the `games` table + view (run once) |',
-    '| 2 | `community.sql` | Creates `scores` + `recommendations` (run once) |',
-    ...written.map((n, i) => `| ${i + 3} | \`${n}\` | Loads games part ${i + 1} of ${written.length} |`),
-    `| ${written.length + 3} | \`stats.sql\` | (Optional) makes play counts persist across restarts |`,
-    `| ${written.length + 4} | \`y8-games-check.sql\` | (Optional) verify the totals anytime |`,
-    '',
-    '## Why it was "not saving" before',
-    'The old single 500KB file was too big for one editor tab: the snippet text',
-    "couldn't be saved (so it looked gone), and the transaction wrapper could roll",
-    'the whole thing back if the giant paste hiccuped. These smaller files paste',
-    'cleanly and every INSERT auto-commits the instant it succeeds, so nothing can',
-    'be undone later. Re-running any file is harmless (ON CONFLICT upsert).',
-    '',
-    '## Even easier alternative (no SQL at all)',
-    'Supabase → **Table Editor → `games` → Insert → Import data from CSV** also works',
-    'for a first load. SQL is better here because it can be re-run safely and skips',
-    'duplicates automatically; CSV import does not.',
-    '',
-  ].join('\n');
-  writeFileSync(join(DB_DIR, 'RUN-IN-ORDER.md'), readme);
 
   console.log('[y8-sql] stats:', JSON.stringify(stats));
   console.log(`[y8-sql] wrote ${rows.length} games across ${written.length} files (${GAMES_PER_FILE}/file):`);
   for (const n of written) console.log('         db/' + n);
-  console.log('         db/y8-games-check.sql  +  db/RUN-IN-ORDER.md');
+  console.log('         db/y8-games-check.sql');
+  console.log('[y8-sql] run order: db/SCHEMA-ONLY.sql FIRST (all 16 migrations, grants last),');
+  console.log('         then the files above in numeric order. Full guide: docs/database/RUN-IN-ORDER.md');
 }
-build();
+// Guarded: importing this module (a test, a REPL) must never rewrite files in db/.
+if (isMain(import.meta.url)) build();

@@ -301,7 +301,9 @@ function renderSidebar() {
       title: c.name
     });
     const count = c.count != null ? c.count : state.counts[c.id];
-    item.innerHTML = `${icon(c.icon)}<span class="cat-label">${c.name}</span>${
+    // c.name is the category LABEL from /api/categories — catalog data, so
+    // untrusted. It was written raw; escaped like every other catalog field.
+    item.innerHTML = `${icon(c.icon)}<span class="cat-label">${escapeHtml(c.name)}</span>${
       count != null ? `<span class="cat-count">${fmtCount(count)}</span>` : ''
     }`;
     // Pseudo-filters stay on the homepage; real categories navigate fresh.

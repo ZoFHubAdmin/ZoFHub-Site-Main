@@ -10,12 +10,12 @@
   <!-- Open Graph / social share -->
   <meta property="og:site_name" content="ZoFHub" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="ZoFHub — Free Browser Games" />
-  <meta property="og:description" content="Play 16,000+ free browser games — instant, no signup. Arcade, racing, shooting, puzzle, sports & more." />
+  <meta property="og:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta property="og:description" content="ZoFHub is a cloud-based web-security sandboxing tool and browser diagnostic hub — open sites inside an isolated, sandboxed session and inspect how they load, render and behave." />
   <meta property="og:image" content="/assets/favicon.png" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="ZoFHub — Free Browser Games" />
-  <meta name="twitter:description" content="Play 16,000+ free browser games — instant, no signup." />
+  <meta name="twitter:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta name="twitter:description" content="Cloud-based web-security sandbox and browser diagnostics — isolated sessions, safe inspection." />
   <meta name="twitter:image" content="/assets/favicon.png" />
 
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
@@ -138,7 +138,12 @@
     </div>
   </main>
 
-  <script type="module" src="/js/layout.js?v=20260801a"></script>
+  <!-- Compact legal bar. This page is a fixed-height app shell, so it carries
+       the one-row variant of the shared footer rather than the six-column one
+       (see mountFooter() in /js/layout.js). The links are identical; only the
+       layout differs. --><footer class="site-footer site-footer-mini"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>
   <script type="module" src="/js/browser.js?v=20260728"></script>
 </body>

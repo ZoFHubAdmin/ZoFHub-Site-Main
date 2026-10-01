@@ -98,8 +98,40 @@ function injectStyles() {
     color:#241a00;background:linear-gradient(135deg,#ffd426,#ffb800);margin-bottom:4px}
   .panic-now:hover{filter:brightness(1.05)}
   .panic-mini{font-size:11px;color:#7f96c2;margin:8px 0 0;line-height:1.45}
-  .panic-overlay{position:fixed;inset:0;z-index:99998;background:#0b0f1a}
-  .panic-overlay iframe{border:0;position:fixed;inset:0;width:100%;height:100%}
+  /* The cover screen. Rendered LOCALLY and never from a remote URL: the old
+     build dropped an <iframe> of Google Classroom/Docs/Drive on top of the page,
+     and every one of those sends X-Frame-Options, so the "cover" was a blank
+     box that announced something was being hidden. A local screen also paints
+     instantly, works offline, and cannot break when somebody else changes a
+     header. Deliberately unbranded — it imitates no real company's product. */
+  .panic-overlay{position:fixed;inset:0;z-index:2147483600;background:#ffffff;
+    display:flex;flex-direction:column;font-family:ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif;color:#202124}
+  .panic-overlay[hidden]{display:none}
+  .pq-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #e3e3e3;background:#fff}
+  .pq-doc{font-size:15px;color:#202124}
+  .pq-tools{display:flex;gap:14px;padding:7px 16px;border-bottom:1px solid #e8eaed;background:#f8f9fa;
+    font-size:12.5px;color:#5f6368}
+  .pq-page{flex:1;overflow:auto;background:#f1f3f4;padding:26px 16px}
+  .pq-sheet{max-width:760px;margin:0 auto;background:#fff;border:1px solid #e0e0e0;border-radius:2px;
+    min-height:70vh;padding:64px 72px;box-shadow:0 1px 3px rgba(60,64,67,.16)}
+  .pq-sheet h1{font-size:21px;font-weight:600;margin:0 0 18px;color:#202124}
+  .pq-sheet p{font-size:14.5px;line-height:1.9;color:#3c4043;margin:0 0 14px}
+  .pq-line{height:12px;border-radius:3px;background:#eceff1;margin:0 0 14px}
+  /* The way back. Small and quiet, but always visible, always focusable, and
+     never underneath anything — an emergency screen that traps the user is a
+     bug, not a safety feature. */
+  .pq-back{margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:999px;border:1px solid #dadce0;background:#fff;color:#5f6368;
+    font:600 12px inherit;cursor:pointer}
+  .pq-back:hover{background:#f1f3f4;color:#202124}
+  .pq-back:focus-visible{outline:2px solid #1a73e8;outline-offset:2px}
+  @media (max-width:560px){.pq-sheet{padding:32px 24px}.pq-page{padding:14px 10px}}
+  /* Everything the cover is hiding. Raising the overlay's z-index instead would
+     be a race against every future banner, toast and dialog on the site — the
+     cookie-consent bar already won that race and stayed on screen through a
+     panic. visibility:hidden keeps the layout intact so nothing jumps on the way
+     back, and removes the element from hit-testing as well as from view. */
+  .pq-concealed{visibility:hidden!important}
   @media (max-width:560px){.panic-panel{top:auto;bottom:0;right:0;left:0;width:auto;border-radius:16px 16px 0 0}}`;
   document.head.appendChild(s);
 }
@@ -127,7 +159,7 @@ function buildPanel() {
     <select id="panicMode">
       <option value="cloak">Cloak — reopen inside an about:blank tab (best)</option>
       <option value="redirect">Redirect — leave for the safe page</option>
-      <option value="overlay">Overlay — hide ZoFHub behind the safe page</option>
+      <option value="screen">Cover screen — hide ZoFHub behind a blank document</option>
     </select>
 
     <label>Safe destination</label>
@@ -155,7 +187,9 @@ function buildPanel() {
   const matched = PRESETS.find(p => p.value === cfg.url);
   if (matched) { preset.value = matched.value; custom.hidden = true; }
   else { preset.value = '__custom'; custom.hidden = false; custom.value = cfg.url || ''; }
-  mode.value = cfg.mode || 'cloak';
+  // 'overlay' is the retired name for 'screen'; a saved setting must not read
+  // back as an empty select.
+  mode.value = cfg.mode === 'overlay' ? 'screen' : (cfg.mode || 'cloak');
   dis.checked = cfg.disguise !== false;
   updateNowHint(mode.value);
 
@@ -173,7 +207,7 @@ function buildPanel() {
     const hint = $('#panicNowHint', panelEl);
     if (hint) hint.textContent = m === 'cloak'
       ? 'Reopens ZoFHub in a blank tab (needs pop-ups allowed) and sends this tab away.'
-      : m === 'overlay' ? 'Covers ZoFHub with the safe page — your URL stays the same.'
+      : m === 'screen' ? 'Instantly covers ZoFHub with a blank document and mutes any game. Your URL stays the same; press Esc or Return to come back.'
       : 'Replaces this tab with the safe page.';
   }
 
@@ -223,11 +257,63 @@ export function showSettings() { showPanel(); }
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 function ensureOverlay() {
+  // injectStyles() used to run only from buildPanel(), so a user who clicked
+  // Panic without ever opening settings got an overlay with no stylesheet.
+  injectStyles();
   if (overlayEl) return overlayEl;
-  overlayEl = el('div', { class: 'panic-overlay', id: 'panicOverlay', hidden: true });
-  overlayEl.innerHTML = `<iframe title="Loading" referrerpolicy="no-referrer"></iframe>`;
+  overlayEl = el('div', {
+    class: 'panic-overlay', id: 'panicOverlay', hidden: true,
+    role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Private mode',
+  });
+  overlayEl.innerHTML =
+    '<div class="pq-bar">' +
+      '<span class="pq-doc" id="pqDocName">Untitled document</span>' +
+      '<button type="button" class="pq-back" id="pqBack">' +
+        '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.4" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>' +
+        'Return to ZoFHub</button>' +
+    '</div>' +
+    '<div class="pq-tools"><span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span></div>' +
+    '<div class="pq-page"><div class="pq-sheet">' +
+      '<h1>Notes</h1>' +
+      '<p>Reading response — draft.</p>' +
+      '<div class="pq-line" style="width:96%"></div><div class="pq-line" style="width:88%"></div>' +
+      '<div class="pq-line" style="width:92%"></div><div class="pq-line" style="width:64%"></div>' +
+      '<p>&nbsp;</p>' +
+      '<div class="pq-line" style="width:90%"></div><div class="pq-line" style="width:85%"></div>' +
+      '<div class="pq-line" style="width:47%"></div>' +
+    '</div></div>';
   document.body.appendChild(overlayEl);
+  overlayEl.querySelector('#pqBack').addEventListener('click', unpanic);
   return overlayEl;
+}
+
+// ── Silencing ───────────────────────────────────────────────────────────────
+// A cover screen that leaves a game's audio playing is not concealment. Page
+// media is paused; a cross-origin game iframe cannot be controlled from here, so
+// its src is parked and restored on the way back. That does restart the game —
+// worth saying plainly in the UI, and still the right trade when the point of
+// the button is that the room has gone quiet.
+const parked = [];
+function silenceMedia() {
+  for (const m of document.querySelectorAll('audio, video')) {
+    try { if (!m.paused) { m.pause(); parked.push({ media: m }); } } catch { /* ignore */ }
+  }
+  for (const f of document.querySelectorAll('iframe')) {
+    if (f.closest('.panic-overlay')) continue;
+    const src = f.getAttribute('src');
+    if (!src || src === 'about:blank') continue;
+    parked.push({ frame: f, src });
+    try { f.setAttribute('src', 'about:blank'); } catch { /* ignore */ }
+  }
+}
+function restoreMedia() {
+  for (const p of parked.splice(0)) {
+    try {
+      if (p.frame) p.frame.setAttribute('src', p.src);
+      else if (p.media) p.media.play?.().catch(() => {});
+    } catch { /* ignore */ }
+  }
 }
 
 function disguise() {
@@ -236,26 +322,85 @@ function disguise() {
   const matched = PRESETS.find(p => p.value === cfg.url);
   document.title = matched ? matched.title : 'Untitled';
   const fav = document.querySelector('link[rel*="icon"]') || el('link', { rel: 'icon' });
+  if (realIcon === null) realIcon = fav.getAttribute('href') || '';
   if (matched) { fav.href = matched.icon; fav.type = 'image/x-icon'; }
   else { fav.href = ''; }
   if (!fav.parentNode) document.head.appendChild(fav);
 }
 
+/** Is the cover screen currently up? */
+export const isPanicked = () => !!overlayEl && !overlayEl.hidden;
+
+// Remembered so the way back restores the real tab identity, not a guess.
+let realTitle = null, realIcon = null;
+// Siblings hidden while the cover is up, with the inline value they had before,
+// so restoring puts each one back exactly as it was rather than blanking it.
+const concealed = [];
+
 export function panic() {
   const cfg = store.panic.get();
-  if (!cfg.url) { showSettings(); return; }
-  if (cfg.mode === 'cloak') { openAboutBlank(); return; }
-  disguise();
-  if (cfg.mode === 'overlay') {
-    const ov = ensureOverlay();
-    ov.querySelector('iframe').src = cfg.url;
-    ov.hidden = false;
-  } else {
+  // No configured destination is not a reason to do NOTHING and pop settings in
+  // front of someone who just hit the panic button. Cover the screen first;
+  // settings can be adjusted later, in their own time.
+  const mode = cfg.mode === 'overlay' ? 'screen' : (cfg.mode || 'cloak');
+
+  if (mode === 'cloak' && cfg.url) { openAboutBlank(); return; }
+  if (mode === 'redirect' && cfg.url) {
     try { location.replace(cfg.url); } catch { location.href = cfg.url; }
+    return;
   }
+
+  // 'screen' — and the fallback whenever no destination is configured.
+  if (isPanicked()) return;
+  hidePanel();
+  if (realTitle === null) realTitle = document.title;
+  disguise();
+
+  const ov = ensureOverlay();
+  const matched = PRESETS.find(p => p.value === cfg.url);
+  const name = ov.querySelector('#pqDocName');
+  if (name) name.textContent = (cfg.disguise !== false && matched) ? matched.title : 'Untitled document';
+
+  silenceMedia();
+  // Flag on <html> so any page's own CSS can react, and so tests have one
+  // authoritative thing to assert on instead of poking at an element.
+  document.documentElement.dataset.privacy = 'on';
+  // The real app is hidden from assistive tech too — a screen reader reading out
+  // the page behind an opaque cover would defeat the entire point.
+  // Inline, not a class. A class depends on this stylesheet outranking whatever
+  // the hidden element brought with it, and the cookie-consent bar won that
+  // fight and stayed on screen through a panic. An inline declaration has no
+  // such argument to lose. visibility (not display) keeps the layout intact so
+  // nothing jumps on the way back, and it removes the node from hit-testing too.
+  concealed.length = 0;
+  for (const n of document.body.children) {
+    if (n === ov) continue;
+    concealed.push({ el: n, prev: n.style.visibility });
+    n.style.visibility = 'hidden';
+    n.setAttribute('aria-hidden', 'true');
+  }
+  ov.hidden = false;
+  ov.querySelector('#pqBack')?.focus();
 }
 
-export function unpanic() { if (overlayEl) overlayEl.hidden = true; }
+export function unpanic() {
+  if (!overlayEl || overlayEl.hidden) return;
+  overlayEl.hidden = true;
+  delete document.documentElement.dataset.privacy;
+  for (const { el: n, prev } of concealed.splice(0)) {
+    n.style.visibility = prev || '';
+    n.removeAttribute('aria-hidden');
+  }
+  for (const n of document.body.children) n.removeAttribute('aria-hidden');
+  restoreMedia();
+  if (realTitle !== null) { document.title = realTitle; realTitle = null; }
+  if (realIcon !== null) {
+    const fav = document.querySelector('link[rel*="icon"]');
+    if (fav) fav.href = realIcon;
+    realIcon = null;
+  }
+  document.getElementById('panicBtn')?.focus();
+}
 
 // about:blank cloak — re-host the whole site inside a fresh about:blank tab (the
 // visible URL becomes "about:blank", no readable address / history entry points
@@ -304,10 +449,14 @@ function onKey(e) {
     toast(`Hotkey set to ${prettyKey(combo)}`, 'ok');
     return;
   }
+  // Escape leaves the cover screen. Checked before the hotkey so the way out
+  // works even if someone has bound their hotkey to something unreachable.
+  if (e.key === 'Escape' && isPanicked()) { e.preventDefault(); unpanic(); return; }
+
   // Trigger the configured action on the user's hotkey.
   if (eventMatchesCombo(e, store.panic.get().key)) {
     e.preventDefault();
-    if (overlayEl && !overlayEl.hidden) { unpanic(); return; }  // toggle overlay off
+    if (isPanicked()) { unpanic(); return; }   // same key toggles back
     panic();
   }
 }
@@ -323,18 +472,39 @@ function wireHeaderButton() {
     btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg><span>Panic</span>`;
     header.appendChild(btn);
   }
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    buildPanel();
-    panelEl.hidden ? showPanel() : hidePanel();
-  });
+  // THE FIX. This button used to open a settings dropdown. A control labelled
+  // "Panic" that responds to a click by presenting a form is the one behaviour
+  // it must never have — in the moment it exists for, the user has no time to
+  // read a panel. Clicking it now panics, immediately. Settings moved to their
+  // own adjacent control.
+  btn.setAttribute('title', 'Hide this site now');
+  btn.setAttribute('aria-label', 'Panic — hide this site now');
+  btn.addEventListener('click', (e) => { e.preventDefault(); hidePanel(); panic(); });
+
+  if (!$('#panicGear')) {
+    const gear = el('button', {
+      class: 'panic-gear', id: 'panicGear', type: 'button',
+      title: 'Panic settings', 'aria-label': 'Panic settings',
+      'aria-expanded': 'false', 'aria-haspopup': 'dialog',
+    });
+    gear.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/>' +
+      '<path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
+    gear.addEventListener('click', (e) => {
+      e.preventDefault();
+      buildPanel();
+      if (panelEl.hidden) showPanel(); else hidePanel();
+      gear.setAttribute('aria-expanded', String(!panelEl.hidden));
+    });
+    btn.insertAdjacentElement('afterend', gear);
+  }
 }
 
 // Close the panel on outside-click.
 document.addEventListener('click', (e) => {
   if (!panelEl || panelEl.hidden) return;
   if (panelEl.contains(e.target)) return;
-  if (e.target.closest('#panicBtn, .panic-btn')) return;
+  if (e.target.closest('#panicBtn, .panic-btn, #panicGear, .panic-gear')) return;
   hidePanel();
 });
 

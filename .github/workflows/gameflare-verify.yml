@@ -7,7 +7,7 @@
 # and the ~90 seconds a single candidate takes (a 30s pre-roll plus load and
 # interaction time) is not work a web process should be holding open.
 #
-# The repo's eight node-cron jobs therefore CANNOT run this one. The split is:
+# The repo's ten node-cron jobs therefore CANNOT run this one. The split is:
 #
 #   Render web service   serves the site; reads durable verification results
 #   this workflow        runs Chromium; writes those results

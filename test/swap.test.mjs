@@ -12,6 +12,10 @@ import {
   createInvoice, swapConfig, swapStatusLine, SwapError, DEPOSIT_COINS, PROVIDERS,
 } from '../lib/swap.mjs';
 
+// The Monero Project's published General Fund address: a real mainnet
+// standard address, used wherever a test needs one that genuinely verifies.
+const MONERO_GENERAL_FUND = '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A';
+
 const CFG = {
   provider: PROVIDERS.sideshift,
   key: 'secret-key-value-that-must-never-escape',
@@ -96,11 +100,22 @@ describe('provider failures do not leak infrastructure', () => {
       });
   });
 
-  test('a provider HTTP error surfaces its message but not our request', async () => {
+  test('a provider HTTP error keeps its wording for the LOG, not the browser', async () => {
+    // This used to assert that the provider's text reached the client. It is
+    // third-party wording that can name request parameters and internal state
+    // ("Invalid parameters: affiliateId: expected string…"), and a donor can
+    // act on none of it — so it now travels in `detail`, which server.js logs,
+    // while `message` (what the client sees) is fixed.
     const f = stub({ error: { message: 'deposit coin not supported' } }, { status: 400 });
     await assert.rejects(
       () => createInvoice({ from: 'btc', fetchImpl: f, config: CFG }),
-      /deposit coin not supported/);
+      (e) => {
+        assert.ok(e instanceof SwapError);
+        assert.ok(!/deposit coin not supported/.test(e.message), 'provider wording reached the public message');
+        assert.match(e.detail, /deposit coin not supported/, 'the operator still gets the reason');
+        assert.match(e.detail, /400/);
+        return true;
+      });
   });
 
   test('a 200 with no deposit address is refused rather than shown empty', async () => {
@@ -190,7 +205,10 @@ describe('REGRESSION: SideShift rejects a request with no affiliateId', () => {
     const saved = { p: process.env.SWAP_PROVIDER, a: process.env.DONATE_XMR_ADDRESS, f: process.env.SIDESHIFT_AFFILIATE_ID };
     try {
       process.env.SWAP_PROVIDER = 'sideshift';
-      process.env.DONATE_XMR_ADDRESS = '4' + 'A'.repeat(94);
+      // A REAL mainnet address (the Monero General Fund), so this test isolates
+      // the affiliate-id rule. It used '4' + 'A'×94, which the settlement
+      // address check now rightly refuses first.
+      process.env.DONATE_XMR_ADDRESS = MONERO_GENERAL_FUND;
       delete process.env.SIDESHIFT_AFFILIATE_ID;
       const cfg = swapConfig();
       assert.equal(cfg.enabled, false, 'must fail at boot, not at donation time');
@@ -202,4 +220,41 @@ describe('REGRESSION: SideShift rejects a request with no affiliateId', () => {
       }
     }
   });
+});
+
+describe('the settlement address is verified before any swap can run', () => {
+  // Every swapped donation settles to DONATE_XMR_ADDRESS. It used to be used
+  // unchecked, so a typo there forwarded every swap to an address nobody holds.
+  const withEnv = (vars, fn) => {
+    const keys = Object.keys(vars);
+    const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+    try {
+      for (const [k, v] of Object.entries(vars)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+      return fn();
+    } finally {
+      for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    }
+  };
+
+  test('a valid mainnet address enables the path', () => withEnv({
+    SWAP_PROVIDER: 'sideshift', DONATE_XMR_ADDRESS: MONERO_GENERAL_FUND, SIDESHIFT_AFFILIATE_ID: 'aff',
+  }, () => {
+    const cfg = swapConfig();
+    assert.equal(cfg.enabled, true);
+    assert.equal(cfg.collectProblem, null);
+  }));
+
+  test('a shape-valid fake or a one-character typo turns it OFF, with the reason', () => withEnv({
+    SWAP_PROVIDER: 'sideshift', SIDESHIFT_AFFILIATE_ID: 'aff',
+  }, () => {
+    const typo = MONERO_GENERAL_FUND.slice(0, 30) + (MONERO_GENERAL_FUND[30] === 'z' ? 'y' : 'z') + MONERO_GENERAL_FUND.slice(31);
+    for (const bad of ['4' + 'A'.repeat(94), typo]) {
+      process.env.DONATE_XMR_ADDRESS = bad;
+      const cfg = swapConfig();
+      assert.equal(cfg.enabled, false, `accepted ${bad.slice(0, 12)}…`);
+      assert.equal(cfg.collect, '', 'an invalid address must never be handed to the provider');
+      assert.ok(cfg.collectProblem);
+      assert.match(swapStatusLine(cfg), /not a valid mainnet Monero address/);
+    }
+  }));
 });

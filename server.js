@@ -9,7 +9,10 @@ import { dirname, join } from 'node:path';
 import { readFileSync, existsSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { exec, spawn } from 'node:child_process';
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { totalmem } from 'node:os';
+import { getHeapStatistics, getHeapSpaceStatistics } from 'node:v8';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,8 +28,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 process.on('unhandledRejection', (reason) => {
   console.error('[zofhub] unhandledRejection (continuing):', reason);
 });
+// An uncaught EXCEPTION is different in kind from a stray rejection: Node's own
+// documentation is explicit that the process is in an undefined state
+// afterwards. Staying up is still the right call for a public site — but not
+// silently. The fault is recorded and /healthz, /readyz and /livez report it,
+// so the platform replaces this instance on its own schedule (a controlled
+// recycle) instead of it serving indefinitely in an unknown state, and without
+// a crash-exit loop if the fault recurs on every boot.
+let PROCESS_FAULT = null;
 process.on('uncaughtException', (err) => {
-  console.error('[zofhub] uncaughtException (continuing):', err);
+  console.error('[zofhub] uncaughtException (continuing, instance marked unhealthy):', err);
+  if (!PROCESS_FAULT) PROCESS_FAULT = { at: new Date().toISOString(), kind: 'uncaughtException' };
 });
 
 // ========================================================================
@@ -129,7 +141,7 @@ if (supaKeyInfo.present) {
 //                      instead of issuing an INSERT that RLS will refuse with
 //                      an opaque 42501 the caller can do nothing about.
 const { getSupabase, getSupabaseAdmin, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
-const { startCronJobs, isTrademarkTitle }  = await import('./lib/cron-jobs.mjs');
+const { startCronJobs, isTrademarkTitle, cronStatus } = await import('./lib/cron-jobs.mjs');
 const { getCache }                         = await import('./lib/cache.mjs');
 const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
@@ -157,6 +169,16 @@ const { getCredits, creditsSummary } = await import('./lib/credits.mjs');
 // Admin authentication: scrypt password verification, database-backed sessions,
 // lockout, CSRF and the append-only audit trail. See lib/admin-auth.mjs.
 const adminAuth = await import('./lib/admin-auth.mjs');
+const usage     = await import('./lib/usage-stats.mjs');
+const scoreRules = await import('./lib/scores.mjs');
+const { normalizeEmail, isPlausibleEmail } = await import('./lib/subscribe.mjs');
+// Feedback routing + redaction. Pure module: no DB, no network, so the rules
+// that decide what may ever become training data are unit-testable.
+const { prepareFeedbackRecord } = await import('./lib/ai-feedback.mjs');
+// The model catalogue is shared with the browser (served at /js/hf-models.js),
+// so the allow-list the server validates against and the menu the UI shows can
+// never drift apart.
+const { hfCatalogue } = await import('./public/js/hf-models.js');
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize, neighbours: simNeighbours } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -166,11 +188,19 @@ loadSimilarityIndex(join(__dirname, 'data'));
 // scores the catalog against it. Both are synchronous and dependency-free, so
 // /api/vibe answers from local computation instead of waiting on a model.
 const { parseVibe, describeIntent } = await import('./lib/vibe-intent.mjs');
-const { rankByVibe, targetsFromGame } = await import('./lib/vibe-engine.mjs');
-// Advertising: the five supported networks, the surfaces that may carry them,
-// and the proxy boundary that must not. See lib/ad-providers.mjs.
-const { resolveAdConfig, adOrigins, publicAdConfig, adminAdConfig, isAdSurface } =
+const { rankByVibe, targetsFromGame, vibeResponse } = await import('./lib/vibe-engine.mjs');
+// Advertising: the six supported networks, the one role each of them owns, the
+// surfaces that may carry them, and the proxy boundary that must not. See
+// lib/ad-providers.mjs.
+const { resolveAdConfig, adOrigins, publicAdConfig, emptyPublicAdConfig, adminAdConfig, isAdSurface,
+        INTERSTITIAL_COOLDOWN_MS, PROVIDERS: AD_NETWORKS } =
   await import('./lib/ad-providers.mjs');
+// Regions: which country a visitor is in, which region that is, and which
+// domain serves it. Parsed once here; every request is two Map lookups. See
+// lib/geo.mjs. Resolved before AD_CONFIG, which localises tags per region.
+const { geoConfig, countryOf, regionOf, routeDecision, geoStatusLine } = await import('./lib/geo.mjs');
+const GEO = geoConfig(process.env);
+for (const w of GEO.warnings) console.warn(`[geo] ${w}`);
 // GameFlare: a supplied, self-contained catalog kept OUT of the main CATALOG.
 // It is a separate source of truth with its own eligibility rule, and the main
 // catalog blocks gameflare.com host-wide at the serve layer, so merging the two
@@ -179,6 +209,18 @@ const { parseCatalog: parseGameflare, filterGames: filterGameflare,
         findBySlug: findGameflareBySlug, categoriesOf: gameflareCategories,
         parseCandidates: parseGameflareCandidates } =
   await import('./lib/gameflare-catalog.mjs');
+// Hardening modules. Each owns one decision that used to be made inline here:
+// which forwarded hops to believe, how requests are budgeted, how presence
+// sessions are held, and which outbound destinations are reachable at all.
+const { trustProxySetting, resolveClientIp } = await import('./lib/trust-proxy.mjs');
+const { createLimiterSet, envNumber, clientKey: clientKeyOf } = await import('./lib/rate-limit.mjs');
+const { createPresenceStore } = await import('./lib/presence-store.mjs');
+const { safeFetch, BlockedDestinationError } = await import('./lib/safe-fetch.mjs');
+// The inference endpoints this server never fetches, and the rule that keeps
+// the server-side AI routes a local-development aid. See each module's header.
+const { isAiProviderHost, mentionsAiProvider } = await import('./lib/ai-hosts.mjs');
+const { aiServerAllowed: aiRouteAllowed, isAiFallbackPath } = await import('./lib/ai-guard.mjs');
+const { sanitizeCatalogEntry } = await import('./lib/catalog-sanitize.mjs');
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -258,24 +300,11 @@ function coerceEmbedUrl(url) {
 const THUMB_PROXY_HOSTS = /(^|\.)(gamemonetize\.(com|co)|gamedistribution\.com|famobi\.com|htmlgames\.com|onlinegames\.io|y8\.com|gameflare\.com|gamezop\.com|poki\.com|cloudimage\.io)$/i;
 
 // ── Hosts this server must never fetch on a caller's behalf ────────────────
-// ZoFHub's AI runs in the visitor's browser. /asset is a deliberately general
-// cross-origin GET proxy — the injected iframe shim routes game assets through
-// it to fix WebGL canvas tainting — and "general" included AI providers, so
-//
-//     GET /asset?u=https://image.pollinations.ai/prompt/<anything>
-//     GET /asset?u=https://text.pollinations.ai/<prompt>
-//
-// turned this server into exactly the AI proxy it is designed never to be:
-// it fetched the endpoint, downloaded the response and streamed it back.
-// Verified before this guard existed — the server relayed Pollinations' own
-// API response body verbatim.
-//
-// A denylist rather than an allowlist, because /asset legitimately serves an
-// open-ended set of game CDNs; an allowlist would break games. These hosts are
-// refused outright rather than redirected: /asset exists for game assets, and
-// 302-ing an arbitrary caller-supplied URL would turn it into an open redirect.
-// No legitimate game asset lives on an inference endpoint.
-const AI_PROVIDER_HOSTS = /(^|\.)(pollinations\.ai|aihorde\.net|stablehorde\.net|openai\.com|anthropic\.com|claude\.ai|generativelanguage\.googleapis\.com|api\.groq\.com|api\.mistral\.ai|api\.cohere\.(ai|com)|api\.deepseek\.com|api\.together\.xyz|api\.replicate\.com|replicate\.delivery|fal\.(ai|run)|api\.openrouter\.ai|openrouter\.ai|huggingface\.co|api-inference\.huggingface\.co|api\.stability\.ai|api\.x\.ai|api\.perplexity\.ai)$/i;
+// The list and the matching rules live in lib/ai-hosts.mjs: isAiProviderHost()
+// for a bare hostname (applied on every redirect hop through fetchAsBrowser),
+// mentionsAiProvider() for a caller-supplied URL, which also looks inside the
+// path and query for an AI URL smuggled through an intermediary. /asset, /thumb
+// and /api/proxy/diag all refuse with 403 before any connection is opened.
 
 // Rewrite a remote thumbnail URL to the same-origin proxy. Local paths
 // (/thumbs/…, already self-hosted) and unknown hosts pass through unchanged.
@@ -662,6 +691,31 @@ function setCatalog(games, source) {
     if (g.thumbnail)     g.thumbnail     = thumbUrl(g.thumbnail);
     if (g.thumbnail_url) g.thumbnail_url = thumbUrl(g.thumbnail_url);
   }
+  // Untrusted-input choke point: every source converges here, so fields that
+  // reach innerHTML are normalised once (see lib/catalog-sanitize.mjs). An
+  // entry with an unusable slug or a non-web embed URL is dropped, and the
+  // count is logged so a bad feed is visible rather than silently shrinking.
+  {
+    const before = games.length;
+    games = games.filter((g) => sanitizeCatalogEntry(g) !== null);
+    if (games.length !== before) {
+      console.warn(`[catalog] ${before - games.length} entr${before - games.length === 1 ? 'y' : 'ies'} dropped by sanitisation (bad slug or non-web embed URL)`);
+    }
+  }
+  // Provider governance: a SUSPENDED or REVOKED provider's games are withheld
+  // from every public surface at once (lib/provider-registry.mjs). A game whose
+  // host is not a registered provider origin is a legacy row and is kept.
+  {
+    const idx = CONTROL.providers;
+    const before = games.length;
+    games = games.filter((g) => {
+      const p = idx.forEmbedUrl(g.embed_url || g.game_url || '');
+      return !p || idx.serves(p.id);
+    });
+    if (games.length !== before) {
+      console.log(`[catalog] ${before - games.length} game(s) withheld: their provider is suspended or revoked`);
+    }
+  }
   // Interleave Y8 games evenly so a big batch doesn't dominate the first pages.
   games = spreadCatalog(games);
   CATALOG = { games, generatedAt: new Date().toISOString(), source };
@@ -1014,11 +1068,17 @@ async function flushPlayStats() {
 const app = express();
 const httpServer = createServer();
 
-// Behind a CDN / PaaS load balancer (Cloudflare, Render, Railway, Fly), the
-// real client protocol + IP arrive in X-Forwarded-* headers. Trusting the
-// first proxy hop makes req.protocol/req.secure correct (so the GD referrer
-// and any future rate-limiting see the real https origin + client IP).
-app.set('trust proxy', 1);
+// Which X-Forwarded-For hops to believe. This is a SECURITY setting: every
+// per-client control below keys on req.ip, and an over-trusting value lets a
+// client choose its own address. It used to be a hard-coded `1`, which is only
+// right behind exactly one proxy — with none in front, `X-Forwarded-For:
+// 127.0.0.1` made any caller "local". See lib/trust-proxy.mjs for the defaults.
+const TRUST_PROXY = trustProxySetting(process.env);
+app.set('trust proxy', TRUST_PROXY.value);
+if (TRUST_PROXY.warning) console.warn(`[zofhub] ${TRUST_PROXY.warning}`);
+// Express compiles the setting into a function; the raw WebSocket upgrade path
+// uses the same one, so req.ip and the upgrade's client key can never disagree.
+const TRUST_PROXY_FN = app.get('trust proxy fn');
 // JSON responses are identical for identical inputs — let Express emit weak
 // ETags so conditional requests (304 Not Modified) save bandwidth at scale.
 app.set('etag', 'weak');
@@ -1042,12 +1102,107 @@ app.set('etag', 'weak');
 // every deploy), the dropdown shows just the three built-in engines: clean, no
 // "offline" clutter, no errors. `npm run dev:all` sets these locally so a
 // developer who wants to tinker still sees whichever companions are running.
+//
+// EVERY URL HERE IS PUBLISHED, UNAUTHENTICATED, BY /api/proxies. So basic-auth
+// credentials pasted into one of these variables — a natural thing to do for a
+// private instance — would be handed verbatim to every visitor of the site.
+// publicEngineUrl() removes the userinfo before the value is ever stored, and
+// says so at boot, because auth the operator believes is configured is now not
+// being sent. An unparseable URL is left exactly as typed: it cannot leak a
+// credential we could not find, and rewriting a string we failed to understand
+// would only make the operator's typo harder to recognise.
+function publicEngineUrl(raw, varName) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  let u;
+  try { u = new URL(s); } catch { return s; }
+  if (!u.username && !u.password) return s;
+  u.username = '';
+  u.password = '';
+  console.warn(`[engines] removed credentials from ${varName}: that URL is published `
+    + 'publicly by /api/proxies. Sign in at the service itself instead.');
+  return u.href;
+}
+
 const COMPANION_ENGINES = [
-  { id: 'nautilus',     label: 'NautilusOS',   url: (process.env.PROXY_NAUTILUS_URL     || '').trim() },
-  { id: 'interstellar', label: 'Interstellar', url: (process.env.PROXY_INTERSTELLAR_URL || '').trim() },
-  { id: 'daydream',     label: 'DayDream',     url: (process.env.PROXY_DAYDREAM_URL     || '').trim() },
-  { id: 'nebula',       label: 'Nebula',       url: (process.env.PROXY_NEBULA_URL       || '').trim() },
+  { id: 'nautilus',     label: 'NautilusOS',   url: publicEngineUrl(process.env.PROXY_NAUTILUS_URL,     'PROXY_NAUTILUS_URL') },
+  { id: 'interstellar', label: 'Interstellar', url: publicEngineUrl(process.env.PROXY_INTERSTELLAR_URL, 'PROXY_INTERSTELLAR_URL') },
+  { id: 'daydream',     label: 'DayDream',     url: publicEngineUrl(process.env.PROXY_DAYDREAM_URL,     'PROXY_DAYDREAM_URL') },
+  { id: 'nebula',       label: 'Nebula',       url: publicEngineUrl(process.env.PROXY_NEBULA_URL,       'PROXY_NEBULA_URL') },
+  // InvisiProxy LTS (AGPL-3.0, formerly Holy Unblocker LTS). It belongs in this
+  // list and NOT in the tree: it is a complete proxy application built on the
+  // same primitives ZoFHub already integrates directly (Ultraviolet, Scramjet,
+  // Wisp, bare-mux, epoxy), on Fastify under pnpm, and vendoring it would
+  // duplicate working architecture while pulling AGPL source into a proprietary
+  // work that is served over a network — engaging §13 for the combination.
+  // Deployed separately it stays a peer, and its obligations stay with its
+  // deployer. Provenance: data/invisiproxy-upstream.json · docs/proxy/INVISIPROXY.md
+  {
+    id: 'invisi',
+    label: 'InvisiProxy',
+    url: publicEngineUrl(process.env.PROXY_INVISI_URL, 'PROXY_INVISI_URL'),
+    // `npm run proxies` starts the four bundled companions and cannot start
+    // this one, so it carries its own instruction to the offline panel.
+    setup: 'pnpm install && pnpm start   (in your own InvisiProxy checkout)',
+  },
 ].filter(e => e.url);
+
+// ── AnuraOS ────────────────────────────────────────────────────────────────
+// Handled apart from the list above because, unlike the other four, THIS
+// process can serve it: `npm run fetch-anura` puts the pinned AGPL-3.0 release
+// in vendor/anura, and lib/anura-host.mjs serves it on an origin of its own
+// (a second port by default, or a hostname pointed here via ANURA_HOST).
+//
+// It needs a real origin rather than a subpath, and that is a measured fact
+// about the bundle, not a preference — see the header of lib/anura-host.mjs.
+// Its URL is resolved PER REQUEST so a mirror deployment offers its own
+// AnuraOS rather than sending visitors back to a blocked domain.
+const { anuraHandler, anuraExposure, anuraUrlFor, anuraBundlePresent } =
+  await import('./lib/anura-host.mjs');
+const ANURA = anuraExposure(process.env, { present: anuraBundlePresent() });
+
+/** AnuraOS obeys the same engine switch and access mode as the other engines. */
+async function anuraAllowed(headers, ip) {
+  if (CONTROL.proxy && !CONTROL.proxy.engineEnabled('anura')) return false;
+  if (PROXY_POLICY.accessMode === 'disabled') return false;
+  if (PROXY_POLICY.accessMode === 'staff') return staffProxyAllowed(headers, ip);
+  return true;
+}
+
+// Host-based origin: a subdomain pointed at this service. Registered FIRST so
+// it wins before any ZoFHub route can answer for that hostname — /browser and
+// /assets exist in both apps, and on the AnuraOS origin they must be AnuraOS's.
+if (ANURA.mode === 'host') {
+  // No port in the authority here: the hostname IS the origin, on the main
+  // listener, whose upgrade handler already routes /wisp/ into the tunnel.
+  const serveAnura = anuraHandler();
+  app.use(async (req, res, next) => {
+    const h = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+      .split(',')[0].trim().toLowerCase().replace(/:\d+$/, '');
+    if (h === ANURA.host) {
+      if (!(await anuraAllowed(req.headers, req.ip))) return res.status(503).type('text').send('AnuraOS is turned off.');
+      return serveAnura(req, res);
+    }
+    return next();
+  });
+}
+
+// ── Kasm Workspaces ────────────────────────────────────────────────────────
+// A third kind of engine: not a rewriter (Scramjet/Ultraviolet) and not an
+// emulator (AnuraOS) but a REAL remote desktop, streamed by KasmVNC from a
+// container built out of github.com/kasmtech/workspaces-images.
+//
+// Unlike AnuraOS this process cannot host it — upstream ships Dockerfiles, not
+// a bundle, and there is no Docker daemon inside a Render web service. So it is
+// operator-hosted and pointed at by PROXY_KASM_URL, and the module's job is to
+// detect, BEFORE the frame is created, the two things that make a Kasm origin
+// silently unembeddable. See the header of lib/kasm-host.mjs.
+const { kasmExposure, kasmProbe, kasmEntry, kasmStatusLine } =
+  await import('./lib/kasm-host.mjs');
+const KASM = kasmExposure(process.env);
+if (KASM.mode === 'disabled') {
+  console.warn(`[kasm] ${KASM.reason}. Not offering it in /browser.`);
+}
 
 // Origins we must allow in frame-src so the stage iframe can embed a companion.
 const companionFrameOrigins = (() => {
@@ -1055,6 +1210,11 @@ const companionFrameOrigins = (() => {
   for (const e of COMPANION_ENGINES) {
     try { set.add(new URL(e.url).origin); } catch {}
   }
+  // Kasm's origin, for the same reason. frame-src already carries a blanket
+  // `https:`, so this matters specifically for an operator running it over
+  // plain http on their own network — where CSP would otherwise be a second,
+  // invisible blocker stacked on top of the mixed-content rule.
+  if (KASM.mode === 'external') set.add(KASM.origin);
   // Convenience for local development with the bundled launcher.
   set.add('http://localhost:*');
   set.add('http://127.0.0.1:*');
@@ -1067,9 +1227,8 @@ const companionFrameOrigins = (() => {
 // The CSP below allowlists script-src. Until this existed, PROXY_AD_SCRIPTS /
 // PROXY_BANNER_TAG could be filled in correctly and still earn NOTHING: the
 // server happily served the URLs, proxy-ads.js happily injected them, and the
-// browser then refused every one. Verified against the real loader domains
-// Adsterra, HilltopAds and Monetag hand out — all four blocked, while an
-// allowlisted CDN loaded fine. The only symptom is a console message, so the
+// browser then refused every one. Verified against real network loader
+// domains — all four blocked, while an allowlisted CDN loaded fine. The only symptom is a console message, so the
 // natural conclusion would have been "the ad network isn't paying out".
 //
 // A hardcoded list of network domains would rot: these networks rotate loader
@@ -1084,12 +1243,18 @@ const companionFrameOrigins = (() => {
 // would turn a network on "ads.example.co.uk" into a wildcard for ALL of
 // "*.co.uk". Anything else the chain needs goes in PROXY_AD_ORIGINS by hand.
 // Resolved ONCE at boot from lib/ad-providers.mjs — the single source of truth
-// for which of the five supported networks (HilltopAds, Adsterra, Monetag,
-// Ad-Maven, PopAds) are live, what they render, and where.
+// for which of the six supported networks (Ad-Maven, ExoClick, HilltopAds,
+// Clickadu, Mondiad, PopAds) are live, the one role each owns, and where —
+// including every region's localised tags, so the CSP covers all of them.
 //
 // Everything downstream reads AD_CONFIG rather than process.env, so the CSP,
 // /api/site-config and the admin panel can never disagree about what is enabled.
-const AD_CONFIG = resolveAdConfig(process.env);
+// `let`, not `const`: the admin console can switch networks OFF at runtime
+// (settings ads.enabled / ads.disabled_networks — see applyAdSettings()). It can
+// never switch one ON: a network with no <PREFIX>_ENABLED in the environment has
+// nothing to render. AD_ORIGINS below stays the boot-time superset — disabling a
+// network narrows what renders; the CSP only needs to be no WIDER than the env.
+let AD_CONFIG = resolveAdConfig(process.env, { regions: GEO.regionIds });
 const AD_ORIGINS = adOrigins(
   AD_CONFIG,
   (process.env.PROXY_AD_ORIGINS || '').split(','),
@@ -1100,12 +1265,25 @@ if (AD_CONFIG.activeIds.length) {
 } else {
   console.log('[ads] no network enabled — the site runs ad-free.');
 }
-if (AD_CONFIG.legacyInUse) {
-  // Worth saying out loud: legacy vars still work, but they carry no network
-  // identity, so nothing can report which network is serving or switch one off.
-  console.log('[ads] NOTE: legacy PROXY_* ad variables are in use. They work, but '
-    + 'cannot be attributed to a network or toggled per-provider. Migrate to '
-    + '<NETWORK>_ENABLED / <NETWORK>_SCRIPT — see docs/ADVERTISING.md.');
+// Role ownership, stated at boot. Every role has one owner and never falls
+// through to another network, so "ExoClick is enabled but the header is empty"
+// has exactly one explanation — ExoClick supplies no header tag — and it is
+// printed here rather than left to be inferred from the admin panel.
+{
+  const owners = adminAdConfig(AD_CONFIG).roleOwner;
+  console.log('[ads] roles → ' + Object.entries(owners).map(([role, id]) => `${role}: ${id || 'none'}`).join(' · ')
+    + ` · interstitial capped at 1 per ${Math.round(INTERSTITIAL_COOLDOWN_MS / 60000)} min`);
+  if (GEO.regionIds.length) {
+    const localised = Object.keys(AD_CONFIG.regional);
+    console.log(`[ads] regional tags: ${localised.length ? localised.join(', ') : 'none — every region uses the global tags'}`);
+  }
+}
+if (AD_CONFIG.ignored.length) {
+  // Names only, never values. Each of these is set in the environment and read
+  // by nothing: a retired network, a pre-provider slot variable, or a field
+  // outside the network's one role (e.g. HILLTOPADS_SCRIPT for a push-only
+  // network, whose loader is HILLTOPADS_PUSH_SCRIPT).
+  console.warn(`[ads] set but NOT used: ${AD_CONFIG.ignored.join(', ')} — see docs/features/ADVERTISING.md.`);
 }
 if (AD_ORIGINS.length) console.log(`[ads] CSP allows ${AD_ORIGINS.length} ad origin(s): ${AD_ORIGINS.join(' ')}`);
 
@@ -1116,12 +1294,26 @@ const CSP_DIRECTIVES = {
     // even on browsers that no longer accept plain 'unsafe-eval' for wasm.
     "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
-    // Google's ad stack is allowed here for PROXIED GAMES ONLY. A game served
-    // same-origin through /embed runs under THIS policy, and many of them show
-    // in-game GPT/AdSense units. ZoFHub itself never loads Google ad code — it
-    // is stripped from PROXY_AD_SCRIPTS, PROXY_BANNER_TAG and AD_ORIGINS above,
-    // because AdSense on a proxy domain is an account-level ban.
-    'https://*.googlesyndication.com', 'https://*.google.com', 'https://*.googletagmanager.com',
+    // ── NO GOOGLE AD STACK HERE. THIS IS THE LAST LAYER. ────────────────────
+    // googlesyndication / googletagmanager / googleadservices / doubleclick are
+    // deliberately ABSENT. Every other layer already refuses to emit Google ad
+    // code (lib/ad-providers.mjs strips it from every configured tag, script and
+    // origin; public/js/ad-slots.js, proxy-ads.js and preroll.js each refuse it
+    // again at injection time; tools/check-ads.mjs fails the build on it). A CSP
+    // that still NAMED those origins meant the one layer that could have stopped
+    // an accidental or injected tag from executing was the one layer holding the
+    // door open — on every page of the site, including /browser and /gust.
+    //
+    // This does NOT cost the in-game revenue share. Games are not served under
+    // this policy: /embed/:slug sets its own deliberately permissive CSP for the
+    // game sandbox (`default-src *`, with frame-ancestors 'self'), so a
+    // GameMonetize or GameDistribution title still runs its publisher's own ad
+    // stack inside its own frame. What changed is that ZoFHub's OWN pages can no
+    // longer initialise Google ad code by any route — which is the thing that
+    // gets a proxy domain banned at the account level.
+    //
+    // Do not add them back here. If a game genuinely needs one, it belongs in
+    // the /embed route's policy, not in the policy the whole site runs under.
     'https://*.adsafeprotected.com', 'https://*.playwire.com',
     'https://*.poki.com', 'https://*.y8.com',
     'https://*.supabase.co',
@@ -1153,6 +1345,21 @@ app.use(helmet({
   // treat that as bot traffic and refuse to start.  Send the origin only.
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
+
+// ── Server-side AI fallback routes: refused before anything else runs ──────
+// /api/ai/text, /api/ai/image and /api/ai/echo answer 403 in production, and
+// outside production to anything but a genuine loopback client (lib/ai-guard.mjs).
+// This runs ahead of CORS, the body parser, rate limiting, maintenance mode and
+// MASQR, so a refused request costs nothing: no preflight is answered, no body
+// is read, and no error path can turn the refusal into a 400, 413 or 429. It
+// covers every method and every spelling that normalises to one of the three
+// paths. The route handlers keep their own identical check behind this one.
+app.use((req, res, next) => {
+  if (!isAiFallbackPath(req.path)) return next();
+  if (aiServerAllowed(req)) return next();
+  return refuseServerAi(res);
+});
+
 // Only compress responses larger than 2KB — smaller payloads get bigger when compressed.
 // NEVER compress Server-Sent Events: gzip buffers each tiny `data:` frame instead of
 // flushing it, so the live presence stream would arrive in delayed BATCHES (that was
@@ -1228,7 +1435,157 @@ app.use((req, res, next) => {
   return res.status(403).json({ error: 'cross_origin_write_blocked' });
 });
 
-app.use(express.json({ limit: '2mb' }));
+// Request bodies. Was 2mb for every route, while the largest legitimate body
+// here — an AI-feedback submission, three fields capped at 4,000 characters —
+// is a few tens of kilobytes. Parsing is synchronous and holds the event loop,
+// so a 2mb ceiling let any client buy ~2mb of blocking JSON.parse per request.
+// JSON_BODY_LIMIT overrides it (any value body-parser accepts, e.g. "256kb").
+const JSON_PARSER = express.json({ limit: String(process.env.JSON_BODY_LIMIT || '100kb').trim() || '100kb' });
+// The admin FILE-IMPORT routes parse their own, larger body — but only after
+// authentication, authorisation and CSRF have passed (lib/admin-api.mjs).
+// Skipping them here is what stops an anonymous caller from making this process
+// parse a 2 MB body: at this point nobody has been authenticated yet.
+app.use((req, res, next) => (req.path.startsWith('/api/admin/cms/import/') ? next() : JSON_PARSER(req, res, next)));
+
+// ========================================================================
+// Control plane state (db/control-plane.sql, lib/cms-*.mjs, lib/*-service.mjs)
+// ------------------------------------------------------------------------
+// Filled in by initControlPlane() after boot. Until then — and permanently on a
+// database the control-plane migration has not reached — the services are null
+// and the admin API answers 503 with the reason, while the PUBLIC site runs
+// exactly as before. Nothing public depends on the control plane being up
+// except the three things that must fail closed: provider withdrawal (applied
+// when known), proxy destinations (none approved until loaded), and settings
+// (defaults until loaded).
+// ========================================================================
+const { createProviderIndex } = await import('./lib/provider-registry.mjs');
+const CONTROL = {
+  store: null, schema: 'initialising', reason: 'The control plane is starting.',
+  cms: null, settings: null, staff: null, proxy: null,
+  providers: createProviderIndex(),
+};
+
+// Feature flags gate the SERVER, not just the navigation: a switched-off feature
+// answers 404 on its API and its page, so turning it off in the console actually
+// stops it rather than hiding a link to something still running.
+const FEATURE_ROUTES = [
+  ['features.ai',          ['/api/ai/'],           ['/ai', '/ai.html']],
+  ['features.community',   ['/api/recommendations'], ['/community', '/community.html']],
+  ['features.leaderboard', ['/api/scores'],        ['/leaderboard', '/leaderboard.html']],
+  ['features.donate',      ['/api/donate'],        ['/donate', '/donate.html']],
+  ['features.subscribe',   ['/api/subscribe'],     []],
+  ['features.feedback',    ['/api/feedback'],      []],
+];
+const routeMatches = (path, p) => (p.endsWith('/') ? path.startsWith(p) : path === p || path.startsWith(p + '/'));
+// Maintenance mode never takes down the console, the health probes, the AGPL
+// source offer, or the assets the maintenance page itself needs.
+const MAINTENANCE_EXEMPT = /^\/(admin(\/|$)|api\/admin\/|healthz$|readyz$|livez$|ping$|api\/health$|api\/site-config$|licenses|robots\.txt$|favicon|assets\/)/;
+const plainPage = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${htmlEscapeText(title)}</title></head><body><main><h1>${htmlEscapeText(title)}</h1><p>${htmlEscapeText(body)}</p></main></body></html>`;
+function htmlEscapeText(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+app.use((req, res, next) => {
+  const settings = CONTROL.settings;
+  if (!settings) return next();
+  const m = settings.get('site.maintenance');
+  if (m?.enabled && !MAINTENANCE_EXEMPT.test(req.path)) {
+    res.setHeader('Retry-After', '600');
+    res.setHeader('Cache-Control', 'no-store');
+    const message = m.message || 'ZoFHub is down for maintenance. Please check back soon.';
+    if (req.path.startsWith('/api/')) return res.status(503).json({ ok: false, error: 'maintenance', message });
+    return res.status(503).type('html').send(plainPage('Down for maintenance', message));
+  }
+  for (const [key, apis, pages] of FEATURE_ROUTES) {
+    if (settings.get(key) !== false) continue;
+    if (apis.some((p) => routeMatches(req.path, p))) {
+      return res.status(404).json({ ok: false, error: 'This feature is turned off.' });
+    }
+    if (pages.includes(req.path)) {
+      return res.status(404).type('html').send(plainPage('Not available', 'This part of the site is turned off right now.'));
+    }
+  }
+  next();
+});
+
+// What a visitor's page may know before it renders: the public settings only
+// (lib/settings-registry.mjs marks which), the proxy's approved destinations,
+// the advertising this page may carry, and whether the ad-block gate applies.
+//
+// ONE HANDLER. There used to be two routes at this path. This one answered and
+// never called next(), so the second — the surface-gated ad payload — was dead
+// code: no page ever received a script URL or a slot tag, and configuring an ad
+// network changed nothing on the live site while every check still passed.
+//
+// THE AD PAYLOAD IS SURFACE-GATED. The caller says which page it is on (an
+// explicit ?surface=, else the Referer path), and anything that is not a native
+// ad surface — the proxy pages above all — gets every ad field present and
+// EMPTY, so a client that forgets to check `adsAllowed` still has nothing to
+// render. layout.js holds the client half of the same boundary; either alone
+// is one edit away from failing open.
+//
+// The payload varies by page and by the visitor's region, so it is cached
+// privately and briefly: an announcement or a switched-off feature still
+// reaches pages within a minute, and no shared cache can hand one page's or one
+// region's answer to another.
+app.get('/api/site-config', (req, res) => {
+  const pub = CONTROL.settings ? CONTROL.settings.public() : {};
+  const features = {};
+  for (const [k, v] of Object.entries(pub)) if (k.startsWith('features.')) features[k.slice(9)] = v;
+  const ann = pub['site.announcement'];
+
+  // Deny-by-default all the way down: no surface and no Referer is NO surface.
+  // (Resolving an empty Referer against a base URL yields "/", which used to
+  // classify every anonymous request as the homepage and hand it the ads.) A
+  // Referer from another site says nothing about which of OUR pages is asking.
+  let surface = String(req.query.surface || '');
+  if (!surface) {
+    const ref = req.get('referer');
+    if (ref) {
+      try {
+        const u = new URL(ref);
+        if (u.hostname.toLowerCase() === String(req.hostname || '').toLowerCase()) surface = u.pathname;
+      } catch { surface = ''; }
+    }
+  }
+  const adsAllowed = isAdSurface(surface);
+  const region = regionOf(countryOf(req.headers, GEO), GEO)?.id || null;
+
+  res.setHeader('Cache-Control', 'private, max-age=30');
+  res.json({
+    ok: true,
+    announcement: ann && ann.active ? { text: ann.text, level: ann.level } : null,
+    features,
+    proxy: CONTROL.proxy ? publicProxyView() : null,
+    adsAllowed,
+    ...(adsAllowed ? publicAdConfig(AD_CONFIG, { surface, region }) : emptyPublicAdConfig()),
+    // Sent on EVERY surface, including /browser: that is where the premium
+    // engines are, and the page must know whether they may be locked without
+    // being handed anything ad-related. See public/js/support-gate.js.
+    supportGate: adblockGateOn(),
+  });
+});
+
+/**
+ * Does the ad-block premium gate apply right now? Only while at least one
+ * network is actually serving — locking engines "to support the ads" on a
+ * deployment that runs none would be a lock with no reason — and only while
+ * the console switch is on.
+ */
+function adblockGateOn() {
+  if (!AD_CONFIG.anyActive) return false;
+  return !CONTROL.settings || CONTROL.settings.get('ads.adblock_gate') !== false;
+}
+
+/** Is a video pre-roll configured for game pages in any region? */
+function prerollConfigured() {
+  return Boolean(AD_CONFIG.global?.preroll || Object.values(AD_CONFIG.regional || {}).some((p) => p.preroll));
+}
+
+// Engines the page may offer: switched on in the console AND actually installed.
+function publicProxyView() {
+  const v = CONTROL.proxy.publicView();
+  const installed = { ultraviolet: !!proxyStatus.ultraviolet, scramjet: !!proxyStatus.scramjet, gust: !!proxyStatus.gust, anura: !!ANURA.serves };
+  return { ...v, engines: v.engines.filter((e) => installed[e]) };
+}
 
 // Permissions-Policy: explicitly delegate every capability a game iframe
 // might need to ALL embedded origins.  Modern Chrome enforces this even
@@ -1240,11 +1597,16 @@ app.use((req, res, next) => {
     'autoplay=*',
     'fullscreen=*',
     'gamepad=*',
-    'clipboard-read=*',
+    // Reading the clipboard is withheld from embedded frames: a game never
+    // needs it, and a third-party ad frame that obtained it could read
+    // whatever the visitor last copied. Writing (a "copy code" button) stays.
+    'clipboard-read=(self)',
     'clipboard-write=*',
     'web-share=*',
     'encrypted-media=*',
-    'payment=*',
+    // No game or ad on this site takes a payment through the Payment Request
+    // API, and donations are wallet addresses, not a checkout. Denied.
+    'payment=()',
     'accelerometer=*',
     'gyroscope=*',
     'xr-spatial-tracking=*',
@@ -1286,61 +1648,276 @@ app.use((req, res, next) => {
 // ========================================================================
 // Optional proxy stack
 // ========================================================================
-const proxyStatus = { gust: false, ultraviolet: false, scramjet: false, bare: false, wisp: false, epoxy: false };
-
 // ── Always-on proxy + proxy-friendly ads ────────────────────────────────────
 // ZoFHub is ALWAYS a proxy site. There is NO hub / Google-AdSense mode: Google
 // bans proxy / anonymizer domains at the ACCOUNT level, so the site earns solely
-// via proxy-friendly ad networks (Adsterra / HilltopAds / Monetag / …) wired
-// through PROXY_AD_SCRIPTS + PROXY_BANNER_TAG. The web proxy stack (GUST /
+// via the six proxy-friendly networks in lib/ad-providers.mjs, each on its own
+// role. The web proxy stack (GUST /
 // Ultraviolet / Scramjet / Wisp) is always enabled. PROXY_ENABLED is kept as a
-// named constant (always true) so the proxy setup below stays readable.
+// named constant (always true) so the code that reads it stays readable.
 const PROXY_ENABLED = true;
 
-let wisp = null;
-{
-  // GUST — self-contained libcurl.js + Wisp proxy (NO service worker). Lives as a
-  // single vendored HTML file in public/gust/ with all of its assets (libcurl,
-  // font-awesome, pdf.js, iso-639-1) served from our own origin. Its default Wisp
-  // target is rewritten to our same-origin /wisp/ endpoint, so when it's reachable
-  // every byte of proxy traffic stays on this domain. We just flag availability
-  // here; the static mount below serves the files.
-  if (existsSync(join(PUBLIC_DIR, 'gust', 'index.html'))) proxyStatus.gust = true;
-  else console.warn('[zofhub] GUST: public/gust/index.html missing — engine unavailable.');
+// ── The AGPL engines, behind one call ───────────────────────────────────────
+// GUST, Ultraviolet, Scramjet, their service workers and the Wisp tunnel now
+// live entirely in proxy-engine/. This file keeps the proprietary half: the
+// Supabase models, the catalog, identity, ads, feedback, donations and the
+// admin console. The only things crossing the boundary are an Express app in
+// and a { proxyStatus, wisp } out — no shared state, no shared imports.
+//
+// This is a structural boundary, not a legal one. proxy-engine/mount.mjs says
+// plainly what that does and does not change about the AGPL position; the short
+// version is that a folder is not a licence boundary, the engines here are
+// unmodified upstream builds, and docs/CREDITS.md still carries the §13 source offer
+// that actually keeps this compliant.
+// ── Proxy discovery gate (MASQR) ───────────────────────────────────────────
+// Registered BEFORE the engines and before express.static, because the whole
+// point is to answer for /browser, /uv/, /gust/ … before anything can serve
+// them. OFF unless MASQR_ENABLED is set, in which case this is a pass-through.
+//
+// What it buys: a mirror domain usually dies because somebody shares the link,
+// a filter vendor's crawler fetches it, sees a web proxy, and burns the domain.
+// With the gate on, an unauthenticated client sees the games hub — which is
+// what this site actually is — and the proxy surfaces answer 404.
+//
+// It is NOT access control and must never be described as such. See lib/masqr.mjs.
+const { masqrConfig, masqrMiddleware, masqrStatusLine, mintKey: mintMasqrKey, grantKeyFor } =
+  await import('./lib/masqr.mjs');
+const MASQR = masqrConfig(process.env);
+for (const w of MASQR.warnings) console.warn(`[masqr] ${w}`);
 
-  // Custom UV config in public/ must win over the package default.
-  app.get('/uv/uv.config.js', (req, res) => res.sendFile(join(PUBLIC_DIR, 'uv', 'uv.config.js')));
-
-  try {
-    const { uvPath } = require('@titaniumnetwork-dev/ultraviolet');
-    if (uvPath && existsSync(uvPath)) { app.use('/uv/', express.static(uvPath)); proxyStatus.ultraviolet = true; }
-  } catch (e) { console.warn('[zofhub] Ultraviolet:', e.message); }
-
-  const findNodeModulesDir = (pkg) => {
-    const candidates = require.resolve.paths('') || [];
-    for (const root of candidates) { const p = join(root, ...pkg.split('/')); if (existsSync(p)) return p; }
-    const local = join(__dirname, 'node_modules', ...pkg.split('/'));
-    return existsSync(local) ? local : null;
-  };
-  const bareRoot  = findNodeModulesDir('@mercuryworkshop/bare-mux');
-  const epoxyRoot = findNodeModulesDir('@mercuryworkshop/epoxy-transport');
-  if (bareRoot  && existsSync(join(bareRoot,  'dist'))) { app.use('/baremux/', express.static(join(bareRoot, 'dist'))); proxyStatus.bare  = true; }
-  if (epoxyRoot && existsSync(join(epoxyRoot, 'dist'))) { app.use('/epoxy/',   express.static(join(epoxyRoot,'dist'))); proxyStatus.epoxy = true; }
-
-  // Scramjet — interception-based successor to Ultraviolet.  It shares the SAME
-  // transport as UV (bare-mux → epoxy → our /wisp/ endpoint); only the in-page
-  // rewriting engine and its service worker differ.  The wasm + js bundle is
-  // served straight from the package dist; the fetch-handling SW lives in
-  // public/scram/ so it can wrap the packaged worker factory.  The explicit SW
-  // route must be registered BEFORE the /scram/ static mount so it wins.
-  app.get('/scram/scramjet.sw.js', (req, res) => res.sendFile(join(PUBLIC_DIR, 'scram', 'scramjet.sw.js')));
-  const scramjetRoot = findNodeModulesDir('@mercuryworkshop/scramjet');
-  if (scramjetRoot && existsSync(join(scramjetRoot, 'dist'))) {
-    app.use('/scram/', express.static(join(scramjetRoot, 'dist')));
-    proxyStatus.scramjet = true;
+// ── Regional routing (lib/geo.mjs) ─────────────────────────────────────────
+// Keeps each region's visitors on that region's domain(s), so one market's
+// block lists stop reaching another market's domain. A pass-through unless
+// REGION_ROUTES assigns hosts. Top-level page loads only — never an API call,
+// an asset, a frame, a health probe or ads.txt.
+//
+// Registered BEFORE the MASQR gate on purpose: a keyed visitor about to be
+// moved to their region's domain has to take the key with them (the grant is a
+// host-only cookie), and the gate here would otherwise 404 the proxy page first.
+// The key is computed only when a redirect is actually issued.
+app.use((req, res, next) => {
+  if (!GEO.routing) return next();
+  const d = routeDecision(
+    { method: req.method, host: req.hostname, url: req.originalUrl || req.url, headers: req.headers },
+    GEO,
+    { grant: () => grantKeyFor(MASQR, req.headers.cookie) },
+  );
+  if (d.action === 'stay') {
+    res.append('Set-Cookie', d.cookie + (process.env.NODE_ENV === 'production' ? '; Secure' : ''));
+    return next();
   }
+  if (d.action !== 'redirect') return next();
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.redirect(302, d.location);
+});
+// send404 is a hoisted function declaration further down this file, so passing
+// it here is safe: the gate only calls it per request, long after boot.
+app.use(masqrMiddleware(MASQR, { deny404: (req, res) => send404(req, res) }));
 
-  try { wisp = require('@mercuryworkshop/wisp-js/server').server; proxyStatus.wisp = true; } catch (e) { console.warn('[zofhub] Wisp:', e.message); }
+// ========================================================================
+// Proxy governance (lib/proxy-control.mjs, lib/proxy-service.mjs)
+// ------------------------------------------------------------------------
+// The engines are kept and served; what changes is that the platform decides
+// WHERE they may connect. Every tunnel stream is checked against the approved
+// destinations an administrator manages in the console, and anything not on
+// that list is refused. Until the list has loaded, only PROXY_APPROVED_TARGETS
+// (if set) is approved — the tunnel fails closed, never open.
+// ========================================================================
+const {
+  createProxyGovernor, createSessionTracker, resolveGuarded, DestinationRefused,
+  DEFAULT_POLICY: PROXY_DEFAULT_POLICY, targetsFromEnv,
+} = await import('./lib/proxy-control.mjs');
+const PROXY_GOVERNOR = createProxyGovernor();
+const PROXY_SESSIONS = createSessionTracker();
+PROXY_GOVERNOR.setTargets(targetsFromEnv(process.env.PROXY_APPROVED_TARGETS).rows);
+// PROXY_ACCESS_MODE applies from the first request, not after the async load —
+// otherwise `disabled` would be `public` for the first seconds of every boot.
+let PROXY_POLICY = {
+  ...PROXY_DEFAULT_POLICY,
+  ...(['public', 'staff', 'disabled'].includes(String(process.env.PROXY_ACCESS_MODE || '').trim().toLowerCase())
+    ? { accessMode: String(process.env.PROXY_ACCESS_MODE).trim().toLowerCase() } : {}),
+};
+PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
+// Refusals BEFORE a tunnel exists, by cause. Destination refusals are counted by
+// the governor itself, by reason code.
+const PROXY_REFUSALS = { maintenance: 0, disabled: 0, origin: 0, staffOnly: 0 };
+
+const PROXY_ENGINE_PATHS = [['/uv/', 'ultraviolet'], ['/scram/', 'scramjet'], ['/gust', 'gust'], ['/proxy', 'gust']];
+const PROXY_TRANSPORT_PATHS = ['/baremux/', '/epoxy/'];
+
+// Staff-only access mode: the same session validation the console uses, cached
+// for a minute per session token so a proxied page's hundreds of asset requests
+// cost one database round trip, not hundreds.
+const staffProxyCache = new Map();
+async function staffProxyAllowed(headers, ip) {
+  const token = adminAuth.parseCookies(headers?.cookie)[adminAuth.SESSION_COOKIE];
+  if (!token) return false;
+  const key = adminAuth.hashToken(token);
+  const hit = staffProxyCache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.ok;
+  let ok = false;
+  const supa = getSupabaseAdmin();
+  if (supa) {
+    const sess = await adminAuth.validateSession(supa, token, {
+      ipHash: adminAuth.hashIp(ip), userAgent: headers?.['user-agent'],
+    }).catch(() => null);
+    ok = !!sess && rbac.can(principalFromSession(sess), 'proxy.use');
+  }
+  if (staffProxyCache.size > 2000) staffProxyCache.clear();
+  staffProxyCache.set(key, { ok, exp: Date.now() + 60_000 });
+  return ok;
+}
+
+function proxyEngineFor(path) {
+  for (const [prefix, id] of PROXY_ENGINE_PATHS) {
+    const base = prefix.replace(/\/$/, '');
+    if (path === base || path.startsWith(base + '/')) return id;
+  }
+  return null;
+}
+
+app.use(async (req, res, next) => {
+  const p = req.path;
+  const engine = proxyEngineFor(p);
+  const transport = PROXY_TRANSPORT_PATHS.some((t) => p.startsWith(t));
+  const page = p === '/browser' || p === '/browser.html';
+  if (!engine && !transport && !page) return next();
+  if (engine && CONTROL.proxy && !CONTROL.proxy.engineEnabled(engine)) {
+    return res.status(404).type('text').send('This proxy engine is turned off.');
+  }
+  if (PROXY_POLICY.accessMode === 'disabled') {
+    return page
+      ? res.status(503).type('html').send(plainPage('Proxy unavailable', 'The proxy browser is turned off by the site administrator.'))
+      : res.status(503).type('text').send('The proxy is turned off.');
+  }
+  if (PROXY_POLICY.accessMode === 'staff' && !(await staffProxyAllowed(req.headers, req.ip))) {
+    return page
+      ? res.status(403).type('html').send(plainPage('Staff only', 'The proxy browser is currently limited to signed-in staff.'))
+      : res.status(403).type('text').send('Staff only.');
+  }
+  next();
+});
+
+const { mountProxyEngines, routeProxyUpgrade } = await import('./proxy-engine/mount.mjs');
+const { proxyStatus, wisp } = mountProxyEngines(app, express, { repoRoot: __dirname });
+
+// ── Egress policy ──────────────────────────────────────────────────────────
+// /wisp/ is the only endpoint here that opens a TCP connection to an address a
+// stranger picked, so its rules ARE the security boundary of the proxy. They
+// used to be wisp-js's defaults, which is not the same as being ZoFHub's
+// policy: an inherited default is a promise nobody made, and it changes when a
+// dependency changes. Applied immediately after the server object exists and
+// BEFORE any upgrade can be routed into it. See lib/wisp-policy.mjs.
+const { wispPolicy, applyWispPolicy, wispPolicyLine } = await import('./lib/wisp-policy.mjs');
+const WISP_POLICY = wispPolicy(process.env);
+const WISP_POLICY_APPLIED = wisp ? applyWispPolicy(wisp, WISP_POLICY) : { applied: false, reason: 'no wisp server' };
+for (const e of WISP_POLICY.errors) console.warn(`[egress] ${e}`);
+for (const w of WISP_POLICY.warnings) console.warn(`[egress] WARNING: ${w}`);
+if (wisp && !WISP_POLICY_APPLIED.applied) {
+  console.warn(`[egress] policy NOT applied (${WISP_POLICY_APPLIED.reason}). `
+    + 'The tunnel is running on wisp-js defaults: no port restriction and no stream cap.');
+}
+
+// ── Approved destinations: the allowlist wisp-js consults ────────────────────
+// wisp-js checks `hostname_whitelist` entries with entry.test(hostname) before
+// it allocates a stream (server/filter.mjs). One entry, backed by the governor,
+// turns that into the console's approved-destination list. WISP_BLOCKED_HOSTS
+// still applies on top: wisp-js ignores its blacklist once a whitelist is set,
+// so the patterns are honoured inside the same test. Raw IP literals are
+// refused outright — an approval names a site, never an address.
+if (wisp?.options) {
+  const blocked = WISP_POLICY.blockedHosts || [];
+  wisp.options.hostname_whitelist = [{
+    test: (h) => !blocked.some((re) => re.test(String(h).toLowerCase()))
+      && PROXY_GOVERNOR.evaluate({ host: h, port: null, staff: true }).decision === 'ALLOW',
+  }];
+  wisp.options.allow_direct_ip = false;
+}
+
+// WISP_MAX_STREAMS / WISP_ALLOWED_PORTS / WISP_MAX_PER_IP remain the operator's
+// CEILINGS: the console can set a policy inside them, never outside.
+const WISP_ENV_STREAM_CAP = String(process.env.WISP_MAX_STREAMS || '').trim() && WISP_POLICY.streamLimitPerTunnel !== -1
+  ? WISP_POLICY.streamLimitPerTunnel : null;
+
+/** Push a validated policy (lib/proxy-control.mjs validatePolicy) into the live tunnel. */
+function applyProxyPolicy(policy) {
+  const envPorts = WISP_POLICY.allowedPorts;               // null = no env restriction
+  const ports = policy.allowedPorts.filter((port) => envPorts === null
+    || envPorts.some((e) => (Array.isArray(e) ? port >= e[0] && port <= e[1] : e === port)));
+  PROXY_POLICY = { ...policy, allowedPorts: ports };
+  PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
+  WISP_MAX_TUNNELS = policy.maxTunnels;
+  WISP_MAX_PER_IP = WISP_ENV_MAX_PER_IP ? Math.min(WISP_ENV_MAX_PER_IP, policy.maxPerClient) : policy.maxPerClient;
+  WISP_IDLE_MS = policy.idleMinutes * 60_000;
+  if (wisp?.options) {
+    // An EMPTY list blocks every port in wisp-js (nothing matches) — the right
+    // failure when the console and the environment share no port at all.
+    wisp.options.port_whitelist = ports;
+    wisp.options.stream_limit_total = WISP_ENV_STREAM_CAP ? Math.min(WISP_ENV_STREAM_CAP, policy.streamsPerTunnel) : policy.streamsPerTunnel;
+  }
+  staffProxyCache.clear();
+}
+
+// A connect-time refusal of an APPROVED name that resolved to a private
+// address is either a misconfiguration or a DNS-rebinding attempt. Recorded as a
+// security event, at most once a minute per host so a loop cannot flood it.
+const _privateRefusalSeen = new Map();
+function noteProxyPrivateRefusal(host) {
+  const now = Date.now();
+  if ((_privateRefusalSeen.get(host) || 0) > now - 60_000) return;
+  if (_privateRefusalSeen.size > 500) _privateRefusalSeen.clear();
+  _privateRefusalSeen.set(host, now);
+  adminAuth.securityEvent(getSupabaseAdmin(), {
+    kind: 'proxy_private_address', severity: 'warn',
+    detail: { host: String(host).slice(0, 253), reason: 'an approved destination resolved to a private or reserved address' },
+  });
+}
+
+/**
+ * The per-tunnel socket class. wisp-js constructs one per stream with
+ * (hostname, port); this subclass re-checks the destination WITH its port,
+ * resolves DNS itself, refuses any private answer, and dials the address it
+ * validated — which is what closes the rebinding window between wisp-js's own
+ * lookup and the connection. It also feeds the session record its counts.
+ */
+function guardedSocketClass(sessionId) {
+  return class GuardedTCPSocket extends SingboxTCPSocket {
+    async connect() {
+      const d = PROXY_GOVERNOR.evaluate({ host: this.hostname, port: this.port, staff: true });
+      if (d.decision !== 'ALLOW') { PROXY_SESSIONS.denied(sessionId); throw new DestinationRefused(d.reason); }
+      let address;
+      try { address = await resolveGuarded(this.hostname); }
+      catch (e) {
+        PROXY_SESSIONS.denied(sessionId);
+        if (e?.reason === 'private_address') noteProxyPrivateRefusal(this.hostname);
+        throw e;
+      }
+      this.hostname = address;
+      await super.connect();
+      this._zhCounted = true;
+      PROXY_SESSIONS.streamOpened(sessionId);
+    }
+    async send(data) { PROXY_SESSIONS.touch(sessionId); return super.send(data); }
+    async close() {
+      if (this._zhCounted) { this._zhCounted = false; PROXY_SESSIONS.streamClosed(sessionId); }
+      return super.close();
+    }
+  };
+}
+
+// What /api/admin/proxy reports. Built from the values READ BACK off the live
+// wisp-js options object rather than recomputed from the environment: an
+// operator asking "can this proxy reach my database?" needs the effective
+// answer, and a policy that failed to apply is exactly the case where the
+// intended one would lie. `warnings` lists every deliberate widening.
+function egressReport() {
+  return {
+    ...WISP_POLICY_APPLIED,
+    // RegExp objects do not survive JSON; the count is the useful part.
+    hostnameBlacklistPatterns: WISP_POLICY_APPLIED.hostname_blacklist ?? 0,
+    warnings: WISP_POLICY.warnings,
+    errors: WISP_POLICY.errors,
+  };
 }
 
 // ========================================================================
@@ -1370,6 +1947,41 @@ for (const route of LEGAL_HTML_TWINS) {
   app.get(`${route}.html`, (req, res) => res.redirect(301, route));
 }
 
+// Alternate spellings people and crawlers actually type. Each 301s to the one
+// canonical URL rather than serving a second copy of the page: two URLs with the
+// same legal text is a duplicate-content problem, and a legal document that
+// exists at two addresses is a legal document that can drift.
+const LEGAL_ALIASES = {
+  '/privacy-policy': '/privacy',
+  '/privacy-policy.html': '/privacy',
+  '/terms-of-service': '/terms',
+  '/tos': '/terms',
+  '/copyright': '/dmca',
+};
+for (const [alias, target] of Object.entries(LEGAL_ALIASES)) {
+  app.get(alias, (req, res) => res.redirect(301, target));
+}
+
+// ── /hf/ — the Hugging Face inference client, served from OUR origin ───────
+// public/js/ai.js used to reach @huggingface/transformers over cdn.jsdelivr.net.
+// For this audience that is the wrong dependency to have: ZoFHub exists because
+// school networks block things, and a filtered CDN turns the AI fallback into a
+// blank screen at exactly the moment the primary provider is also unreachable.
+// Serving the module from the same origin the page came from means it is
+// reachable whenever the site itself is.
+//
+// This is the ESM build, which was checked to reference no Node builtins, so it
+// runs unmodified in a browser. It is a static file mount: no request from a
+// visitor is proxied to Hugging Face by this server, and no token passes
+// through here — see lib/hf-models.mjs for why the token stays client-side.
+app.use('/hf/', express.static(join(__dirname, 'node_modules', '@huggingface', 'inference', 'dist', 'esm'), {
+  maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
+  index: false,
+  setHeaders: (res, p) => {
+    if (p.endsWith('.js')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+  },
+}));
+
 app.use(express.static(PUBLIC_DIR, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res, path) => {
@@ -1386,8 +1998,10 @@ app.use(express.static(PUBLIC_DIR, {
     // stable, so a replaced thumbnail is a new filename, not a stale cache.
     const isThumb = /[\\/]thumbs[\\/]/.test(path);
     if (!isThumb && /\.(html|css|js|mjs|svg)$/.test(path)) res.setHeader('Cache-Control', 'no-cache');
-    // GUST vendors pdf.js as ES modules (.mjs). Some Express/send builds don't
-    // map .mjs, and a wrong MIME makes the browser refuse the module import.
+    // .mjs is not mapped by every Express/send build, and a wrong MIME makes the
+    // browser refuse a module import. (GUST was the original reason; it now
+    // carries its own copy of this in proxy-engine/mount.mjs. Kept here for any
+    // ES module served out of public/.)
     if (path.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
   }
 }));
@@ -1475,20 +2089,108 @@ const KEEPALIVE_THROTTLE_MS = 12 * 60 * 60 * 1000; // at most ~2 Supabase pokes/
 let lastSupabaseKeepAliveAt = 0;
 let warnedNoCronSecret = false;
 
+// ── Memory pressure ────────────────────────────────────────────────────────
+// /healthz has to answer a question an orchestrator can act on: "is this
+// container still fit to serve?" Uptime alone cannot answer it — a process
+// three seconds from an OOM kill has excellent uptime right up until it dies,
+// and the kill lands mid-request on whoever is playing.
+//
+// So the probe reports memory headroom and fails the check at HEALTH_MEM_MAX_PCT
+// (default 85%). A platform that sees 503 pulls the instance out of rotation and
+// starts a replacement BEFORE the kernel's OOM killer takes it out mid-request,
+// which is the difference between a rolling restart and dropped connections.
+//
+// WHICH NUMBER. Two ceilings can kill this process and they are not the same:
+//
+//   • the V8 heap limit — Node aborts with a heap OOM when used_heap_size
+//     approaches heap_size_limit, regardless of how much RAM the box has;
+//   • the container/host memory limit — the kernel SIGKILLs on RSS, and V8 is
+//     unaware of it, so a container capped below the default heap limit dies
+//     with the heap looking perfectly healthy.
+//
+// Reporting either one alone hides a real failure mode, so the reported figure
+// is the WORSE of the two.
+const HEALTH_MEM_MAX_PCT = (() => {
+  const raw = Number(process.env.HEALTH_MEM_MAX_PCT);
+  // Out-of-range values are a config typo, not an instruction to disable the
+  // check — fall back to the documented default rather than to 0 (always
+  // unhealthy) or 100 (never unhealthy).
+  return Number.isFinite(raw) && raw > 0 && raw <= 100 ? raw : 85;
+})();
+
+// The cgroup limit, when there is a real one. Both cgroup versions report
+// "unlimited" with a sentinel rather than an absent file: v2 writes the literal
+// "max", v1 writes a number near 2^63. Either one, read naively, becomes a
+// ceiling so large that RSS is permanently 0% of it and the check never fires.
+const CONTAINER_MEM_LIMIT = (() => {
+  for (const f of ['/sys/fs/cgroup/memory.max',
+                   '/sys/fs/cgroup/memory/memory.limit_in_bytes']) {
+    try {
+      const raw = readFileSync(f, 'utf8').trim();
+      if (raw === 'max') continue;
+      const n = Number(raw);
+      // Anything above physical RAM is that sentinel, not a limit.
+      if (Number.isFinite(n) && n > 0 && n <= totalmem()) return n;
+    } catch { /* not containerised, or not readable — fall through */ }
+  }
+  return 0;
+})();
+const MEM_CEILING = CONTAINER_MEM_LIMIT || totalmem();
+
+function memoryReport() {
+  const mem = process.memoryUsage();
+  const heap = getHeapStatistics();
+  const rssPct = MEM_CEILING ? (mem.rss / MEM_CEILING) * 100 : 0;
+  const heapPct = heap.heap_size_limit
+    ? (heap.used_heap_size / heap.heap_size_limit) * 100 : 0;
+  const mb = (b) => Math.round(b / 1048576);
+  return {
+    pct: Math.round(Math.max(rssPct, heapPct) * 10) / 10,
+    limitPct: HEALTH_MEM_MAX_PCT,
+    rssMb: mb(mem.rss),
+    heapUsedMb: mb(heap.used_heap_size),
+    heapLimitMb: mb(heap.heap_size_limit),
+    ceilingMb: mb(MEM_CEILING),
+    ceilingFrom: CONTAINER_MEM_LIMIT ? 'cgroup' : 'os',
+  };
+}
+
+// Two separate questions, and they used to share one answer:
+//
+//   keepAliveAuthorized — may this request poke Supabase awake? Fails OPEN when
+//     CRON_SECRET is unset, deliberately, so a fresh deployment's uptime
+//     monitor keeps the free-tier database from pausing before anyone has
+//     configured anything. The poke is throttled to twice a day, so an open
+//     path cannot be turned into database load.
+//
+//   healthDetailAuthorized — may this request see memory, heap, event-loop and
+//     job figures? Fails CLOSED. It used to reuse the check above, so with
+//     CRON_SECRET unset every anonymous caller received the full operator
+//     detail — the exact fingerprinting data the verdict-only body exists to
+//     withhold.
+function presentedCronSecret(req) {
+  const bearer = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  // `?key=` is still accepted because uptime monitors that cannot send a header
+  // exist, but a header is preferred: a query string lands in access logs.
+  return bearer || req.get('x-cron-secret') || (typeof req.query.key === 'string' ? req.query.key : '') || '';
+}
+function cronSecretMatches(req) {
+  if (!CRON_SECRET) return false;
+  const a = Buffer.from(String(presentedCronSecret(req)));
+  const b = Buffer.from(CRON_SECRET);
+  return a.length === b.length && timingSafeEqual(a, b); // constant-time compare
+}
 function keepAliveAuthorized(req) {
   if (!CRON_SECRET) {
     if (!warnedNoCronSecret) {
       warnedNoCronSecret = true;
-      console.warn('[keepalive] CRON_SECRET is not set — /healthz is UNPROTECTED. Set CRON_SECRET in your env.');
+      console.warn('[keepalive] CRON_SECRET is not set — /healthz keep-alive pokes are open (detail stays private). Set CRON_SECRET in your env.');
     }
-    return true; // fail open until you configure it
+    return true;
   }
-  const bearer   = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  const provided = bearer || req.get('x-cron-secret') || req.query.key || '';
-  const a = Buffer.from(String(provided));
-  const b = Buffer.from(CRON_SECRET);
-  return a.length === b.length && timingSafeEqual(a, b); // constant-time compare
+  return cronSecretMatches(req);
 }
+const healthDetailAuthorized = (req) => cronSecretMatches(req);
 
 // Fire-and-forget — NEVER awaited in the request path, so it can't block the
 // event loop. Throttled so 10-min pings don't hammer the DB.
@@ -1501,16 +2203,120 @@ function pokeSupabaseThrottled() {
     .catch(() => {});
 }
 
-app.get(['/healthz', '/ping'], (req, res) => {
-  if (!keepAliveAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
-  pokeSupabaseThrottled();
+// ── Readiness, liveness, and the thresholds behind them ────────────────────
+//
+//   /livez   "is the process able to respond at all?" 503 only after an
+//            uncaught exception. For a liveness probe: failing it means
+//            restart.
+//   /readyz  "should this instance receive traffic right now?" 503 on a
+//            recorded fault, SUSTAINED memory pressure, or a SUSTAINED stalled
+//            event loop. For a readiness probe: failing it means stop routing.
+//   /healthz the same verdict as /readyz. It is what render.yaml points at,
+//            because Render has one health check that does both jobs.
+//
+// SUSTAINED, NOT INSTANTANEOUS. A single sample over the line — a GC pause,
+// one large JSON parse — used to be enough to fail the check, and a check that
+// fails on a transient spike recycles a healthy instance: every visitor on it
+// loses their game for nothing. A breach must now persist for
+// HEALTH_SUSTAIN_MS (default 10s) before the verdict flips; it flips back the
+// moment a sample is under the line.
+//
+// WHAT THIS DOES NOT DO: stop a restart loop caused by a baseline that is
+// itself over the threshold (a container too small for the catalog). No
+// in-process logic can fix that; it is a sizing problem, so the boot log warns
+// when resident memory at startup is already near the ceiling.
+const HEALTH_SUSTAIN_MS = (() => {
+  const raw = Number(process.env.HEALTH_SUSTAIN_MS);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 10_000;
+})();
+const HEALTH_EVENT_LOOP_P99_MS = envNumber('HEALTH_EVENT_LOOP_P99_MS', 1_000);
+
+// Event-loop delay, sampled by the runtime's own histogram (a timer at 20ms
+// resolution — negligible cost) and read every 5s. p99 over a window, not a
+// single sample: one slow tick is not a stalled process.
+const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+loopDelay.enable();
+let loopP99Ms = 0;
+setInterval(() => {
+  loopP99Ms = Math.round(loopDelay.percentile(99) / 1e6);
+  loopDelay.reset();
+}, 5_000).unref();
+
+const healthBreach = { memory: 0, loop: 0 };
+function sustained(key, breached, now = Date.now()) {
+  if (!breached) { healthBreach[key] = 0; return false; }
+  if (!healthBreach[key]) healthBreach[key] = now;
+  return now - healthBreach[key] >= HEALTH_SUSTAIN_MS;
+}
+
+/** The verdict every health route shares. No I/O. */
+function readinessVerdict() {
+  const memory = memoryReport();
+  const reasons = [];
+  if (PROCESS_FAULT) reasons.push(`uncaught exception at ${PROCESS_FAULT.at}`);
+  if (sustained('memory', memory.pct >= HEALTH_MEM_MAX_PCT)) {
+    reasons.push(`memory ${memory.pct}% >= ${HEALTH_MEM_MAX_PCT}%`);
+  }
+  if (sustained('loop', loopP99Ms >= HEALTH_EVENT_LOOP_P99_MS)) {
+    reasons.push(`event-loop p99 ${loopP99Ms}ms >= ${HEALTH_EVENT_LOOP_P99_MS}ms`);
+  }
+  const status = PROCESS_FAULT ? 'unhealthy' : reasons.length ? 'degraded' : 'ok';
+  return { ok: reasons.length === 0, status, reasons, memory };
+}
+
+// TWO AUDIENCES, ONE ROUTE — and they are deliberately told different things.
+//
+//   An ORCHESTRATOR (Render health check, Kubernetes probe, uptime monitor)
+//   cannot present a bearer token, and a probe that always 401s is a probe that
+//   can never trigger the restart it exists to trigger. So the VERDICT — the
+//   status code, plus ok/status — is unauthenticated.
+//
+//   An OPERATOR holding CRON_SECRET additionally gets the numbers behind the
+//   verdict and the cron-job history.
+//
+// The unauthenticated body carries no uptime, no memory figures and no job
+// names, so opening the probe up leaks nothing an attacker can fingerprint.
+function healthPayload(req, res) {
+  if (keepAliveAuthorized(req)) pokeSupabaseThrottled();
+  const v = readinessVerdict();
   res.set('Cache-Control', 'no-store');
-  res.json({ ok: true, uptime: Math.round(process.uptime()), ts: new Date().toISOString() });
+  res.status(v.ok ? 200 : 503);
+  if (!healthDetailAuthorized(req)) return { ok: v.ok, status: v.status };
+
+  const mb = (b) => Math.round(b / 1048576);
+  return {
+    ok: v.ok,
+    status: v.status,
+    reason: v.reasons.length ? v.reasons.join('; ') : undefined,
+    uptime: Math.round(process.uptime()),
+    memory: {
+      ...v.memory,
+      externalMb: mb(process.memoryUsage().external),
+      heapSpaces: getHeapSpaceStatistics().map((sp) => ({
+        space: sp.space_name, usedMb: mb(sp.space_used_size), sizeMb: mb(sp.space_size),
+      })),
+    },
+    eventLoop: { p99Ms: loopP99Ms, thresholdMs: HEALTH_EVENT_LOOP_P99_MS },
+    sustainMs: HEALTH_SUSTAIN_MS,
+    fault: PROCESS_FAULT,
+    catalogGames: CATALOG.games.length,
+    cron: cronStatus(),
+    ts: new Date().toISOString(),
+  };
+}
+
+app.get(['/healthz', '/ping', '/readyz'], (req, res) => {
+  res.json(healthPayload(req, res));
 });
-app.head(['/healthz', '/ping'], (req, res) => {
-  if (!keepAliveAuthorized(req)) return res.sendStatus(401);
-  pokeSupabaseThrottled();
-  res.set('Cache-Control', 'no-store').sendStatus(200);
+app.head(['/healthz', '/ping', '/readyz'], (req, res) => {
+  healthPayload(req, res);   // sets the status code; HEAD carries no body
+  res.end();
+});
+
+// Liveness only: the one condition a restart genuinely fixes.
+app.get('/livez', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(PROCESS_FAULT ? 503 : 200).json({ ok: !PROCESS_FAULT, status: PROCESS_FAULT ? 'unhealthy' : 'alive' });
 });
 
 // Companion standalone-browser reachability.  The browser page calls this to
@@ -1524,7 +2330,10 @@ const companionCache = { at: 0, data: null };
 // whether to offer the "open in a new tab" escape hatch (cross-origin embedding
 // can be refused invisibly). Without this field that check was always false.
 async function probeCompanion(e) {
-  const base = { id: e.id, label: e.label, url: e.url, kind: 'companion' };
+  // `setup` is carried through when an engine defines one: the offline panel
+  // prefers it over the bundled-launcher hint, which only applies to the four
+  // companions `npm run proxies` actually starts.
+  const base = { id: e.id, label: e.label, url: e.url, kind: 'companion', setup: e.setup };
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 1500);
@@ -1537,15 +2346,74 @@ async function probeCompanion(e) {
 }
 app.get('/api/proxies', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+
+  // AnuraOS is resolved per request, so it is NOT cacheable with the others:
+  // its URL carries the hostname the visitor is actually on, and a mirror must
+  // offer its own instance rather than one on a domain that may be blocked.
+  const anuraUrl = anuraUrlFor(req, ANURA);
+  const anuraEntry = anuraUrl ? {
+    id: 'anura', label: 'AnuraOS', url: anuraUrl, kind: 'companion',
+    // When WE serve it there is nothing to probe — the answer would be this
+    // same process asking itself. An external deployment is still probed.
+    up: ANURA.serves ? true : undefined,
+    selfHosted: ANURA.serves || undefined,
+  } : null;
+
   const now = Date.now();
-  if (companionCache.data && now - companionCache.at < 5000) {
-    return res.json({ engines: companionCache.data });
+  let engines = companionCache.data;
+  if (!engines || now - companionCache.at >= 5000) {
+    engines = await Promise.all(COMPANION_ENGINES.map(probeCompanion));
+    companionCache.at = now;
+    companionCache.data = engines;
   }
-  const engines = await Promise.all(COMPANION_ENGINES.map(probeCompanion));
-  companionCache.at = now;
-  companionCache.data = engines;
-  res.json({ engines });
+
+  const extra = [];
+  if (anuraEntry) {
+    extra.push(anuraEntry.up === undefined
+      ? await probeCompanion({ id: 'anura', label: 'AnuraOS', url: anuraUrl })
+      : anuraEntry);
+  }
+
+  const kasm = await kasmStatus();
+  if (kasm) extra.push(kasmEntry(req, KASM, kasm));
+
+  // Governance. The access mode applies to every engine; companions that are
+  // SEPARATE servers (everything here except a self-hosted AnuraOS) bypass this
+  // server's approved-destination policy entirely, so they are offered only
+  // when an administrator has switched `external` on, knowingly.
+  let list = extra.length ? [...engines, ...extra] : engines;
+  const mode = PROXY_POLICY.accessMode;
+  if (mode === 'disabled' || (mode === 'staff' && !(await staffProxyAllowed(req.headers, req.ip)))) list = [];
+  const externalOn = !!CONTROL.proxy && CONTROL.proxy.engineEnabled('external');
+  list = list.filter((e) => (e.id === 'anura' && e.selfHosted
+    ? (!CONTROL.proxy || CONTROL.proxy.engineEnabled('anura'))
+    : externalOn));
+  res.json({ engines: list });
 });
+
+// Kasm reachability, cached AND de-duplicated.
+//
+// /api/proxies is unauthenticated, and this probe opens a real TLS connection
+// to somebody else's machine. Without both guards a page refresh loop turns
+// ZoFHub into a small traffic amplifier pointed at the operator's own server.
+// The cache alone is not enough: N requests arriving inside one cold window
+// each start their own probe, so concurrent callers share a single in-flight
+// promise as well.
+const kasmCache = { at: 0, data: null, inflight: null };
+const KASM_PROBE_TTL_MS = 10_000;
+function kasmStatus() {
+  if (KASM.mode !== 'external') return Promise.resolve(null);
+  const now = Date.now();
+  if (kasmCache.data && now - kasmCache.at < KASM_PROBE_TTL_MS) return Promise.resolve(kasmCache.data);
+  if (kasmCache.inflight) return kasmCache.inflight;
+  kasmCache.inflight = kasmProbe(KASM.url)
+    .then((r) => { kasmCache.data = r; kasmCache.at = Date.now(); return r; })
+    // A probe that throws must not poison the cache into permanent "offline";
+    // report it down for this window and try again on the next one.
+    .catch(() => ({ up: false, reason: 'probe-failed' }))
+    .finally(() => { kasmCache.inflight = null; });
+  return kasmCache.inflight;
+}
 
 // Public catalog of free AI providers (text + image).  Returns a list
 // stripped of any private keys.  The /ai page can `fetch('/api/ai/providers')`
@@ -1588,10 +2456,21 @@ app.get('/api/ai/health', (req, res) => {
 
 app.get('/api/ai/providers', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  // The Hugging Face catalogue is published on BOTH paths, unlike the
+  // server-side provider list. It describes models the USER'S BROWSER may call
+  // with the USER'S OWN token — there is no server inference behind it and no
+  // credential in it, so withholding it in production would hide a menu while
+  // protecting nothing. It is how the AI page discovers models instead of
+  // hard-coding one (see lib/hf-models.mjs).
+  const huggingface = hfCatalogue();
   if (!aiServerAllowed(req) && !adminAuthorized(req)) {
-    return res.json({ mode: 'client-side', serverInference: false, text: [], image: [], web_search: [] });
+    return res.json({
+      mode: 'client-side', serverInference: false,
+      text: [], image: [], web_search: [],
+      huggingface,
+    });
   }
-  res.json(publicProviderList());
+  res.json({ ...publicProviderList(), huggingface });
 });
 
 // Hands the browser the PUBLISHABLE Pollinations key (pk_) so the AI runs
@@ -1907,69 +2786,85 @@ async function resolveModels() {
 //      no memory blow-up), and the client already retries with backoff.
 const AI_CACHE_TTL = 6 * 60 * 60;                     // 6h — replies are stable enough
 const AI_MAX_CONCURRENT = 8;                          // simultaneous upstream calls
-// Per-IP rate limits. Configurable via env, as required, with defaults chosen
-// from what each endpoint actually costs rather than one number for everything:
-//
-//   AI    ~15 req/min (burst 5, one token per 4s). An AI call fans out to a
-//         third-party model and can occupy an upstream slot for seconds, so it
-//         is the most expensive thing an anonymous visitor can trigger.
-//   WRITE ~12 req/min (burst 8, one token per 5s) for endpoints that touch the
-//         database — score submission, community posts, view bumps.
-//
-// A flat 10/min would be simultaneously too tight for the write path (a burst
-// of legitimate UI activity trips it) and too loose for AI. Both return a JSON
-// 429; neither ever returns an HTML error page, which a fetch() cannot parse.
+// Per-IP rate limits, with defaults chosen from what each endpoint actually
+// costs rather than one number for everything. The AI budget — ~15 req/min
+// (burst 5, one token per 4s), configurable via AI_RATE_CAPACITY /
+// AI_RATE_REFILL_MS — is the tightest, because an AI call fans out to a
+// third-party model and can occupy an upstream slot for seconds. Every budget
+// answers with a JSON 429, never an HTML error page a fetch() cannot parse.
 const AI_IP_BUCKET = {
   capacity: Number(process.env.AI_RATE_CAPACITY) || 5,
   refillMs: Number(process.env.AI_RATE_REFILL_MS) || 4000,
 };
-const WRITE_IP_BUCKET = {
-  capacity: Number(process.env.WRITE_RATE_CAPACITY) || 8,
-  refillMs: Number(process.env.WRITE_RATE_REFILL_MS) || 5000,
-};
 
-function aiCacheKey(system, ctx) {
-  return 'ai:text:' + createHash('sha1').update(system + '\n' + ctx).digest('hex');
-}
-
-// Per-IP token bucket in a bounded Map (swept) so millions of distinct IPs over
-// time can't grow memory without limit.
-const _ipBuckets = new Map(); // ip -> { tokens, last }
-function ipAllow(ip) {
-  const now = Date.now();
-  if (_ipBuckets.size > 50_000) { let drop = 25_000; for (const k of _ipBuckets.keys()) { _ipBuckets.delete(k); if (--drop <= 0) break; } }
-  let b = _ipBuckets.get(ip);
-  if (!b) { b = { tokens: AI_IP_BUCKET.capacity, last: now }; _ipBuckets.set(ip, b); }
-  const refill = Math.floor((now - b.last) / AI_IP_BUCKET.refillMs);
-  if (refill > 0) { b.tokens = Math.min(AI_IP_BUCKET.capacity, b.tokens + refill); b.last = now; }
-  if (b.tokens <= 0) return false;
-  b.tokens--; return true;
-}
-
-// Generic per-IP token bucket for abuse-prone WRITE endpoints (recommendations,
-// feedback, view-bumps, presence). Same bounded/swept design as the AI limiter,
-// so a bot can't flood the database from a single IP. Dependency-free.
+// ── Presence traffic model ─────────────────────────────────────────────────
+// Declared here, beside the other budgets, because the limiter set below is
+// built from it. Full reasoning in lib/presence-store.mjs; the short version:
 //
-// UNITS, because getting them wrong is silent and expensive:
-//   capacity — the BURST. Requests allowed back-to-back from a cold bucket.
-//   refillMs — MILLISECONDS PER SINGLE TOKEN. NOT a window length.
+//   per SESSION  a tab beats every 2s (0.5/s). Budget: 1/s, burst 10.
+//   per ADDRESS  a school NAT is hundreds of tabs on ONE address. Budget:
+//                200/s, burst 600 — about 400 tabs at the real cadence.
+//   SESSIONS per address  a separate cap (500) on how many distinct tabs one
+//                address can have COUNTED, so the generous address budget
+//                cannot be spent fabricating players.
 //
-// So (capacity 10, refillMs 5000) is a burst of 10 and then ONE request every
-// five seconds — a sustained 0.2/sec — not "10 requests per 5 seconds". The
-// presence endpoints were called with exactly that and a comment claiming the
-// latter, which throttled the live-visitor counter for ordinary visitors; see
-// the note on /api/presence/beat. Sustained rate is 1000/refillMs per second.
-const _writeBuckets = new Map(); // ip -> { tokens, last }
-function writeAllow(ip, capacity = WRITE_IP_BUCKET.capacity, refillMs = WRITE_IP_BUCKET.refillMs) {
-  const now = Date.now();
-  if (_writeBuckets.size > 50_000) { let drop = 25_000; for (const k of _writeBuckets.keys()) { _writeBuckets.delete(k); if (--drop <= 0) break; } }
-  let b = _writeBuckets.get(ip);
-  if (!b) { b = { tokens: capacity, last: now }; _writeBuckets.set(ip, b); }
-  const add = Math.floor((now - b.last) / refillMs);
-  if (add > 0) { b.tokens = Math.min(capacity, b.tokens + add); b.last = now; }
-  if (b.tokens <= 0) return false;
-  b.tokens--; return true;
-}
+// The address figures are configurable because the right number is a fact
+// about the deployment's audience, not about this code.
+const PRESENCE_TTL_MS       = 8_000;
+const PRESENCE_SESSION_BURST = 10;
+const PRESENCE_SESSION_MS_PER_TOKEN = 1_000;        // → 1 beat/s per tab
+const PRESENCE_IP_BURST = envNumber('PRESENCE_IP_BURST', 600);
+const PRESENCE_IP_MS_PER_TOKEN = envNumber('PRESENCE_IP_MS_PER_TOKEN', 5);   // → 200 beats/s per address
+const PRESENCE_MAX_SESSIONS_PER_IP = envNumber('PRESENCE_MAX_SESSIONS_PER_IP', 500);
+const PRESENCE_MAX_SESSIONS = 20_000;
+
+// ── Every request budget, each in its OWN bucket ───────────────────────────
+// These used to share ONE bucket per IP (see lib/rate-limit.mjs for what that
+// broke). Each scope below is independent: spending one never spends another.
+// `burst` requests back-to-back, then one per `refillMs` — so (3, 10_000) is
+// three at once, then one every ten seconds.
+//
+// Rare, human-paced writes stay per-address and tight: a false positive costs
+// one visitor a retry with a clear 429 message. The two endpoints a whole
+// classroom hits at once — opening a game (scoreSession) and presence — are
+// sized for a shared NAT instead.
+const LIMITS = createLimiterSet({
+  ai:              { capacity: AI_IP_BUCKET.capacity, refillMs: AI_IP_BUCKET.refillMs },
+  donateInvoice:   { capacity: 3,   refillMs: 20_000 },
+  // One global budget for the only public route that makes a third-party
+  // account do work (a swap provider creates a real shift per call). Per-IP
+  // limits cannot bound a distributed caller; this does.
+  donateGlobal:    { capacity: 20,  refillMs: 6_000 },
+  scoreSession:    { capacity: 60,  refillMs: 500 },
+  scoreSubmit:     { capacity: 6,   refillMs: 5_000 },
+  subscribe:       { capacity: 3,   refillMs: 30_000 },
+  aiFeedback:      { capacity: 8,   refillMs: 5_000 },
+  feedback:        { capacity: 4,   refillMs: 15_000 },
+  recommend:       { capacity: 6,   refillMs: 10_000 },
+  recSeen:         { capacity: 40,  refillMs: 1_000 },
+  forYou:          { capacity: 30,  refillMs: 2_000 },
+  proxyDiag:       { capacity: 10,  refillMs: 3_000 },
+  frameCheck:      { capacity: 30,  refillMs: 1_000 },
+  presenceIp:      { capacity: PRESENCE_IP_BURST, refillMs: PRESENCE_IP_MS_PER_TOKEN },
+  presenceSession: { capacity: PRESENCE_SESSION_BURST, refillMs: PRESENCE_SESSION_MS_PER_TOKEN },
+  // Admin budgets. Keyed per ADMIN PRINCIPAL (`admin:<username>`), not per IP:
+  // an admin behind a school NAT must not share a budget with its visitors,
+  // and a stolen session must not get a fresh budget by changing networks.
+  adminRead:       { capacity: 240, refillMs: 250 },
+  adminWrite:      { capacity: 60,  refillMs: 1_000 },
+  adminExpensive:  { capacity: 4,   refillMs: 15_000 },
+  adminReauth:     { capacity: 5,   refillMs: 60_000 },
+});
+
+/** The AI budget, kept under its old name for the AI routes. */
+function ipAllow(ip) { return LIMITS.allow('ai', ip); }
+
+/**
+ * Spend one token from `scope` for this client address. `scope` must be one
+ * of the names above — an unknown scope throws, so a typo fails loudly in
+ * testing instead of silently sharing, or skipping, a budget.
+ */
+function writeAllow(scope, ip) { return LIMITS.allow(scope, ip); }
 
 // Global concurrency gate — immediate accept/reject, no queue.
 let _aiActive = 0;
@@ -1989,23 +2884,28 @@ function aiGateLeave() { if (_aiActive > 0) _aiActive--; }
 // working AI at all. `IS_LOCAL` in pollinations.js is the client half of this;
 // this is the server half, and it is deliberately stricter than the client:
 //
-//   * NODE_ENV=production  → always refused, no exceptions (render.yaml sets it)
+//   * NODE_ENV=production  → always refused, no exceptions (render.yaml sets it).
+//                            Checked first; nothing else is consulted.
 //   * otherwise            → only for a LOOPBACK client, i.e. a dev on the same
-//                            machine. `trust proxy` is on, so req.ip is the real
-//                            client address and a genuine internet visitor can
-//                            never present as 127.0.0.1.
-//   * AI_SERVER_FALLBACK=1 → explicit opt-in escape hatch, for the rare case of
-//                            debugging against a non-loopback dev host.
+//                            machine, and only when no forwarding header names
+//                            somebody else (a tunnel connecting from loopback on
+//                            an internet visitor's behalf). `trust proxy` decides
+//                            req.ip, so a remote client cannot claim 127.0.0.1.
+//
+// There is no escape hatch. AI_SERVER_FALLBACK=1 used to be read BEFORE
+// NODE_ENV, which re-opened these routes on a live deployment; it is no longer
+// honoured anywhere (lib/ai-guard.mjs).
 //
 // Enforcing it here rather than only in the client matters: the client gate is a
 // convention that a future edit could quietly drop, and these endpoints are
 // reachable by anyone who knows the URL. This makes "no AI on my server" a
 // property of the deployment instead of a promise in a comment.
 function aiServerAllowed(req) {
-  if (process.env.AI_SERVER_FALLBACK === '1') return true;
-  if (process.env.NODE_ENV === 'production') return false;
-  const ip = String(req.ip || req.socket?.remoteAddress || '');
-  return ip === '' || /^(::1$|::ffff:127\.|127\.)/.test(ip);
+  return aiRouteAllowed({
+    nodeEnv: process.env.NODE_ENV,
+    ip: req.ip || req.socket?.remoteAddress || '',
+    headers: req.headers || {},
+  });
 }
 function refuseServerAi(res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -2018,6 +2918,7 @@ function refuseServerAi(res) {
 
 app.post('/api/ai/text', async (req, res) => {
   if (!aiServerAllowed(req)) return refuseServerAi(res);
+  usage.noteAiRequest('text');
   res.setHeader('Cache-Control', 'no-store');
   const { prompt, messages } = req.body || {};
   const history = Array.isArray(messages) ? messages.filter(m => m && m.content) : [];
@@ -2162,6 +3063,7 @@ app.get('/api/ai/image', async (req, res) => {
   // image.pollinations.ai URL (an <img> sends no Origin, so Turnstile never
   // applies) and this never runs.
   if (!aiServerAllowed(req)) return refuseServerAi(res);
+  usage.noteAiRequest('image');
   const prompt = (req.query.prompt || '').toString().slice(0, 1000).trim();
   if (!prompt) { res.setHeader('Cache-Control', 'no-store'); return res.status(400).json({ error: 'missing prompt' }); }
   // Per-user throttle (their own IP) so one client can't spam image gen.
@@ -2202,6 +3104,7 @@ app.get('/api/ai/audio', (req, res) => {
   // reference anywhere in public/), and the URL it returns is a pure template
   // with no secret in it, so a client that ever needs it can build it itself.
   if (!aiServerAllowed(req)) return refuseServerAi(res);
+  usage.noteAiRequest('audio');
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
   if (!prompt) return res.json({ url: null, error: 'missing prompt' });
@@ -2219,6 +3122,7 @@ app.get('/api/ai/video', (req, res) => {
   // Same reasoning as /api/ai/audio: unreferenced, and it takes a prompt in the
   // query string, which the hosting platform's access log would retain.
   if (!aiServerAllowed(req)) return refuseServerAi(res);
+  usage.noteAiRequest('video');
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
   if (!prompt) return res.json({ url: null, error: 'missing prompt' });
@@ -2243,6 +3147,7 @@ app.post('/api/ai/echo', async (req, res) => {
   // the AI. Gated rather than deleted: it is still a usable local-dev probe, and
   // gating removes the production exposure, which was the actual problem.
   if (!aiServerAllowed(req)) return refuseServerAi(res);
+  usage.noteAiRequest('text');
   res.setHeader('Cache-Control', 'no-store');
   const prompt = (req.body?.prompt || '').toString().slice(0, 2000);
   // Same shared-upstream protection as /api/ai/text so this fallback can't be
@@ -2331,8 +3236,17 @@ app.post('/api/donate/invoice', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // A swap creates a real third-party API call, so this is tighter than
   // feedback: burst 3, then one every 20s.
-  if (!writeAllow(req.ip || 'unknown', 3, 20_000)) {
+  if (!writeAllow('donateInvoice', req.ip)) {
     return res.status(429).json({ ok: false, error: 'Too many requests — wait a moment.' });
+  }
+  // Process-wide ceiling as well: per-IP limits cannot bound a caller spread
+  // across many addresses, and each call here makes the provider create a real
+  // shift against the operator's affiliate account. Only checked when the
+  // feature is actually configured, so an unconfigured deployment's 503 does
+  // not spend it.
+  if (swapConfig().enabled && !LIMITS.allow('donateGlobal', 'global', { rawKey: true })) {
+    res.setHeader('Retry-After', String(LIMITS.retryAfterSec('donateGlobal', 'global', { rawKey: true })));
+    return res.status(429).json({ ok: false, error: 'Donations are busy right now — try again in a minute.' });
   }
   try {
     const invoice = await createInvoice({ from: req.body?.coin });
@@ -2342,6 +3256,8 @@ app.post('/api/donate/invoice', async (req, res) => {
     // e.message from SwapError is already sanitised in lib/swap.mjs; anything
     // else is replaced rather than echoed.
     const msg = e instanceof SwapError ? e.message : 'could not create a deposit address';
+    // The provider's own wording is kept for the operator, in the log only.
+    if (e?.detail) console.warn(`[swap] ${e.detail}`);
     return res.status(status).json({ ok: false, error: msg });
   }
 });
@@ -2369,11 +3285,354 @@ app.get('/api/donate', (req, res) => {
 // Private by design. There is no GET: feedback is not a public wall, and the
 // RLS policy grants anon INSERT only — the publishable key cannot read back even
 // the row it just wrote. Review happens in the admin console via the secret key.
+// ========================================================================
+// LEADERBOARD — player-reported scores, per game and overall.
+// ------------------------------------------------------------------------
+// WHY THIS LOOKS THE WAY IT DOES. Every game on ZoFHub is a third-party
+// cross-origin iframe. There is no way to read a real score out of one, so a
+// leaderboard here is necessarily self-reported — which is precisely why
+// db/community-scores-integrity.sql specifies "single-use proof-of-play
+// sessions + per-game score ceilings" and a `flagged` quarantine. The rules
+// live in lib/scores.mjs; this is the transport around them.
+//
+// FAILS SOFT, NOT LOUD. The `scores` table was dropped from this project once
+// already (db/feedback.sql), so the code must treat "table not there" as a
+// normal state: reads return an empty board with available:false, and writes
+// say so plainly instead of throwing a 500 at a player who just finished a run.
+// ========================================================================
+const scoresState = { available: null, checkedAt: 0 };
+const SCORES_PROBE_MS = 60_000;
+
+async function scoresAvailable() {
+  const supa = getSupabaseAdmin();
+  if (!supa) return false;
+  const now = Date.now();
+  if (scoresState.available !== null && now - scoresState.checkedAt < SCORES_PROBE_MS) {
+    return scoresState.available;
+  }
+  try {
+    // A real SELECT, not a HEAD+count: a head request against a table that does
+    // not exist came back without an error, so the probe reported the
+    // leaderboard as available and every write then failed with a 502 instead
+    // of the honest "not installed" answer.
+    const { error } = await supa.from('scores').select('id').limit(1);
+    scoresState.available = !error;
+    if (error) console.warn('[scores] table unavailable:', error.message);
+  } catch { scoresState.available = false; }
+  scoresState.checkedAt = now;
+  return scoresState.available;
+}
+
+/** Visible scores for one game (or all games). The admin key bypasses RLS, so
+ *  status is filtered HERE and never left to the policy alone. */
+async function visibleScores(supa, slug, limit = 100) {
+  let q = supa.from('scores')
+    .select('slug, player_name, score, created_at')
+    .eq('status', scoreRules.STATUS.OK)
+    .order('score', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(Math.min(500, Math.max(1, limit)));
+  if (slug) q = q.eq('slug', slug);
+  const { data, error } = await q;
+  return error ? [] : (data || []);
+}
+
+// Hand out a single-use proof-of-play token. Called when a game is opened, so a
+// score submission can prove the game was at least started from this server.
+app.post('/api/scores/session', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!writeAllow('scoreSession', req.ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
+  }
+  const slug = typeof req.body?.slug === 'string' ? req.body.slug.trim().toLowerCase() : '';
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug)) {
+    return res.status(400).json({ ok: false, error: 'bad slug' });
+  }
+  if (!bySlug.has(slug)) return res.status(404).json({ ok: false, error: 'unknown game' });
+  // The owner key (a keyed hash of the client address) gives each address its
+  // own slice of the token store, so one address cannot evict everyone else's.
+  const owner = adminAuth.hashIp(clientKeyOf(req.ip)) || `raw:${clientKeyOf(req.ip)}`;
+  res.json({ ok: true, token: scoreRules.issueSession(slug, Date.now(), owner) });
+});
+
+// Public board. ?slug= for one game, omitted for the all-games board.
+app.get('/api/scores', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const slugRaw = typeof req.query.slug === 'string' ? req.query.slug.trim().toLowerCase() : '';
+  const slug = /^[a-z0-9][a-z0-9-]{0,119}$/.test(slugRaw) ? slugRaw : '';
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+
+  if (!(await scoresAvailable())) {
+    return res.json({
+      ok: true, available: false, slug: slug || null, scores: [],
+      note: 'The leaderboard table is not installed. Run db/community.sql in the Supabase SQL editor.',
+    });
+  }
+  const supa = getSupabaseAdmin();
+  const rows = await visibleScores(supa, slug, limit);
+  const ranked = scoreRules.rank(rows).slice(0, limit).map(scoreRules.publicRow);
+  const out = { ok: true, available: true, slug: slug || null, scores: ranked };
+  if (slug) {
+    const g = bySlug.get(slug);
+    if (g) out.game = { slug: g.slug, title: g.title };
+  }
+  res.json(out);
+});
+
+// Submit a score.
+app.post('/api/scores', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // A finished run is a rare event. Burst 3, then one per 10s.
+  if (!writeAllow('scoreSubmit', req.ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many submissions — please wait a moment.' });
+  }
+  if (!(await scoresAvailable())) {
+    return res.status(503).json({ ok: false, error: 'The leaderboard is not available right now.' });
+  }
+
+  const v = scoreRules.validateSubmission(req.body, (s) => bySlug.has(s));
+  if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
+  const { slug, score, playerName } = v.value;
+
+  // Proof of play. Single use, bound to this game, and it carries how long ago
+  // the game was opened — which is what makes "submitted too fast" detectable.
+  const play = scoreRules.consumeSession(req.body?.token, slug);
+  if (!play.ok) return res.status(403).json({ ok: false, error: play.error });
+
+  const supa = getSupabaseAdmin();
+  const board = (await visibleScores(supa, slug, 200)).map((r) => Number(r.score) || 0);
+  // Status is decided HERE. A client may send anything it likes; it is never read.
+  const { status, reason } = scoreRules.classifyScore(score, board, { playedMs: play.playedMs });
+
+  try {
+    // Keep-best, exactly as db/community.sql describes: one row per player per
+    // game, updated only when they actually beat themselves.
+    const { data: prior } = await supa.from('scores')
+      .select('id, score').eq('slug', slug).eq('player_name', playerName)
+      .order('score', { ascending: false }).limit(1);
+    const existing = prior && prior[0];
+
+    if (existing && Number(existing.score) >= score) {
+      return res.json({
+        ok: true, recorded: false, best: Number(existing.score),
+        message: 'Your previous score for this game is higher.',
+      });
+    }
+    if (existing) {
+      const { error } = await supa.from('scores')
+        .update({ score, status, flag_reason: reason, created_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supa.from('scores')
+        .insert({ slug, player_name: playerName, score, status, flag_reason: reason });
+      if (error) throw new Error(error.message);
+    }
+  } catch (e) {
+    console.warn('[scores] write failed:', e.message);
+    return res.status(502).json({ ok: false, error: 'Could not save that score. Try again shortly.' });
+  }
+
+  // A quarantined score is reported honestly as held for review — never as a
+  // silent success, and never as a place on a board it is not actually on.
+  res.json({
+    ok: true, recorded: true, status,
+    pending: status !== scoreRules.STATUS.OK,
+    message: status === scoreRules.STATUS.OK
+      ? 'Score saved.'
+      : 'Score saved but held for review — it is unusually high for this game.',
+  });
+});
+
+
+// ========================================================================
+// POST /api/subscribe — the mirror-update list.
+// ------------------------------------------------------------------------
+// Censorship insurance: if this domain is blocked, an address collected today
+// is the only channel left to say where the mirror is.
+//
+// THE RESPONSE IS DELIBERATELY UNIFORM. It never reveals whether an address was
+// already on the list. db/14_subscriber_emails.sql makes the table write-only to
+// the public key precisely so nobody can enumerate it; an endpoint that answered
+// "already subscribed" would hand that capability straight back, one address per
+// request. Duplicate, fresh insert and provider-unavailable all answer the same.
+//
+// WHAT IS STORED: the address, and nothing else. No IP, no timestamp, no user
+// agent — see the schema comment. The rate limiter does see an IP, because it
+// has to, but it holds it in memory and writes it nowhere.
+// ========================================================================
+app.post('/api/subscribe', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  // Subscribing is a once-ever act. Burst 3, then roughly one per 30s: invisible
+  // to a person, useless to a script trying to probe membership or flood rows.
+  if (!writeAllow('subscribe', req.ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many attempts — please wait a moment.' });
+  }
+
+  const body = req.body || {};
+
+  // Honeypot, same contract as /api/feedback: answer 200 so the bot records
+  // success and does not retry with a different strategy.
+  if (typeof body.website === 'string' && body.website.trim() !== '') {
+    return res.json({ ok: true });
+  }
+
+  const email = normalizeEmail(body.email);
+  if (!isPlausibleEmail(email)) {
+    return res.status(400).json({ ok: false, error: 'That does not look like an email address.' });
+  }
+
+  const supa = getSupabaseAdmin();
+  if (!supa) {
+    return res.status(503).json({ ok: false, error: 'The mirror list is not available right now.' });
+  }
+
+  let stored = false;
+  try {
+    const { error } = await supa.from('subscriber_emails').insert({ email });
+    if (error) {
+      // 23505 = unique violation: already on the list. That is a SUCCESS for the
+      // subscriber and must be indistinguishable from a fresh insert.
+      const dup = error.code === '23505' || /duplicate key|already exists/i.test(error.message || '');
+      if (!dup) {
+        if (/does not exist|could not find the table|42P01|PGRST205/i.test(error.message || '')) {
+          console.warn('[subscribe] table missing — run db/14_subscriber_emails.sql');
+          return res.status(503).json({ ok: false, error: 'The mirror list is not available right now.' });
+        }
+        throw new Error(error.message);
+      }
+    } else {
+      stored = true;
+    }
+  } catch (e) {
+    console.warn('[subscribe] insert failed:', e.message);
+    return res.status(502).json({ ok: false, error: 'Could not save that right now. Try again shortly.' });
+  }
+
+  // Hand the address to the mail provider so there is a way to actually SEND the
+  // mirror notice. Best-effort and never fatal: the row is the durable record,
+  // and a provider outage must not lose a subscriber or leak a failure to them.
+  // The key lives only here, on the server, and is never echoed to a client.
+  if (stored) forwardToMailProvider(email).catch(() => {});
+
+  res.json({ ok: true });
+});
+
+/**
+ * Add an address to the mail provider's audience.
+ *
+ * Resend is the configured provider (RESEND_API_KEY + RESEND_AUDIENCE_ID). With
+ * neither set this is a no-op, which is the normal state until the owner opens
+ * an account — the subscription still succeeds and the row is still stored, so
+ * nothing is lost by turning this on later.
+ */
+async function forwardToMailProvider(email) {
+  const key = (process.env.RESEND_API_KEY || '').trim();
+  const audience = (process.env.RESEND_AUDIENCE_ID || '').trim();
+  if (!key || !audience) return;
+  try {
+    const r = await fetch(`https://api.resend.com/audiences/${encodeURIComponent(audience)}/contacts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, unsubscribed: false }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok && r.status !== 409) {          // 409 = already in the audience
+      console.warn('[subscribe] mail provider returned', r.status);
+    }
+  } catch (e) {
+    console.warn('[subscribe] mail provider unreachable:', e.message);
+  }
+}
+
+
+// ========================================================================
+// POST /api/ai/feedback — feedback on ONE AI answer.
+// ------------------------------------------------------------------------
+// The AI itself never touches this server: public/js/ai.js talks to providers
+// from the visitor's own browser. This endpoint exists so a person can tell us
+// an answer was wrong — and it is deliberately the ONLY path by which anything
+// a visitor typed at the AI reaches our database.
+//
+// WHAT PROTECTS THE PERSON:
+//   * lib/ai-feedback.mjs redacts emails, phones, card-shaped digits, API
+//     tokens, addresses and IPs BEFORE the insert. No raw copy is stored.
+//   * consent is per submission and defaults to false. Without it a row can be
+//     counted and evaluated but can never enter a training set.
+//   * `training_eligible` is computed HERE and pinned to false by the RLS
+//     policy on the anon key, so a forged direct insert cannot self-promote.
+//   * no conversation id, no user id, no IP is stored. The rate limiter sees an
+//     IP because it must; it writes it nowhere.
+//
+// WHAT PROTECTS THE SYSTEM: routeSignal() decides which mechanism a signal is
+// allowed to influence. A complaint about an answer that never arrived is
+// routing evidence and is refused entry to every training lane — otherwise the
+// most common failure on this site (an empty stream) would become the most
+// common "bad output" in the corpus.
+// ========================================================================
+app.post('/api/ai/feedback', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // Rating an answer is more frequent than sending site feedback, but still a
+  // human act. Burst 8, then roughly one every 5s.
+  if (!writeAllow('aiFeedback', req.ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many submissions — please wait a moment.' });
+  }
+
+  const b = req.body || {};
+  if (typeof b.website === 'string' && b.website.trim() !== '') return res.json({ ok: true });
+
+  const prepared = prepareFeedbackRecord({
+    type: b.type,
+    input: b.input,
+    output: b.output,
+    correction: b.correction,
+    rating: b.rating,
+    provider: b.provider,
+    model: b.model,
+    promptVersion: b.promptVersion,
+    consentTraining: b.consentTraining === true,
+  });
+
+  if (!prepared.ok) {
+    // A discarded signal is not an error the user should see as a failure —
+    // they did nothing wrong, the signal simply carries no information.
+    if (prepared.discarded) return res.json({ ok: true, stored: false, reason: prepared.error });
+    return res.status(400).json({ ok: false, error: prepared.error });
+  }
+
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Feedback is not available right now.' });
+
+  try {
+    const { error } = await supa.from('ai_feedback').insert(prepared.record);
+    if (error) {
+      if (/does not exist|could not find the table|42P01|PGRST205/i.test(error.message || '')) {
+        console.warn('[ai-feedback] table missing — run db/15_ai_feedback.sql');
+        return res.status(503).json({ ok: false, error: 'Feedback is not available right now.' });
+      }
+      throw new Error(error.message);
+    }
+  } catch (e) {
+    console.warn('[ai-feedback] insert failed:', e.message);
+    return res.status(502).json({ ok: false, error: 'Could not save that right now.' });
+  }
+
+  // Tell the client what we did with it. Being explicit that a rating is NOT
+  // training data is the honest answer to "where does this go?".
+  res.json({
+    ok: true,
+    stored: true,
+    lanes: prepared.record.lanes,
+    trainingEligible: prepared.record.training_eligible,
+  });
+});
+
 app.post('/api/feedback', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Sending feedback is a once-in-a-while act. Burst 4, then roughly one every
   // 15s: invisible to a real person, useless to a script.
-  if (!writeAllow(req.ip || 'unknown', 4, 15_000)) {
+  if (!writeAllow('feedback', req.ip)) {
     return res.status(429).json({ ok: false, error: 'Too many submissions — please wait a moment.' });
   }
 
@@ -2425,7 +3684,7 @@ app.post('/api/recommendations', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Posting a game is rare per user — a tight limit blocks spam without ever
   // bothering a real contributor (burst 6, then ~1 every 10s).
-  if (!writeAllow(req.ip || 'unknown', 6, 10_000)) {
+  if (!writeAllow('recommend', req.ip)) {
     return res.status(429).json({ ok: false, error: 'Too many requests — please slow down and try again shortly.' });
   }
   const b = req.body || {};
@@ -2530,7 +3789,7 @@ app.get('/api/recommendations', async (req, res) => {
 app.post('/api/recommendations/:id/seen', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   // Lenient cap (it fires on every play-open) but still bounded against abuse.
-  if (!writeAllow(req.ip || 'unknown', 40, 1000)) return res.json({ ok: false });
+  if (!writeAllow('recSeen', req.ip)) return res.json({ ok: false });
   const id = parseInt(req.params.id);
   if (!id) return res.json({ ok: false });
   const supa = getSupabaseAdmin();   // bumps the view counter
@@ -2616,6 +3875,22 @@ async function resolveAdmin(req) {
     ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'),
   });
   if (!sess) return null;
+  return principalFromSession(sess);
+}
+
+/**
+ * The principal a validated session represents. A staff session carries its
+ * account's role (public.admin_users); the owner's carries none and resolves to
+ * `owner` in lib/admin-rbac.mjs. Used by resolveAdmin() and by the proxy's
+ * staff-only access mode, so both reach the same answer for the same cookie.
+ */
+function principalFromSession(sess) {
+  if (sess.user) {
+    return {
+      username: sess.username, via: 'session', session: sess,
+      userId: sess.user.id, role: sess.user.role, mustChangePassword: sess.user.mustChangePassword,
+    };
+  }
   return { username: sess.username, via: 'session', session: sess };
 }
 
@@ -2623,6 +3898,53 @@ async function resolveAdmin(req) {
  * Gate for admin API routes. Sync, so the many existing call sites keep their
  * shape; it accepts a caller the async middleware below already resolved.
  */
+const rbac = await import('./lib/admin-rbac.mjs');
+// Read-only adapter for an OPTIONAL, externally-run sing-box instance. Unset by
+// default (SINGBOX_API_URL absent) → reports { reachable:false } rather than
+// zeroes, so the panel shows "not connected", never a fake idle dashboard.
+const { singboxTelemetry } = await import('./lib/singbox.mjs');
+// Process supervision for a MANAGED sing-box (SINGBOX_MANAGED=1). Opt-in and
+// fails soft: with it unset every call below no-ops and the site is unchanged.
+const { startSingbox, stopSingbox, singboxProcessStatus, singboxManaged } =
+  await import('./lib/singbox-supervisor.mjs');
+// The proxy's EGRESS path. This is the piece that puts sing-box in the site's
+// real traffic flow: every TCP stream the Wisp tunnel opens is dialled through
+// sing-box's loopback SOCKS inbound, falling back to a direct connection (and
+// saying so) when the daemon is not answering.
+const { createSingboxTCPSocket, egressStats, singboxEgressEnabled } =
+  await import('./lib/singbox-socket.mjs');
+// One class for the whole process — it reads the environment per connect(), so
+// building it once costs nothing and changes nothing about liveness.
+const SingboxTCPSocket = createSingboxTCPSocket();
+
+/**
+ * Authorise an already-authenticated admin for one permission.
+ *
+ * Same shape as requireAdmin/requireAdminCsrf — returns true to continue, or
+ * writes the response and returns false — so a route reads as three lines of
+ * guard and then its own logic.
+ *
+ * Authentication runs first so an anonymous caller still gets 401, not 403:
+ * they are answers to different questions, and returning 403 to a stranger
+ * confirms that a valid credential exists.
+ */
+function requirePerm(req, res, permission) {
+  if (!requireAdmin(req, res)) return false;
+  // A staff account on a temporary password may do nothing but replace it.
+  if (req.admin.mustChangePassword) {
+    res.status(403).json({ ok: false, error: 'Set a new password first.', passwordChangeRequired: true });
+    return false;
+  }
+  if (rbac.can(req.admin, permission)) return true;
+  const who = rbac.principalSummary(req.admin);
+  // Recorded, always. A permission system whose refusals are invisible cannot
+  // distinguish "correctly configured" from "being probed".
+  auditAction(req, 'rbac.denied', permission, 'denied', { role: who.role, via: who.via });
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(403).json({ ok: false, error: 'forbidden', needed: permission, role: who.role });
+  return false;
+}
+
 function requireAdmin(req, res) {
   if (req.admin) return true;                            // set by adminGate
   if (adminBearerAuthorized(req)) { req.admin = { username: 'service-token', via: 'bearer' }; return true; }
@@ -2637,8 +3959,50 @@ function requireAdmin(req, res) {
 
 // Resolves a session for every /admin and /api/admin request before the route
 // runs, so requireAdmin() can stay synchronous. Registered below.
+/**
+ * Did this caller actually PRESENT a credential? A request with none is an
+ * ordinary anonymous 401 and must never count toward the throttle — otherwise
+ * any passer-by hitting /admin could lock the real operator out.
+ */
+function adminCredentialPresented(req) {
+  if (req.get('authorization') || req.get('x-admin-secret')) return true;
+  const cookies = adminAuth.parseCookies(req.headers?.cookie);
+  return !!cookies[adminAuth.SESSION_COOKIE];
+}
+
+/** Throttle key: the HMAC of the IP, or the raw IP if no secret is configured. */
+const adminThrottleKey = (req) => adminAuth.hashIp(req.ip) || `raw:${req.ip || 'unknown'}`;
+
 async function adminGate(req, res, next) {
+  const key = adminThrottleKey(req);
+
+  // Logging out stays idempotent even while throttled: it destroys a session,
+  // it cannot be used to guess one.
+  const isLogout = req.path === '/auth/logout' || req.path === '/api/admin/auth/logout';
+
+  const gate = adminAuth.credentialThrottle(key);
+  if (gate.locked && !isLogout) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', String(gate.retryAfterSec || 60));
+    return req.path.startsWith('/api') || req.originalUrl.startsWith('/api/admin')
+      ? res.status(429).json({ ok: false, error: 'Too many failed credentials. Try again later.' })
+      : res.status(429).type('text').send('Too many failed credentials. Try again later.');
+  }
+
   try { req.admin = await resolveAdmin(req); } catch { req.admin = null; }
+
+  if (req.admin) {
+    adminAuth.clearCredentialFailures(key);
+  } else if (adminCredentialPresented(req)) {
+    const after = adminAuth.noteCredentialFailure(key);
+    if (after.locked) {
+      adminAuth.securityEvent(getSupabaseAdmin(), {
+        kind: 'credential_throttle_lock', severity: 'critical',
+        ipHash: adminAuth.hashIp(req.ip),
+        detail: { path: req.path, failures: after.failures },
+      });
+    }
+  }
   next();
 }
 
@@ -2672,8 +4036,35 @@ function requireAdminCsrf(req, res) {
 function auditAction(req, action, target, outcome = 'success', detail) {
   adminAuth.audit(getSupabaseAdmin(), {
     username: req.admin?.username, action, target, outcome,
-    ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'), detail,
+    ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'),
+    // Every detail object passes the redactor: the audit trail is append-only,
+    // so a secret written there could never be removed (lib/audit-redact.mjs).
+    detail: redactAudit(detail ?? null),
+    actorId: req.admin?.userId, actorRole: req.admin ? rbac.roleForPrincipal(req.admin) : null,
+    requestId: req.requestId,
   });
+}
+
+const { redact: redactAudit } = await import('./lib/audit-redact.mjs');
+
+/** The actor a service call acts as — identity plus the request context the audit record needs. */
+function actorOf(req) {
+  const a = req.admin || {};
+  return {
+    username: a.username, via: a.via,
+    ...(a.role !== undefined ? { role: a.role } : {}),
+    ...(a.userId ? { userId: a.userId } : {}),
+    requestId: req.requestId, ipHash: adminAuth.hashIp(req.ip), userAgent: req.get('user-agent'),
+  };
+}
+
+// Step-up authentication: destructive actions need a password re-entered in the
+// last five minutes on THIS session. A bearer token can never satisfy it — a
+// token in a cron file is not a person who can be asked to confirm.
+const REAUTH_WINDOW_MS = 5 * 60 * 1000;
+function isRecentAuth(req) {
+  const t = req.admin?.via === 'session' ? req.admin?.session?.reauthAt : null;
+  return !!t && Date.now() - Date.parse(t) < REAUTH_WINDOW_MS;
 }
 
 // Resolve a session before any admin route runs. Mounted on both prefixes; it
@@ -2684,6 +4075,18 @@ app.use(['/admin', '/api/admin'], adminGate);
 app.use(['/admin', '/api/admin'], (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  // A correlation id for every admin request: it is written into each audit
+  // record the request produces and returned to the console, so "what did that
+  // click do" is one lookup.
+  req.requestId = randomUUID();
+  res.setHeader('X-Request-Id', req.requestId);
+  // The console may never be framed — not even by this origin. Proxied game
+  // documents (/embed) run third-party code on this origin; were /admin
+  // frameable same-origin, such a script could load the console in a hidden
+  // frame and read it. Appended as a SECOND policy, so helmet's site-wide CSP
+  // still applies in full and this only narrows it.
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.append('Content-Security-Policy', "frame-ancestors 'none'");
   next();
 });
 
@@ -2725,17 +4128,27 @@ app.post('/api/admin/auth/login', async (req, res) => {
   }
 
   // Always run the KDF, even for a wrong username: skipping it would make a bad
-  // username measurably faster to reject than a bad password.
+  // username measurably faster to reject than a bad password. Both the owner
+  // check AND the staff lookup run on every attempt (the staff path verifies
+  // against a dummy hash when the name is unknown), so timing does not reveal
+  // which kind of account a name belongs to — or whether it exists at all.
   const expectedUser = String(process.env.ADMIN_USERNAME || '');
   const passOk = await adminAuth.verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
   const userBuf = Buffer.from(username);
   const wantBuf = Buffer.from(expectedUser);
   const userOk = userBuf.length === wantBuf.length && timingSafeEqual(userBuf, wantBuf);
+  const staffResult = CONTROL.staff
+    ? await CONTROL.staff.authenticate(username, password).catch(() => ({ user: null, reason: 'unknown_user' }))
+    : { user: null, reason: 'unknown_user' };
+  const ownerOk = userOk && passOk;
+  const staffUser = ownerOk ? null : staffResult.user;
 
-  if (!userOk || !passOk) {
+  if (!ownerOk && !staffUser) {
     await adminAuth.recordLoginAttempt(supa, {
       username, ok: false, ipHash, userAgent: ua,
-      reason: userOk ? 'bad_password' : 'unknown_user',    // recorded, never returned
+      // Recorded, never returned. A suspended account gets the same generic
+      // answer as a wrong password, so a probe cannot learn an account exists.
+      reason: userOk ? 'bad_password' : (staffResult.reason || 'unknown_user'),
     });
     const after = await adminAuth.isLockedOut(supa, ipHash);
     if (after.locked) {
@@ -2746,17 +4159,26 @@ app.post('/api/admin/auth/login', async (req, res) => {
     return res.status(401).json(generic);
   }
 
-  const created = await adminAuth.createSession(supa, { username: expectedUser, ipHash, userAgent: ua });
+  const who = staffUser ? staffUser.username : expectedUser;
+  const created = await adminAuth.createSession(supa, {
+    username: who, ipHash, userAgent: ua, userId: staffUser ? staffUser.id : null,
+  });
   if (!created) return res.status(503).json({ ok: false, error: 'Could not start a session.' });
 
   await adminAuth.recordLoginAttempt(supa, { username, ok: true, ipHash, userAgent: ua, reason: 'ok' });
   await adminAuth.audit(supa, {
-    username: expectedUser, action: 'auth.login', outcome: 'success', ipHash, userAgent: ua,
+    username: who, action: 'auth.login', outcome: 'success', ipHash, userAgent: ua,
+    actorId: staffUser ? staffUser.id : null, actorRole: staffUser ? staffUser.role : 'owner',
+    resourceType: staffUser ? 'user' : null, resourceId: staffUser ? staffUser.id : null,
   });
+  if (staffUser) CONTROL.staff.noteLogin(staffUser.id);
   adminAuth.setSessionCookies(res, created);
   // The CSRF token is returned so the page can use it immediately; it is also in
   // a readable cookie, which is what makes the double-submit check work.
-  res.json({ ok: true, username: expectedUser, csrfToken: created.csrf });
+  res.json({
+    ok: true, username: who, csrfToken: created.csrf,
+    mustChangePassword: !!staffUser?.must_change_password,
+  });
 });
 
 // ── POST /api/admin/auth/logout ────────────────────────────────────────────
@@ -2786,7 +4208,7 @@ app.post('/api/admin/auth/logout', async (req, res) => {
 
 // Revoke every session for this admin — the "my laptop was stolen" button.
 app.post('/api/admin/auth/logout-all', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'security.write')) return;
   if (!requireAdminCsrf(req, res)) return;
   const n = await adminAuth.revokeAllSessions(getSupabaseAdmin(), req.admin.username, 'logout_all');
   auditAction(req, 'auth.logout_all', null, 'success', { revoked: n });
@@ -2794,16 +4216,92 @@ app.post('/api/admin/auth/logout-all', async (req, res) => {
   res.json({ ok: true, revoked: n });
 });
 
+// ── POST /api/admin/auth/reauth ────────────────────────────────────────────
+// Step-up authentication. Re-entering the password stamps THIS session for
+// REAUTH_WINDOW_MS; the destructive routes (permanent deletion, role changes,
+// approving proxy destinations, widening a provider) check that stamp. Throttled
+// separately from the login lockout, and every failure is a security event:
+// somebody holding a live session but not its password is exactly the case
+// step-up exists for.
+app.post('/api/admin/auth/reauth', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.admin.via !== 'session' || !req.admin.session) {
+    return res.status(403).json({ ok: false, error: 'A service token cannot re-authenticate. Sign in as a person.' });
+  }
+  if (!LIMITS.allow('adminReauth', `admin:${req.admin.username}`, { rawKey: true })) {
+    return res.status(429).json({ ok: false, error: 'Too many attempts. Wait a minute and try again.' });
+  }
+  const supa = getSupabaseAdmin();
+  const password = typeof req.body?.password === 'string' ? req.body.password.slice(0, 200) : '';
+  let ok = false;
+  if (req.admin.userId) {
+    const row = CONTROL.store ? await CONTROL.store.getStaff(req.admin.userId).catch(() => null) : null;
+    ok = !!row && row.status === 'active' && await adminAuth.verifyPassword(password, row.password_hash);
+  } else {
+    ok = await adminAuth.verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+  }
+  if (!ok) {
+    auditAction(req, 'auth.reauth', null, 'failure');
+    adminAuth.securityEvent(supa, { kind: 'reauth_failed', severity: 'warn', username: req.admin.username, ipHash: adminAuth.hashIp(req.ip) });
+    await new Promise((r) => setTimeout(r, 400));
+    return res.status(401).json({ ok: false, error: 'That password is not correct.' });
+  }
+  if (!(await adminAuth.markReauth(supa, req.admin.session.id))) {
+    return res.status(503).json({ ok: false, error: 'Could not record the confirmation — is the control-plane migration applied?' });
+  }
+  auditAction(req, 'auth.reauth', null, 'success');
+  res.json({ ok: true, validForSec: REAUTH_WINDOW_MS / 1000 });
+});
+
+// ── POST /api/admin/auth/password ──────────────────────────────────────────
+// A staff member replacing their own password — the one self-service path, and
+// the only thing a temporary password is allowed to do. The owner's password
+// lives in the environment (npm run admin-hash) and is not changeable here.
+app.post('/api/admin/auth/password', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!CONTROL.staff) return res.status(503).json({ ok: false, error: CONTROL.reason });
+  if (!LIMITS.allow('adminReauth', `admin:${req.admin.username}`, { rawKey: true })) {
+    return res.status(429).json({ ok: false, error: 'Too many attempts. Wait a minute and try again.' });
+  }
+  try {
+    const current = typeof req.body?.current === 'string' ? req.body.current.slice(0, 200) : '';
+    const next = typeof req.body?.next === 'string' ? req.body.next.slice(0, 200) : '';
+    await CONTROL.staff.changeOwnPassword(actorOf(req), current, next);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e instanceof ServiceError) return res.status(e.status).json({ ok: false, error: e.message });
+    console.warn('[admin] password change failed:', e?.message || e);
+    res.status(500).json({ ok: false, error: 'internal error' });
+  }
+});
+
 // Who am I? Used by the dashboard to decide whether to render or redirect.
 app.get('/api/admin/me', (req, res) => {
   if (!requireAdmin(req, res)) return;
+  // The role and its permissions travel with the identity so the console can
+  // grey out what this principal cannot do. Presentation only — every one of
+  // these is enforced again server-side, because a hidden button is not an
+  // access control.
+  const who = rbac.principalSummary(req.admin);
   res.json({
     ok: true,
     username: req.admin.username,
     via: req.admin.via,
+    role: who.role,
+    roleLabel: who.roleLabel,
+    permissions: who.permissions,
     session: req.admin.session
       ? { createdAt: req.admin.session.createdAt, expiresAt: req.admin.session.expiresAt }
       : null,
+    // Staff-account facts. userId is null for the owner and for service tokens.
+    userId: req.admin.userId || null,
+    mustChangePassword: !!req.admin.mustChangePassword,
+    reauthFresh: isRecentAuth(req),
+    controlPlane: { schema: CONTROL.schema, storage: CONTROL.store?.kind || null, reason: CONTROL.schema === 'ready' ? null : CONTROL.reason },
   });
 });
 
@@ -2828,7 +4326,15 @@ app.get('/api/admin/dashboard', async (req, res) => {
       memoryMB: Math.round(process.memoryUsage().rss / 1048576),
       cronDisabled: process.env.CRON_DISABLED === '1',
     },
-    ai: { mode: 'client-side', serverInference: false },
+    // `mode` describes where inference RUNS (the visitor's browser, talking to
+    // Pollinations directly). `requests` counts only what actually reached this
+    // process — the server-side fallback. The two are different questions and
+    // the console must not let them read as one.
+    ai: { mode: 'client-side', serverInference: false, ...usage.usageSnapshot().ai },
+    audience: usage.usageSnapshot().visitors,
+    liveNow: presenceSnapshot().total,
+    peakConcurrent: usage.usageSnapshot().peakConcurrent,
+    plays: { lifetime: _liveTotalPlays, tracked: playCounts.size },
     proxy: proxyStatus,
   };
   try { out.supabase = await cachedSupabaseHealth(); }
@@ -2851,14 +4357,50 @@ app.get('/api/admin/dashboard', async (req, res) => {
       count('recommendations', q => q.eq('is_visible', false)),
     ]);
     out.database = { games, working, broken, recommendations: recs, hiddenRecommendations: hidden };
+
+    // Security summary over the last 24 hours. Counts only — the Security view
+    // carries the rows.
+    const since = new Date(Date.now() - 864e5).toISOString();
+    const since24 = async (table, build) => {
+      try {
+        const { count: n, error } = await build(supa.from(table).select('*', { count: 'exact', head: true }).gte('at', since));
+        return error ? null : n;
+      } catch { return null; }
+    };
+    const [failedLogins, denied, events] = await Promise.all([
+      since24('admin_login_attempts', q => q.eq('ok', false)),
+      since24('admin_audit_logs', q => q.eq('outcome', 'denied')),
+      since24('admin_security_events', q => q.neq('severity', 'info')),
+    ]);
+    out.security = { failedLogins24h: failedLogins, deniedActions24h: denied, securityEvents24h: events };
   }
+  out.controlPlane = { schema: CONTROL.schema, storage: CONTROL.store?.kind || null, reason: CONTROL.schema === 'ready' ? null : CONTROL.reason };
+  if (CONTROL.store) {
+    try { out.content = await CONTROL.store.statusCounts(); } catch { out.content = null; }
+    try {
+      const staff = await CONTROL.store.listStaff();
+      out.staff = {
+        total: staff.filter(s => s.status !== 'deleted').length,
+        active: staff.filter(s => s.status === 'active').length,
+        suspended: staff.filter(s => s.status === 'suspended').length,
+      };
+    } catch { out.staff = null; }
+  }
+  out.proxyControl = {
+    accessMode: PROXY_POLICY.accessMode,
+    approvedTargets: CONTROL.proxy ? CONTROL.proxy.snapshot().targets.approved : 0,
+    liveSessions: PROXY_SESSIONS.size,
+    refusals: { ...PROXY_REFUSALS },
+  };
+  out.rateLimited = { admin: ADMIN_429, wispGlobal: wispStats.rejected, wispPerClient: wispStats.rejectedPerIp };
+  out.build = { version: PKG_VERSION, commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 12) || null };
   res.json(out);
 });
 
 // ── GET /api/admin/security ────────────────────────────────────────────────
 // The Security Centre: recent logins, security events, and the audit trail.
 app.get('/api/admin/security', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'security.read')) return;
   const supa = getSupabaseAdmin();
   if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
   const take = async (table, cols, order) => {
@@ -2876,6 +4418,221 @@ app.get('/api/admin/security', async (req, res) => {
   res.json({
     ok: true, logins, events, actions, sessions,
     lockout: { threshold: adminAuth.LOCK_THRESHOLD, windowMs: adminAuth.LOCK_WINDOW_MS, lockMs: adminAuth.LOCK_DURATION_MS },
+  });
+});
+
+
+// ── GET /api/admin/audit ───────────────────────────────────────────────────
+// The searchable audit trail.
+//
+// /api/admin/security already returns the newest 50 rows, which answers "what
+// just happened" and nothing else. An audit log earns its name when it can
+// answer a QUESTION — "every denied action from this account last Tuesday" —
+// and that needs filters and paging.
+//
+// PAGING IS CURSOR-BASED, on the primary key, deliberately. admin_audit_logs is
+// append-only and written while it is being read, so OFFSET paging shifts
+// underneath the reader: rows inserted during paging push earlier rows down a
+// page, so page 2 re-shows what page 1 already showed and something in between
+// is never seen at all. An id cursor is stable regardless of what arrives.
+app.get('/api/admin/audit', async (req, res) => {
+  if (!requirePerm(req, res, 'security.read')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
+
+  const str = (v, max) => String(v ?? '').trim().slice(0, max);
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+  const action = str(req.query.action, 60);
+  const outcome = str(req.query.outcome, 20).toLowerCase();
+  const username = str(req.query.username, 80);
+  const q = str(req.query.q, 80);
+  const since = str(req.query.since, 40);
+  const until = str(req.query.until, 40);
+  const cursor = parseInt(req.query.cursor, 10);
+
+  // A date that does not parse is a typo, not "the beginning of time" — a
+  // silently ignored filter shows MORE than the operator asked for, which in an
+  // audit tool is the dangerous direction to fail in.
+  const isoOk = (v) => !v || !Number.isNaN(Date.parse(v));
+  if (!isoOk(since) || !isoOk(until)) {
+    return res.status(400).json({ ok: false, error: 'since/until must be ISO timestamps' });
+  }
+  const OUTCOMES = ['success', 'failure', 'denied'];
+  if (outcome && !OUTCOMES.includes(outcome)) {
+    return res.status(400).json({ ok: false, error: `outcome must be one of ${OUTCOMES.join(', ')}` });
+  }
+
+  try {
+    let sel = supa.from('admin_audit_logs')
+      .select('id, at, username, action, target, outcome, ip_hash, user_agent, detail')
+      .order('id', { ascending: false })
+      .limit(limit + 1);                       // +1 probes for a further page
+
+    // Prefix match, so 'auth.' finds auth.login and auth.logout_all alike.
+    // escapeLike keeps a '%' typed by the operator from widening the search to
+    // everything — the one input here that could silently match all rows.
+    const escapeLike = (v) => v.replace(/[\\%_]/g, (c) => '\\' + c);
+    if (action) sel = sel.like('action', `${escapeLike(action)}%`);
+    if (outcome) sel = sel.eq('outcome', outcome);
+    if (username) sel = sel.eq('username', username);
+    if (q) sel = sel.ilike('target', `%${escapeLike(q)}%`);
+    if (since) sel = sel.gte('at', new Date(since).toISOString());
+    if (until) sel = sel.lte('at', new Date(until).toISOString());
+    if (Number.isFinite(cursor)) sel = sel.lt('id', cursor);
+
+    const { data, error } = await sel;
+    if (error) return res.status(502).json({ ok: false, error: 'audit query failed' });
+
+    const rows = data || [];
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    res.json({
+      ok: true,
+      rows: page,
+      count: page.length,
+      hasMore,
+      // Null rather than absent, so a client can assign it unconditionally.
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+      filters: { action, outcome, username, q, since, until, limit },
+      outcomes: OUTCOMES,
+    });
+  } catch {
+    res.status(502).json({ ok: false, error: 'audit query failed' });
+  }
+});
+
+// ── GET /api/admin/audit/export ────────────────────────────────────────────
+// The audit trail as a file, with the same filters as the searchable view.
+// Separate permission (audit.export) from reading it: taking a copy OUT of the
+// system is a different act from looking, and the export is itself audited.
+// Keyset over the primary key, bounded at 20,000 rows per file.
+app.get('/api/admin/audit/export', async (req, res) => {
+  if (!requirePerm(req, res, 'audit.export')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!LIMITS.allow('adminExpensive', `admin:${req.admin.username}`, { rawKey: true })) {
+    return res.status(429).json({ ok: false, error: 'Exports are limited — try again shortly.' });
+  }
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
+  const str = (v, max) => String(v ?? '').trim().slice(0, max);
+  const action = str(req.query.action, 60);
+  const outcome = str(req.query.outcome, 20).toLowerCase();
+  const username = str(req.query.username, 80);
+  const q = str(req.query.q, 80);
+  if (outcome && !['success', 'failure', 'denied'].includes(outcome)) return res.status(400).json({ ok: false, error: 'bad outcome' });
+  const escapeLike = (v) => v.replace(/[\\%_]/g, (c) => '\\' + c);
+  const rows = [];
+  let cursor = null;
+  try {
+    while (rows.length < 20_000) {
+      let sel = supa.from('admin_audit_logs')
+        .select('id, at, username, action, target, outcome, detail')
+        .order('id', { ascending: false }).limit(1000);
+      if (action) sel = sel.like('action', `${escapeLike(action)}%`);
+      if (outcome) sel = sel.eq('outcome', outcome);
+      if (username) sel = sel.eq('username', username);
+      if (q) sel = sel.ilike('target', `%${escapeLike(q)}%`);
+      if (cursor !== null) sel = sel.lt('id', cursor);
+      const { data, error } = await sel;
+      if (error) return res.status(502).json({ ok: false, error: 'audit query failed' });
+      if (!data?.length) break;
+      rows.push(...data);
+      if (data.length < 1000) break;
+      cursor = data[data.length - 1].id;
+    }
+  } catch { return res.status(502).json({ ok: false, error: 'audit query failed' }); }
+  auditAction(req, 'audit.export', null, 'success', { rows: rows.length, format: req.query.format === 'csv' ? 'csv' : 'json', filters: { action, outcome, username, q } });
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (req.query.format === 'csv') {
+    const { csvCell } = await import('./lib/admin-api.mjs');
+    const cols = ['id', 'at', 'username', 'action', 'target', 'outcome', 'detail'];
+    res.setHeader('Content-Disposition', `attachment; filename="zofhub-audit-${stamp}.csv"`);
+    return res.type('text/csv; charset=utf-8')
+      .send([cols.join(','), ...rows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\r\n'));
+  }
+  res.setHeader('Content-Disposition', `attachment; filename="zofhub-audit-${stamp}.json"`);
+  res.json({ ok: true, exportedAt: new Date().toISOString(), rows });
+});
+
+// ── GET /api/admin/audit/verify ────────────────────────────────────────────
+// Re-derive the hash chain over recent audit records (db/control-plane.sql,
+// admin_audit_verify). A mismatch means a record was altered, or inserted
+// outside the application, after the chain was written — something the
+// append-only trigger alone cannot show, because a superuser can disable it.
+app.get('/api/admin/audit/verify', async (req, res) => {
+  if (!requirePerm(req, res, 'security.read')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'no database' });
+  try {
+    const { data, error } = await supa.rpc('admin_audit_verify', { p_limit: 5000 });
+    if (error) return res.status(503).json({ ok: false, error: 'Integrity checking needs the control-plane migration.' });
+    const row = Array.isArray(data) ? data[0] : data;
+    auditAction(req, 'audit.verify', null, row?.first_bad_id ? 'failure' : 'success', { checked: row?.checked ?? 0, firstBadId: row?.first_bad_id ?? null });
+    res.json({
+      ok: true, checked: row?.checked ?? 0, firstBadId: row?.first_bad_id ?? null,
+      note: 'Records written before the control-plane migration carry no hash and are not part of the chain.',
+    });
+  } catch { res.status(502).json({ ok: false, error: 'verification failed' }); }
+});
+
+// ── GET /api/admin/proxy ───────────────────────────────────────────────────
+// Telemetry for the proxy layer THIS SERVER ACTUALLY RUNS: the Wisp tunnel and
+// the engines mounted by proxy-engine/mount.mjs (GUST, Ultraviolet, Scramjet,
+// bare-mux, epoxy).
+//
+// Everything reported here is measured in-process. There is no external proxy
+// daemon to scrape and no second service to be out of sync with, so the numbers
+// cannot disagree with what the server is doing — they ARE what the server is
+// doing.
+app.get('/api/admin/proxy', async (req, res) => {
+  if (!requirePerm(req, res, 'telemetry.read')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const mem = process.memoryUsage();
+  // The external sing-box instance, if one is configured. Awaited here rather
+  // than fetched by the client so its loopback API is never exposed to a
+  // browser, and its own timeout (1.5s) bounds this handler. It always resolves.
+  const singbox = await singboxTelemetry();
+  res.json({
+    ok: true,
+    // Which engines mounted at boot. A `false` here is why a given proxy route
+    // 404s, and it is otherwise only visible in the boot log.
+    engines: proxyStatus,
+    tunnels: wispSnapshot(),
+    egress: egressReport(),
+    // sing-box (GPL-3.0, its own process — see docs/proxy/SINGBOX.md).
+    //   `singbox`        what the daemon's API reports. `reachable:false` is the
+    //                    honest default; nothing fabricates traffic for a daemon
+    //                    that is not answering.
+    //   `singboxProcess` whether WE started it, and how that is going. Separate
+    //                    because "we never launched it" and "we launched it and
+    //                    it is crash-looping" are different problems with
+    //                    different fixes, and one number cannot say both.
+    singbox,
+    singboxProcess: singboxProcessStatus(),
+    //   `singboxEgress`  the answer to "is it actually carrying our traffic?",
+    //                    which neither of the two above can give. A daemon can
+    //                    be up and reachable while every stream quietly falls
+    //                    back to direct, so the share is reported explicitly
+    //                    rather than inferred from liveness.
+    singboxEgress: egressStats(),
+    // Governance: approved-destination decisions by reason, live sessions,
+    // pre-tunnel refusals and the effective policy. Counts only.
+    governance: {
+      policy: { ...PROXY_POLICY },
+      decisions: PROXY_GOVERNOR.stats().decisions,
+      sessions: PROXY_SESSIONS.stats(),
+      refusals: { ...PROXY_REFUSALS },
+    },
+    process: {
+      uptimeSec: Math.round(process.uptime()),
+      rssMb: Math.round(mem.rss / 1048576),
+      heapUsedMb: Math.round(mem.heapUsed / 1048576),
+      handles: typeof process._getActiveHandles === 'function'
+        ? process._getActiveHandles().length : null,
+    },
+    ts: new Date().toISOString(),
   });
 });
 
@@ -2905,7 +4662,7 @@ app.get('/api/admin/games', (req, res) => {
 // link checker maintains and the same one the public RLS policy filters on —
 // rather than inventing a parallel visibility mechanism.
 app.post('/api/admin/games/:slug/visibility', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'catalog.write')) return;
   if (!requireAdminCsrf(req, res)) return;
   const slug = String(req.params.slug || '').slice(0, 120);
   const visible = req.body?.visible === true;
@@ -2932,7 +4689,7 @@ app.post('/api/admin/games/:slug/visibility', async (req, res) => {
 
 // Pull the catalog from Supabase again, without waiting for the 30-minute timer.
 app.post('/api/admin/catalog/refresh', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'catalog.write')) return;
   if (!requireAdminCsrf(req, res)) return;
   try {
     const ok = await refreshCatalogFromSupabase();
@@ -2999,15 +4756,17 @@ app.get('/api/admin/recommendations', async (req, res) => {
 
 // --- POST /api/admin/recommendations/:id/hide  (and /show) -------------------
 app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'moderation.write')) return;
   if (!requireAdminCsrf(req, res)) return;
-  auditAction(req, 'recommendation.' + req.params.action, req.params.id);
   res.setHeader('Cache-Control', 'no-store');
+  // Validated BEFORE auditing, like the feedback route: the audit trail is
+  // append-only, so recording first let any string from the URL into it.
   if (req.params.action !== 'hide' && req.params.action !== 'show') {
     return res.status(400).json({ ok: false, error: 'action must be hide or show' });
   }
   const id = adminAuth.parseRowId(req.params.id);
   if (id === null) return res.status(400).json({ ok: false, error: 'bad id' });
+  auditAction(req, 'recommendation.' + req.params.action, String(id));
   const supa = getSupabaseAdmin();   // show/hide a recommendation
   // Precise wording: Supabase may well be configured — it is the ADMIN key that
   // is missing, and only that distinction tells the operator what to fix.
@@ -3024,6 +4783,87 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
 // The review queue. Defaults to unread, because that is the view with work in
 // it. Never exposed publicly: there is no matching public route, and RLS denies
 // the publishable key SELECT entirely.
+// --- POST /api/admin/ai-feedback/forget --------------------------------------
+// Right to erasure, exercised by an operator on somebody's behalf.
+//
+// There is deliberately no user id on ai_feedback (see db/15_ai_feedback.sql),
+// so the only honest handle is the exact text the person submitted — which they
+// are the one most likely to still have. The SQL function refuses anything
+// shorter than 12 characters so this cannot become a mass-delete by "a".
+//
+// Admin-gated: it is a delete, and the matching text is somebody's content.
+// --- POST /api/admin/masqr/key -----------------------------------------------
+// Mint a proxy access key. Without this the gate would be a feature with no way
+// to use it: keys are HMAC-signed rather than stored, so there is nothing to
+// insert into a table by hand and no way to produce one except by signing.
+//
+// Permission + CSRF like every other admin write: a key is a capability, and a
+// cross-site POST from a logged-in admin's browser must not be able to mint one.
+// The key is returned ONCE, in the response body, and is never logged or stored
+// — there is nowhere to look it up again, by design.
+app.post('/api/admin/masqr/key', async (req, res) => {
+  if (!requirePerm(req, res, 'security.write')) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (!MASQR.enabled) {
+    return res.status(503).json({
+      ok: false,
+      error: MASQR.mode === 'misconfigured'
+        ? 'The proxy gate is misconfigured — see the [masqr] warning in the server log.'
+        : 'The proxy gate is off. Set MASQR_ENABLED=1 and MASQR_SECRET to use it.',
+    });
+  }
+
+  // An operator may want a short-lived key for one class period. Bounded on
+  // both ends: zero would mint something already expired, and "forever" defeats
+  // the point of keys that age out after a leak.
+  const days = Number(req.body?.days);
+  const ttlDays = Number.isFinite(days) && days > 0 ? Math.min(days, 365) : MASQR.ttlDays;
+  const key = mintMasqrKey(MASQR.secret, { ttlMs: ttlDays * 24 * 60 * 60 * 1000 });
+  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
+
+  res.json({
+    ok: true,
+    key,
+    expires,
+    ttlDays,
+    // The shape the key is meant to travel in. Built from the request so it is
+    // correct on whichever mirror the admin happens to be signed in to.
+    link: `${req.protocol}://${req.get('host')}/browser?k=${encodeURIComponent(key)}`,
+    note: 'Shown once. It is signed, not stored — there is no way to look it up again. '
+      + 'Rotating MASQR_SECRET invalidates every key at once.',
+  });
+});
+
+app.post('/api/admin/ai-feedback/forget', async (req, res) => {
+  // Deleting somebody's content is a state change with a permission AND a CSRF
+  // requirement, like every other admin write here. adminGate alone would have
+  // left it open to a cross-site POST from an authenticated admin's browser.
+  if (!requirePerm(req, res, 'security.write')) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  const text = typeof req.body?.text === 'string' ? req.body.text : '';
+  if (text.trim().length < 12) {
+    return res.status(400).json({ ok: false, error: 'Provide the exact submitted text (12+ characters).' });
+  }
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'Not available.' });
+  try {
+    const { data, error } = await supa.rpc('forget_ai_feedback', { p_text: text });
+    if (error) {
+      if (/does not exist|could not find|PGRST202|42883|42P01/i.test(error.message || '')) {
+        return res.status(503).json({ ok: false, error: 'AI feedback is not installed.' });
+      }
+      throw error;
+    }
+    // The count is the useful answer; the text itself is never echoed back.
+    return res.json({ ok: true, removed: Number(data) || 0 });
+  } catch (e) {
+    console.warn('[ai-feedback] forget failed:', e.message);
+    return res.status(502).json({ ok: false, error: 'Could not complete that right now.' });
+  }
+});
 app.get('/api/admin/feedback', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
@@ -3056,7 +4896,7 @@ app.get('/api/admin/feedback', async (req, res) => {
 // read | archive | delete. Validated BEFORE auditing, so the audit table cannot
 // be filled with arbitrary strings from the URL.
 app.post('/api/admin/feedback/:id/:action', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'moderation.write')) return;
   if (!requireAdminCsrf(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
   const ACTIONS = ['read', 'archive', 'delete'];
@@ -3146,6 +4986,65 @@ app.get('/api/admin/gameflare-audit', (req, res) => {
   });
 });
 
+// Donation CONFIGURATION health — not revenue, because no revenue data exists.
+//
+// Nothing in this codebase records a donation. There is no donations table, no
+// invoice log, no webhook and no balance: the site publishes addresses and a
+// donor's wallet talks to a blockchain directly, with this server never in the
+// path. That is the design (see data/donate.json), and it means an "income"
+// panel could only ever be invented. What an operator CAN be shown, and what
+// actually goes wrong in practice, is whether each method is live and why any
+// of them are not.
+//
+// Addresses are returned in full and that is deliberate: a receiving address is
+// already shown to every visitor in the donate dialog, so there is nothing here
+// the public does not have. Seeing it is how an operator confirms the deployed
+// address is the one they meant.
+app.get('/api/admin/donations', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.set('Cache-Control', 'private, no-store');
+
+  const cfg = getDonateConfig();
+  const swap = swapConfig();
+
+  res.json({
+    ok: true,
+    enabled: cfg.enabled,
+    heading: cfg.heading,
+    live: cfg.methods.map(m => ({
+      id: m.id, label: m.label, kind: m.kind,
+      ticker: m.ticker || null,
+      address: m.address || null,
+      url: m.url || null,
+      // "checksum" means a typo cannot reach the dialog. "shape-only" means it
+      // can — the operator has to have sent a test transaction instead.
+      verified: m.verified || null,
+      note: m.note || '',
+    })),
+    // The dropped ones are the whole point of this panel: a method missing from
+    // the site is otherwise silent, and this says exactly which and exactly why.
+    problems: cfg.problems || [],
+    swap: {
+      configured: !!swap.provider && !swap.missing.length && !!swap.collect,
+      // Why a set-but-invalid DONATE_XMR_ADDRESS turned the swap path off.
+      collectProblem: swap.collectProblem || null,
+      provider: swap.provider ? swap.provider.label : null,
+      missingEnv: swap.missing || [],
+      collectsTo: swap.collect ? 'XMR' : null,
+      depositCoins: Object.keys(DEPOSIT_COINS),
+    },
+    tracking: {
+      recorded: false,
+      why: 'No donation is ever recorded. There is no donations table, invoice log, webhook or balance in this '
+         + 'codebase — a donor wallet talks to a blockchain and this server is never in the path. Revenue '
+         + 'figures would have to be read from your own wallets.',
+    },
+    mutable: false,
+    howToChange: 'Set DONATE_<TICKER>_ADDRESS in the host environment and restart. Addresses are never editable '
+      + 'from this panel: one that can be changed through a web login is one an attacker redirects by stealing it.',
+  });
+});
+
 app.get('/api/admin/ads', (req, res) => {
   // adminGate only RESOLVES an identity; it does not enforce. Every admin route
   // has to call requireAdmin itself, and omitting it does not fail loudly — the
@@ -3164,7 +5063,11 @@ app.get('/api/admin/ads', (req, res) => {
     // remote script-injection primitive: whoever can POST a tag can run
     // arbitrary JavaScript on every page of the site.
     mutable: false,
-    howToChange: 'Set <NETWORK>_ENABLED / <NETWORK>_SCRIPT in the host environment and redeploy. See docs/ADVERTISING.md.',
+    howToChange: 'Set <NETWORK>_ENABLED and the variable for that network\'s one role (e.g. EXOCLICK_HEADER_TAG, '
+      + 'CLICKADU_PREROLL_VAST) in the host environment and redeploy. Regional variants add __<REGION>. '
+      + 'See docs/features/ADVERTISING.md.',
+    regions: GEO.regionIds,
+    adblockGate: adblockGateOn(),
   });
 });
 
@@ -3228,11 +5131,16 @@ app.get('/api/admin/system', async (req, res) => {
     features: [
       flag('Supabase writes', !!getSupabaseAdmin(), 'admin key present'),
       flag('Cron jobs', process.env.CRON_DISABLED !== '1'),
-      flag('Server-side AI fallback', process.env.AI_SERVER_FALLBACK === '1',
-        'must stay OFF in production — the server is not an AI proxy'),
+      flag('Server-side AI routes', process.env.NODE_ENV !== 'production',
+        process.env.NODE_ENV === 'production'
+          ? 'refused (403) — production never runs inference on this server'
+          : 'loopback clients only — a local-development aid'),
       flag('Proxy engines', Object.values(proxyStatus || {}).some(Boolean),
         Object.entries(proxyStatus || {}).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'),
     ],
+    // Same list the boot log prints. A warning that lives only in a log nobody
+    // tails is a warning that does not exist, so it also lands in the console.
+    warnings: devFallbackWarnings(),
     errors: { recent: errorLog.list({ limit: 40 }), ...errorLog.stats() },
   });
 });
@@ -3242,7 +5150,7 @@ app.get('/api/admin/system', async (req, res) => {
 // copy of a remote image that is re-fetched on the next request, so the worst
 // case is one slow page load.
 app.post('/api/admin/cache/clear', async (req, res) => {
-  if (!requireAdmin(req, res)) return;
+  if (!requirePerm(req, res, 'config.write')) return;
   if (!requireAdminCsrf(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
   auditAction(req, 'cache.clear', 'thumbnails');
@@ -3302,77 +5210,6 @@ app.get('/api/admin/catalog/quality', (req, res) => {
 // It had a second tab, "Flagged scores", backed by /api/admin/scores/flagged.
 // That route went with the leaderboard, so the tab could only ever render its
 // own error. Reviewing game requests is all this fallback does now.
-const ADMIN_HTML = `<!doctype html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>ZoFHub · Admin</title>
-<style>
- :root{--bg:#171034;--surface:#241a55;--surface2:#2c2065;--line:rgba(170,140,255,.28);
-   --text:#f7f4ff;--dim:#c3b6ee;--brand:#ffd426;--ok:#22e06a;--bad:#ff4d5e;--cyan:#22d3ee}
- *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
-   font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px}
- h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--dim);margin:0 0 20px;font-size:13.5px}
- .wrap{max-width:1000px;margin:0 auto}
- .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
- input,button{font:inherit}
- input{background:var(--surface2);border:1px solid var(--line);color:var(--text);
-   border-radius:9px;padding:9px 12px;min-width:240px}
- button{background:var(--surface2);border:1px solid var(--line);color:var(--text);
-   border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600}
- button:hover{border-color:var(--brand)}
- button.p{background:var(--brand);color:#241a00;border-color:var(--brand);font-weight:800}
- .row{background:var(--surface);border:1px solid var(--line);border-radius:11px;
-   padding:12px 14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
- .row .main{flex:1;min-width:220px}
- .t{font-weight:700}.m{color:var(--dim);font-size:12.5px;word-break:break-all}
- .pill{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
-   padding:3px 8px;border-radius:6px;white-space:nowrap}
- .dup{background:var(--bad);color:#fff}.new{background:var(--ok);color:#0b2c16}
- .num{font-variant-numeric:tabular-nums;font-weight:800}
- .msg{padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);color:var(--dim)}
- .counts{color:var(--dim);font-size:13px;margin-bottom:12px}
-</style></head><body><div class="wrap">
-<h1>ZoFHub · private admin</h1>
-<p class="sub">Only you can see this. Nothing here is public or indexed.</p>
-<div class="bar">
-  <input id="k" type="password" placeholder="ADMIN_SECRET" autocomplete="current-password">
-  <button class="p" id="go">Unlock</button>
-  <button id="out">Forget</button>
-</div>
-<div id="counts" class="counts"></div>
-<div id="list"><div class="msg">Enter your ADMIN_SECRET to load.</div></div>
-</div><script>
-const $=s=>document.querySelector(s);
-const key=()=>sessionStorage.getItem("zh_admin")||"";
-const H=()=>({"x-admin-secret":key()});
-function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));}
-async function api(u,o){const r=await fetch(u,Object.assign({headers:H()},o||{}));return r.json().catch(()=>({ok:false,error:"bad response"}));}
-async function load(){
-  const L=$("#list"),C=$("#counts");
-  if(!key()){L.innerHTML='<div class="msg">Enter your ADMIN_SECRET to load.</div>';C.textContent="";return;}
-  L.innerHTML='<div class="msg">Loading…</div>';C.textContent="";
-  const d=await api("/api/admin/recommendations");
-  if(!d.ok){L.innerHTML='<div class="msg">'+esc(d.error||"Failed")+'</div>';return;}
-  const r=d.recommendations||[];
-  C.textContent=r.length+" submitted · "+d.counts.alreadyInCatalog+" already in catalog · "+d.counts.newToAdd+" new";
-  L.innerHTML=r.length?r.map(x=>'<div class="row">'
-    +'<span class="pill '+(x.inCatalog?"dup":"new")+'">'+(x.inCatalog?"Already in catalog":"New")+'</span>'
-    +'<div class="main"><div class="t">'+esc(x.title)+'</div>'
-    +'<div class="m">'+esc(x.embed_url)+'</div>'
-    +'<div class="m">by '+esc(x.author)+' · '+esc(x.category)+' · '+x.views+' views'
-    +(x.inCatalog?' · matches <b>'+esc(x.matchedTitle||x.matchedSlug||"")+'</b> (by '+esc(x.matchedBy)+')':'')
-    +(x.is_visible?'':' · <b>hidden</b>')+'</div></div>'
-    +'<button data-rec="'+x.id+'" data-act="'+(x.is_visible?"hide":"show")+'">'+(x.is_visible?"Hide":"Show")+'</button>'
-    +'</div>').join(""):'<div class="msg">No submissions yet.</div>';
-}
-document.addEventListener("click",async e=>{
-  const rc=e.target.closest("[data-rec]");
-  if(rc){rc.disabled=true;await api("/api/admin/recommendations/"+rc.dataset.rec+"/"+rc.dataset.act,{method:"POST"});load();return;}
-});
-$("#go").onclick=()=>{sessionStorage.setItem("zh_admin",$("#k").value.trim());$("#k").value="";load();};
-$("#k").addEventListener("keydown",e=>{if(e.key==="Enter")$("#go").click();});
-$("#out").onclick=()=>{sessionStorage.removeItem("zh_admin");load();};
-if(key())load();
-</script></body></html>`;
 
 // ── The admin console ──────────────────────────────────────────────────────
 // /admin/login  — always reachable; it is the only way in.
@@ -3384,9 +5221,9 @@ if(key())load();
 // failed the API calls afterwards, which leaks the console's structure and
 // invites people to poke at the endpoints behind it.
 //
-// The old inline ADMIN_HTML is retained below as the LOCAL-DEV fallback for a
-// deployment that has not configured the new credentials yet, so upgrading does
-// not lock an operator out of a running site before they run `npm run admin-hash`.
+// There is no second, weaker console. A deployment whose credentials are not
+// configured gets a setup notice and nothing else — being locked out of your
+// own console is recoverable in one command; a console anyone can reach is not.
 // The console lives in admin-ui/, which is OUTSIDE PUBLIC_DIR — deliberately.
 //
 // The first version of this put it in public/admin/, and express.static served
@@ -3401,10 +5238,305 @@ const ADMIN_DIR = join(__dirname, 'admin-ui');
 // mount — so no path traversal or new file can widen what is reachable.
 // Only the two the LOGIN page needs are public; the dashboard's script requires
 // a session, because there is no reason to hand its shape to an anonymous caller.
+// Shown at /admin when ADMIN_USERNAME / ADMIN_PASSWORD_HASH / ADMIN_SESSION_SECRET
+// are missing or malformed. Deliberately inert: no form, no fetch, no endpoint
+// names, no version. It cannot be authenticated against because there is
+// nothing here to authenticate against.
+//
+// The exact list of problems is withheld from remote callers — "which of my
+// three variables is unset" is free reconnaissance — and printed to the server
+// log at boot instead, where the operator can already see it.
+const ADMIN_SETUP_HTML = `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Setup required</title>
+<style>
+:root{color-scheme:light dark;--bg:#0d1117;--card:#161b22;--line:#30363d;--tx:#e6edf3;--dim:#8b949e;--amber:#d29922}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg);color:var(--tx);
+ font:15px/1.6 ui-sans-serif,system-ui,"Segoe UI",sans-serif}
+.card{max-width:520px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
+h1{margin:0 0 6px;font-size:19px;letter-spacing:-.01em}
+p{margin:0 0 16px;color:var(--dim);font-size:14px}
+code{display:block;background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:11px 13px;
+ margin:8px 0;font:13px/1.5 ui-monospace,"Cascadia Code",monospace;color:var(--tx);overflow-x:auto}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+ color:var(--amber);border:1px solid var(--amber);border-radius:999px;padding:3px 9px;margin-bottom:14px}
+</style></head><body><div class="card">
+<span class="tag">Setup required</span>
+<h1>Admin access is not configured</h1>
+<p>The console stays closed until credentials are set. Run this, then put the three
+printed values in your environment and restart:</p>
+<code>npm run admin-hash</code>
+<p>The specific problems are printed in the server log at startup.</p>
+</div></body></html>`;
+
+
+/**
+ * Print the admin security posture at boot — the one place an operator
+ * reliably looks. The /admin setup page deliberately withholds this detail
+ * from remote callers, so this log is how the owner learns what is wrong.
+ *
+ * ADMIN_SECRET is a bearer token typed by nobody: there is no reason for it to
+ * be short or memorable, and a short one is guessable now that it is the only
+ * credential on that path. Length is a proxy for entropy, but a blunt one is
+ * better than staying silent.
+ */
+function printAdminSecurityStatus() {
+  const cfg = adminAuth.adminConfigStatus();
+  if (cfg.ok) {
+    console.log('  → admin:   password login active (sessions, CSRF, lockout)');
+  } else {
+    console.warn('  → admin:   NOT CONFIGURED — /admin is closed. Run: npm run admin-hash');
+    for (const p of cfg.problems) console.warn(`             · ${p}`);
+  }
+  if (ADMIN_SECRET && ADMIN_SECRET.length < 32) {
+    console.warn(`  → WARNING: ADMIN_SECRET is only ${ADMIN_SECRET.length} characters. It is a bearer`);
+    console.warn('             token with full admin access — use 32+ random characters');
+    console.warn("             (node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\").");
+  }
+  for (const line of devFallbackWarnings()) console.warn('  → ' + line);
+}
+
+/**
+ * Development-only settings that are dangerous once a real domain is pointed at
+ * this process. Returned as strings so the same list can be printed at boot AND
+ * surfaced in the admin console — a warning that exists only in a log nobody
+ * tails is a warning that does not exist.
+ */
+function devFallbackWarnings() {
+  const out = [];
+  const isProd = process.env.NODE_ENV === 'production';
+  const siteUrl = String(process.env.SITE_URL || '').trim();
+  // A real https host that is not localhost is "a production URL" regardless of
+  // what NODE_ENV happens to say — NODE_ENV is the thing people forget to set.
+  let publicDomain = false;
+  try {
+    const u = new URL(siteUrl);
+    publicDomain = u.protocol === 'https:' && !/^(localhost|127\.|\[::1\])/.test(u.hostname);
+  } catch { /* unset or unparseable → not a public domain */ }
+  const liveish = isProd || publicDomain;
+
+  if (liveish && !isProd) {
+    out.push('WARNING: this looks like a live deployment but NODE_ENV is not "production".');
+    out.push('         The server-side AI routes stay loopback-only either way, but set');
+    out.push('         NODE_ENV=production so they answer 403 unconditionally.');
+  }
+  const pk = String(process.env.POLLINATIONS_PUBLIC_KEY || '').trim();
+  if (pk && !pk.startsWith('pk_')) {
+    out.push('WARNING: POLLINATIONS_PUBLIC_KEY is not a pk_ key. It is being withheld from');
+    out.push('         the browser (correctly — only publishable pk_ keys are served), so it');
+    out.push('         is doing nothing. If you pasted a secret key here, rotate it.');
+  }
+  if (!isProd && publicDomain) {
+    out.push(`WARNING: NODE_ENV is "${process.env.NODE_ENV || 'unset'}" but SITE_URL is a public https`);
+    out.push('         domain. Production hardening keys off NODE_ENV — set it to "production".');
+  }
+  return out;
+}
+
+// ========================================================================
+// Control plane API + boot (lib/admin-api.mjs)
+// ========================================================================
+const { createCmsService, ServiceError } = await import('./lib/cms-service.mjs');
+const { createMemoryStore } = await import('./lib/cms-store-memory.mjs');
+const { createSupabaseStore } = await import('./lib/cms-store-supabase.mjs');
+const { createSettingsService } = await import('./lib/settings-service.mjs');
+const { createStaffService } = await import('./lib/staff-service.mjs');
+const { createProxyService } = await import('./lib/proxy-service.mjs');
+const { mountAdminApi } = await import('./lib/admin-api.mjs');
+const { runGdImport, IMPORT_ACTOR: GD_IMPORT_ACTOR } = await import('./lib/gamedistribution-import.mjs');
+const PKG_VERSION = (() => { try { return JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8')).version; } catch { return null; } })();
+
+let ADMIN_429 = 0;
+
+/** The audit sink every service writes through. Structured and redacted upstream. */
+function controlAudit(e) {
+  const a = e.actor || {};
+  const role = rbac.roleForPrincipal(a);
+  adminAuth.audit(getSupabaseAdmin(), {
+    username: a.username, action: e.action, target: e.target, outcome: e.outcome,
+    ipHash: a.ipHash, userAgent: a.userAgent, detail: e.detail,
+    actorId: a.userId, actorRole: role, resourceType: e.resourceType, resourceId: e.resourceId,
+    requestId: a.requestId,
+  });
+  // In memory mode there is no database to hold the trail, so the store keeps a
+  // bounded copy — which is what makes history views and tests work without one.
+  if (CONTROL.store?.kind === 'memory') {
+    const log = CONTROL.store._audit;
+    log.push({ id: log.length + 1, at: new Date().toISOString(), username: a.username || null, actor_role: role,
+      action: e.action, outcome: e.outcome, resource_type: e.resourceType, resource_id: e.resourceId, detail: e.detail });
+    if (log.length > 5000) log.splice(0, log.length - 5000);
+  }
+}
+
+// Catalog refreshes after console edits are debounced: fifty edits in a minute
+// should cost one refresh, not fifty.
+let _catalogRefreshTimer = null;
+function scheduleCatalogRefresh() {
+  if (_catalogRefreshTimer) return;
+  _catalogRefreshTimer = setTimeout(() => {
+    _catalogRefreshTimer = null;
+    refreshCatalogFromSupabase().catch(() => {});
+  }, 15_000);
+  _catalogRefreshTimer.unref?.();
+}
+
+function applyAdSettings() {
+  const st = CONTROL.settings;
+  if (!st) return;
+  const off = new Set(st.get('ads.disabled_networks') || []);
+  const allOff = st.get('ads.enabled') === false;
+  const env = { ...process.env };
+  for (const n of AD_NETWORKS) if (allOff || off.has(n.id)) env[`${n.env}_ENABLED`] = '0';
+  AD_CONFIG = resolveAdConfig(env, { regions: GEO.regionIds });
+}
+
+function onSettingChanged(key) {
+  if (key.startsWith('ads.')) applyAdSettings();
+}
+
+// ── The GameDistribution import job ─────────────────────────────────────────
+// One at a time, in the background, started by the weekly cron or an admin
+// holding games.import. Never by a visitor: the route is behind requirePerm
+// and the expensive-operation budget.
+const GD_JOB = { running: false, startedAt: null, finishedAt: null, by: null, dryRun: false, onlyIds: null, report: null, error: null };
+function gdImportStatus() {
+  const r = GD_JOB.report;
+  return { ...GD_JOB, report: r ? { ...r, planned: (r.planned || []).slice(0, 60), flagged: (r.flagged || []).slice(0, 200), failures: (r.failures || []).slice(0, 50) } : null };
+}
+function startGdImport(actor, { dryRun = false, onlyIds = null } = {}) {
+  if (GD_JOB.running) throw new ServiceError(409, 'an import is already running');
+  if (!CONTROL.cms || CONTROL.store?.kind !== 'supabase') {
+    throw new ServiceError(503, CONTROL.schema === 'ready' ? 'the import needs the database' : CONTROL.reason);
+  }
+  Object.assign(GD_JOB, { running: true, startedAt: new Date().toISOString(), finishedAt: null, by: actor.username, dryRun, onlyIds, report: null, error: null });
+  const autoPublish = CONTROL.settings?.get('catalog.gd_auto_publish_clean') !== false;
+  runGdImport({ cms: CONTROL.cms, store: CONTROL.store, autoPublish, dryRun, onlyIds, log: (m) => console.log('[gd-import]', m) })
+    .then((report) => {
+      GD_JOB.report = report;
+      controlAudit({ actor, action: 'import.gamedistribution', resourceType: 'import', resourceId: 'gamedistribution',
+        target: 'import:gamedistribution', outcome: 'success',
+        detail: { dryRun, onlyIds, counts: report.counts, rejectReasons: report.rejectReasons, flagCounts: report.flagCounts, feed: report.feed } });
+      console.log(`[gd-import] ${dryRun ? 'DRY RUN ' : ''}done: ${JSON.stringify(report.counts)}`);
+      if (!dryRun && report.counts.inserted) scheduleCatalogRefresh();
+    })
+    .catch((e) => {
+      GD_JOB.error = String(e?.message || e).slice(0, 300);
+      controlAudit({ actor, action: 'import.gamedistribution', resourceType: 'import', resourceId: 'gamedistribution',
+        target: 'import:gamedistribution', outcome: 'failure', detail: { dryRun, error: GD_JOB.error } });
+      console.warn('[gd-import] failed:', GD_JOB.error);
+    })
+    .finally(() => { GD_JOB.running = false; GD_JOB.finishedAt = new Date().toISOString(); });
+  return gdImportStatus();
+}
+async function jobGdImport() {
+  if (CONTROL.settings?.get('catalog.gd_auto_import') === false) { console.log('[cron:gd-import] switched off in settings'); return; }
+  if (CONTROL.store?.kind !== 'supabase') { console.log(`[cron:gd-import] skipped: ${CONTROL.reason}`); return; }
+  try { startGdImport({ ...GD_IMPORT_ACTOR, requestId: `cron-${Date.now()}` }); }
+  catch (e) { console.warn('[cron:gd-import]', e.message); }
+}
+
+function controlStatus() {
+  return {
+    schema: CONTROL.schema, storage: CONTROL.store?.kind || null,
+    reason: CONTROL.schema === 'ready' ? null : CONTROL.reason,
+    settings: CONTROL.settings?.status() || null,
+    proxy: CONTROL.proxy?.status() || null,
+    providers: CONTROL.providers.list().map((p) => ({ id: p.id, status: p.status })),
+  };
+}
+
+let _controlRetry = null;
+async function initControlPlane() {
+  const supa = getSupabaseAdmin();
+  let store = null;
+  if (supa) {
+    try {
+      const { error } = await supa.from('game_providers').select('id').limit(1);
+      if (error) {
+        CONTROL.schema = 'missing';
+        CONTROL.reason = 'The control-plane migration (supabase/migrations/20260101001080_control_plane.sql) has not been applied to this database yet. The public site is unaffected; content, staff, settings and proxy-destination management need it.';
+      } else {
+        store = createSupabaseStore(supa);
+        CONTROL.schema = 'ready';
+        CONTROL.reason = null;
+      }
+    } catch {
+      CONTROL.schema = 'unreachable';
+      CONTROL.reason = 'The database could not be reached; the control plane will retry.';
+    }
+  } else if (!isSupabaseConfigured()) {
+    const cats = [...new Set(['arcade', ...byCategory.keys()])].filter((c) => c && c.length <= 40 && c === c.toLowerCase());
+    store = createMemoryStore({ categories: cats });
+    CONTROL.schema = 'memory';
+    CONTROL.reason = 'No database is configured: the control plane is running in memory and nothing is saved.';
+    // CONTROL_MEMORY_SEED: a JSON file of settings, proxy destinations and games
+    // to start the in-memory control plane with. Honoured ONLY here — with no
+    // database configured, where nothing persists — so it can never write to or
+    // shadow a real deployment's data. It exists for local development and for
+    // the test suite, which must exercise maintenance mode, feature flags and a
+    // review queue without a database.
+    if (process.env.CONTROL_MEMORY_SEED) {
+      try {
+        const seed = JSON.parse(readFileSync(String(process.env.CONTROL_MEMORY_SEED), 'utf8'));
+        for (const [k, v] of Object.entries(seed.settings || {})) await store.putSetting(k, v, 'seed');
+        for (const t of seed.targets || []) await store.insertTarget({ ...t, created_by: 'seed' });
+        for (const g of seed.games || []) await store.insertGame({ ...g, created_by: 'seed', updated_by: 'seed' });
+        console.log(`[control] memory seed loaded from ${process.env.CONTROL_MEMORY_SEED}`);
+      } catch (e) { console.warn('[control] CONTROL_MEMORY_SEED ignored:', e.message); }
+    }
+  } else {
+    CONTROL.schema = 'no-admin-key';
+    CONTROL.reason = 'Only the publishable Supabase key is configured; the control plane needs the secret key.';
+  }
+  CONTROL.store = store;
+  CONTROL.settings = createSettingsService({ store, audit: controlAudit, onChange: onSettingChanged });
+  await CONTROL.settings.load();
+  applyAdSettings();
+  if (store) {
+    CONTROL.cms = createCmsService({
+      store, audit: controlAudit,
+      countsByCategory: () => Object.fromEntries([...byCategory].map(([k, v]) => [k, v.length])),
+      onChange: (kind) => {
+        if (kind === 'provider') CONTROL.providers = CONTROL.cms.providers;
+        scheduleCatalogRefresh();
+      },
+    });
+    try { CONTROL.providers = await CONTROL.cms.refreshProviders(); }
+    catch (e) { console.warn('[control] providers could not be read — using the built-in registry:', e.message); }
+    CONTROL.staff = createStaffService({ store, hashPassword: adminAuth.hashPassword, verifyPassword: adminAuth.verifyPassword, audit: controlAudit });
+  }
+  CONTROL.proxy = createProxyService({ store, governor: PROXY_GOVERNOR, sessions: PROXY_SESSIONS, audit: controlAudit, onPolicy: applyProxyPolicy });
+  await CONTROL.proxy.load();
+  for (const p of [...(CONTROL.settings.status().problems || []), ...(CONTROL.proxy.status().problems || [])]) console.warn(`[control] ${p}`);
+  console.log(`[control] ${CONTROL.schema}${CONTROL.reason ? ` — ${CONTROL.reason}` : ''}`);
+  // A migration applied later is picked up without a restart.
+  if (['missing', 'unreachable'].includes(CONTROL.schema) && !_controlRetry) {
+    _controlRetry = setTimeout(() => { _controlRetry = null; initControlPlane().catch(() => {}); }, 5 * 60_000);
+    _controlRetry.unref?.();
+  }
+}
+
+const ADMIN_API = mountAdminApi(app, {
+  requirePerm, requireAdminCsrf, actorOf, isRecentAuth,
+  limiter: {
+    allow: (scope, key) => { const ok = LIMITS.allow(scope, key, { rawKey: true }); if (!ok) ADMIN_429++; return ok; },
+    retryAfterSec: (scope, key) => LIMITS.retryAfterSec(scope, key, { rawKey: true }),
+  },
+  services: { cms: () => CONTROL.cms, staff: () => CONTROL.staff, settings: () => CONTROL.settings, proxy: () => CONTROL.proxy },
+  unavailableReason: () => CONTROL.reason || 'The control plane is not ready.',
+  auditDenied: (req, perm, reason) => auditAction(req, 'rbac.denied', perm, 'denied', { role: rbac.roleForPrincipal(req.admin), via: req.admin?.via, reason }),
+  status: controlStatus,
+  gdImport: { start: startGdImport, status: gdImportStatus },
+  proxyOverview: () => proxyControlOverview(),
+  log: (...a) => console.warn(...a),
+});
+
 const ADMIN_ASSETS = {
-  'admin.css':       { file: 'admin.css',       type: 'text/css; charset=utf-8',        public: true },
-  'admin-login.js':  { file: 'admin-login.js',  type: 'text/javascript; charset=utf-8', public: true },
-  'admin.js':        { file: 'admin.js',        type: 'text/javascript; charset=utf-8', public: false },
+  'admin.css':         { file: 'admin.css',         type: 'text/css; charset=utf-8',        public: true },
+  'admin-login.js':    { file: 'admin-login.js',    type: 'text/javascript; charset=utf-8', public: true },
+  'admin.js':          { file: 'admin.js',          type: 'text/javascript; charset=utf-8', public: false },
+  'admin-control.js':  { file: 'admin-control.js',  type: 'text/javascript; charset=utf-8', public: false },
 };
 
 app.get('/admin/login', (req, res) => {
@@ -3422,14 +5554,20 @@ app.get('/admin/assets/:name', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
-  if (!req.admin) {
-    // No configured credentials AND no session: fall back to the legacy console
-    // so a live site is not stranded mid-upgrade. It still authenticates every
-    // API call with ADMIN_SECRET; it simply has no login page of its own.
-    if (!adminAuth.adminConfigStatus().ok) return res.type('html').send(ADMIN_HTML);
-    return res.redirect(302, '/admin/login');
+  if (req.admin) return res.sendFile(join(ADMIN_DIR, 'admin-dashboard.html'));
+
+  // Misconfigured credentials used to fall back to a legacy console that was
+  // served, fully working, to ANY anonymous visitor — its markup named the
+  // `x-admin-secret` header and the endpoints behind it, and the only thing
+  // between a stranger and the data was one shared static token with no
+  // throttle. A probe walked 25 wrong guesses through it without a single 429.
+  //
+  // There is no fallback console now. Bad configuration means a setup notice
+  // with no form, no endpoint names and no session — never a weaker way in.
+  if (!adminAuth.adminConfigStatus().ok) {
+    return res.status(503).type('html').send(ADMIN_SETUP_HTML);
   }
-  res.sendFile(join(ADMIN_DIR, 'admin-dashboard.html'));
+  return res.redirect(302, '/admin/login');
 });
 
 // Anything else under /admin is not a thing. Explicit 404 rather than falling
@@ -3441,192 +5579,92 @@ app.use('/admin', (req, res) => {
 // ========================================================================
 // Live presence — total visitors + per-game player counts
 // ------------------------------------------------------------------------
-// Honest, ZoFHub-only counts.  No simulation.  A session is anyone who has
-// posted a heartbeat in the last PRESENCE_TTL_MS milliseconds.  Sessions
-// expire automatically; a sweep runs every PRESENCE_SWEEP_MS.
+// Honest, ZoFHub-only counts. No simulation. A session is any tab that has
+// beaten in the last PRESENCE_TTL_MS; the client beats every ~2s and the beat
+// RESPONSE carries a fresh snapshot, which is the whole live-update path (see
+// public/js/presence.js). A normal tab-close drops out at once via the leave
+// beacon; the TTL is the backstop for a crash or a dropped network.
 //
-// The client POLLS: it beats every ~2s and the beat RESPONSE is a fresh snapshot,
-// which is the live-update path (see public/js/presence.js). We keep a TTL of 8s
-// (4× the beat) so a live session can never expire between beats; the TTL is just
-// the backstop for a MISSED leave beacon (crash / network drop) — a normal
-// tab-close drops instantly via the leave beacon.
+// The traffic model — per-session, per-address and sessions-per-address — is
+// declared with the other budgets near the top of this file and explained in
+// lib/presence-store.mjs. It is sized so a school or library NAT, hundreds of
+// real devices on one address, is served rather than throttled.
 //
-// NOTE: the SSE endpoint below (/api/presence/stream + presenceBroadcast) still
-// exists but is no longer used by the bundled client — per-tab SSE saturated the
-// browser's 6-connections-per-origin limit and starved these very POSTs (the
-// "count takes 8-11s to update" bug), so the client switched to polling. Kept as a
-// harmless no-op (sseClients stays empty) for any external/future consumer.
+// REMOVED: GET /api/presence/stream (Server-Sent Events). The bundled client
+// stopped using it long ago — per-tab SSE starved the browser's connection
+// pool — and it had no limit of its own, so any client could hold an unbounded
+// number of connections open against this process. Nothing called it.
 // ========================================================================
-const PRESENCE_TTL_MS       = 8_000;
-const PRESENCE_SWEEP_MS     = 1_500;
-const PRESENCE_BROADCAST_MS = 1_200;
-const PRESENCE_MAX_SESSIONS = 20_000;
+const PRESENCE_SWEEP_MS = 1_500;
 
-// sessionId -> { slug, lastSeen }. Deliberately NO ip: the comment used to claim
-// one was stored, but nothing ever set it. Abuse is handled by the writeAllow()
-// gate on the beat/leave handlers instead, so there's no reason to hold visitor
-// IPs in memory on a site whose privacy policy promises minimal collection.
-const presence = new Map();
-const sseClients = new Set();        // res objects subscribed to the stream
+const presenceStore = createPresenceStore({
+  ttlMs: PRESENCE_TTL_MS,
+  maxSessions: PRESENCE_MAX_SESSIONS,
+  maxSessionsPerKey: PRESENCE_MAX_SESSIONS_PER_IP,
+  // Only real catalog slugs are counted: the snapshot is sent to every
+  // visitor, so an arbitrary client-supplied key must not be able to appear in it.
+  isKnownSlug: (slug) => bySlug.has(slug),
+});
 
+/** The public snapshot { total, games, t }; also records the peak for the console. */
 function presenceSnapshot() {
-  // Object.create(null), NOT {}. This object is keyed by a slug the CLIENT
-  // supplies, and a plain object literal inherits from Object.prototype — so
-  // `games['constructor']` reads back the Object constructor rather than
-  // undefined, and `(fn || 0) + 1` concatenates instead of adding:
-  //
-  //   {"games":{"constructor":"function Object() { [native code] }1"}}
-  //
-  // That was broadcast verbatim to every SSE subscriber. It is not only an
-  // adversarial case — the catalog contains a real game slugged `constructor`
-  // (id 6974, "Constructor"), so playing it triggered this in normal use and
-  // its live-player badge could never light up. `toString`, `valueOf` and the
-  // rest of the prototype behave the same way.
-  //
-  // A null-prototype object has nothing to inherit, which removes the whole
-  // class rather than blocklisting the names. JSON.stringify treats it exactly
-  // like any other object, so the wire format is unchanged.
-  const games = Object.create(null);
-  let total = 0;
-  const now = Date.now();
-  for (const [, s] of presence) {
-    if (now - s.lastSeen > PRESENCE_TTL_MS) continue;
-    total++;
-    if (s.slug) games[s.slug] = (games[s.slug] || 0) + 1;
-  }
-  return { total, games, t: now };
+  const snap = presenceStore.snapshot();
+  usage.notePeakConcurrent(snap.total);
+  return snap;
 }
 
-function presenceSweep() {
-  const now = Date.now();
-  for (const [id, s] of presence) {
-    if (now - s.lastSeen > PRESENCE_TTL_MS) presence.delete(id);
-  }
-  // Hard cap so a flood of unique IDs can't blow memory.
-  if (presence.size > PRESENCE_MAX_SESSIONS) {
-    const sorted = [...presence.entries()].sort((a, b) => a[1].lastSeen - b[1].lastSeen);
-    const drop = sorted.slice(0, presence.size - PRESENCE_MAX_SESSIONS);
-    for (const [id] of drop) presence.delete(id);
-  }
-}
+setInterval(() => presenceStore.sweep(), PRESENCE_SWEEP_MS).unref();
 
-function presenceBroadcast() {
-  if (sseClients.size === 0) return;
-  const snap = presenceSnapshot();
-  const payload = `data: ${JSON.stringify(snap)}\n\n`;
-  // res.flush() forces the bytes out NOW (belt-and-suspenders vs any buffering
-  // layer); the compression filter above already skips event-streams.
-  for (const res of sseClients) { try { res.write(payload); res.flush?.(); } catch {} }
-}
-
-setInterval(() => { presenceSweep(); presenceBroadcast(); }, PRESENCE_SWEEP_MS).unref();
-setInterval(presenceBroadcast, PRESENCE_BROADCAST_MS).unref();
-
-// Burst-throttled broadcaster: when a beat/leave fires we'd like the SSE
-// stream to push the new snapshot RIGHT NOW so connected tabs see the
-// change in <100ms.  But many beats can land in a 100ms window — so we
-// coalesce them with a short debounce.
-let bcastPending = false;
-function broadcastSoon() {
-  if (bcastPending) return;
-  bcastPending = true;
-  setImmediate(() => { bcastPending = false; presenceBroadcast(); });
-}
-
-function recordBeat(sessionId, slug) {
-  if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64) return null;
-  const safeSlug = slug && typeof slug === 'string' && slug.length <= 80 ? slug : null;
-  const s = presence.get(sessionId);
-  const changed = !s || s.slug !== safeSlug;   // new session OR slug switched
-  if (s) { s.lastSeen = Date.now(); s.slug = safeSlug; }
-  else   presence.set(sessionId, { lastSeen: Date.now(), slug: safeSlug });
-  return changed;
-}
-
-// Beat budget. See writeAllow() for the units — the second number is ms PER
-// TOKEN, so this is a burst of 30 and a sustained 5 requests/second.
-//
-// IT USED TO BE (10, 5000), described in a comment as "10 per 5s" and sized
-// "well above the client's real cadence". It was a tenth of that: one token per
-// five seconds, i.e. 0.2/sec, against a client that beats every 2s (0.5/sec).
-// Every visitor therefore outran their own bucket. Measured against this server:
-//
-//   1 tab              40% of beats refused, 6.2s longest gap
-//   2 visitors, one IP 75% refused, 10.2s gap
-//   5 visitors, one IP 93% refused, 33s gap
-//
-// PRESENCE_TTL_MS is 8s, so from two visitors upward the gaps exceed the TTL and
-// the server expires sessions that are in fact still on the page: the live count
-// and the per-game "N playing now" badge undercount and flicker. Sharing one
-// public IP is not an edge case here — it is a school or library NAT, which is
-// this site's stated audience.
-//
-// 5/sec still bounds the two threats the limit exists for. A beat costs a Map
-// write plus presenceSnapshot(), which walks the session map, so the cap is
-// about CPU, not storage. Holding a fake session alive needs one beat per 8s, so
-// 5/sec caps one IP at ~40 fabricated players on a slug; and reaching
-// PRESENCE_MAX_SESSIONS (20,000) would need 2,500 beats/sec to keep them all
-// from expiring, which this refuses by two orders of magnitude.
-const PRESENCE_BURST = 30;
-const PRESENCE_MS_PER_TOKEN = 200;   // → 5 requests/second sustained
+/**
+ * The key an address is counted under for the sessions-per-address cap: a
+ * keyed HMAC when a secret is configured, so no raw address sits in the map.
+ */
+const presenceOwner = (ip) => adminAuth.hashIp(clientKeyOf(ip)) || `raw:${clientKeyOf(ip)}`;
 
 app.post('/api/presence/beat', (req, res) => {
-  // Rate-limited like every other mutating endpoint. Without this, anyone could
-  // POST a flood of fresh random sessionIds at a real slug to inflate its
-  // "N playing" badge, or push the map toward PRESENCE_MAX_SESSIONS to evict
-  // genuine sessions via the oldest-first sweep.
-  if (!writeAllow(req.ip || 'unknown', PRESENCE_BURST, PRESENCE_MS_PER_TOKEN)) {
+  res.setHeader('Cache-Control', 'no-store');
+  // Coarse per-address flood limit first — sized for a whole NAT.
+  if (!writeAllow('presenceIp', req.ip)) {
+    res.setHeader('Retry-After', String(LIMITS.retryAfterSec('presenceIp', req.ip)));
     return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
   }
   const { sessionId, slug, action } = req.body || {};
-  let mutated = false;
-  if (action === 'leave' && sessionId && presence.has(sessionId)) {
-    presence.delete(sessionId);
-    mutated = true;
-  } else {
-    mutated = recordBeat(sessionId, slug);
+  // Then the precise per-tab limit, keyed on the tab's own random id.
+  if (typeof sessionId === 'string' && sessionId && !LIMITS.allow('presenceSession', sessionId, { rawKey: true })) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
   }
-  // Immediate broadcast for joins, slug changes, leaves — keeps counts feeling live.
-  if (mutated) broadcastSoon();
-  res.json(presenceSnapshot());
+  // Count the visitor behind this beat, as a hashed membership test only.
+  usage.noteVisitor(adminAuth.hashIp(req.ip));
+
+  if (action === 'leave') presenceStore.leave(sessionId);
+  else presenceStore.beat(sessionId, slug, presenceOwner(req.ip));
+  usage.notePeakConcurrent(presenceStore.snapshot().total);
+  // Pre-serialised: the snapshot is shared by every caller within its window,
+  // so it is stringified once rather than once per beat.
+  res.type('application/json').send(presenceStore.snapshotJson());
 });
 
 // sendBeacon on page-hide hits this. The beacon's Blob type is application/json,
 // so the GLOBAL express.json() has usually ALREADY parsed req.body into an object
 // by the time we get here — the express.text() below then no-ops. So accept BOTH:
-// an already-parsed object OR a raw string. (The old code did JSON.parse() on the
-// object, which threw → the session was never deleted → leaves only dropped via
-// the 8s TTL. THAT was the "count takes ~11s to show 1 after closing tabs" bug.)
+// an already-parsed object OR a raw string.
 app.post('/api/presence/leave', express.text({ type: '*/*', limit: '4kb' }), (req, res) => {
-  // Same gate as /beat, and it must stay the same: a leave beacon that loses the
-  // race against the beat budget leaves a closed tab counted for the full 8s TTL,
-  // which is the "count takes ~11s to drop" symptom this endpoint exists to fix.
-  // 204 (not 429) on trip: this is a fire-and-forget beacon the client never
-  // reads, and the session still expires via the TTL.
-  if (!writeAllow(req.ip || 'unknown', PRESENCE_BURST, PRESENCE_MS_PER_TOKEN)) return res.status(204).end();
+  // Same per-address budget as /beat. 204 (not 429) on trip: this is a
+  // fire-and-forget beacon the client never reads, and the session still
+  // expires via the TTL.
+  if (!writeAllow('presenceIp', req.ip)) return res.status(204).end();
   let sessionId;
   const b = req.body;
   if (b && typeof b === 'object') sessionId = b.sessionId;
   else { try { sessionId = JSON.parse(b || '{}').sessionId; } catch {} }
-  if (sessionId && presence.has(sessionId)) { presence.delete(sessionId); broadcastSoon(); }
+  presenceStore.leave(sessionId);
   res.status(204).end();
 });
 
-app.get('/api/presence', (req, res) => res.json(presenceSnapshot()));
-
-app.get('/api/presence/stream', (req, res) => {
-  res.set({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no'
-  });
-  res.flushHeaders?.();
-  res.write(`retry: 3000\n\n`);
-  res.write(`data: ${JSON.stringify(presenceSnapshot())}\n\n`);
-  res.flush?.();
-  sseClients.add(res);
-  req.on('close', () => { sseClients.delete(res); });
+app.get('/api/presence', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  presenceSnapshot();
+  res.type('application/json').send(presenceStore.snapshotJson());
 });
 
 // ============================================================
@@ -3690,8 +5728,8 @@ app.get('/api/games', async (req, res) => {
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 24));
     const offset = (page - 1) * limit;
-    const cat = req.query.category
-      ? canonCategory(String(req.query.category).toLowerCase())
+    const cat = typeof req.query.category === 'string' && req.query.category
+      ? canonCategory(req.query.category.toLowerCase())
       : null;
     const seed = (req.query.seed || '').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || null;
 
@@ -3722,12 +5760,18 @@ app.get('/api/games', async (req, res) => {
   }
 
   // -------- Mode 2: in-memory, popularity-ranked + per-visit shuffle --------
-  const limit  = Math.min(parseInt(req.query.limit) || 200, 1000);
-  const offset = parseInt(req.query.offset) || 0;
+  // Bounded and non-negative: a negative offset made slice() count from the END
+  // of the list, and a negative limit was passed straight through.
+  const limit  = Math.min(Math.max(1, parseInt(req.query.limit) || 200), 1000);
+  const offset = Math.max(0, parseInt(req.query.offset) || 0);
   // Canonicalized for the same reason as /category/:catSlug — an alias spelling
   // would otherwise compare against already-canonical stored values and return [].
-  const cat    = req.query.category ? canonCategory(String(req.query.category).toLowerCase()) : req.query.category;
-  const q      = (req.query.q || '').toLowerCase();
+  // STRINGS ONLY. The query parser turns `?q[]=a` or `?q[x]=a` into an array or
+  // object, and `.toLowerCase()` on either threw — a 500 on demand from any
+  // URL. A non-string parameter is treated as absent.
+  const cat    = typeof req.query.category === 'string' && req.query.category
+    ? canonCategory(req.query.category.toLowerCase()) : null;
+  const q      = (typeof req.query.q === 'string' ? req.query.q : '').toLowerCase().slice(0, 100);
   // `seed` makes the order popularity-WEIGHTED-RANDOM and stable for this visit;
   // sanitized to a short token. Absent → deterministic popularity order.
   const seed   = (req.query.seed || '').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || null;
@@ -3778,8 +5822,12 @@ app.post('/api/play', (req, res) => {
   try {
     const slug = String(req.body?.slug || '').toLowerCase().slice(0, 80);
     if (!slug || !bySlug.has(slug)) return res.json({ ok: false });
-    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-      .split(',')[0].trim();
+    // req.ip, NOT the leftmost X-Forwarded-For entry. `trust proxy` is on, so
+    // req.ip is the address the trusted hop vouched for; the leftmost XFF entry
+    // is whatever the CLIENT wrote. Reading the header directly let a bot defeat
+    // this limit entirely by varying one header per request, while the other 17
+    // call sites already used req.ip. Same value, minus the bypass.
+    const ip = String(req.ip || req.socket?.remoteAddress || '');
     const key = ip + '|' + slug;
     const now = Date.now();
     if (now - (playDedup.get(key) || 0) < 30000) return res.json({ ok: true, deduped: true });
@@ -3820,11 +5868,15 @@ const FOR_YOU_MAX_LIMIT = 36;
 app.post('/api/for-you', (req, res) => {
   res.set('Cache-Control', 'private, no-store');
   try {
-    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-      .split(',')[0].trim();
+    // req.ip, NOT the leftmost X-Forwarded-For entry. `trust proxy` is on, so
+    // req.ip is the address the trusted hop vouched for; the leftmost XFF entry
+    // is whatever the CLIENT wrote. Reading the header directly let a bot defeat
+    // this limit entirely by varying one header per request, while the other 17
+    // call sites already used req.ip. Same value, minus the bypass.
+    const ip = String(req.ip || req.socket?.remoteAddress || '');
     // Cheap endpoint, but it reads the whole catalog on the fallback path, so
     // it still gets a bucket. Generous limit: a normal page load makes one call.
-    if (!writeAllow(ip, 30, 2000)) {
+    if (!writeAllow('forYou', ip)) {
       return res.status(429).json({ games: [], error: 'rate-limited' });
     }
 
@@ -4109,7 +6161,7 @@ async function handleVibe(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
   const body = req.method === 'POST' ? (req.body || {}) : {};
   const q = String(req.query.q ?? body.q ?? '').trim().slice(0, 200);
-  if (!q) return res.json({ games: [], keywords: [], source: 'empty', count: 0 });
+  if (!q) return res.json(vibeResponse({ source: 'empty' }));
 
   const cleanSlugs = (arr) => (Array.isArray(arr) ? arr : [])
     .map(s => String(s || '').toLowerCase().slice(0, 80)).filter(Boolean).slice(0, 40);
@@ -4120,7 +6172,9 @@ async function handleVibe(req, res) {
   const cacheKey = q.toLowerCase().replace(/\s+/g, ' ');
   if (!personalized) {
     const hit = vibeCacheGet(cacheKey);
-    if (hit) return res.json({ ...hit, cached: true });
+    // Re-normalised rather than spread: a payload cached by an older build of
+    // this file predates the contract and would otherwise be served as-is.
+    if (hit) return res.json(vibeResponse({ ...hit, cached: true }));
   }
 
   const intent = parseVibe(q);
@@ -4139,8 +6193,7 @@ async function handleVibe(req, res) {
     }
     let games = rankCatalogByKeywords(keywords, 18);
     if (!games.length) games = rankCatalogByKeywords(['arcade', 'puzzle', 'run', 'race', 'ball', 'jump'], 18);
-    const payload = { games, keywords: keywords.slice(0, 10), source, count: games.length,
-      understood: '', personalized: false };
+    const payload = vibeResponse({ games, keywords, source });
     if (!personalized) vibeCacheSet(cacheKey, payload);
     return res.json(payload);
   }
@@ -4209,15 +6262,14 @@ async function handleVibe(req, res) {
     source = 'fallback';
   }
 
-  const payload = {
+  const payload = vibeResponse({
     games,
-    count: games.length,
-    keywords: intent.keywords.slice(0, 10),
+    keywords: intent.keywords,
     understood: describeIntent(intent),
     source,
     personalized: taste.size > 0,
     candidates: matched,
-  };
+  });
   if (!personalized) vibeCacheSet(cacheKey, payload);
   return res.json(payload);
 }
@@ -4417,36 +6469,39 @@ const EMBED_GUARD = `
 // ---------- Shared upstream fetcher ----------
 // One pass: pick UA, set realistic browser headers, follow redirects, time out.
 // Caller decides whether to retry with a different UA.
-async function fetchAsBrowser(targetUrl, { ua, timeoutMs = 20_000, accept } = {}) {
+// Every hop goes through lib/safe-fetch.mjs: the destination address is checked
+// at connect time and every redirect is re-validated, so a URL from a query
+// string, a catalog row or a community submission cannot be bounced to the
+// cloud metadata service or to this host's own network. `allowHttp` is for the
+// thumbnail path only, whose host is already allowlisted. `denyHost` refuses an
+// AI inference endpoint on EVERY hop, so a public URL that redirects to one is
+// stopped before the second connection opens (lib/ai-hosts.mjs).
+async function fetchAsBrowser(targetUrl, { ua, timeoutMs = 20_000, accept, allowHttp = false, maxBytes } = {}) {
   const upstream = new URL(targetUrl);
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    return await fetch(targetUrl, {
-      signal: ctrl.signal,
-      redirect: 'follow',
-      headers: {
-        'User-Agent': ua || UA_POOL[0],
-        'Accept': accept || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        // Pretend the request comes from the upstream itself — bypasses anti-hotlinking + framing CTAs.
-        'Referer': upstream.origin + '/',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="131", "Google Chrome";v="131"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
-  } finally {
-    clearTimeout(t);
-  }
+  return safeFetch(targetUrl, {
+    timeoutMs,
+    allowHttp,
+    denyHost: isAiProviderHost,
+    ...(maxBytes ? { maxBytes } : {}),
+    headers: {
+      'User-Agent': ua || UA_POOL[0],
+      'Accept': accept || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      // Pretend the request comes from the upstream itself — bypasses anti-hotlinking + framing CTAs.
+      'Referer': upstream.origin + '/',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="131", "Google Chrome";v="131"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  });
 }
 
 // Y8 fit-to-frame CSS. Y8's /embed/ pages hard-code the game into a nested
@@ -4621,7 +6676,7 @@ async function serveEmbed(req, res, upstreamUrl, cacheKeyBase) {
   res.status(502).type('html').send(
     `<!doctype html><html><body style="margin:0;font-family:Inter,system-ui,sans-serif;background:#1a0b3d;color:#fff;padding:48px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:100vh">
       <h2 style="margin:0 0 8px;font-weight:800">Couldn’t reach the game</h2>
-      <p style="color:#b4abe0;margin:0 0 18px">${htmlEscape(lastErr?.message || 'upstream failed')}</p>
+      <p style="color:#b4abe0;margin:0 0 18px">${lastErr instanceof BlockedDestinationError ? 'This game points somewhere that cannot be loaded.' : 'The game’s server did not respond. Try again in a moment.'}</p>
       <a href="${htmlEscape(upstreamUrl)}" target="_blank" rel="noopener" style="color:#ffe000;font-weight:700;border:1px solid rgba(255,224,0,.45);padding:10px 16px;border-radius:10px;text-decoration:none">Open directly →</a>
     </body></html>`
   );
@@ -4728,7 +6783,10 @@ async function fetchThumb(target) {
   }
   if (thumbInFlight.has(target)) return thumbInFlight.get(target);
   const work = (async () => {
-    const r = await fetchAsBrowser(target, { ua: UA_POOL[0], timeoutMs: 12_000, accept: 'image/avif,image/webp,image/*,*/*' });
+    const r = await fetchAsBrowser(target, {
+      ua: UA_POOL[0], timeoutMs: 12_000, accept: 'image/avif,image/webp,image/*,*/*',
+      allowHttp: true, maxBytes: THUMB_MAX_BYTES,
+    });
     if (!r.ok) throw new Error('upstream ' + r.status);
     const type = r.headers.get('content-type') || '';
     if (!/^image\//i.test(type)) throw new Error('not an image');
@@ -4753,8 +6811,20 @@ app.get('/thumb', async (req, res) => {
   try { target = new URL(raw); } catch { return res.status(400).type('text').send('bad url'); }
   if (target.protocol !== 'https:' && target.protocol !== 'http:') return res.status(400).type('text').send('http(s) only');
   if (isInternalHost(target.hostname)) return res.status(403).type('text').send('blocked host');
+  // Checked ahead of the CDN allowlist, not instead of it: an image CDN that
+  // fetches origins on request (cloudimage is one) would otherwise relay an AI
+  // URL carried in its own path. See lib/ai-hosts.mjs.
+  if (mentionsAiProvider(target)) {
+    return res.status(403).type('text').send('AI providers are not proxied — ZoFHub runs AI in your browser');
+  }
   // Never a general-purpose image proxy: only the known game CDNs.
-  if (!THUMB_PROXY_HOSTS.test(target.hostname)) return res.redirect(302, target.toString());
+  //
+  // This used to 302 to the target for any other host. That made /thumb an
+  // OPEN REDIRECT — /thumb?u=https://phishing.example bounced a visitor off
+  // this domain to anywhere — and nothing needed it: thumbUrl() only ever
+  // rewrites allowlisted hosts to /thumb, so a non-allowlisted ?u= can only
+  // come from a hand-crafted link. It is refused instead.
+  if (!THUMB_PROXY_HOSTS.test(target.hostname)) return res.status(400).type('text').send('host not allowed');
   try {
     const { buf, type } = await fetchThumb(target.toString());
     res.setHeader('content-type', type);
@@ -4778,9 +6848,11 @@ app.get('/asset', async (req, res) => {
   try { target = new URL(raw); } catch { return res.status(400).type('text').send('bad url'); }
   if (target.protocol !== 'https:') return res.status(400).type('text').send('https only');
   if (isInternalHost(target.hostname)) return res.status(403).type('text').send('blocked host');
-  // This server never fetches an inference endpoint for a caller. See
-  // AI_PROVIDER_HOSTS — without this, /asset was a working AI proxy.
-  if (AI_PROVIDER_HOSTS.test(target.hostname)) {
+  // This server never fetches an inference endpoint for a caller — not by
+  // name, not with a trailing dot, not smuggled inside another URL, and not at
+  // the end of a redirect (fetchAsBrowser re-checks every hop). Without this,
+  // /asset was a working AI proxy. See lib/ai-hosts.mjs.
+  if (mentionsAiProvider(target)) {
     return res.status(403).type('text').send('AI providers are not proxied — ZoFHub runs AI in your browser');
   }
 
@@ -4826,7 +6898,13 @@ app.get('/asset', async (req, res) => {
     }
     return res.end();
   } catch (e) {
-    if (!res.headersSent) return res.status(502).type('text').send('asset proxy failed: ' + (e.message || 'unknown'));
+    // A fixed message: e.message can carry resolver output, internal
+    // hostnames or addresses, none of which belong in a response.
+    if (!res.headersSent) {
+      return e instanceof BlockedDestinationError
+        ? res.status(403).type('text').send('blocked destination')
+        : res.status(502).type('text').send('asset unavailable');
+    }
     try { return res.end(); } catch {}
   }
 });
@@ -4844,46 +6922,68 @@ app.get('/asset', async (req, res) => {
 // embeddable:true; fake/broken hashes that return 200 are caught later
 // by the game-page.js extended-loading state (6 s → "Try proxy" link).
 // ========================================================================
-app.get('/api/frame-check', async (req, res) => {
-  res.setHeader('Cache-Control', 'public, max-age=600');
-  const slug = req.query.slug;
-  if (!slug) return res.json({ embeddable: null, error: 'missing slug' });
-  const game = bySlug.get(slug);
-  if (!game) return res.json({ embeddable: null, error: 'not found' });
+// Server-side memo of verdicts. The CDN header below only helps when a CDN is
+// in front; without one, every call was a fresh outbound request, so the route
+// turned page views into traffic aimed at publishers. One probe per game per
+// ten minutes, shared by every visitor, and a per-address budget on top.
+const FRAME_CHECK_TTL_MS = 10 * 60 * 1000;
+const FRAME_CHECK_MAX = 5_000;
+const frameCheckCache = new Map();          // slug -> { at, body }
 
-  const ctrl = new AbortController();
-  const t    = setTimeout(() => ctrl.abort(), 4_000);
+app.get('/api/frame-check', async (req, res) => {
+  const slug = typeof req.query.slug === 'string' ? req.query.slug : '';
+  if (!slug) return res.status(400).json({ embeddable: null, error: 'missing slug' });
+  const game = bySlug.get(slug);
+  if (!game) return res.status(404).json({ embeddable: null, error: 'not found' });
+
+  const hit = frameCheckCache.get(slug);
+  if (hit && Date.now() - hit.at < FRAME_CHECK_TTL_MS) {
+    res.setHeader('Cache-Control', 'public, max-age=600');
+    return res.json(hit.body);
+  }
+  if (!writeAllow('frameCheck', req.ip)) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(429).json({ embeddable: null, error: 'rate-limited' });
+  }
+
+  const remember = (body) => {
+    if (frameCheckCache.size >= FRAME_CHECK_MAX) frameCheckCache.clear();
+    frameCheckCache.set(slug, { at: Date.now(), body });
+    res.setHeader('Cache-Control', 'public, max-age=600');
+    return res.json(body);
+  };
 
   try {
-    const r = await fetch(game.embed_url, {
+    // Through safe-fetch: a catalog row is third-party data, and its URL — or a
+    // redirect from it — must not be able to point this server inward.
+    const r = await safeFetch(game.embed_url, {
       method: 'HEAD',
-      signal: ctrl.signal,
-      redirect: 'follow',
+      timeoutMs: 4_000,
       headers: {
         'User-Agent': UA_POOL[0],
         'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
         'Referer': (() => { try { return new URL(game.embed_url).origin + '/'; } catch { return ''; } })()
       }
     });
-    clearTimeout(t);
 
     if (r.status === 404 || r.status === 410) {
-      return res.json({ embeddable: false, dead: true, reason: 'not-found', status: r.status });
+      return remember({ embeddable: false, dead: true, reason: 'not-found', status: r.status });
     }
-
     const xfo = r.headers.get('x-frame-options') || '';
     const csp = r.headers.get('content-security-policy') || '';
     if (/\b(deny|sameorigin)\b/i.test(xfo)) {
-      return res.json({ embeddable: false, reason: 'x-frame-options' });
+      return remember({ embeddable: false, reason: 'x-frame-options' });
     }
     if (/frame-ancestors\b/i.test(csp) && !/frame-ancestors\s+['"]?\*/i.test(csp)) {
-      return res.json({ embeddable: false, reason: 'csp-frame-ancestors' });
+      return remember({ embeddable: false, reason: 'csp-frame-ancestors' });
     }
-
-    return res.json({ embeddable: true, status: r.status });
+    return remember({ embeddable: true, status: r.status });
   } catch (e) {
-    clearTimeout(t);
-    return res.json({ embeddable: null, error: e.name === 'AbortError' ? 'timeout' : e.message });
+    // Not cached: a timeout is a fact about this moment, not about the game.
+    res.setHeader('Cache-Control', 'no-store');
+    const error = e instanceof BlockedDestinationError ? 'blocked-destination'
+      : e?.name === 'AbortError' ? 'timeout' : 'unreachable';
+    return res.json({ embeddable: null, error });
   }
 });
 
@@ -4895,13 +6995,11 @@ app.get('/api/frame-check', async (req, res) => {
 // ========================================================================
 app.get('/api/proxy/diag', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  // Rate-limit: this endpoint fetches a caller-supplied URL server-side, so cap
-  // it to stop it being used as a fast internal port-scanner / traffic amplifier.
-  if (!writeAllow(req.ip || 'unknown', 10, 3000)) {
-    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
-  }
+  // Every refusal below is decided from the URL alone and opens no connection,
+  // so they run BEFORE the rate budget is spent: the budget exists to cap
+  // outbound fetches, and a refused URL never makes one.
   const raw = req.query.u;
-  if (!raw) return res.json({ ok: false, error: 'missing ?u=' });
+  if (!raw || typeof raw !== 'string') return res.json({ ok: false, error: 'missing ?u=' });
   let target;
   try { target = new URL(raw); } catch { return res.json({ ok: false, error: 'bad url' }); }
   // SSRF guard: only ever probe PUBLIC https game hosts. Refuse http/other
@@ -4914,8 +7012,13 @@ app.get('/api/proxy/diag', async (req, res) => {
   // below is fetchAsBrowser(), which issues a full GET with redirects followed —
   // not the HEAD its own comment implies. Aimed at an inference endpoint it
   // would make this server generate and download AI output.
-  if (AI_PROVIDER_HOSTS.test(target.hostname)) {
+  if (mentionsAiProvider(target)) {
     return res.status(403).json({ ok: false, error: 'AI providers are not fetched by this server' });
+  }
+  // Rate-limit: this endpoint fetches a caller-supplied URL server-side, so cap
+  // it to stop it being used as a fast internal port-scanner / traffic amplifier.
+  if (!writeAllow('proxyDiag', req.ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests — slow down.' });
   }
 
   const report = { url: target.toString(), checks: {}, ts: new Date().toISOString() };
@@ -4925,7 +7028,7 @@ app.get('/api/proxy/diag', async (req, res) => {
     const r = await fetchAsBrowser(target.toString(), { ua: UA_POOL[0], timeoutMs: 5_000 });
     report.checks.direct = { ok: r.ok, status: r.status, contentType: r.headers.get('content-type') || null };
   } catch (e) {
-    report.checks.direct = { ok: false, error: e.message };
+    report.checks.direct = { ok: false, error: e instanceof BlockedDestinationError ? 'blocked-destination' : (e?.name === 'AbortError' ? 'timeout' : 'unreachable') };
   }
 
   // 2) Asset proxy — does our /asset path succeed locally?  (Internal sanity check.)
@@ -4973,9 +7076,38 @@ function injectGdReferrer(rawUrl, originUrl, slug) {
 // last 30-min refresh, or the brief window right after a restart when we're still
 // serving the bundled set. Guarantees a tapped game always opens. Result is
 // cached into bySlug so the next tap is instant.
+// Negative cache for the live lookup below. /play/<anything> is public, and
+// every miss used to cost one database query — so requesting random slugs was
+// a free way to turn page views into Supabase load. A malformed slug never
+// reaches the database, and a well-formed miss is remembered for 5 minutes.
+const SLUG_MISS_TTL_MS = 5 * 60 * 1000;
+const SLUG_MISS_MAX = 5_000;
+const slugMisses = new Map();            // slug -> expiresAt
+function slugMissCached(slug) {
+  const exp = slugMisses.get(slug);
+  if (exp === undefined) return false;
+  if (exp > Date.now()) return true;
+  slugMisses.delete(slug);
+  return false;
+}
+function rememberSlugMiss(slug) {
+  if (slugMisses.size >= SLUG_MISS_MAX) slugMisses.clear();   // bounded; misses are cheap to relearn
+  slugMisses.set(slug, Date.now() + SLUG_MISS_TTL_MS);
+}
+
 async function fetchGameBySlug(slug) {
   const supa = getSupabase();
-  if (!supa || !slug) return null;
+  if (!supa || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug)) return null;
+  if (slugMissCached(slug)) return null;
+  const found = await fetchGameBySlugUncached(supa, slug);
+  // Only a CONFIRMED miss is cached. `undefined` means the lookup itself
+  // failed (network, database) — caching that would hide a real game for five
+  // minutes after a blip.
+  if (found === null) rememberSlugMiss(slug);
+  return found || null;
+}
+
+async function fetchGameBySlugUncached(supa, slug) {
   try {
     const { data, error } = await supa
       .from('games_public')
@@ -4983,7 +7115,8 @@ async function fetchGameBySlug(slug) {
       .eq('slug', slug)
       .limit(1)
       .maybeSingle();
-    if (error || !data) return null;
+    if (error) return undefined;
+    if (!data) return null;
     const game = normalizeRuntimeEntry(data);
     if (!game) return null;
     // Respect serve-layer overrides (licensing removals) on this direct-DB
@@ -4992,11 +7125,14 @@ async function fetchGameBySlug(slug) {
     // still load it, bypassing the catalog filter.
     const [kept] = applyCatalogOverrides([game], { injectAdds: false });
     if (!kept) return null;
+    // Same untrusted-input normalisation setCatalog applies; this path adds a
+    // game to bySlug without going through it.
+    if (sanitizeCatalogEntry(kept) === null) return null;
     if (kept.slug) bySlug.set(kept.slug, kept);    // warm the cache for next time
     return kept;
   } catch (e) {
     console.warn('[zofhub] fetchGameBySlug failed:', e.message);
-    return null;
+    return undefined;
   }
 }
 
@@ -5099,14 +7235,20 @@ app.get('/play/:gameSlug', async (req, res) => {
     // directOnly = GameMonetize/GameDistribution — the client loader must NEVER
     // fall back to the proxy for these (it black-screens them). Emitted as a bare
     // JS boolean into window.ZOFHUB_GAME, so no htmlEscape.
-    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false');
+    .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false')
+    // Whether ANY region has a pre-roll configured — deliberately not this
+    // visitor's region, so the page stays identical for every visitor. When it
+    // is false, game-page.js binds the frame immediately and never waits on
+    // /api/site-config; when true, that response says whether THIS visitor
+    // actually gets one. Bare JS boolean, like DIRECT_ONLY.
+    .replace(/\{\{HAS_PREROLL\}\}/g,  prerollConfigured() ? 'true' : 'false');
   res.set('Cache-Control', 'no-cache').send(html);
 });
 
 // ========================================================================
 // /ads.txt — IAB authorized-digital-sellers declaration.
-// ZoFHub is a proxy site and uses NO Google AdSense. It monetizes via
-// proxy-friendly networks (Adsterra / HilltopAds / Monetag / …). Most of those
+// ZoFHub is a proxy site and uses NO Google AdSense. It monetizes via the six
+// proxy-friendly networks in lib/ad-providers.mjs. Most of those
 // use popunder/push formats that need no ads.txt entry; if a network DOES give
 // you one, add it via the ADS_TXT_EXTRA env var (\n-separated). In-game ads run
 // under each game publisher's own domain/ads.txt, not here.
@@ -5184,6 +7326,8 @@ app.get('/sitemap.xml', (req, res) => {
   // Search Console reports as a crawl error against the whole sitemap. Only add
   // a path here that has a route above.
   add('/community', '0.5', 'weekly');
+  add('/donate', '0.3', 'monthly');
+  add('/leaderboard', '0.4', 'daily');
   add('/ai', '0.5', 'monthly');
   // The copyleft source offer. Listed so it is independently discoverable even
   // if the footer link is ever lost in a redesign — AGPL §13 compliance should
@@ -5205,59 +7349,22 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(join(PUBLIC_DIR, 'assets', 'favicon.png'), err => { if (err) res.status(404).end(); });
 });
 
-// Frontend config read at load. ZoFHub is always a proxy site monetized by
-// proxy-friendly ad networks (no AdSense). Google ad code is filtered out of both
-// the page-level scripts and the footer banner so it can never load on a proxy
-// domain. layout.js reads this to wire up proxy-ads.js + the footer banner.
-// /api/site-config — what the page needs to know before it renders.
-//
-// THE AD PAYLOAD IS SURFACE-GATED. The caller tells us which page it is on (the
-// Referer, or an explicit ?surface=), and a proxy surface gets an EMPTY ad
-// config — no script URLs, no slot markup, nothing to inject.
-//
-// This is the server half of the proxy/ad separation. The client half is in
-// layout.js. Both exist because either alone is one edit away from failing
-// open: layout.js is cached in visitors' browsers for a long time, and a
-// client-side-only check would keep serving ads on the proxy page until every
-// cached copy expired.
-app.get('/api/site-config', (req, res) => {
-  // Per-surface answers must not be shared by a cache. `Vary: Referer` is not
-  // reliably honoured by intermediaries, so the ad-bearing response is marked
-  // private and the whole route drops to a short private cache.
-  res.set('Cache-Control', 'private, max-age=60');
-
-  // Where is the caller? Prefer an explicit surface hint; fall back to the
-  // Referer path. Anything unrecognised is treated as NOT an ad surface —
-  // deny-by-default, because an unclassified surface is one nobody reasoned
-  // about (see isAdSurface in lib/ad-providers.mjs).
-  let surface = String(req.query.surface || '');
-  if (!surface) {
-    try { surface = new URL(req.get('referer') || '', 'http://x').pathname; }
-    catch { surface = ''; }
-  }
-  const adsAllowed = isAdSurface(surface);
-
-  const payload = { proxy: true, adsAllowed };
-  if (adsAllowed) {
-    Object.assign(payload, publicAdConfig(AD_CONFIG));
-  } else {
-    // Explicitly empty rather than absent, so a client that forgets to check
-    // `adsAllowed` still receives nothing to render.
-    Object.assign(payload, publicAdConfig({
-      scripts: [], slots: { header: '', sidebar: '', footer: '', incontent: '' },
-    }));
-  }
-  res.json(payload);
-});
-
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));
 app.get('/ai',       (req, res) => res.sendFile(join(PUBLIC_DIR, 'ai.html')));
 app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')));
-// GUST — the primary, service-worker-free proxy browser. `/gust` and `/proxy`
-// both resolve to the vendored single-file app (its sub-assets live under
-// /gust/vendor/ and are served by the static mount above).
-app.get(['/gust', '/proxy'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'gust', 'index.html')));
+// GUST's `/gust` and `/proxy` routes moved to proxy-engine/mount.mjs along with
+// the bundle itself. They are registered there, at the same URLs, so no client
+// changed — this file simply no longer serves any AGPL asset.
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
+
+// Donations. The dialog (donate.js) is the fast path from any page; this is the
+// real, linkable, JS-optional page behind it. Both read the SAME /api/donate
+// response, so there is exactly one source for a wallet address.
+app.get('/donate',   (req, res) => res.sendFile(join(PUBLIC_DIR, 'donate.html')));
+
+// Leaderboard. ?game=<slug> narrows it to one game; the page reads /api/scores
+// and renders "not installed", "empty" and "failed" as three different things.
+app.get('/leaderboard', (req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard.html')));
 
 // ========================================================================
 // GameFlare — catalog + internal player.
@@ -5513,6 +7620,49 @@ app.get('/licenses.json', (req, res) => {
   res.json(getManifest(requestOrigin(req), contactEmail));
 });
 
+// Read ONCE at boot. The file cannot change while the process runs, and a
+// synchronous read inside a handler stalls the event loop for every concurrent
+// request, not only the one asking for the licence text.
+const ANURA_MODIFICATION_SOURCE = (() => {
+  try { return readFileSync(join(__dirname, 'lib', 'anura-host.mjs'), 'utf8'); }
+  catch (e) { return `(could not read lib/anura-host.mjs: ${e.message})`; }
+})();
+
+// ── AGPL §5 + §13 for AnuraOS ──────────────────────────────────────────────
+// GUST's change notice can point at /gust/index.html because the modification
+// lives in a file ZoFHub serves. AnuraOS's does not: its one change is applied
+// at serve time by lib/anura-host.mjs, to a file that lives on a DIFFERENT
+// origin. So the Corresponding Source for that change is published here,
+// literally — the function that makes it, not a description of it.
+//
+// Registered before /licenses/:id so the id route cannot swallow it.
+app.get('/licenses/anura-modifications', (req, res) => {
+  const source = ANURA_MODIFICATION_SOURCE;
+  res.type('text/plain; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(
+    'AnuraOS — AGPL-3.0 change notice (GNU AGPL v3 section 5)\n'
+    + '=========================================================\n\n'
+    + 'Upstream:  https://github.com/MercuryWorkshop/anuraOS\n'
+    + 'Obtained:  the pinned release archive, by tools/fetch-anura.mjs.\n'
+    + '           Its sha256 is recorded in data/anura-release.json.\n\n'
+    + 'THE CHANGE\n'
+    + '----------\n'
+    + 'Exactly one file is not served as published: /config.json. A "wisp-url"\n'
+    + 'key is added to its defaultsettings object, naming this deployment\'s own\n'
+    + 'same-origin /wisp/ tunnel.\n\n'
+    + 'Upstream ships no wisp-url, so lib/Anura.js builds its Networking with an\n'
+    + 'undefined server and the browser has no working tunnel. Supplying it here\n'
+    + 'also keeps proxy traffic on this deployment rather than a third-party\n'
+    + 'relay, and it is derived from the incoming request so it stays correct if\n'
+    + 'this site is redeployed on another domain.\n\n'
+    + 'Every other file in the bundle is served byte-for-byte as published.\n\n'
+    + 'THE SOURCE THAT MAKES THE CHANGE (lib/anura-host.mjs)\n'
+    + '-----------------------------------------------------\n\n'
+    + source,
+  );
+});
+
 // Verbatim license text, e.g. /licenses/ultraviolet.
 // text/plain so browsers display it rather than download it, and so no markup
 // can alter a legal document.
@@ -5686,12 +7836,286 @@ app.use((err, req, res, _next) => {
 // HTTP + WebSocket
 // ========================================================================
 httpServer.on('request', app);
-httpServer.on('upgrade', (req, socket, head) => {
+
+// ── Wisp tunnel lifecycle ──────────────────────────────────────────────────
+// An upgraded socket leaves Express entirely: no route, no res.end(), none of
+// the timeouts that reclaim an ordinary request. It lives until somebody closes
+// it — and the somebody is usually a browser tab that was closed on a laptop
+// that went to sleep, which sends no FIN at all. Those sockets are invisible
+// and permanent, and each one pins its Wisp stream buffers.
+//
+// Three mechanisms, each covering what the others cannot:
+//
+//   TCP KEEPALIVE reclaims sockets whose peer is GONE (sleeping laptop, dropped
+//   Wi-Fi, killed tab). This is the one that matters, because it distinguishes
+//   "dead" from "quiet" at the OS level — a long-lived tunnel with no traffic is
+//   perfectly healthy and must not be killed for being idle.
+//
+//   AN IDLE TIMEOUT reclaims sockets that are merely silent for far longer than
+//   any live session plausibly is. Ten minutes of literally zero bytes on a
+//   proxy tunnel is an abandoned tab, not a patient user.
+//
+//   A CONCURRENCY CAP keeps a burst from becoming an OOM. Refusing the 513th
+//   tunnel costs one visitor a retry; accepting it can cost every visitor the
+//   process.
+let WISP_IDLE_MS = 10 * 60 * 1000;     // no bytes either way for this long → reclaim (policy: idleMinutes)
+const WISP_KEEPALIVE_MS = 30 * 1000;   // probe a silent peer this often
+let WISP_MAX_TUNNELS = 512;            // hard ceiling on concurrent upgrades (policy: maxTunnels)
+const wispSockets = new Set();
+
+// ── Per-client fairness cap ──────────────────────────────────────────────
+// The global cap above stops the process being OOM-killed, but it does nothing
+// about FAIRNESS: one client — a runaway tab reconnecting in a loop, a script,
+// a leak on the visitor's own end — can open hundreds of tunnels and consume
+// the whole pool, so the 512th refusal lands on an innocent bystander while the
+// offender holds 500 sockets. That is the "single-user stream leak crashes the
+// core" case. This bounds any one client to a slice of the pool.
+//
+// The key is the client address, resolved exactly as req.ip is (see
+// wispClientKey below). This proxy is anonymous — there is no per-user token
+// to key on. It is a coarse key (a shared NAT counts as one client), which is
+// why the per-IP cap is generous relative to the global one: it exists to stop
+// a single runaway, not to ration normal use.
+// WISP_MAX_PER_IP in the environment is a ceiling; the console's policy
+// (maxPerClient) can only lower it (applyProxyPolicy).
+const WISP_ENV_MAX_PER_IP = (() => {
+  const raw = Number(process.env.WISP_MAX_PER_IP);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : null;
+})();
+let WISP_MAX_PER_IP = WISP_ENV_MAX_PER_IP || 32;
+const wispPerIp = new Map();           // ipKey -> live tunnel count
+
+// The raw upgrade `req` is not an Express req, so req.ip is unavailable here.
+//
+// This used to take the LEFT-MOST X-Forwarded-For entry, which is text the
+// client writes: a runaway or hostile client could present a new "address"
+// on every upgrade and never hit the per-client cap at all. It now resolves the
+// address with Express's own compiled trust function (lib/trust-proxy.mjs), so
+// the upgrade path believes exactly the hops req.ip believes — and IPv6 is
+// keyed on its /64, like every other budget.
+function wispClientKey(req, socket) {
+  return clientKeyOf(resolveClientIp(req, socket, TRUST_PROXY_FN));
+}
+
+// Telemetry for the admin console. Cheap by construction: `opened`, `closed`
+// and `rejected` are three integers, and the byte totals come from
+// socket.bytesRead / bytesWritten, which Node already maintains for every
+// socket — nothing here wraps a stream or copies a buffer, so measuring the
+// tunnel costs the tunnel nothing.
+//
+// Totals are accumulated ON CLOSE, because a socket's counters are only final
+// once it ends. Live traffic is summed across the open set at read time, so
+// `bytesIn` in the API is (settled + in-flight) rather than a figure that jumps
+// when a long download finally finishes.
+// `rejected` = refused at the global cap; `rejectedPerIp` = refused at the
+// per-client cap. Separated because they mean different things: the first says
+// "raise capacity", the second says "one client is misbehaving" — and a
+// dashboard that adds them together can never tell an operator which.
+const wispStats = { opened: 0, closed: 0, rejected: 0, rejectedPerIp: 0, peak: 0, bytesIn: 0, bytesOut: 0 };
+
+/** A point-in-time view of the tunnel layer, for /api/admin/proxy. */
+function wispSnapshot() {
+  let liveIn = 0, liveOut = 0;
+  for (const sock of wispSockets) {
+    liveIn += sock.bytesRead || 0;
+    liveOut += sock.bytesWritten || 0;
+  }
+  // The busiest single client, so a leak shows up as a number an operator can
+  // act on rather than being hidden inside the aggregate live count.
+  let topClient = 0;
+  for (const n of wispPerIp.values()) if (n > topClient) topClient = n;
+  return {
+    live: wispSockets.size,
+    capacity: WISP_MAX_TUNNELS,
+    // What an operator actually wants to know: how close to refusing are we?
+    saturationPct: Math.round((wispSockets.size / WISP_MAX_TUNNELS) * 1000) / 10,
+    peak: wispStats.peak,
+    opened: wispStats.opened,
+    closed: wispStats.closed,
+    // Non-zero means the cap is being hit and visitors are being turned away.
+    rejected: wispStats.rejected,
+    rejectedPerIp: wispStats.rejectedPerIp,
+    perIpCap: WISP_MAX_PER_IP,
+    distinctClients: wispPerIp.size,
+    topClientTunnels: topClient,
+    bytesIn: wispStats.bytesIn + liveIn,
+    bytesOut: wispStats.bytesOut + liveOut,
+    idleTimeoutMs: WISP_IDLE_MS,
+    keepAliveMs: WISP_KEEPALIVE_MS,
+  };
+}
+
+// The Origin a browser sends on a WebSocket upgrade must be this site. Without
+// the check any other website could open tunnels from its visitors' browsers
+// through this server. A request with no Origin is not a browser (browsers
+// always send one) and is left to the other checks.
+const PROXY_EXTRA_ORIGINS = new Set(String(process.env.PROXY_ALLOWED_ORIGINS || '')
+  .split(',').map((o) => o.trim().toLowerCase()).filter(Boolean));
+function upgradeOriginOk(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  let host;
+  try { host = new URL(origin).host.toLowerCase(); } catch { return false; }
+  const own = String(req.headers.host || '').toLowerCase();
+  // X-Forwarded-Host is believed only when a proxy in front is trusted at all
+  // (TRUST_PROXY); with none, it is text the client wrote.
+  const fwd = TRUST_PROXY.value && req.headers['x-forwarded-host']
+    ? String(req.headers['x-forwarded-host']).split(',')[0].trim().toLowerCase() : '';
+  return host === own || (!!fwd && host === fwd) || PROXY_EXTRA_ORIGINS.has(String(origin).toLowerCase());
+}
+
+function refuseUpgrade(socket, status, text) {
+  // A real HTTP response, not a bare destroy: a client that gets a status can
+  // back off, whereas a silent RST looks like a network fault and is retried
+  // immediately and forever.
+  try { socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); }
+  catch { /* peer already gone */ }
+  socket.destroy();
+}
+
+/**
+ * Every /wisp/ upgrade, from the main listener AND the AnuraOS listener, passes
+ * through here. The AnuraOS listener used to route straight into the tunnel,
+ * skipping the global cap, the per-client cap and the idle timeout; one handler
+ * for both is what makes "the same caps" true.
+ */
+async function handleProxyUpgrade(req, socket, head) {
   try {
-    if (req.url?.startsWith('/wisp/') && wisp?.routeRequest) wisp.routeRequest(req, socket, head);
-    else socket.end();
-  } catch (err) { console.error('[zofhub] upgrade error:', err); try { socket.end(); } catch {} }
-});
+    if (CONTROL.settings?.get('site.maintenance')?.enabled) { PROXY_REFUSALS.maintenance++; return refuseUpgrade(socket, 503, 'Service Unavailable'); }
+    if (PROXY_POLICY.accessMode === 'disabled') { PROXY_REFUSALS.disabled++; return refuseUpgrade(socket, 403, 'Forbidden'); }
+    if (!upgradeOriginOk(req)) { PROXY_REFUSALS.origin++; return refuseUpgrade(socket, 403, 'Forbidden'); }
+    if (wispSockets.size >= WISP_MAX_TUNNELS) { wispStats.rejected++; return refuseUpgrade(socket, 503, 'Service Unavailable'); }
+
+    // Per-client cap. Checked BEFORE routing the upgrade so a runaway client is
+    // refused without ever allocating a Wisp stream for it.
+    const ipKey = wispClientKey(req, socket);
+    if ((wispPerIp.get(ipKey) || 0) >= WISP_MAX_PER_IP) { wispStats.rejectedPerIp++; return refuseUpgrade(socket, 429, 'Too Many Requests'); }
+
+    let staff = false;
+    if (PROXY_POLICY.accessMode === 'staff') {
+      staff = await staffProxyAllowed(req.headers, resolveClientIp(req, socket, TRUST_PROXY_FN));
+      if (!staff) { PROXY_REFUSALS.staffOnly++; return refuseUpgrade(socket, 403, 'Forbidden'); }
+      if (socket.destroyed) return;
+    }
+
+    // The session record: counts and timestamps only, never destinations. The
+    // client tag is a short HMAC so the console can see "one client, many
+    // tunnels" without holding an address.
+    const clientTag = (adminAuth.hashIp(ipKey) || '').slice(0, 8) || null;
+    const sid = PROXY_SESSIONS.open({ clientTag, staff, kill: (reason) => { socket._zhCloseReason = reason; try { socket.destroy(); } catch { /* gone */ } } });
+
+    // Anything that is not exactly `/wisp/` is refused — including the
+    // `/wisp/host:port` wsproxy shape, which wisp-js would otherwise serve with
+    // a socket class of its own choosing, bypassing every check above.
+    if (!routeProxyUpgrade(wisp, req, socket, head, { TCPSocket: guardedSocketClass(sid) })) {
+      PROXY_SESSIONS.close(sid, 'bad_request');
+      return refuseUpgrade(socket, 400, 'Bad Request');
+    }
+
+    wispSockets.add(socket);
+    // Charge this tunnel to its client. The key is stored ON the socket so the
+    // close handler decrements the SAME bucket even if the header is gone by then.
+    socket._wispIpKey = ipKey;
+    wispPerIp.set(ipKey, (wispPerIp.get(ipKey) || 0) + 1);
+    wispStats.opened++;
+    if (wispSockets.size > wispStats.peak) wispStats.peak = wispSockets.size;
+    // Interactive proxy traffic is many small frames; Nagle batches them into
+    // visible input lag.
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, WISP_KEEPALIVE_MS);
+    socket.setTimeout(WISP_IDLE_MS);
+    // 'timeout' does NOT close the socket on its own — Node only notifies. The
+    // destroy has to be explicit, which is exactly the step that gets forgotten.
+    socket.on('timeout', () => { socket._zhCloseReason = 'idle_timeout'; try { socket.destroy(); } catch { /* raced */ } });
+    // One removal point for every ending: close covers error, timeout-destroy,
+    // FIN and RST alike, so neither the Set nor the per-client map nor the
+    // session table can outlive the sockets they track.
+    socket.once('close', () => {
+      wispSockets.delete(socket);
+      wispStats.closed++;
+      const key = socket._wispIpKey;
+      if (key !== undefined) {
+        const n = (wispPerIp.get(key) || 0) - 1;
+        if (n > 0) wispPerIp.set(key, n);
+        else wispPerIp.delete(key);
+      }
+      wispStats.bytesIn += socket.bytesRead || 0;
+      wispStats.bytesOut += socket.bytesWritten || 0;
+      PROXY_SESSIONS.close(sid, socket._zhCloseReason || 'closed');
+    });
+    socket.on('error', () => { /* handled by close; prevents an unhandled throw */ });
+  } catch (err) {
+    console.error('[zofhub] upgrade error:', err?.message || err);
+    try { socket.destroy(); } catch { /* already gone */ }
+  }
+}
+
+httpServer.on('upgrade', (req, socket, head) => { handleProxyUpgrade(req, socket, head); });
+
+// Session lifetime cap (policy: maxSessionMinutes). Idle sockets are reclaimed
+// by the socket timeout above; this catches the long-lived-but-busy tunnel.
+// A cleanup sweep over live sockets, not a job scheduler.
+setInterval(() => {
+  for (const [id, reason] of PROXY_SESSIONS.expired({ maxSessionMs: PROXY_POLICY.maxSessionMinutes * 60_000 })) {
+    PROXY_SESSIONS.terminate(id, reason);
+  }
+}, 30_000).unref();
+
+/** Everything the Proxy Management view shows, in one response. */
+function proxyControlOverview() {
+  return {
+    policy: { ...PROXY_POLICY },
+    engines: CONTROL.proxy ? CONTROL.proxy.snapshot().engines : [],
+    installed: { ...proxyStatus, anura: !!ANURA.serves },
+    status: CONTROL.proxy ? CONTROL.proxy.status() : null,
+    decisions: PROXY_GOVERNOR.stats(),
+    sessions: PROXY_SESSIONS.stats(),
+    refusals: { ...PROXY_REFUSALS },
+    tunnels: wispSnapshot(),
+    egress: egressReport(),
+    ceilings: {
+      maxPerClient: WISP_ENV_MAX_PER_IP, streamsPerTunnel: WISP_ENV_STREAM_CAP,
+      ports: WISP_POLICY.allowedPorts,
+    },
+  };
+}
+
+// Reclaim the whole tunnel set on shutdown. Without this, an orchestrator's
+// SIGTERM waits for the grace period and then SIGKILLs, because every open
+// tunnel is a reason for the server not to close — which turns the memory-based
+// 503 above into a hard kill instead of the clean restart it exists to enable.
+function closeWispTunnels() {
+  for (const sock of wispSockets) { try { sock.destroy(); } catch { /* ignore */ } }
+  wispSockets.clear();
+  wispPerIp.clear();
+}
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.once(sig, () => {
+    closeWispTunnels();
+    // Stop the managed daemon explicitly. node is PID 1 in the container, so a
+    // child left running would be orphaned into a zombie rather than reaped.
+    // Not awaited — the 5s backstop below bounds the whole shutdown, and the
+    // supervisor escalates SIGTERM to SIGKILL on its own timer.
+    stopSingbox({ graceMs: 3000 }).catch(() => {});
+    // The AnuraOS listener holds the event loop open on its own, so closing
+    // only httpServer would leave the process alive until the 5s backstop —
+    // turning every graceful stop into a five-second one.
+    try { anuraServer?.close(); } catch { /* not listening */ }
+    httpServer.close(() => process.exit(0));
+    // Backstop: if something still holds the loop open, leave anyway rather
+    // than hang until the platform's SIGKILL.
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}
+
+// Ordinary (non-upgraded) request timeouts. Express sets none of these, so a
+// client that opens a connection and sends headers slowly holds a socket
+// indefinitely. keepAliveTimeout sits UNDER headersTimeout deliberately: the
+// reverse ordering is the documented cause of sporadic 502s behind a load
+// balancer, where the balancer reuses a connection the server is closing.
+httpServer.keepAliveTimeout = 65_000;
+httpServer.headersTimeout = 70_000;
+httpServer.requestTimeout = 120_000;
 
 httpServer.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
@@ -5704,7 +8128,19 @@ httpServer.on('error', (err) => {
 });
 
 loadCatalog();                       // synchronous bundled load — guarantees a catalog
-startCronJobs();
+initControlPlane().catch((e) => console.warn('[control] init failed:', e?.message || e));
+// The weekly GameDistribution import is registered with the other cron jobs so
+// it shares their run history, overlap protection and /healthz reporting.
+startCronJobs({ extra: [{ label: 'gd-import', expr: '0 5 * * 0', fn: jobGdImport }] });
+
+// Managed sing-box, if configured. Deliberately NOT awaited: a daemon that is
+// slow to validate its config must not delay the web server, and every failure
+// inside is already contained (see lib/singbox-supervisor.mjs).
+if (singboxManaged()) {
+  startSingbox()
+    .then((r) => console.log(`[singbox] supervisor: ${r.started ? 'running' : 'not started'} (${r.reason})`))
+    .catch((e) => console.warn('[singbox] supervisor failed to start:', e?.message || e));
+}
 // Upgrade to the live Supabase catalog (best-effort; bundled stays if it fails),
 // then keep it fresh so auto-grown games appear without a restart.
 refreshCatalogFromSupabase().then(ok => {
@@ -5760,9 +8196,107 @@ function startListening(host, isFallback = false) {
     console.log(`  → catalog: ${CATALOG.source}`);
     console.log(`  → proxy:   ${enabled.length ? enabled.join(', ') : 'offline'}`);
     console.log('  ' + swapStatusLine());
+    // The EFFECTIVE egress policy, read back off the live wisp-js options —
+    // not the intended one. Those differ exactly when something is wrong.
+    console.log('  ' + wispPolicyLine(WISP_POLICY));
+    console.log('  ' + masqrStatusLine(MASQR));
+    console.log('  ' + geoStatusLine(GEO));
+    console.log('  ' + anuraStatusLine());
+    // Printed even when unconfigured, so "where did Kasm go?" is answerable
+    // from the boot banner instead of by reading source.
+    console.log('  ' + kasmStatusLine(KASM));
+    printAdminSecurityStatus();
+    console.log(`  → client IPs: trust proxy = ${JSON.stringify(TRUST_PROXY.value)} (${TRUST_PROXY.source})`);
+    // A baseline already near the health ceiling means the instance will be
+    // recycled as soon as traffic arrives, and again after every restart — a
+    // loop no in-process logic can break. Say so while it is still a warning.
+    {
+      const m = memoryReport();
+      if (m.pct >= HEALTH_MEM_MAX_PCT * 0.8) {
+        console.warn(`  → WARNING: memory is ${m.pct}% of the ${m.ceilingFrom} ceiling (${m.ceilingMb} MB) at startup,`
+          + ` close to the ${HEALTH_MEM_MAX_PCT}% health limit. Give the instance more memory or raise HEALTH_MEM_MAX_PCT.`);
+      }
+    }
     console.log(`  → press Ctrl+C in this terminal to stop the server\n`);
     openInBrowser(url);
   });
 }
+
+// ── AnuraOS second listener ────────────────────────────────────────────────
+// A different PORT is already a different ORIGIN, so this gives AnuraOS the
+// site root it requires without DNS, a second deployment or any rewriting —
+// and keeps its root-scoped service worker away from Ultraviolet's and
+// Scramjet's. Started before the main listener so the engine is ready the
+// moment /browser can ask for it.
+//
+// FAILING TO BIND IS NOT FATAL. ZoFHub does not need this port; losing it costs
+// one optional engine, so it degrades to "no AnuraOS entry" and says why,
+// rather than taking the whole site down over a port conflict.
+let anuraServer = null;
+function anuraStatusLine() {
+  switch (ANURA.mode) {
+    case 'external': return `→ anura:   external (${ANURA.externalUrl})`;
+    case 'host':     return `→ anura:   served on host ${ANURA.host}`;
+    case 'port':     return anuraServer
+      ? `→ anura:   http://localhost:${ANURA.port} (own origin, same process)`
+      : `→ anura:   not listening${ANURA.reason ? ' — ' + ANURA.reason : ''}`;
+    case 'disabled': return '→ anura:   disabled';
+    default:         return '→ anura:   not installed (npm run fetch-anura)';
+  }
+}
+
+if (ANURA.mode === 'port') {
+  const serveAnura = anuraHandler(undefined, { port: ANURA.port });
+  anuraServer = createServer(async (req, res) => {
+    if (!(await anuraAllowed(req.headers, req.socket?.remoteAddress))) {
+      res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+      return res.end('AnuraOS is turned off.');
+    }
+    serveAnura(req, res);
+  });
+
+  // AnuraOS's browser needs a Wisp tunnel, and its config is rewritten to point
+  // at /wisp/ on THIS origin (lib/anura-host.mjs). Route that upgrade into the
+  // same tunnel the rest of the site uses, so AnuraOS's traffic gets the same
+  // sing-box egress, the same SSRF filter and the same caps — rather than a
+  // second, unaudited path out of the process.
+  // The SAME handler as the main listener: caps, origin check, access mode,
+  // approved destinations and session tracking all apply to AnuraOS traffic.
+  anuraServer.on('upgrade', (req, socket, head) => { handleProxyUpgrade(req, socket, head); });
+  anuraServer.on('error', (e) => {
+    ANURA.reason = `${e.code || 'error'} on port ${ANURA.port}`;
+    console.warn(`[anura] not listening: ${ANURA.reason}. `
+      + 'AnuraOS will not appear in /browser. Set ANURA_PORT to a free port, '
+      + 'or ANURA_PORT=0 to stop trying.');
+    // Serving nothing must not leave an entry advertising this port.
+    ANURA.mode = 'disabled';
+    ANURA.serves = false;
+    anuraServer = null;
+  });
+  anuraServer.listen(ANURA.port, HOST === '::' ? '::' : HOST, () => {
+    // BINDING IS NOT THE SAME AS BEING REACHABLE. A wildcard bind succeeds even
+    // when another process already holds the SPECIFIC address on that port, and
+    // the more specific socket then wins — so we would advertise a URL that
+    // hangs on somebody else's service. Confirm the thing answering is ours
+    // before offering it to anyone.
+    const probe = `http://127.0.0.1:${ANURA.port}/`;
+    fetch(probe, { signal: AbortSignal.timeout(4000) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!/AnuraOS/i.test(await r.text())) throw new Error('another service holds this port');
+        ANURA.verified = true;
+      })
+      .catch((e) => {
+        ANURA.reason = `port ${ANURA.port} does not answer as AnuraOS (${e.message})`;
+        console.warn(`[anura] ${ANURA.reason}. Not offering it in /browser. `
+          + 'Set ANURA_PORT to a free port, or ANURA_PORT=0 to stop trying.');
+        ANURA.mode = 'disabled';
+        ANURA.serves = false;
+        try { anuraServer?.close(); } catch { /* already closing */ }
+        anuraServer = null;
+      });
+  });
+}
+
 startListening(HOST);
 kickThumbnailFetch();   // grab any missing Y8 thumbnails from the web on every boot

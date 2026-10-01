@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="ZoFHub leaderboard — the top player-reported scores across every game." />
+  <title>Leaderboard · ZoFHub</title>
+  <meta property="og:site_name" content="ZoFHub" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ZoFHub Leaderboard" />
+  <meta property="og:description" content="The top player-reported scores across every game on ZoFHub." />
+  <meta property="og:image" content="/assets/favicon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="ZoFHub Leaderboard" />
+  <meta name="twitter:description" content="The top player-reported scores across every game on ZoFHub." />
+  <meta name="twitter:image" content="/assets/favicon.png" />
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260801a" />
+</head>
+<body class="page-leaderboard">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/leaderboard" class="active">Leaderboard</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="lb-shell">
+    <div class="lb-hero">
+      <h1 id="lbTitle">Leaderboard</h1>
+      <p class="lb-sub" id="lbSub">The best player-reported scores on ZoFHub.</p>
+    </div>
+
+    <!-- Status region. Loading, empty and error all land here so a reader is
+         never left looking at a blank page wondering whether it is still
+         working. aria-live so the state change is announced, not just drawn. -->
+    <p class="lb-status" id="lbStatus" role="status" aria-live="polite">Loading scores…</p>
+
+    <section class="lb-card" id="lbCard" hidden aria-labelledby="lbBoardH">
+      <h2 id="lbBoardH" class="sr-only">Top scores</h2>
+      <div class="lb-tablewrap">
+        <table class="lb-table">
+          <caption class="sr-only">Top scores, highest first</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="lb-rank">#</th>
+              <th scope="col">Player</th>
+              <th scope="col" class="lb-game">Game</th>
+              <th scope="col" class="lb-num">Score</th>
+            </tr>
+          </thead>
+          <tbody id="lbRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <h2 class="lb-note-h">About these scores</h2>
+    <p class="lb-note">
+      Scores are <strong>reported by players</strong>, not read from the games — every game here
+      runs in a sandboxed frame from another site, so there is no way to read a real score out of
+      one. Submissions need a single-use play token, and anything far above the rest of the board
+      is held back for review rather than shown. Treat the board as a friendly scoreboard, not a
+      verified record.
+    </p>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260801a"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
+  <script type="module" src="/js/leaderboard.js?v=20260801a"></script>
+</body>
+</html>

@@ -30,17 +30,21 @@
 import { createReadStream, existsSync, statSync, mkdirSync, appendFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-// stream-json v1 is CommonJS — the named exports live on the default object.
-import streamArrayMod from 'stream-json/streamers/StreamArray.js';
-import pickMod        from 'stream-json/filters/Pick.js';
-import parserMod      from 'stream-json/Parser.js';
-import chainMod       from 'stream-chain';
+// stream-json v3 is ESM with real named exports, and its paths are lowercase
+// (streamers/stream-array.js, not streamers/StreamArray.js). v1 was CommonJS
+// and needed `const { streamArray } = streamArrayMod` off a default import.
+//
+// Upgraded from ^1.9.1 for GHSA-528h-pc64-c93x — the pick/ignore/filter passes
+// were O(depth²) on nested input, so a small crafted file could block the event
+// loop for minutes. This tool reads files the operator produced, so it was
+// never an exposure here; it is also a devDependency, so it does not ship.
+// Both chain shapes below were verified against real files after the upgrade.
+import { parser } from 'stream-json';
+import { pick } from 'stream-json/filters/pick.js';
+import { streamArray } from 'stream-json/streamers/stream-array.js';
+import { chain } from 'stream-chain';
 import { createClient } from '@supabase/supabase-js';
-
-const { streamArray } = streamArrayMod;
-const { pick }        = pickMod;
-const { parser }      = parserMod;
-const { chain }       = chainMod;
+import { isMain } from './_is-main.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -462,7 +466,17 @@ async function main() {
   process.exit(failedBatches > 0 ? 2 : 0);
 }
 
-main().catch(e => {
-  console.error('[migrate] fatal:', e);
-  process.exit(1);
-});
+// GUARDED. An ES module runs its top level the moment anything imports it, so
+// `main()` here unconditionally meant that importing this file PERFORMED a
+// migration rather than inspecting one. That is not theoretical — it happened,
+// and wrote 12,107 rows to the live catalog. (The write turned out to be a
+// value-for-value no-op re-import, which was luck, not design.)
+//
+// Running the tool is unchanged: `npm run migrate` still goes straight to
+// main(). Importing it now yields its exports and writes nothing.
+if (isMain(import.meta.url)) {
+  main().catch(e => {
+    console.error('[migrate] fatal:', e);
+    process.exit(1);
+  });
+}

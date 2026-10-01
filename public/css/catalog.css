@@ -89,18 +89,6 @@
 /* Was the old navy (26,11,61) — a leftover that no longer matched the palette. */
 .cat-item.active .cat-count { color: rgba(26,21,8,.72); }
 
-/* ============ Top / bottom ad slots ============ */
-/* Visibility and sizing live in main.css, keyed on data-zad-filled — a slot with
-   no injected tag is display:none and reserves nothing. Only the page-specific
-   spacing belongs here.
-   The dashed border, gradient and uppercase label that used to be on these rules
-   were dead: main.css has overridden `border: 0 !important` on a transparent
-   background for as long as both files have existed, so none of it ever
-   rendered. `contain: layout` stays — it isolates a late creative's reflow. */
-.catalog-ad-top[data-zad-filled],
-.catalog-ad-bottom[data-zad-filled] { margin: 4px 0 18px; contain: layout; }
-.catalog-ad-bottom[data-zad-filled] { margin: 26px 0 4px; }
-
 /* ============ Rows ============ */
 .row { margin: 24px 0 18px; }
 .row-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
@@ -124,8 +112,7 @@ body.is-searching #runnersRow,
 body.is-searching #newRow,
 body.is-searching #recentRow,
 body.is-searching #favoritesRow,
-body.is-searching .catalog-ad-top,
-body.is-searching .ad-inline { display: none !important; }
+body.is-searching .zad-native-slot { display: none !important; }
 
 body.is-searching #allRow {
   margin-top: 8px;

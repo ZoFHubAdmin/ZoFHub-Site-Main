@@ -113,7 +113,7 @@ describe('copyleft compliance survives a dependency change', () => {
   });
 
   test('the libcurl.js bundle served to browsers is the version we claim', (t) => {
-    // REGRESSION GUARD: public/gust/vendor/libcurl_full.js is what visitors
+    // REGRESSION GUARD: proxy-engine/assets/gust/vendor/libcurl_full.js is what visitors
     // execute, but /licenses.json reports the version of the libcurl.js NPM
     // package and asserts `modified: false`. Nothing linked those two facts, so
     // a routine bump of libcurl.js would have kept the vendored bytes at the old
@@ -122,7 +122,7 @@ describe('copyleft compliance survives a dependency change', () => {
     // This is also why package.json pins libcurl.js exactly instead of ^-ranging
     // it: the pin and this test are the same decision.
     if (!haveModules) return t.skip('node_modules not installed');
-    const vendored = join(root, 'public', 'gust', 'vendor', 'libcurl_full.js');
+    const vendored = join(root, 'proxy-engine', 'assets', 'gust', 'vendor', 'libcurl_full.js');
     const packaged = join(dirname(require.resolve('libcurl.js')), 'libcurl_full.js');
     if (!existsSync(vendored)) return t.skip('GUST vendor bundle not present');
     assert.ok(existsSync(packaged), 'libcurl.js package no longer ships libcurl_full.js');

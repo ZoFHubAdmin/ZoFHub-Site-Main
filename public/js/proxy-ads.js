@@ -5,10 +5,11 @@
 // module is only ever imported from layout.js, which refuses to load the ad
 // stack on a proxy surface at all. See lib/ad-providers.mjs → isAdSurface.
 //
-// Loads the page-level loader script URL(s) contributed by whichever of the five
-// supported networks (HilltopAds, Adsterra, Monetag, Ad-Maven, PopAds) are
-// enabled. The server resolves those in lib/ad-providers.mjs and hands the final
-// list to the page via /api/site-config → window.ZOFHUB_PROXY_ADS.
+// Loads the page-level loader script URL(s) for the one role that is nothing but
+// a loader: HilltopAds' in-page push (HILLTOPADS_PUSH_SCRIPT). Every other
+// network owns a placement with a container and is mounted by ad-slots.js or
+// preroll.js. The server resolves this in lib/ad-providers.mjs and hands the
+// final list to the page via /api/site-config → window.ZOFHUB_PROXY_ADS.
 //
 // HARD GUARANTEES:
 //   • Injects ONLY the exact https URLs the server resolved. No rewriting, no

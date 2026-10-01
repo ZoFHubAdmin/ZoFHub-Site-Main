@@ -8,12 +8,12 @@
   <!-- Open Graph / social share -->
   <meta property="og:site_name" content="ZoFHub" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="ZoFHub — Free Browser Games" />
-  <meta property="og:description" content="Play 16,000+ free browser games — instant, no signup. Arcade, racing, shooting, puzzle, sports & more." />
+  <meta property="og:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta property="og:description" content="ZoFHub is a cloud-based web-security sandboxing tool and browser diagnostic hub — open sites inside an isolated, sandboxed session and inspect how they load, render and behave." />
   <meta property="og:image" content="/assets/favicon.png" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="ZoFHub — Free Browser Games" />
-  <meta name="twitter:description" content="Play 16,000+ free browser games — instant, no signup." />
+  <meta name="twitter:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta name="twitter:description" content="Cloud-based web-security sandbox and browser diagnostics — isolated sessions, safe inspection." />
   <meta name="twitter:image" content="/assets/favicon.png" />
 
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
@@ -54,6 +54,33 @@
 
       <div class="ai-side-foot">
         <div class="ai-engine-status" id="aiEngineStatus">Connecting to AI…</div>
+
+        <!-- Optional second AI provider. Collapsed by default: the AI works
+             without it, and most people should never need to open this. -->
+        <details class="ai-settings" id="aiSettings">
+          <summary>AI settings</summary>
+          <div class="ai-settings-body">
+            <p class="ai-settings-note">
+              Add a free Hugging Face token for a faster, more reliable AI.
+              It is stored <strong>only in this browser</strong> and sent
+              straight to Hugging Face — it never reaches our servers.
+            </p>
+            <label class="ai-settings-label" for="aiHfToken">Hugging Face token</label>
+            <input id="aiHfToken" type="password" autocomplete="off" spellcheck="false"
+                   placeholder="hf_…" aria-describedby="aiHfState" />
+            <label class="ai-settings-label" for="aiHfModel">Model</label>
+            <select id="aiHfModel"></select>
+            <div class="ai-settings-actions">
+              <button type="button" id="aiHfSave" class="ai-settings-btn primary">Save</button>
+              <button type="button" id="aiHfClear" class="ai-settings-btn">Remove</button>
+            </div>
+            <div class="ai-settings-state" id="aiHfState" role="status">Not set — using the default AI.</div>
+            <p class="ai-settings-note">
+              <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer">
+                Get a free token ↗</a> · a read token is enough.
+            </p>
+          </div>
+        </details>
       </div>
     </aside>
 
@@ -93,8 +120,14 @@
     </section>
   </main>
 
-  <script type="module" src="/js/layout.js?v=20260801a"></script>
+  <!-- Compact legal bar. This page is a fixed-height app shell, so it carries
+       the one-row variant of the shared footer rather than the six-column one
+       (see mountFooter() in /js/layout.js). The links are identical; only the
+       layout differs. --><footer class="site-footer site-footer-mini"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>
   <script type="module" src="/js/ai.js?v=20260720"></script>
+  <script type="module" src="/js/ai-settings.js?v=20260921"></script>
 </body>
 </html>

@@ -96,10 +96,10 @@ describe('bech32 checksum', () => {
   });
 });
 
-describe('Monero shape check — and its honest limits', () => {
+describe('Monero shape pre-check (looksLikeMonero) — a filter, not the validator', () => {
   const XMR = '4' + 'A'.repeat(94);
 
-  test('a standard-shaped address passes', () => {
+  test('a standard-shaped string passes the SHAPE check', () => {
     assert.equal(looksLikeMonero(XMR), true);
     assert.equal(looksLikeMonero('8' + 'B'.repeat(94)), true, 'sub-address');
   });
@@ -109,15 +109,38 @@ describe('Monero shape check — and its honest limits', () => {
     assert.equal(looksLikeMonero('9' + 'A'.repeat(94)), false, 'wrong prefix');
     assert.equal(looksLikeMonero('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'), false);
   });
+});
 
-  test('DOCUMENTED LIMITATION: a shape-valid typo is NOT caught', () => {
-    // Not a bug — a promise about what this does and does not prove. Monero's
-    // checksum is Keccak-256, which node:crypto does not implement, so a typo
-    // that preserves length and prefix passes. checkMethod reports XMR as
-    // 'shape-only' for exactly this reason, and data/donate.json says so.
-    const typo = '4' + 'A'.repeat(93) + 'B';
-    assert.equal(typo.length, 95);
-    assert.equal(looksLikeMonero(typo), true, 'this is expected, and is why XMR is flagged shape-only');
+describe('Monero is now FULLY verified — the old limitation is closed', () => {
+  // This block used to be titled "DOCUMENTED LIMITATION: a shape-valid typo is
+  // NOT caught", and asserted that it passed. The limitation was a missing
+  // Keccak-256; lib/keccak256.mjs supplies it and lib/monero-address.mjs uses
+  // it. The assertion is inverted deliberately: a typo MUST now fail.
+  //
+  // The Monero Project's published General Fund address — a real, public,
+  // mainnet standard address, so a pass here is checked against the network's
+  // own format rather than against this module's own encoder.
+  const GENERAL_FUND = '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A';
+
+  test('a real mainnet address passes, and is reported as checksum-verified', () => {
+    const r = checkMethod({ id: 'm', label: 'XMR', kind: 'crypto', ticker: 'xmr', address: GENERAL_FUND });
+    assert.equal(r.ok, true, r.why);
+    assert.equal(r.strict, true);
+    assert.equal(r.level, 'checksum');
+  });
+
+  test('a one-character typo that keeps the shape is REJECTED', () => {
+    const i = 50;
+    const typo = GENERAL_FUND.slice(0, i) + (GENERAL_FUND[i] === 'a' ? 'b' : 'a') + GENERAL_FUND.slice(i + 1);
+    assert.equal(looksLikeMonero(typo), true, 'precondition: the shape check alone would pass it');
+    const r = checkMethod({ id: 'm', label: 'XMR', kind: 'crypto', ticker: 'xmr', address: typo });
+    assert.equal(r.ok, false);
+    assert.match(r.why, /checksum/);
+  });
+
+  test('a shape-only fake is rejected', () => {
+    const r = checkMethod({ id: 'm', label: 'XMR', kind: 'crypto', ticker: 'xmr', address: '4' + 'A'.repeat(94) });
+    assert.equal(r.ok, false);
   });
 });
 
@@ -138,9 +161,12 @@ describe('checkMethod gates what reaches the page', () => {
     const btc = checkMethod({ id: 'b', label: 'BTC', kind: 'crypto', ticker: 'btc', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' });
     assert.equal(btc.ok, true);
     assert.equal(btc.strict, true);
-    const xmr = checkMethod({ id: 'm', label: 'XMR', kind: 'crypto', ticker: 'xmr', address: '4' + 'A'.repeat(94) });
-    assert.equal(xmr.ok, true);
-    assert.equal(xmr.strict, false, 'the caller must be able to tell these apart');
+    // A Solana wallet: structurally valid and a real curve point, but no
+    // checksum exists in the format — so it must NOT report as 'checksum'.
+    const sol = checkMethod({ id: 's', label: 'SOL', kind: 'crypto', ticker: 'sol', address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' });
+    assert.equal(sol.ok, true, sol.why);
+    assert.equal(sol.strict, false, 'the caller must be able to tell these apart');
+    assert.equal(sol.level, 'curve-point');
   });
 
   test('an unknown ticker is refused rather than waved through', () => {

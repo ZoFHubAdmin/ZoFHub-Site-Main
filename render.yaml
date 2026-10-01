@@ -8,8 +8,8 @@
 # ZoFHub is ALWAYS a proxy site — the web proxy (GUST / Ultraviolet / Scramjet /
 # Wisp) is always on. There is NO separate hub / Google-AdSense mode: Google bans
 # proxy / anonymizer domains at the account level, so monetization is solely via
-# proxy-friendly ad networks (Adsterra / HilltopAds / Monetag) configured through
-# PROXY_AD_SCRIPTS + PROXY_BANNER_TAG. This is ONE service, deployed once.
+# six proxy-friendly ad networks, one role each (lib/ad-providers.mjs). This is
+# ONE service, deployed once.
 #
 # NOTE: the FREE plan SLEEPS when idle, which stops the cron jobs + live presence.
 # Use the cheapest always-on paid plan ("starter") for real use. Render injects
@@ -40,7 +40,28 @@ services:
     # running in production was not the process anyone tested locally, and any
     # future flag added to the start script would silently not apply here.
     startCommand: npm start
-    healthCheckPath: /api/health
+    # /healthz, NOT /api/health — this is the whole resource guard.
+    #
+    # /healthz is the only route that returns 503 when memory crosses
+    # HEALTH_MEM_MAX_PCT (default 85%, worse of RSS-against-cgroup and V8 heap).
+    # That 503 is what makes Render roll the container BEFORE the OOM killer
+    # takes it, which is a graceful restart instead of a hard kill mid-request.
+    # While this pointed at /api/health, that guard could never fire:
+    # /api/health always answers 200 regardless of memory, so the ceiling was
+    # computed, reported in the admin console, and acted on by nobody.
+    #
+    # /api/health is also the wrong shape for a probe: it runs a live Supabase
+    # connectivity check (cached 30s), so a third party being down could have
+    # marked THIS service unhealthy and restarted a perfectly good container.
+    # /healthz touches no external service on the unauthenticated path.
+    #
+    # /healthz now also fails (503) on a SUSTAINED event-loop stall or after an
+    # uncaught exception, not memory alone, and a breach must persist for
+    # HEALTH_SUSTAIN_MS (default 10s) before it flips — so a one-off GC pause
+    # cannot recycle a healthy container. /readyz is an alias of this verdict;
+    # /livez is liveness only (503 just after an uncaught exception). Render has
+    # one health check, so it points at /healthz, which does both jobs.
+    healthCheckPath: /healthz
     autoDeploy: true
     # ── HOW ENV RESOLVES HERE (this bit is genuinely surprising) ─────────────
     # .env is COMMITTED in this repo, and server.js loads it at boot. Render's
@@ -123,44 +144,40 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       # ── Advertising ──────────────────────────────────────────────────────
-      # Five supported networks. Each needs <NETWORK>_ENABLED=1 *and* at least
-      # one of <NETWORK>_SCRIPT / _ZONE / _<SLOT>_TAG — enabled without
+      # Six supported networks, each owning ONE role (lib/ad-providers.mjs):
+      #   Ad-Maven interstitial · ExoClick header+sidebar · HilltopAds push ·
+      #   Clickadu video pre-roll · Mondiad native · PopAds desktop popunder.
+      # Each needs <NETWORK>_ENABLED=1 *and* its role variable — enabled without
       # configuration renders nothing. All unset = the site runs ad-free.
       #
       # ⚠ No network has approved this site. Every one reviews your specific
       #   domain, and ZoFHub hosts a web proxy — raise that with each of them
-      #   before enabling. See docs/ADVERTISING.md.
+      #   before enabling. See docs/features/ADVERTISING.md.
       #
-      # Slot tags (<NETWORK>_HEADER_TAG / _SIDEBAR_TAG / _FOOTER_TAG /
-      # _INCONTENT_TAG) are set in the dashboard as needed; they are raw HTML
-      # and are credentials, so they are never listed here.
-      - key: HILLTOPADS_ENABLED
-        sync: false
-      - key: HILLTOPADS_SCRIPT
-        sync: false
-      - key: ADSTERRA_ENABLED
-        sync: false
-      - key: ADSTERRA_SCRIPT
-        sync: false
-      - key: MONETAG_ENABLED
-        sync: false
-      - key: MONETAG_SCRIPT
-        sync: false
+      # The role variables themselves (ADMAVEN_INTERSTITIAL_TAG / _URL,
+      # EXOCLICK_HEADER_TAG / _SIDEBAR_TAG, HILLTOPADS_PUSH_SCRIPT,
+      # CLICKADU_PREROLL_VAST, MONDIAD_NATIVE_TAG, POPADS_POPUNDER_TAG) and their
+      # __<REGION> variants are set in the dashboard as needed; they are raw
+      # HTML or ad-account URLs and are credentials, so they are never listed here.
       - key: ADMAVEN_ENABLED
         sync: false
-      - key: ADMAVEN_SCRIPT
+      - key: EXOCLICK_ENABLED
+        sync: false
+      - key: HILLTOPADS_ENABLED
+        sync: false
+      - key: CLICKADU_ENABLED
+        sync: false
+      - key: MONDIAD_ENABLED
         sync: false
       - key: POPADS_ENABLED
         sync: false
-      - key: POPADS_SCRIPT
-        sync: false                # PopAds code is passed through UNMODIFIED
-      # Deprecated legacy loaders — still honoured so a live deploy keeps
-      # earning through the migration, but they carry no network identity and
-      # cannot be toggled individually. Migrate to <NETWORK>_* above.
-      - key: PROXY_AD_SCRIPTS
+      # Regional domains and regional ad tags (lib/geo.mjs). Optional; see
+      # .env.example for the REGION_ROUTES format. GEO_COUNTRY_HEADER must name
+      # a header your edge sets (Cloudflare: cf-ipcountry, the default).
+      - key: REGION_ROUTES
         sync: false
-      - key: PROXY_BANNER_TAG
-        sync: false                # optional single footer banner tag
+      - key: GEO_COUNTRY_HEADER
+        sync: false
       # The DMCA / privacy / terms contact shown on every legal page. Without it
       # those pages state that no contact address has been published — set this
       # so rights-holders and users actually have a way to reach you.
@@ -169,9 +186,72 @@ services:
       - key: POLLINATIONS_REFERRER
         sync: false                # your domain (bare hostname), for AI attribution
       - key: CRON_SECRET
-        sync: false                # protects /healthz; set the SAME value in your uptime monitor
-      # Extra script origins for the Content-Security-Policy. The origins of
-      # PROXY_AD_SCRIPTS / PROXY_BANNER_TAG are allowlisted automatically; set
+        sync: false                # protects /healthz DETAIL; set the SAME value in your uptime monitor
+      # /healthz returns 503 above this memory percentage so Render can recycle
+      # the instance cleanly instead of losing it to an OOM kill mid-request.
+      # Optional — the code defaults to 85.
+      - key: HEALTH_MEM_MAX_PCT
+        sync: false
+      # How long a memory/event-loop breach must persist before /healthz flips
+      # to 503, so a transient spike cannot recycle a healthy instance.
+      # Optional — the code defaults to 10000 (10s).
+      - key: HEALTH_SUSTAIN_MS
+        sync: false
+      # Which X-Forwarded-For hops to trust when deriving the client IP that
+      # every per-client control keys on. Behind Render's single edge the
+      # default (1) is correct; set this only for a different topology (e.g. a
+      # CDN in front of Render). See .env.example. Optional.
+      - key: TRUST_PROXY
+        sync: false
+      # Per-client Wisp tunnel cap: one IP cannot hold more than this many
+      # tunnels, so a single runaway client cannot starve the pool. Default 32.
+      - key: WISP_MAX_PER_IP
+        sync: false
+      # Role the static ADMIN_SECRET bearer token runs as: operator (default)
+      # or viewer. Never owner — see lib/admin-rbac.mjs.
+      - key: ADMIN_SERVICE_ROLE
+        sync: false
+      # sing-box (docs/proxy/SINGBOX.md). ON BY DEFAULT in the Docker image, where it
+      # is the proxy browser's egress. NOTE: Render's native Node runtime does
+      # not build the binary, so on that runtime the supervisor reports it
+      # missing once and every proxied stream falls back to a direct connection
+      # — the site works, it is just not tunnelled. Deploy the Dockerfile to get
+      # the real thing. All of these are optional overrides.
+      - key: SINGBOX_EGRESS
+        sync: false
+      - key: SINGBOX_SOCKS
+        sync: false
+      - key: SINGBOX_REQUIRE
+        sync: false
+      - key: SINGBOX_DIAL_TIMEOUT_MS
+        sync: false
+      - key: SINGBOX_API_URL
+        sync: false
+      - key: SINGBOX_API_SECRET
+        sync: false
+      - key: SINGBOX_API_TIMEOUT_MS
+        sync: false
+      # Managed mode is ON unless set to 0. Needs the binary in the image
+      # (Dockerfile build arg SINGBOX_VERSION, default v1.14.1), which Render's
+      # native Node runtime does not build — this is for a Docker deploy.
+      - key: SINGBOX_MANAGED
+        sync: false
+      - key: SINGBOX_BIN
+        sync: false
+      - key: SINGBOX_CONFIG_PATH
+        sync: false
+      - key: SINGBOX_CONFIG_TEMPLATE
+        sync: false
+      - key: SINGBOX_UUID_OWNER
+        sync: false
+      - key: SINGBOX_HANDSHAKE_HOST
+        sync: false
+      - key: SINGBOX_REALITY_PRIVATE_KEY
+        sync: false
+      - key: SINGBOX_REALITY_SHORT_ID
+        sync: false
+      # Extra script origins for the Content-Security-Policy. The origins in
+      # every configured ad tag and loader are allowlisted automatically; set
       # this only when a network chains to a domain you never pasted. Without an
       # allowlist entry the BROWSER refuses the script — no error, no revenue,
       # and it looks exactly like the network not paying out. `npm run check-ads`
@@ -188,6 +268,15 @@ services:
       # per-IP limit on the AI chat. PUBLIC by design (it reaches the browser);
       # never put a secret sk_ key here.
       - key: POLLINATIONS_PUBLIC_KEY
+        sync: false
+      # Mirror-update list. The table stores addresses with no IP and no
+      # timestamp (db/14_subscriber_emails.sql); these two are what let you
+      # actually send to them. Optional — /api/subscribe still stores the row
+      # with both unset, so the provider can be added later without data loss.
+      # The key is read only on the server and never reaches a browser.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_AUDIENCE_ID
         sync: false
       # SECRET Pollinations keys — the opposite of the pk_ key above. Either name
       # is read (API_KEY wins), and either one moves the server-side AI path onto
@@ -212,4 +301,57 @@ services:
       # Set to 1 on EVERY replica except one if you ever scale past a single
       # instance — otherwise every cron write runs once per replica.
       - key: CRON_DISABLED
+        sync: false
+      # Kasm Workspaces (docs/proxy/KASM.md) — the address of a remote-desktop
+      # container YOU run on a Docker host. This service cannot host it: there
+      # is no Docker daemon inside a Render web service, and a session costs
+      # gigabytes of RAM. Unset = the engine simply is not offered.
+      #
+      # Declared here for the reason at the top of this block: an undeclared
+      # name resolves out of the committed .env instead. It is also the one
+      # engine URL that people are tempted to write a password into, and
+      # /api/proxies publishes it unauthenticated — server.js strips any
+      # credential and logs that it did, but the value still belongs in the
+      # dashboard rather than in git.
+      - key: PROXY_KASM_URL
+        sync: false
+      - key: KASM_LABEL
+        sync: false
+      # InvisiProxy LTS (docs/proxy/INVISIPROXY.md) — an AGPL-3.0 proxy application
+      # you deploy separately. ZoFHub ships none of its code; this is only the
+      # address of your instance. Unset = the engine is not offered.
+      - key: PROXY_INVISI_URL
+        sync: false
+      # MASQR proxy discovery gate (docs/proxy/MASQR.md). OFF unless MASQR_ENABLED=1.
+      # MASQR_SECRET signs the access keys and is a real credential — declared
+      # here because anything NOT listed silently resolves out of the committed
+      # .env, which is exactly how a signing key ends up sourced from git.
+      - key: MASQR_ENABLED
+        sync: false
+      - key: MASQR_SECRET
+        sync: false
+      - key: MASQR_KEY_TTL_DAYS
+        sync: false
+      - key: MASQR_DENY
+        sync: false
+      - key: MASQR_REDIRECT_TO
+        sync: false
+      # ── Wisp egress policy ────────────────────────────────────────────────
+      # The rules governing the one endpoint that dials addresses strangers
+      # choose. Declared here because anything NOT listed silently resolves out
+      # of the committed .env — and a security boundary sourced from git is
+      # exactly the outcome the note at the top of this block warns about.
+      # All optional; lib/wisp-policy.mjs defaults are the safe values
+      # (ports 80,443,8080,8443 · no UDP · private IPs blocked · 256 streams).
+      - key: WISP_ALLOWED_PORTS
+        sync: false
+      - key: WISP_ALLOW_UDP
+        sync: false
+      - key: WISP_ALLOW_PRIVATE_IPS
+        sync: false
+      - key: WISP_ALLOW_LOOPBACK_IPS
+        sync: false
+      - key: WISP_MAX_STREAMS
+        sync: false
+      - key: WISP_BLOCKED_HOSTS
         sync: false

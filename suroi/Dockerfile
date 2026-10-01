@@ -5,7 +5,7 @@
 # the GPL-3.0 §6(d) source offer exact — SUROI_COMMIT is what you actually ran.
 #
 # This is a SEPARATE SERVICE. It shares no runtime with ZoFHub (Node, no build
-# step) and must not be merged into it — see README.md on why that boundary is
+# step) and must not be merged into it — see docs/features/SUROI.md on why that boundary is
 # what keeps ZoFHub out of GPL scope.
 
 # ── Build ──────────────────────────────────────────────────────────────────

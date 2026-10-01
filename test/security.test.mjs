@@ -96,6 +96,80 @@ describe('input validation', () => {
     assert.ok(r.status < 500, `expected a handled response, got ${r.status}`);
   });
 
+  test('array/object query parameters do not crash the catalog routes', async () => {
+    // ?q[]=a makes req.query.q an array; ?q[x]=1 makes it an object. Calling
+    // string methods on either used to throw a 500 from any URL.
+    for (const qs of ['q[]=a&q[]=b', 'q[x]=1', 'category[]=puzzle', 'category[x]=1']) {
+      const r = await fetch(`${BASE}/api/games?${qs}`, { signal: AbortSignal.timeout(15000) });
+      assert.ok(r.status < 500, `${qs} produced ${r.status}`);
+    }
+  });
+
+  test('an oversized JSON body is refused, not parsed', async () => {
+    const big = JSON.stringify({ message: 'x'.repeat(200_000) });
+    const r = await fetch(BASE + '/api/feedback', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: big, signal: AbortSignal.timeout(15000),
+    });
+    assert.equal(r.status, 413, 'a 200kb body should exceed the 100kb JSON limit');
+  });
+});
+
+describe('SSRF — caller-supplied URLs cannot reach this host or its network', () => {
+  // /asset and /thumb fetch a URL from ?u=. The address is validated at connect
+  // time (lib/safe-fetch.mjs), so neither a private literal nor an obfuscated
+  // one nor an AI endpoint can be reached, and /thumb is not an open redirect.
+  const internal = [
+    'https://127.0.0.1/', 'https://localhost/', 'https://169.254.169.254/latest/meta-data/',
+    'https://10.0.0.1/', 'https://192.168.0.1/', 'https://[::1]/',
+    'https://0x7f000001/', 'https://2130706433/',           // hex / decimal 127.0.0.1
+  ];
+
+  test('/asset refuses internal and obfuscated hosts', async () => {
+    for (const u of internal) {
+      const r = await fetch(`${BASE}/asset?u=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      assert.ok(r.status === 400 || r.status === 403, `${u} was not refused (${r.status})`);
+    }
+  });
+
+  test('/asset refuses AI provider hosts', async () => {
+    for (const u of ['https://text.pollinations.ai/x', 'https://api.openai.com/v1/x']) {
+      const r = await fetch(`${BASE}/asset?u=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      assert.equal(r.status, 403, `${u} was not refused`);
+    }
+  });
+
+  test('/thumb refuses a non-allowlisted host instead of redirecting to it', async () => {
+    const r = await fetch(`${BASE}/thumb?u=${encodeURIComponent('https://evil.example/x.png')}`, {
+      redirect: 'manual', signal: AbortSignal.timeout(15000),
+    });
+    assert.equal(r.status, 400, 'a non-allowlisted host must be refused, not 302-redirected (open redirect)');
+  });
+
+  test('error bodies from the proxies carry no internal detail', async () => {
+    const r = await fetch(`${BASE}/asset?u=${encodeURIComponent('https://127.0.0.1/')}`, { signal: AbortSignal.timeout(15000) });
+    const body = await r.text();
+    assert.ok(!/127\.0\.0\.1|ECONN|node:internal|at .*\.mjs:\d+/.test(body), `leaked detail: ${body.slice(0, 80)}`);
+  });
+});
+
+describe('health probes answer what an orchestrator can act on', () => {
+  test('/livez, /readyz and /healthz are all reachable and JSON', async () => {
+    for (const p of ['/livez', '/readyz', '/healthz']) {
+      const r = await fetch(BASE + p, { signal: AbortSignal.timeout(15000) });
+      assert.ok(r.status === 200 || r.status === 503, `${p} → ${r.status}`);
+      const j = await r.json();
+      assert.equal(typeof j.ok, 'boolean');
+    }
+  });
+
+  test('an anonymous /healthz leaks no memory, uptime or job detail', async () => {
+    const j = await (await fetch(BASE + '/healthz', { signal: AbortSignal.timeout(15000) })).json();
+    assert.equal(j.memory, undefined, 'memory figures must not reach an anonymous caller');
+    assert.equal(j.uptime, undefined);
+    assert.equal(j.cron, undefined);
+    assert.equal(j.eventLoop, undefined);
+  });
 });
 
 // ── Every admin route must enforce, not merely resolve ─────────────────────
@@ -130,9 +204,30 @@ describe('admin routes fail closed', () => {
     assert.ok(routes.length >= 10, `only found ${routes.length} admin routes — the scan broke`);
   });
 
+  // requirePerm(req, res, '<permission>') is the OTHER acceptable gate: it
+  // authorises a permission, and it authenticates first by calling requireAdmin
+  // itself. Accepting it here would be taking that on trust, so the test below
+  // proves the indirection before this one relies on it — an authorisation
+  // wrapper that forgot to authenticate would otherwise turn this whole check
+  // into a rubber stamp.
+  test('requirePerm authenticates before it authorises', () => {
+    const at = src.indexOf('function requirePerm(');
+    assert.notEqual(at, -1, 'requirePerm() not found — the exemption below is unearned');
+    const body = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    const authAt = body.indexOf('requireAdmin(req, res)');
+    const permAt = body.indexOf('rbac.can(');
+    assert.ok(authAt !== -1, 'requirePerm never calls requireAdmin');
+    assert.ok(permAt !== -1, 'requirePerm never consults the permission model');
+    assert.ok(authAt < permAt,
+      'requirePerm checks the permission before authenticating — an anonymous '
+      + 'caller must get 401, and req.admin is not trustworthy until requireAdmin ran');
+  });
+
   test('every /api/admin route calls requireAdmin', () => {
     const unguarded = routes
       .filter(r => !/requireAdmin\s*\(/.test(r.body))
+      // …or requirePerm(), which calls requireAdmin() itself — proved above.
+      .filter(r => !/requirePerm\s*\(\s*req\s*,\s*res\s*,/.test(r.body))
       // The auth endpoints are exempt BY DESIGN, not by oversight: /auth/login
       // is how a caller becomes an admin in the first place, and /auth/logout
       // destroys a session, which must work even for a session already expired

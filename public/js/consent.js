@@ -9,7 +9,7 @@
 // It pushed ad_storage / ad_user_data / ad_personalization signals into a
 // dataLayer for a gtag.js that this site never loads: ZoFHub is a proxy site, so
 // Google's ad programs aren't available to it and no Google ad code is served
-// (see server.js's site-config filter, proxy-ads.js and footer-ad.js). Signalling
+// (see lib/ad-providers.mjs, proxy-ads.js and ad-slots.js). Signalling
 // consent to a tag that doesn't exist did nothing except imply, in code and in
 // the legal pages, that Google advertising was active here. If a Google-
 // compatible network is ever added, re-add the shim together with Google's own

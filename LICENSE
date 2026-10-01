@@ -6,7 +6,7 @@ license. Read it before using anything in this repository.
 
 DEFINITIONS
 "Software" means the original ZoFHub source code, assets, text, and design in
-this repository, EXCEPT the third-party components identified in CREDITS.md,
+this repository, EXCEPT the third-party components identified in docs/CREDITS.md,
 which are licensed separately under their own terms (see Section 5).
 "You" means the individual or entity exercising permissions under this license.
 "Licensor" means the copyright holder named above.
@@ -49,7 +49,7 @@ which are licensed separately under their own terms (see Section 5).
 
 5. THIRD-PARTY COMPONENTS
    The Software is built with third-party software provided under separate
-   licenses (see CREDITS.md), including proxy components under the MIT,
+   licenses (see docs/CREDITS.md), including proxy components under the MIT,
    LGPL-3.0, and AGPL-3.0 licenses. Those components remain governed by their
    own licenses; this license does not apply to them and does not enlarge or
    restrict your rights under them.

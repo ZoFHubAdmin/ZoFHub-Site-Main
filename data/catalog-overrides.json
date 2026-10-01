@@ -18345,7 +18345,7 @@
       "hostIncludes": "bloxd.io"
     },
     {
-      "_note": "suroi.io: framing the developers' own live site. Suroi's CODE is free software (GPL-3.0, github.com/HasangerGames/suroi) but that licenses you to RUN YOUR OWN copy, not to iframe theirs — the licence says nothing about their servers, traffic or ad revenue. See suroi/README.md for the self-host kit; once your own instance is live, add it back pointing at YOUR hostname and leave this rule in place so upstream can never be framed again.",
+      "_note": "suroi.io: framing the developers' own live site. Suroi's CODE is free software (GPL-3.0, github.com/HasangerGames/suroi) but that licenses you to RUN YOUR OWN copy, not to iframe theirs — the licence says nothing about their servers, traffic or ad revenue. See docs/features/SUROI.md for the self-host kit; once your own instance is live, add it back pointing at YOUR hostname and leave this rule in place so upstream can never be framed again.",
       "hostIncludes": "suroi.io"
     },
     {
@@ -18607,5 +18607,935 @@
     "driftsea",
     "basket-random"
   ],
-  "_comment_onlinegames": "OnlineGames.io is governed by embedonlinegamesio.json (the source of truth) via tools/sync-onlinegames.mjs — run `npm run og-sync` to check, `-- --write` to apply. The 2026-07-11 blanket hostIncludes:onlinegames.io block was REMOVED on 2026-08-04: it hid all 260 canonical games, and the canonical embeds were re-probed at 10/10 HTTP 200 with framing allowed. Non-canonical OnlineGames.io titles are now hidden individually by slug instead, so the blanket rule was both redundant and blocking the licensed set. NOTE: the July report was a RUNTIME black-screen, which an HTTP probe cannot disprove — if games black-screen again, restore the host block rather than re-adding it per slug."
+  "_comment_onlinegames": "OnlineGames.io is governed by embedonlinegamesio.json (the source of truth) via tools/sync-onlinegames.mjs — run `npm run og-sync` to check, `-- --write` to apply. The 2026-07-11 blanket hostIncludes:onlinegames.io block was REMOVED on 2026-08-04: it hid all 260 canonical games, and the canonical embeds were re-probed at 10/10 HTTP 200 with framing allowed. Non-canonical OnlineGames.io titles are now hidden individually by slug instead, so the blanket rule was both redundant and blocking the licensed set. NOTE: the July report was a RUNTIME black-screen, which an HTTP probe cannot disprove — if games black-screen again, restore the host block rather than re-adding it per slug.",
+  "frameBlocked": [
+    {
+      "slug": "the-surreptitious-operation",
+      "url": "https://distribution.gameflare.com/embed/the-surreptitious-operation/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:32.594Z"
+    },
+    {
+      "slug": "zombie-outbreak-arena",
+      "url": "https://distribution.gameflare.com/embed/zombie-outbreak-arena/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:31.713Z"
+    },
+    {
+      "slug": "the-patriots-fight-and-freedom",
+      "url": "https://distribution.gameflare.com/embed/the-patriots-fight-and-freedom/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:30.636Z"
+    },
+    {
+      "slug": "the-resistance-fighters",
+      "url": "https://distribution.gameflare.com/embed/the-resistance-fighters/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:30.630Z"
+    },
+    {
+      "slug": "the-malevolent-mansion-of-evil",
+      "url": "https://distribution.gameflare.com/embed/the-malevolent-mansion-of-evil/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:30.622Z"
+    },
+    {
+      "slug": "the-scythian-warrior",
+      "url": "https://distribution.gameflare.com/embed/the-scythian-warrior/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:30.583Z"
+    },
+    {
+      "slug": "soldier-of-the-homeland",
+      "url": "https://distribution.gameflare.com/embed/soldier-of-the-homeland/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:28.727Z"
+    },
+    {
+      "slug": "soldier-of-ruins",
+      "url": "https://distribution.gameflare.com/embed/soldier-of-ruins/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:28.696Z"
+    },
+    {
+      "slug": "police-helicopter",
+      "url": "https://distribution.gameflare.com/embed/police-helicopter/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:24.812Z"
+    },
+    {
+      "slug": "penguins-io",
+      "url": "https://distribution.gameflare.com/embed/penguinsio/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:23.742Z"
+    },
+    {
+      "slug": "the-lonesome-shooter",
+      "url": "https://distribution.gameflare.com/embed/the-lonesome-shooter/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:22.035Z"
+    },
+    {
+      "slug": "the-last-santa-warrior-winter-s-end",
+      "url": "https://distribution.gameflare.com/embed/the-last-santa-warrior-winter-s-end/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:22.030Z"
+    },
+    {
+      "slug": "the-letter-seeker-of-truths",
+      "url": "https://distribution.gameflare.com/embed/the-letter-seeker-of-truths/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:22.024Z"
+    },
+    {
+      "slug": "wild-wolves",
+      "url": "https://distribution.gameflare.com/embed/wild-wolves/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:11.047Z"
+    },
+    {
+      "slug": "wounded-winter-a-lakota-story",
+      "url": "https://distribution.gameflare.com/embed/wounded-winter-a-lakota-story/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:11.018Z"
+    },
+    {
+      "slug": "the-courage-of-an-american-grandfather",
+      "url": "https://distribution.gameflare.com/embed/the-courage-of-an-american-grandfather/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T15:00:09.352Z"
+    },
+    {
+      "slug": "squad-hero-tower",
+      "url": "https://distribution.gameflare.com/embed/squad-hero-tower/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:28.435Z"
+    },
+    {
+      "slug": "seeking-justice-in-the-galaxy",
+      "url": "https://distribution.gameflare.com/embed/seeking-justice-in-the-galaxy/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:27.503Z"
+    },
+    {
+      "slug": "save-the-penguin",
+      "url": "https://distribution.gameflare.com/embed/save-the-penguin/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:27.088Z"
+    },
+    {
+      "slug": "robot-wars-rise-of-resistance",
+      "url": "https://distribution.gameflare.com/embed/robot-wars-rise-of-resistance/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:26.353Z"
+    },
+    {
+      "slug": "revenge-and-justice",
+      "url": "https://distribution.gameflare.com/embed/revenge-and-justice/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:26.335Z"
+    },
+    {
+      "slug": "the-island-survival",
+      "url": "https://distribution.gameflare.com/embed/the-island-survival/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:24.570Z"
+    },
+    {
+      "slug": "planet-hero",
+      "url": "https://distribution.gameflare.com/embed/planet-hero/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:24.301Z"
+    },
+    {
+      "slug": "unicorn-family-simulator",
+      "url": "https://distribution.gameflare.com/embed/unicorn-family-simulator/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:23.095Z"
+    },
+    {
+      "slug": "soldier-of-homeland-sahara",
+      "url": "https://distribution.gameflare.com/embed/soldier-of-homeland-sahara/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:22.728Z"
+    },
+    {
+      "slug": "wolf-family-simulator",
+      "url": "https://distribution.gameflare.com/embed/wolf-family-simulator/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T13:11:22.637Z"
+    },
+    {
+      "slug": "shy-eye-labyrinth-prototype",
+      "url": "https://distribution.gameflare.com/embed/shy-eye-labyrinth-prototype/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:16.381Z"
+    },
+    {
+      "slug": "wounded-summer-baby",
+      "url": "https://distribution.gameflare.com/embed/wounded-summer-baby/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:14.169Z"
+    },
+    {
+      "slug": "project-exo-assault",
+      "url": "https://distribution.gameflare.com/embed/project-exo-assault/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:14.103Z"
+    },
+    {
+      "slug": "prison-break",
+      "url": "https://distribution.gameflare.com/embed/prison-break/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:07.199Z"
+    },
+    {
+      "slug": "super-red",
+      "url": "https://distribution.gameflare.com/embed/super-red/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:06.993Z"
+    },
+    {
+      "slug": "rogue-sergeant-the-final-operation",
+      "url": "https://distribution.gameflare.com/embed/rogue-sergeant-the-final-operation/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:06.663Z"
+    },
+    {
+      "slug": "tiger-family-simulator",
+      "url": "https://distribution.gameflare.com/embed/tiger-family-simulator/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:06.535Z"
+    },
+    {
+      "slug": "samurai-warrior",
+      "url": "https://distribution.gameflare.com/embed/samurai-warrior/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:05.261Z"
+    },
+    {
+      "slug": "volunteer-to-the-darkness",
+      "url": "https://distribution.gameflare.com/embed/volunteer-to-the-darkness/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:03.100Z"
+    },
+    {
+      "slug": "two-hands-of-satan",
+      "url": "https://distribution.gameflare.com/embed/two-hands-of-satan/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-28T00:00:02.241Z"
+    },
+    {
+      "slug": "swordsman-of-persia",
+      "url": "https://distribution.gameflare.com/embed/swordsman-of-persia/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:09.116Z"
+    },
+    {
+      "slug": "mini-survival",
+      "url": "https://distribution.gameflare.com/embed/mini-survival/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:08.551Z"
+    },
+    {
+      "slug": "lion-hunter",
+      "url": "https://distribution.gameflare.com/embed/lion-hunter/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:08.504Z"
+    },
+    {
+      "slug": "lion-soldier-s-vengeance",
+      "url": "https://distribution.gameflare.com/embed/lion-soldier-s-vengeance/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:08.496Z"
+    },
+    {
+      "slug": "kurofune-samurai",
+      "url": "https://distribution.gameflare.com/embed/kurofune-samurai/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:08.389Z"
+    },
+    {
+      "slug": "iron-superhero",
+      "url": "https://distribution.gameflare.com/embed/iron-superhero/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:08.020Z"
+    },
+    {
+      "slug": "evil-space-base-fps",
+      "url": "https://distribution.gameflare.com/embed/evil-space-base-fps/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:06.838Z"
+    },
+    {
+      "slug": "c-virus-game-outbreak",
+      "url": "https://distribution.gameflare.com/embed/c-virus-game-outbreak/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:04.601Z"
+    },
+    {
+      "slug": "bullet-and-cry-in-space",
+      "url": "https://distribution.gameflare.com/embed/bullet-and-cry-in-space/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:04.274Z"
+    },
+    {
+      "slug": "black-apocalypse",
+      "url": "https://distribution.gameflare.com/embed/black-apocalypse/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T23:00:00.982Z"
+    },
+    {
+      "slug": "firestorm",
+      "url": "https://distribution.gameflare.com/embed/firestorm/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:09.517Z"
+    },
+    {
+      "slug": "ninja-cube",
+      "url": "https://distribution.gameflare.com/embed/ninja-cube/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:09.031Z"
+    },
+    {
+      "slug": "my-land-king-defender",
+      "url": "https://distribution.gameflare.com/embed/my-land-king-defender/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:08.861Z"
+    },
+    {
+      "slug": "battle-tanks",
+      "url": "https://distribution.gameflare.com/embed/battle-tanks/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:07.840Z"
+    },
+    {
+      "slug": "insects-alien-shooter",
+      "url": "https://distribution.gameflare.com/embed/insects-alien-shooter/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:07.746Z"
+    },
+    {
+      "slug": "infinity-royale",
+      "url": "https://distribution.gameflare.com/embed/infinity-royale/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:07.572Z"
+    },
+    {
+      "slug": "hunter-3d",
+      "url": "https://distribution.gameflare.com/embed/hunter-3d/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:07.454Z"
+    },
+    {
+      "slug": "groomy-island",
+      "url": "https://distribution.gameflare.com/embed/groomy-island/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:07.066Z"
+    },
+    {
+      "slug": "assault-on-the-evil-star",
+      "url": "https://distribution.gameflare.com/embed/assault-on-the-evil-star/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:06.875Z"
+    },
+    {
+      "slug": "marine-showdown-standoff-in-afghanistan",
+      "url": "https://distribution.gameflare.com/embed/marine-showdown-standoff-in-afghanistan/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:05.703Z"
+    },
+    {
+      "slug": "arena-baby-tournament",
+      "url": "https://distribution.gameflare.com/embed/arena-baby-tournament/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:05.530Z"
+    },
+    {
+      "slug": "apocalypse-world",
+      "url": "https://distribution.gameflare.com/embed/apocalypse-world/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:05.330Z"
+    },
+    {
+      "slug": "deadswitch-3",
+      "url": "https://distribution.gameflare.com/embed/deadswitch-3/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:05.081Z"
+    },
+    {
+      "slug": "axe-of-the-ancients-dwarven-fury",
+      "url": "https://distribution.gameflare.com/embed/axe-of-the-ancients-dwarven-fury/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:04.647Z"
+    },
+    {
+      "slug": "assault-on-the-demonic-realm",
+      "url": "https://distribution.gameflare.com/embed/assault-on-the-demonic-realm/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:04.556Z"
+    },
+    {
+      "slug": "dino-hunting",
+      "url": "https://distribution.gameflare.com/embed/dino-hunting/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:04.547Z"
+    },
+    {
+      "slug": "incredible-monster",
+      "url": "https://distribution.gameflare.com/embed/incredible-monster/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:04.304Z"
+    },
+    {
+      "slug": "hit-targets",
+      "url": "https://distribution.gameflare.com/embed/hit-targets/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:03.854Z"
+    },
+    {
+      "slug": "deer-simulator-animal-family-3d",
+      "url": "https://distribution.gameflare.com/embed/deer-simulator-animal-family-3d/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:03.127Z"
+    },
+    {
+      "slug": "darkness-in-spaceship",
+      "url": "https://distribution.gameflare.com/embed/darkness-in-spaceship/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:02.907Z"
+    },
+    {
+      "slug": "a-snipers-vengeance",
+      "url": "https://distribution.gameflare.com/embed/a-snipers-vengeance/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:01.847Z"
+    },
+    {
+      "slug": "missile-control-infiltration-strike",
+      "url": "https://distribution.gameflare.com/embed/missile-control-infiltration-strike/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T22:00:01.483Z"
+    },
+    {
+      "slug": "alone-in-the-evil-space-base",
+      "url": "https://distribution.gameflare.com/embed/alone-in-the-evil-space-base/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:09.138Z"
+    },
+    {
+      "slug": "hunters-and-props",
+      "url": "https://distribution.gameflare.com/embed/hunters-and-props/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:09.118Z"
+    },
+    {
+      "slug": "alone-in-the-evil-mansion",
+      "url": "https://distribution.gameflare.com/embed/alone-in-the-evil-mansion/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:09.111Z"
+    },
+    {
+      "slug": "airplane-tunnel",
+      "url": "https://distribution.gameflare.com/embed/airplane-tunnel/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:08.608Z"
+    },
+    {
+      "slug": "a-visit-to-hell",
+      "url": "https://distribution.gameflare.com/embed/a-visit-to-hell/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:07.743Z"
+    },
+    {
+      "slug": "a-rifleman-from-ireland",
+      "url": "https://distribution.gameflare.com/embed/a-rifleman-from-ireland/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:07.705Z"
+    },
+    {
+      "slug": "hungry-shark",
+      "url": "https://distribution.gameflare.com/embed/hungry-shark/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:07.052Z"
+    },
+    {
+      "slug": "in-search-of-wisdom-and-salvation",
+      "url": "https://distribution.gameflare.com/embed/in-search-of-wisdom-and-salvation/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:06.155Z"
+    },
+    {
+      "slug": "black-soldier-of-rome",
+      "url": "https://distribution.gameflare.com/embed/black-soldier-of-rome/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:04.123Z"
+    },
+    {
+      "slug": "legendary-archer",
+      "url": "https://distribution.gameflare.com/embed/legendary-archer/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:04.054Z"
+    },
+    {
+      "slug": "crazy-bull-attack",
+      "url": "https://distribution.gameflare.com/embed/crazy-bull-attack/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:03.811Z"
+    },
+    {
+      "slug": "crazy-machines",
+      "url": "https://distribution.gameflare.com/embed/crazy-machines/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:03.419Z"
+    },
+    {
+      "slug": "dinogen-online",
+      "url": "https://distribution.gameflare.com/embed/dinogen-online/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:01.822Z"
+    },
+    {
+      "slug": "gears-of-babies",
+      "url": "https://distribution.gameflare.com/embed/gears-of-babies/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T21:00:00.783Z"
+    },
+    {
+      "slug": "mini-samurai-kurofune",
+      "url": "https://distribution.gameflare.com/embed/mini-samurai-kurofune/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T20:00:08.806Z"
+    },
+    {
+      "slug": "boat-rescue",
+      "url": "https://distribution.gameflare.com/embed/boat-rescue/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T20:00:08.756Z"
+    },
+    {
+      "slug": "baby-sniper-in-vietnam",
+      "url": "https://distribution.gameflare.com/embed/baby-sniper-in-vietnam/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T20:00:08.282Z"
+    },
+    {
+      "slug": "forest-hunter",
+      "url": "https://distribution.gameflare.com/embed/forest-hunter/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T20:00:07.916Z"
+    },
+    {
+      "slug": "underwater-cycling",
+      "url": "https://distribution.gameflare.com/embed/underwater-cycling/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T20:00:06.537Z"
+    },
+    {
+      "slug": "steampunk-genius",
+      "url": "https://distribution.gameflare.com/embed/steampunk-genius/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T19:00:04.665Z"
+    },
+    {
+      "slug": "football-bros-io",
+      "url": "https://footballbros.io/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T18:00:06.893Z"
+    },
+    {
+      "slug": "water-boat-racing",
+      "url": "https://distribution.gameflare.com/embed/water-boat-racing/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T17:00:03.637Z"
+    },
+    {
+      "slug": "snowboard-tricks",
+      "url": "https://distribution.gameflare.com/embed/snowboard-tricks/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T17:00:01.003Z"
+    },
+    {
+      "slug": "football-world-cup-2019",
+      "url": "https://distribution.gameflare.com/embed/football-world-cup-2019/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T15:00:02.913Z"
+    },
+    {
+      "slug": "billiard-tour",
+      "url": "https://distribution.gameflare.com/embed/billiard-tour/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T13:43:56.086Z"
+    },
+    {
+      "slug": "football-storm-strike",
+      "url": "https://distribution.gameflare.com/embed/football-storm-strike/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T13:43:49.818Z"
+    },
+    {
+      "slug": "together",
+      "url": "https://distribution.gameflare.com/embed/together/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-27T01:33:39.735Z"
+    },
+    {
+      "slug": "stickman-vs-stickman-2",
+      "url": "https://distribution.gameflare.com/embed/stickman-vs-stickman-2/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-26T22:14:36.602Z"
+    },
+    {
+      "slug": "stickman-vs-stickman",
+      "url": "https://distribution.gameflare.com/embed/stickman-vs-stickman/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-26T22:14:36.438Z"
+    },
+    {
+      "slug": "tic-tac-foe",
+      "url": "https://distribution.gameflare.com/embed/tic-tac-foe/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-20T20:00:05.078Z"
+    },
+    {
+      "slug": "the-untitled-happiness-project",
+      "url": "https://distribution.gameflare.com/embed/the-untitled-happiness-project/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-20T20:00:05.021Z"
+    },
+    {
+      "slug": "would-you-rather",
+      "url": "https://distribution.gameflare.com/embed/would-you-rather/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-20T19:00:17.442Z"
+    },
+    {
+      "slug": "city-blocks",
+      "url": "https://distribution.gameflare.com/embed/city-blocks/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-20T18:41:09.459Z"
+    },
+    {
+      "slug": "bean-jump",
+      "url": "https://distribution.gameflare.com/embed/bean-jump/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-20T16:10:23.595Z"
+    },
+    {
+      "slug": "board-boss",
+      "url": "https://distribution.gameflare.com/embed/board-boss/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-09-19T21:48:34.148Z"
+    }
+  ],
+  "_comment_frameBlocked": "Written by lib/link-checker.mjs. Games whose own server refuses to be framed (X-Frame-Options, or CSP frame-ancestors that excludes us). Ignored by the serve-time loader — the authoritative hide is is_working=false in Supabase."
 }

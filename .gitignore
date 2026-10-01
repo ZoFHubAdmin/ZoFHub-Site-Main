@@ -118,3 +118,14 @@ node_modules
 # Browser-verification screenshots. Real evidence, but regenerated on every
 # run and not something the deploy needs. Retention is handled by the runner.
 verification-evidence/
+
+# AnuraOS self-host bundle (~51MB, 591 files) — fetched, never committed.
+# tools/fetch-anura.mjs puts it here; it runs on its own origin.
+vendor/anura/
+data/anura-download.zip
+
+# AI feedback exports and curated datasets. These contain material people
+# typed at the AI. Redacted, consented and reviewed — and still not something
+# to commit to a repository that is pushed to a remote.
+data/ai-feedback-export.json
+data/ai-datasets/

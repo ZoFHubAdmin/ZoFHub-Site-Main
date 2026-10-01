@@ -6,8 +6,16 @@ import { getPlayerName } from './identity.js';
 // near the bottom of this file. It is loaded on demand.
 // Cookie-consent notice (shows once, site-wide).
 import './consent.js?v=20260729';
-// NB: the proxy-friendly ad loaders (proxy-ads.js + footer-ad.js) are imported
-// LATER (bottom of this file) — after /api/site-config resolves. No AdSense.
+// The page's ONE /api/site-config request, shared with every other module that
+// needs it (game-page.js, browser.js). See site-config.js.
+import { siteConfig } from './site-config.js';
+// Ad-block detection and the premium-engine gate. Same specifier as browser.js,
+// so the lock state is shared by one module instance.
+import { armAdWatch, evaluateSupport } from './support-gate.js';
+// Is this page inside TikTok's / Instagram's / … own web view? Pure detector.
+import { detectInAppBrowser, externalBrowserLink, INAPP_MESSAGE } from './inapp.js';
+// NB: the ad loaders (proxy-ads.js + ad-slots.js) are imported LATER (bottom of
+// this file) — after /api/site-config resolves. No AdSense.
 
 // ── Self-heal stale service workers ────────────────────────────────────────
 // A legacy / root-scoped service worker left over from an earlier build can
@@ -30,6 +38,114 @@ import './consent.js?v=20260729';
     }).catch(() => {});
   } catch { /* never let cleanup break the page */ }
 })();
+
+// ════════════════════════════════════════════════════════════════════════
+// In-app browser banner.
+//
+// TikTok, Instagram, Facebook and friends open links in their own web view,
+// where the proxy engines cannot work: on iOS that view has no Service
+// Workers, so Ultraviolet and Scramjet never start and GUST renders blank.
+// The only fix is the visitor's — open the page in Safari or Chrome — so the
+// page says so, at the top, on every page.
+//
+// HOW IT STAYS OUT OF THE WAY
+//   • A shadow root under a custom element: the site's CSS cannot restyle it,
+//     its CSS cannot leak into a game frame, and generic element-hiding rules
+//     (which match class names like "banner" or "alert") have nothing to match.
+//   • It RESERVES its height instead of covering anything: its measured height
+//     is published as --inapp-bar-h, which main.css adds to the body's top
+//     padding and the sticky header's offset, and which the fixed-height app
+//     shells (/browser, /ai) subtract — the same contract --legal-bar-h uses.
+//     A ResizeObserver keeps the number true when the text wraps.
+//   • It can be minimised to a single line (remembered for the session), never
+//     removed: the visitor is still in the wrong browser.
+//   • It is invisible in fullscreen, because a fullscreen element is drawn in
+//     the top layer above everything else — a game in fullscreen is untouched.
+// ════════════════════════════════════════════════════════════════════════
+const INAPP_MIN_KEY = 'zofhub.inapp.min';
+function mountInAppBanner() {
+  let hit = null;
+  try { hit = detectInAppBrowser(navigator.userAgent || '', navigator.maxTouchPoints || 0); } catch { return; }
+  if (!hit || !document.body || document.querySelector('zofhub-inapp')) return;
+
+  const root = document.documentElement;
+  const host = document.createElement('zofhub-inapp');
+  host.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147482000;display:block';
+  // A note, not an alert: it is on every page, and role=alert would make a
+  // screen reader interrupt with it on every single navigation.
+  host.setAttribute('role', 'note');
+  host.setAttribute('aria-label', 'Open this page in your browser');
+  const shadow = host.attachShadow({ mode: 'open' });
+  const style = document.createElement('style');
+  style.textContent = `
+:host{all:initial}
+*{box-sizing:border-box}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
+  font:600 13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#241a00;
+  background:linear-gradient(90deg,#ffd426,#ffb800);box-shadow:0 2px 12px rgba(10,4,32,.45)}
+.msg{flex:1 1 260px;margin:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,a{appearance:none;border:0;border-radius:999px;padding:7px 12px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:800;line-height:1;text-decoration:none;
+  color:#fff;background:#241a00;white-space:nowrap}
+.ghost{background:rgba(36,26,0,.14);color:#241a00}
+button:focus-visible,a:focus-visible{outline:3px solid #241a00;outline-offset:2px}
+.bar.min{padding:6px 14px}
+.bar.min .msg{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar.min .actions > :not(.toggle){display:none}
+`;
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  const msg = document.createElement('p');
+  msg.className = 'msg';
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const escape = externalBrowserLink(location.href, hit.os);
+  if (escape) {
+    const a = document.createElement('a');
+    a.href = escape.url;
+    a.textContent = escape.label;
+    a.rel = 'noopener';
+    actions.appendChild(a);
+  }
+  // When the app hides its menu, the link on the clipboard is the way out.
+  const copy = document.createElement('button');
+  copy.type = 'button';
+  copy.className = 'ghost';
+  copy.textContent = 'Copy link';
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(location.href); copy.textContent = 'Copied ✓'; }
+    catch { copy.textContent = 'Copy failed'; }
+  });
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'ghost toggle';
+  actions.append(copy, toggle);
+
+  const setMin = (min) => {
+    bar.classList.toggle('min', min);
+    msg.textContent = min ? '⚠️ Open this page in Safari/Chrome for full speed.' : INAPP_MESSAGE;
+    toggle.textContent = min ? 'Show' : 'Hide';
+    toggle.setAttribute('aria-expanded', String(!min));
+    try { sessionStorage.setItem(INAPP_MIN_KEY, min ? '1' : '0'); } catch { /* per-page only */ }
+  };
+  toggle.addEventListener('click', () => setMin(!bar.classList.contains('min')));
+
+  bar.append(msg, actions);
+  shadow.append(style, bar);
+  let startMin = false;
+  try { startMin = sessionStorage.getItem(INAPP_MIN_KEY) === '1'; } catch { /* default: full banner */ }
+  setMin(startMin);
+  document.body.prepend(host);
+
+  const publish = () => root.style.setProperty('--inapp-bar-h', `${Math.ceil(host.getBoundingClientRect().height)}px`);
+  root.classList.add('zh-inapp');
+  publish();
+  if ('ResizeObserver' in window) new ResizeObserver(publish).observe(host);
+  else window.addEventListener('resize', publish);
+}
+mountInAppBanner();
 
 function focusSearchShortcut(e) {
   if (e.key !== '/') return;
@@ -123,6 +239,44 @@ function mountFooter() {
   if (!footer || footer.dataset.enhanced) return;
   footer.dataset.enhanced = '1';
   const year = new Date().getFullYear();
+
+  // A page may ship its own attribution line — the GameFlare pages state who
+  // actually serves the game and that ZoFHub does not host or modify it. That
+  // sentence is a legal notice, not decoration, so it is captured before the
+  // rebuild and restored afterwards instead of being overwritten by the shared
+  // markup. Without this, giving those pages the shared footer would silently
+  // delete the disclosure that makes them accurate.
+  const ownNote = footer.querySelector('.footer-legal')?.textContent.trim() || '';
+
+  // ── Compact variant ──────────────────────────────────────────────────────
+  // /ai and /browser are fixed-height app shells: their main element is sized
+  // to `calc(100vh - header)`, so a six-column footer would push the composer
+  // (or the proxy frame) below the fold and turn a deliberate single-screen
+  // layout into a scrolling page. They opt into a one-row legal bar instead,
+  // which links exactly the same documents — the legal pages stay reachable
+  // from every page on the site, which is the part that actually matters.
+  if (footer.classList.contains('site-footer-mini')) {
+    footer.innerHTML = `
+      <div class="footer-mini-inner">
+        <span class="footer-copy">&copy; ${year} ZoFHub</span>
+        <nav class="footer-mini-links" aria-label="Legal">
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/dmca">DMCA</a>
+          <a href="/credits">Credits</a>
+          <a href="/licenses">Source</a>
+        </nav>
+      </div>`;
+    if (ownNote) {
+      const p = document.createElement('p');
+      p.className = 'footer-legal';
+      p.textContent = ownNote;
+      footer.querySelector('.footer-mini-inner')?.appendChild(p);
+    }
+    return;
+  }
+
   footer.innerHTML = `
     <div class="footer-main">
       <div class="footer-brand">
@@ -148,7 +302,7 @@ function mountFooter() {
         <h3>Explore</h3>
         <a href="/ai">AI Assistant</a>
         <a href="/community">Community</a>
-        <a href="/browser">Proxy Browser</a>
+        ${proxyBrowserVisible() ? '<a href="/browser">Proxy Browser</a>' : ''}
         <a href="/api/health" target="_blank" rel="noopener">Status</a>
         <!-- Opens the feedback dialog (feedback.js). A real href so it still reads
              as a link to assistive tech and survives the module failing to load. -->
@@ -172,6 +326,15 @@ function mountFooter() {
     <div class="footer-bottom">
       <span class="footer-copy">© ${year} ZoFHub · Personal &amp; non-commercial use only.</span>
     </div>`;
+  // Restore the page's own attribution line (see ownNote above), above the
+  // copyright row so it reads as part of the legal block rather than a caption.
+  if (ownNote) {
+    const p = document.createElement('p');
+    p.className = 'footer-legal';
+    p.textContent = ownNote;
+    footer.querySelector('.footer-bottom')?.prepend(p);
+  }
+
   // Social cluster — only when there are REAL socials to show (no empty gaps).
   if (SOCIALS.length) {
     footer.querySelector('.footer-brand')?.appendChild(buildSocialCluster('footer-social'));
@@ -179,6 +342,141 @@ function mountFooter() {
   }
 }
 mountFooter();
+
+// ════════════════════════════════════════════════════════════════════════
+// Mirror-update signup — censorship insurance.
+//
+// If this domain is blocked, an address collected beforehand is the only way
+// left to tell anyone where the mirror is. The form is deliberately tiny: one
+// field, one button, no name, no confirmation step, no preferences.
+//
+// The "zero tracking" claim in the copy is kept by the SCHEMA, not by this
+// script: db/14_subscriber_emails.sql stores the address and nothing else — no
+// IP, no timestamp, no user agent. It is worth not adding any of those later.
+// ════════════════════════════════════════════════════════════════════════
+function mountMirrorSignup() {
+  const footer = document.querySelector('.site-footer');
+  if (!footer || footer.querySelector('.mirror-signup')) return;
+  // Not in the compact bar. /ai and /browser reserve an exact 38px for it, and
+  // a two-line form with an input and a button does not fit in 38px — it pushed
+  // the AI composer and the proxy frame off the bottom of the viewport. The
+  // signup still appears on every content page, which is where somebody reading
+  // a page is able to stop and type an address anyway.
+  if (footer.classList.contains('site-footer-mini')) return;
+  const anchor = footer.querySelector('.footer-bottom') || footer.lastElementChild;
+  if (!anchor) return;
+
+  const box = document.createElement('section');
+  box.className = 'mirror-signup';
+  box.innerHTML = `
+    <form class="mirror-form" novalidate>
+      <label class="mirror-copy" for="mirrorEmail">
+        Lose access if this domain gets blocked? Enter your email for mirror updates.
+        <span class="mirror-fine">No accounts, zero tracking.</span>
+      </label>
+      <div class="mirror-row">
+        <input id="mirrorEmail" name="email" type="email" inputmode="email"
+               autocomplete="email" spellcheck="false" placeholder="you@example.com"
+               required aria-describedby="mirrorMsg" />
+        <button type="submit" class="mirror-go">Notify me</button>
+      </div>
+      <!-- Honeypot: hidden from people, filled by bots. Never focusable. -->
+      <input class="mirror-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <p class="mirror-msg" id="mirrorMsg" role="status" aria-live="polite"></p>
+    </form>`;
+  anchor.parentNode.insertBefore(box, anchor);
+
+  const form = box.querySelector('form');
+  const input = box.querySelector('#mirrorEmail');
+  const btn = box.querySelector('.mirror-go');
+  const msg = box.querySelector('.mirror-msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = input.value.trim();
+    if (!email) { msg.textContent = 'Enter an email address first.'; msg.className = 'mirror-msg bad'; return; }
+    btn.disabled = true;
+    const wasLabel = btn.textContent;
+    btn.textContent = 'Sending…';
+    try {
+      const r = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, website: box.querySelector('.mirror-hp').value }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) {
+        // The server answers the same way for a new address and one already on
+        // the list — so this message must not claim to know which happened.
+        msg.textContent = 'Saved. If this domain goes down, you will get the mirror link.';
+        msg.className = 'mirror-msg ok';
+        form.querySelector('.mirror-row').hidden = true;
+      } else {
+        msg.textContent = d.error || 'Could not save that right now.';
+        msg.className = 'mirror-msg bad';
+      }
+    } catch {
+      msg.textContent = 'Network problem — try again in a moment.';
+      msg.className = 'mirror-msg bad';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = wasLabel;
+    }
+  });
+}
+mountMirrorSignup();
+
+// ════════════════════════════════════════════════════════════════════════
+// Header Donate button.
+//
+// It already existed — as one link in a footer column headed "Explore", below
+// the fold on every page. That is not an entry point, it is an archive. The
+// site has exactly one place where money is asked for, and it now sits in the
+// sticky bar where it can actually be seen.
+//
+// It is an <a> with a real href, not a <button>: the donation dialog is
+// progressive enhancement, so if donate.js fails to load the link still goes
+// to a page that works. Same reasoning as the footer link it mirrors.
+// ════════════════════════════════════════════════════════════════════════
+// Leaderboard link. Added here rather than by hand in eight HTML files, which
+// is how the nav drifted out of sync between pages in the first place.
+function mountHeaderLeaderboard() {
+  const nav = document.querySelector('.header-inner .top-nav');
+  if (!nav || nav.querySelector('a[href="/leaderboard"]')) return;
+  const a = document.createElement('a');
+  a.href = '/leaderboard';
+  a.textContent = 'Leaderboard';
+  if (location.pathname.replace(/\/+$/, '') === '/leaderboard') a.className = 'active';
+  // After "Games" when that exists, otherwise first — it is a play destination,
+  // not a utility, so it belongs with the play links rather than beside Browser.
+  const games = nav.querySelector('a[href="/"]');
+  if (games) games.insertAdjacentElement('afterend', a);
+  else nav.prepend(a);
+}
+mountHeaderLeaderboard();
+
+function mountHeaderDonate() {
+  const header = document.querySelector('.header-inner');
+  if (!header || header.querySelector('.header-donate')) return;
+  const a = document.createElement('a');
+  a.className = 'header-donate';
+  a.href = '/donate';
+  // Navigates to the payment page rather than opening the quick dialog. The
+  // page is where a donor picks a coin and sees exactly one address next to its
+  // QR; the dialog shows every method at once, which is how somebody ends up
+  // pasting a Monero address into a Bitcoin wallet. The footer link still opens
+  // the dialog for a quick look.
+  if (location.pathname.replace(/\/+$/, '') === '/donate') a.setAttribute('aria-current', 'page');
+  a.setAttribute('aria-label', 'Donate to ZoFHub');
+  a.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>' +
+    '</svg><span>Donate</span>';
+  const nav = header.querySelector('.top-nav');
+  if (nav) nav.insertAdjacentElement('afterend', a);
+  else header.appendChild(a);
+}
+mountHeaderDonate();
 
 // Header social cluster — the PRIMARY, always-visible spot (the sticky top bar),
 // so visitors never have to scroll to the footer to find/follow us.
@@ -219,12 +517,56 @@ mountHeaderUser();
 // from a canonical link list so every page gets the same complete menu (some
 // pages' desktop nav markup is missing links).
 // ════════════════════════════════════════════════════════════════════════
+// Is the proxy browser reachable for THIS visitor?
+//
+// When the operator turns on the proxy discovery gate (MASQR_ENABLED — see
+// lib/masqr.mjs), /browser answers 404 for anyone without a key. A header that
+// still advertises "Proxy Browser" would then look like a broken site rather
+// than a quiet one, so the server leaves a one-character, non-secret hint
+// cookie and the chrome reads it:
+//
+//   absent  → the gate is off entirely. Show the link. This is the default and
+//             every deployment that never touches MASQR.
+//   '1'     → gate on, this visitor has a valid key. Show it.
+//   '0'     → gate on, no key. Hide it.
+//
+// Deliberately fails toward SHOWING the link: a storage-blocked or cookie-less
+// browser should get the site it has always had, not a silently reduced one.
+function proxyBrowserVisible() {
+  try {
+    const m = /(?:^|;\s*)zh_px=([01])/.exec(document.cookie || '');
+    return !m || m[1] === '1';
+  } catch { return true; }
+}
+
 const NAV_LINKS = [
   { label: 'Games',         href: '/' },
   { label: 'AI Assistant',  href: '/ai' },
   { label: 'Community',     href: '/community' },
-  { label: 'Proxy Browser', href: '/browser' },
-];
+  { label: 'Proxy Browser', href: '/browser', requiresProxyAccess: true },
+].filter(l => !l.requiresProxyAccess || proxyBrowserVisible());
+
+/**
+ * Remove proxy links this visitor cannot follow.
+ *
+ * NAV_LINKS above only builds the MOBILE nav; the desktop header is static
+ * markup in every .html file, and the footer is a template string. Editing
+ * twenty pages to add a conditional would be churn, and would still miss any
+ * page added later — so the links are pruned from the live DOM instead, which
+ * covers header, footer and anything else that points at a gated surface.
+ *
+ * Runs only when the gate is ON and this visitor has no key. With the gate off
+ * — the default, and every deployment that never touches MASQR — the hint
+ * cookie is absent, proxyBrowserVisible() is true, and this does nothing at all.
+ */
+function pruneGatedLinks() {
+  if (proxyBrowserVisible()) return;
+  for (const a of document.querySelectorAll('a[href^="/browser"], a[href^="/gust"]')) {
+    // Drop the whole list item where there is one, so the nav does not keep a
+    // stray separator or an empty bullet where the link used to be.
+    (a.closest('li') || a).remove();
+  }
+}
 function mountMobileNav() {
   const header = document.querySelector('.header-inner');
   if (!header || document.querySelector('.nav-toggle')) return;
@@ -274,6 +616,35 @@ function mountMobileNav() {
   window.addEventListener('resize', () => { if (window.innerWidth > 880) setOpen(false); });
 }
 mountMobileNav();
+// After the footer and the mobile nav exist, so it prunes both along with the
+// static desktop header.
+pruneGatedLinks();
+
+// ── Site configuration from the admin console ──────────────────────────────
+// /api/site-config carries the PUBLIC settings only (lib/settings-registry.mjs):
+// an announcement, and which features are switched on. The announcement is set
+// with textContent, never innerHTML — it is operator text, and operator text is
+// still text. A switched-off feature is already refused by the server; removing
+// its links here just stops the site pointing people at a 404.
+const FEATURE_LINKS = { ai: '/ai', community: '/community', leaderboard: '/leaderboard', donate: '/donate' };
+siteConfig
+  .then((cfg) => {
+    if (!cfg) return;
+    const a = cfg.announcement;
+    if (a && typeof a.text === 'string' && a.text.trim() && !document.querySelector('.site-announce')) {
+      const bar = document.createElement('div');
+      bar.className = 'site-announce' + (a.level === 'warning' ? ' is-warning' : '');
+      bar.setAttribute('role', a.level === 'warning' ? 'alert' : 'status');
+      bar.textContent = a.text;
+      document.body.prepend(bar);
+    }
+    const off = Object.entries(cfg.features || {}).filter(([, on]) => on === false).map(([k]) => FEATURE_LINKS[k]).filter(Boolean);
+    if (cfg.proxy && cfg.proxy.accessMode === 'disabled') off.push('/browser');
+    for (const href of off) {
+      for (const el of document.querySelectorAll(`a[href="${href}"], a[href^="${href}?"]`)) (el.closest('li') || el).remove();
+    }
+  })
+  .catch(() => { /* no config → the page works as it always did */ });
 
 // ════════════════════════════════════════════════════════════════════════
 // AI helper orb — placeholder now, real module on first click.
@@ -346,10 +717,11 @@ function mountAIStub() {
 mountAIStub();
 
 // ════════════════════════════════════════════════════════════════════════
-// Proxy-friendly ads (loaded after config). ZoFHub is ALWAYS a proxy site and
-// never loads Google AdSense. We fetch /api/site-config, then load the page-level
-// ad scripts (PROXY_AD_SCRIPTS) and the isolated footer banner (PROXY_BANNER_TAG)
-// — each only if configured, so the site stays clean until you set them.
+// Advertising (loaded after config). ZoFHub is ALWAYS a proxy site and never
+// loads Google AdSense. Six networks, one role each (lib/ad-providers.mjs):
+// the server resolves which are live for THIS page and THIS visitor's region,
+// and this loads only what it was handed — so the site stays clean until a
+// network is configured.
 // ════════════════════════════════════════════════════════════════════════
 // ── The proxy/ad boundary, client side ────────────────────────────────────
 // Mirrors isAdSurface() in lib/ad-providers.mjs. Deliberately duplicated rather
@@ -363,50 +735,51 @@ mountAIStub();
 const PROXY_SURFACE_RE = /^\/(browser|gust|proxy|uv|sj|scram|epoxy|libcurl|baremux|wisp|bare|service)(\/|$)/i;
 const ADS_ALLOWED_HERE = !PROXY_SURFACE_RE.test(location.pathname);
 
-fetch(`/api/site-config?surface=${encodeURIComponent(location.pathname)}`)
-  .then(r => r.json())
-  .then(cfg => {
+// Start watching for blocked ad scripts BEFORE any can be injected: load and
+// error events are not replayed for a listener that arrives late.
+if (ADS_ALLOWED_HERE) armAdWatch();
+
+let adConfig = null;
+siteConfig
+  .then((cfg) => {
+    if (!cfg) return;
+    adConfig = cfg;
     window.ZOFHUB_PROXY = cfg.proxy !== false;
     if (!ADS_ALLOWED_HERE || cfg.adsAllowed === false) return;   // proxy surface: nothing further
-    // Page-level loader scripts from whichever networks are enabled.
-    if (Array.isArray(cfg.proxyAdScripts) && cfg.proxyAdScripts.length) {
-      window.ZOFHUB_PROXY_ADS = cfg.proxyAdScripts;
+    // HilltopAds' in-page push loader — the one role that is only a script.
+    if (Array.isArray(cfg.adScripts) && cfg.adScripts.length) {
+      window.ZOFHUB_PROXY_ADS = cfg.adScripts;
     }
-    // Optional fixed display banners (independent of the scripts above). Each
-    // slot renders ONLY when its own tag is set, so you can enable them one at a
-    // time as each network approves you.
-    if (typeof cfg.proxyBannerTag === 'string' && cfg.proxyBannerTag.trim()) {
-      window.ZOFHUB_PROXY_BANNER = cfg.proxyBannerTag;
-    }
-    if (typeof cfg.proxyHeaderTag === 'string' && cfg.proxyHeaderTag.trim()) {
-      window.ZOFHUB_HEADER_TAG = cfg.proxyHeaderTag;
-    }
-    if (typeof cfg.proxySidebarTag === 'string' && cfg.proxySidebarTag.trim()) {
-      window.ZOFHUB_SIDEBAR_TAG = cfg.proxySidebarTag;
-    }
-    if (typeof cfg.proxyInContentTag === 'string' && cfg.proxyInContentTag.trim()) {
-      window.ZOFHUB_INCONTENT_TAG = cfg.proxyInContentTag;
-    }
+    // ExoClick's two fixed boxes. Each renders ONLY when its own tag is set.
+    const slots = cfg.slots || {};
+    if (typeof slots.header === 'string' && slots.header.trim()) window.ZOFHUB_HEADER_TAG = slots.header;
+    if (typeof slots.sidebar === 'string' && slots.sidebar.trim()) window.ZOFHUB_SIDEBAR_TAG = slots.sidebar;
+    // Role payloads: { provider, tag | url }. The interstitial's 20-minute cap
+    // is a constant in ad-frequency.js; nothing in this payload can change it.
+    if (cfg.interstitial && (cfg.interstitial.tag || cfg.interstitial.url)) window.ZOFHUB_INTERSTITIAL = cfg.interstitial;
+    if (cfg.native && cfg.native.tag) window.ZOFHUB_NATIVE = cfg.native;
+    // The server sends the popunder only for game pages; ad-slots.js adds the
+    // desktop check. The pre-roll is game-page.js's to run, not this file's.
+    if (cfg.popunder && cfg.popunder.tag) window.ZOFHUB_POPUNDER = cfg.popunder;
   })
-  .catch(() => { /* config unavailable → site still works, just no ads */ })
   .finally(() => {
-    // Second gate. The .then() above can be skipped entirely by a network
-    // failure, and a cached window.ZOFHUB_* from an earlier navigation must not
-    // be able to start the ad stack on a proxy surface.
-    if (!ADS_ALLOWED_HERE) return;
-    // (a) page-level proxy-friendly ad scripts (popunder / push / interstitial),
-    //     only if configured. Loads NO Google code.
-    if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260720');
-    // (b) the clean, isolated footer display banner. It self-checks
-    //     window.ZOFHUB_PROXY_BANNER and stays hidden until a banner tag is set,
-    //     so a real banner appears the moment you configure PROXY_BANNER_TAG.
-    import('./footer-ad.js?v=20260721').then(m => m.mountFooterAd()).catch(() => {});
-    // (c) header 728×90 + sidebar 300×250 + the in-content slots the pages
-    //     already declare. Same contract: each self-checks its own tag and does
-    //     nothing when unset, so this import is free until you configure
-    //     PROXY_HEADER_TAG / PROXY_SIDEBAR_TAG / PROXY_INCONTENT_TAG. Loaded only
-    //     when at least one is present, so unconfigured visitors never fetch it.
-    if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG || window.ZOFHUB_INCONTENT_TAG) {
-      import('./ad-slots.js?v=20260806').then(m => m.mountAdSlots()).catch(() => {});
+    // Second gate. A cached window.ZOFHUB_* from an earlier navigation must
+    // not be able to start the ad stack on a proxy surface.
+    if (ADS_ALLOWED_HERE) {
+      // (a) page-level loader scripts, only if configured. Loads NO Google code.
+      if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260928');
+      // (b) every placement with a container in our layout. Each self-checks
+      //     its own payload and does nothing when unset, so the module is
+      //     fetched only when at least one is present.
+      if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG || window.ZOFHUB_INTERSTITIAL
+          || window.ZOFHUB_NATIVE || window.ZOFHUB_POPUNDER) {
+        import('./ad-slots.js?v=20260928').then((m) => m.mountAdSlots()).catch(() => {});
+      }
     }
+    // (c) the ad-block check. On a hub or game page it judges the ads that
+    //     just loaded; on /browser it re-checks, without contacting any ad
+    //     network, whether a previous verdict still holds — that is where the
+    //     premium engines it may lock live.
+    evaluateSupport(adConfig, { adSurface: ADS_ALLOWED_HERE && adConfig?.adsAllowed === true })
+      .catch(() => { /* a failed check never locks anything */ });
   });

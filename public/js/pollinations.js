@@ -42,7 +42,21 @@ const REASONING = 'low';         // reasoning_effort:'low' → fast first token
 // forbade inventing facts, which is what produced the fabricated game histories.
 const SYSTEM    = SYSTEM_PROMPT;
 
-const CONNECT_MS = 15000, FIRST_BYTE_MS = 25000, IDLE_MS = 20000, GET_MS = 45000;
+// ── THESE NUMBERS WERE MEASURED, NOT CHOSEN ───────────────────────────────
+// FIRST_BYTE_MS was 25000, and that was the bug behind "sometimes the AI just
+// doesn't answer". Twelve sequential completions against the real endpoint from
+// a production origin produced a time-to-first-CONTENT-token of 16.0s, 26.3s,
+// 27.2s and 27.3s — a median of ~26.6s, sitting just ABOVE the old 25s budget.
+// The client was aborting working requests roughly a second before the model
+// spoke, then falling through to the slow GET route, so the user waited ~32s
+// for an answer the fast path already had.
+//
+// 45s is chosen to clear the observed p95 (27.3s) with real headroom for a
+// slower network, while staying under GET_MS so a hung stream still leaves time
+// for the fallback to run inside one send. Raising it does NOT make failures
+// slower in practice: a genuinely dead request fails on CONNECT or on the idle
+// timer, both of which are unchanged.
+const CONNECT_MS = 15000, FIRST_BYTE_MS = 45000, IDLE_MS = 20000, GET_MS = 45000;
 
 const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

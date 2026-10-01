@@ -1,0 +1,120 @@
+{
+  "$comment": [
+    "ZoFHub — sing-box configuration TEMPLATE.",
+    "",
+    "sing-box (github.com/SagerNet/sing-box) is GPL-3.0 and is a SEPARATE daemon",
+    "that you run yourself. ZoFHub does not bundle, build, start or derive from",
+    "it, and is not affiliated with or endorsed by its authors. This file is a",
+    "starting template written against sing-box's published config format.",
+    "",
+    "VALIDATE BEFORE USE — the schema changes between major versions:",
+    "  sing-box check -c config.json",
+    "",
+    "Every ${PLACEHOLDER} must be replaced. Generate the REALITY keypair with:",
+    "  sing-box generate reality-keypair",
+    "  sing-box generate uuid",
+    "Keep the private key and the API secret in the environment, never in git.",
+    "",
+    "Full setup and the admin-panel integration: docs/proxy/SINGBOX.md"
+  ],
+
+  "log": { "level": "warn", "timestamp": true },
+
+  "experimental": {
+    "$comment": [
+      "The Clash-compatible management API. This is the ONE surface ZoFHub's",
+      "admin panel reads (lib/singbox.mjs → GET /api/admin/proxy).",
+      "",
+      "BIND IT TO LOOPBACK. Anyone who reaches this API can rewrite routing and",
+      "enumerate every live connection. It must never face the public internet;",
+      "ZoFHub reads it server-side precisely so no browser ever touches it."
+    ],
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "secret": "${SINGBOX_API_SECRET}"
+    },
+    "cache_file": { "enabled": true, "path": "/var/lib/sing-box/cache.db" }
+  },
+
+  "inbounds": [
+    {
+      "$comment": [
+        "VLESS + REALITY. REALITY borrows the TLS handshake of a real external",
+        "site (handshake.server) instead of presenting its own certificate, so",
+        "it needs to OWN port 443 — which is why this cannot run inside ZoFHub's",
+        "existing single-container deploy, where the platform edge owns TLS.",
+        "",
+        "server_name MUST match handshake.server, and that host must be a real,",
+        "reachable TLS site that is not already associated with this deployment."
+      ],
+      "type": "vless",
+      "tag": "vless-reality-in",
+      "listen": "0.0.0.0",
+      "listen_port": 443,
+      "users": [
+        {
+          "$comment": "One entry per client. The uuid IS the credential — cycling a client means replacing this value and hot-reloading.",
+          "name": "owner",
+          "uuid": "${SINGBOX_UUID_OWNER}",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "${SINGBOX_HANDSHAKE_HOST}",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "${SINGBOX_HANDSHAKE_HOST}",
+            "server_port": 443
+          },
+          "private_key": "${SINGBOX_REALITY_PRIVATE_KEY}",
+          "short_id": ["${SINGBOX_REALITY_SHORT_ID}"]
+        }
+      },
+      "multiplex": { "enabled": true, "padding": true }
+    }
+  ],
+
+  "outbounds": [
+    { "$comment": "No `block` outbound: sing-box removed that type after 1.11, and a config declaring it fails `sing-box check`. Rejecting is a route ACTION now — see route.rules below." },
+    { "type": "direct", "tag": "direct" }
+  ],
+
+  "route": {
+    "$comment": [
+      "Rules match in order; `final` is the fallback.",
+      "",
+      "The private/loopback reject is load-bearing, not decorative: without it a",
+      "tunnelled client can reach 127.0.0.1 on the proxy host, which includes the",
+      "clash_api controller above — letting any client rewrite routing and read",
+      "every other connection. 169.254.169.254 is the cloud instance-metadata",
+      "endpoint that hands out credentials, and the RFC1918 ranges are whatever",
+      "else shares the host's private network.",
+      "",
+      "THIS LIST IS DELIBERATELY IDENTICAL to config.template.json's. Two",
+      "profiles that block different things is how the less-used one quietly",
+      "becomes the way in; a test asserts they stay in step.",
+      "",
+      "`action: reject` replaces the `block` outbound type removed after 1.11."
+    ],
+    "rules": [
+      {
+        "ip_cidr": [
+          "127.0.0.0/8",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "169.254.0.0/16",
+          "100.64.0.0/10",
+          "0.0.0.0/8",
+          "::1/128",
+          "fc00::/7",
+          "fe80::/10"
+        ],
+        "action": "reject"
+      }
+    ],
+    "final": "direct"
+  }
+}

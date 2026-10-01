@@ -27,23 +27,22 @@
    category page and one on every game page. Tying visibility to
    "a tag was actually injected here" makes an empty reserved box
    structurally impossible rather than a thing to remember.
+
+   The in-content banner positions were retired with the six-network
+   matrix (lib/ad-providers.mjs): no network owns them, so their
+   containers were removed from the pages rather than left hidden.
    ============================================================ */
 :is(.ad-slot, .ad-ingrid, .ad-rail, .ad-space, .zad-anchor,
-    .ad-inline, .catalog-ad-top, .catalog-ad-bottom):not([data-zad-filled]) {
+    .zad-native-slot):not([data-zad-filled]) {
   display: none !important;
 }
 
-/* A FILLED in-content slot: reserve the creative's height up-front so a late
-   ad cannot shift the page, and keep it clean — no label, no border, no box. */
-:is(.ad-inline, .catalog-ad-top, .catalog-ad-bottom)[data-zad-filled] {
+/* A FILLED native slot (Mondiad, below the "for you" rows). ad-slots.js
+   reserves the widget's floor inside it; this is the band around it. */
+.zad-native-slot[data-zad-filled] {
   display: block !important;
-  width: 100%; max-width: 970px; min-height: 90px; margin: 20px auto;
+  width: 100%; margin: 16px 0 4px;
   background: transparent !important; border: 0 !important;
-}
-@media (max-width: 560px) {
-  :is(.ad-inline, .catalog-ad-top, .catalog-ad-bottom)[data-zad-filled] {
-    min-height: 60px; margin: 14px auto;
-  }
 }
 
 :root {
@@ -79,6 +78,11 @@
   --radius:    12px;
   --radius-sm: 9px;
   --header-h:  64px;
+  /* Height of the in-app-browser banner (layout.js) when one is showing, 0
+     otherwise. The same contract as --legal-bar-h: the banner declares its
+     height here, and everything positioned from the top of the viewport adds
+     it, so the banner reserves space instead of covering the header. */
+  --inapp-bar-h: 0px;
   /* Shadows are violet-tinted (not black) so cards sit IN the indigo world
      instead of looking punched out of it. */
   --shadow-card: 0 3px 10px rgba(12,6,38,.5), 0 1px 2px rgba(12,6,38,.6);
@@ -380,6 +384,40 @@ kbd {
 .footer-col a { color: var(--text-mute); transition: color .14s ease, transform .14s ease; width: fit-content; }
 .footer-col a:hover { color: var(--text); transform: translateX(2px); }
 
+/* ── Compact legal bar ──────────────────────────────────────────────────────
+   /ai and /browser are fixed-height app shells, sized to the viewport. They
+   carry this one-row variant of the footer so the privacy, terms and DMCA
+   pages stay one click away from EVERY page on the site, without a six-column
+   block pushing the composer or the proxy frame below the fold.
+
+   --legal-bar-h is the contract between this bar and those shells: the bar
+   declares its own height here, and each shell subtracts it from its viewport
+   calculation. Hard-coding the number in three files is how a footer ends up
+   overlapping a proxy toolbar after somebody changes the padding. */
+.page-ai, .page-browser { --legal-bar-h: 38px; }
+
+.site-footer-mini {
+  margin-top: 0;
+  height: var(--legal-bar-h);
+  display: flex; align-items: center;
+  font-size: 12px;
+}
+.footer-mini-inner {
+  width: 100%; max-width: 1720px; margin: 0 auto;
+  padding: 0 clamp(12px, 2vw, 28px);
+  display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+}
+.footer-mini-links { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.footer-mini-links a { color: var(--text-mute); transition: color .14s ease; }
+.footer-mini-links a:hover { color: var(--text); }
+.site-footer-mini .footer-legal { margin: 0; color: var(--text-dim); font-size: 11.5px; }
+/* Below this width the bar wraps to two rows, so the shells must stop
+   reserving a single row's worth of space for it. */
+@media (max-width: 720px) {
+  .page-ai, .page-browser { --legal-bar-h: 0px; }
+  .site-footer-mini { height: auto; padding: 8px 0; }
+}
+
 /* Footer bottom bar */
 .footer-bottom {
   max-width: 1720px; margin: 0 auto;
@@ -450,6 +488,37 @@ kbd {
   margin-left: 6px;
 }
 .panic-btn:hover { background: rgba(239,68,68,.28); color: #fff; }
+.panic-btn:focus-visible,
+.panic-gear:focus-visible,
+.header-donate:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Panic settings. Deliberately quiet and deliberately SEPARATE: the red button
+   beside it now panics on the first click, so the thing that opens a form must
+   not look like the thing that hides the screen. */
+.panic-gear {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; margin-left: 4px; flex: none;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px; color: var(--text-dim); cursor: pointer;
+}
+.panic-gear:hover { background: rgba(255,255,255,.13); color: var(--text); }
+
+/* Donate. The only money ask on the site, and it lived in a footer column
+   called "Explore" where nobody looked. Brand yellow because it IS the action
+   colour here — it is not competing with another primary control in the bar. */
+.header-donate {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px; margin-left: 6px; flex: none;
+  background: var(--brand); color: #221a00;
+  border: 1px solid transparent; border-radius: 9px;
+  font-size: 12.5px; font-weight: 800; text-decoration: none; white-space: nowrap;
+}
+.header-donate:hover { filter: brightness(1.07); color: #221a00; }
+.header-donate svg { flex: none; }
+/* Below ~900px the bar is already fighting for room: keep the control (it still
+   works, it is still reachable) but drop the word and show only the heart. */
+@media (max-width: 900px) { .header-donate span { display: none; } .header-donate { padding: 8px 10px; } }
 .panic-dialog {
   position: fixed; inset: 0;
   display: grid; place-items: center; z-index: 240;
@@ -975,3 +1044,215 @@ body.nav-open { overflow: hidden; }
   .header-user { padding: 3px; border: 0; background: none; max-width: none; }
   .header-user-name { display: none; }
 }
+
+/* ============================================================
+   /donate — the linkable page behind the donation dialog.
+   The method CARDS style themselves (donate.js injectStyles, .dn-*); this is
+   only the page frame around them, so the two surfaces cannot drift apart.
+   ============================================================ */
+.donate-shell { max-width: 860px; margin: 0 auto; padding: 34px 18px 72px; }
+.donate-hero { text-align: center; margin-bottom: 30px; }
+.donate-hero h1 {
+  font-family: 'Lilita One', Inter, system-ui, sans-serif;
+  font-size: clamp(28px, 5vw, 40px); margin: 0 0 10px; letter-spacing: .01em;
+}
+.donate-blurb { color: var(--text-dim); font-size: 15px; line-height: 1.7; margin: 0 auto; max-width: 56ch; }
+.donate-methods { display: grid; gap: 14px; }
+.donate-notes {
+  margin-top: 34px; padding: 20px 22px;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px;
+}
+.donate-notes h2 { font-size: 15px; margin: 0 0 10px; }
+.donate-fine { color: var(--text-dim); font-size: 12.5px; line-height: 1.75; margin: 12px 0 0; }
+@media (max-width: 560px) { .donate-shell { padding: 22px 14px 56px; } .donate-notes { padding: 16px; } }
+
+/* ============================================================
+   /leaderboard — player-reported scores.
+   ============================================================ */
+.lb-shell { max-width: 900px; margin: 0 auto; padding: 34px 18px 72px; }
+.lb-hero { text-align: center; margin-bottom: 26px; }
+.lb-hero h1 {
+  font-family: 'Lilita One', Inter, system-ui, sans-serif;
+  font-size: clamp(28px, 5vw, 40px); margin: 0 0 8px;
+}
+.lb-sub { color: var(--text-dim); font-size: 14.5px; margin: 0; }
+.lb-status {
+  text-align: center; color: var(--text-dim); font-size: 14px;
+  padding: 34px 16px; margin: 0;
+}
+.lb-card {
+  background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 16px; overflow: hidden;
+}
+/* The table is the one thing allowed to scroll sideways on a narrow screen —
+   the page body must not. */
+.lb-tablewrap { overflow-x: auto; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.lb-table th {
+  text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-dim);
+  padding: 13px 14px; border-bottom: 1px solid var(--line-2); white-space: nowrap;
+}
+.lb-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.lb-table tr:last-child td { border-bottom: 0; }
+.lb-table tbody tr:hover { background: rgba(255,255,255,.04); }
+.lb-num, th.lb-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.lb-rank { width: 58px; }
+.lb-player { font-weight: 600; }
+.lb-game a { color: var(--text-dim); text-decoration: none; }
+.lb-game a:hover { color: var(--cyan, #22d3ee); text-decoration: underline; }
+.lb-medal {
+  display: inline-grid; place-items: center; width: 26px; height: 26px;
+  border-radius: 50%; font-size: 12px; font-weight: 900; color: #221a00;
+}
+.lb-gold { background: var(--brand); }
+.lb-silver { background: #d8dbe4; }
+.lb-bronze { background: #e0a06a; }
+.lb-plain { color: var(--text-dim); font-size: 13px; padding-left: 8px; }
+.lb-note {
+  margin: 22px 0 0; padding: 14px 16px;
+  border-left: 3px solid var(--line-2);
+  color: var(--text-dim); font-size: 12.5px; line-height: 1.75;
+}
+@media (max-width: 560px) {
+  .lb-shell { padding: 22px 14px 56px; }
+  .lb-table th, .lb-table td { padding: 10px 11px; }
+  .lb-game { display: none; }   /* the slug is the least useful column when space is short */
+}
+.lb-note-h { font-size: 14px; margin: 30px 0 6px; color: var(--text); }
+
+/* ============================================================
+   /donate — payment picker. One coin selected, one address shown.
+   Showing every wallet at once is how a donor pastes a Monero address
+   into a Bitcoin wallet, so the layout only ever presents one.
+   ============================================================ */
+.pay { display: grid; gap: 18px; }
+.pay-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.pay-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line-2);
+  color: var(--text-dim); font: 600 13px 'Inter', system-ui, sans-serif;
+}
+.pay-tab:hover { color: var(--text); border-color: var(--brand); }
+.pay-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pay-tab[aria-selected="true"] {
+  background: var(--brand); color: #221a00; border-color: transparent; font-weight: 800;
+}
+.pay-tick {
+  font-size: 10.5px; font-weight: 900; letter-spacing: .06em;
+  padding: 2px 7px; border-radius: 6px;
+  background: rgba(0,0,0,.22); color: inherit;
+}
+.pay-tab[aria-selected="true"] .pay-tick { background: rgba(0,0,0,.16); }
+
+.pay-panel {
+  background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 16px; padding: 22px;
+}
+.pay-grid { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 620px) { .pay-grid { grid-template-columns: 1fr; } }
+
+.pay-qr { margin: 0; }
+.pay-qr svg { width: 100%; height: auto; display: block; border-radius: 10px; background: #fff; }
+.pay-qr figcaption { margin-top: 8px; font-size: 11.5px; color: var(--text-dim); text-align: center; }
+.pay-qr-fail { font-size: 12px; color: var(--text-dim); }
+
+.pay-detail h3 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: center; gap: 9px; }
+.pay-chip {
+  font-size: 10.5px; font-weight: 900; letter-spacing: .06em;
+  padding: 3px 8px; border-radius: 6px; background: var(--surface-2); color: var(--text-dim);
+}
+.pay-note { margin: 0 0 16px; font-size: 13px; line-height: 1.65; color: var(--text-dim); }
+.pay-lbl {
+  display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px;
+}
+.pay-addr-row { display: flex; gap: 8px; align-items: stretch; }
+.pay-addr {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 9px;
+  background: var(--surface-2); border: 1px solid var(--line-2);
+  font: 12.5px/1.5 ui-monospace, 'Cascadia Code', Menlo, monospace;
+  color: var(--text); word-break: break-all;
+}
+.pay-copy {
+  flex: 0 0 auto; padding: 0 16px; border-radius: 9px; cursor: pointer;
+  background: var(--brand); color: #221a00; border: 0;
+  font: 800 12.5px 'Inter', system-ui, sans-serif;
+}
+.pay-copy:hover { filter: brightness(1.07); }
+.pay-copy:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.pay-verify { margin: 12px 0 0; }
+.pay-badge {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+}
+.pay-badge.ok { background: rgba(46,226,122,.15); color: #6ee7a0; }
+.pay-badge.warn { background: rgba(255,176,32,.15); color: #ffc76b; }
+.pay-open {
+  display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 700;
+  color: var(--cyan, #22d3ee); text-decoration: none;
+}
+.pay-open:hover { text-decoration: underline; }
+
+/* ============================================================
+   Mirror-update signup — censorship insurance, in the footer.
+   Minimal on purpose: one field, one button, no preferences.
+   ============================================================ */
+.mirror-signup {
+  max-width: 1240px; margin: 0 auto; padding: 20px 20px 4px;
+  border-top: 1px solid var(--line-2);
+}
+.mirror-copy {
+  display: block; font-size: 13px; line-height: 1.6;
+  color: var(--text-dim); margin-bottom: 10px; max-width: 62ch;
+}
+.mirror-fine { color: var(--text-dim); opacity: .8; }
+.mirror-row { display: flex; gap: 8px; flex-wrap: wrap; max-width: 460px; }
+.mirror-row[hidden] { display: none; }
+.mirror-signup input[type="email"] {
+  flex: 1 1 220px; min-width: 0; padding: 10px 12px;
+  border-radius: 9px; border: 1px solid var(--line-2);
+  background: var(--surface-2); color: var(--text);
+  font: 14px 'Inter', system-ui, sans-serif;
+}
+.mirror-signup input[type="email"]:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand);
+}
+.mirror-go {
+  flex: 0 0 auto; padding: 10px 16px; border: 0; border-radius: 9px;
+  background: var(--brand); color: #221a00; cursor: pointer;
+  font: 800 13px 'Inter', system-ui, sans-serif;
+}
+.mirror-go:hover { filter: brightness(1.07); }
+.mirror-go[disabled] { opacity: .6; cursor: default; }
+.mirror-go:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+/* Off-screen rather than display:none — some bots skip hidden fields, and a
+   field nobody can tab to is still a field a script will fill. */
+.mirror-hp {
+  position: absolute; left: -9999px; width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
+}
+.mirror-msg { margin: 10px 0 0; font-size: 12.5px; min-height: 1em; }
+.mirror-msg.ok { color: #6ee7a0; }
+.mirror-msg.bad { color: #ffa8b6; }
+@media (max-width: 560px) { .mirror-signup { padding: 16px 14px 4px; } }
+
+/* Admin announcement (public/js/layout.js). Plain text from the console. */
+.site-announce {
+  position: relative; z-index: 40; padding: 9px 16px; text-align: center;
+  font-size: 14px; line-height: 1.4; color: var(--text); background: var(--surface-hi);
+  border-bottom: 1px solid var(--line); overflow-wrap: anywhere;
+}
+.site-announce.is-warning { background: var(--warn); color: var(--brand-ink); }
+
+/* In-app browser banner offset (see --inapp-bar-h in :root). The banner is
+   position:fixed at the top; html.zh-inapp is set only while it exists. The
+   fixed-height shells (browser.css, ai.css) subtract the same variable. */
+html.zh-inapp body { padding-top: var(--inapp-bar-h); }
+html.zh-inapp .site-header { top: var(--inapp-bar-h); }
+html.zh-inapp .mobile-nav {
+  top: calc(var(--header-h) + var(--inapp-bar-h));
+  max-height: calc(100dvh - var(--header-h) - var(--inapp-bar-h));
+}
+html.zh-inapp .mobile-nav-backdrop { inset: calc(var(--header-h) + var(--inapp-bar-h)) 0 0; }

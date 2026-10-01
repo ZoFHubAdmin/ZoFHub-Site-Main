@@ -35,6 +35,19 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
+// This is a CLI script, not a module. Its top level runs a LIVE sweep that
+// probes every game_url in the catalog, and with --apply/--delete it rewrites
+// rows. ESM runs that on import, so importing it would launch the sweep.
+// Refuse loudly instead; running it normally is unaffected.
+import { isMain } from './_is-main.mjs';
+if (!isMain(import.meta.url)) {
+  throw new Error(
+    'tools/audit-catalog.mjs is a command-line script and must not be imported — ' +
+    'importing it would start a live catalog sweep. Run it with node instead.'
+  );
+}
+
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 for (const f of ['.env', '.env.example']) {
   const p = join(root, f);

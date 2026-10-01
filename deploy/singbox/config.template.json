@@ -1,0 +1,97 @@
+{
+  "$comment": [
+    "ZoFHub — DEFAULT sing-box profile: local egress for the proxy browser.",
+    "",
+    "This is the profile ZoFHub runs out of the box. sing-box listens on a",
+    "LOOPBACK-ONLY SOCKS5/HTTP inbound, and every TCP stream the Wisp tunnel",
+    "opens for a visitor is dialled through it (lib/singbox-socket.mjs). That is",
+    "what puts sing-box in the site's real traffic path rather than beside it.",
+    "",
+    "WHY THIS PROFILE AND NOT THE REALITY ONE. A VLESS+REALITY inbound has to",
+    "own :443 to borrow a real site's TLS handshake, which the platform edge",
+    "already owns on a normal single-container deploy — so it cannot be the",
+    "default. It is still shipped, as config.reality.template.json, for hosts",
+    "where you control the network edge. See docs/proxy/SINGBOX.md.",
+    "",
+    "NO SECRETS ARE REQUIRED. The management API secret is generated at boot if",
+    "SINGBOX_API_SECRET is unset, so the default deploy needs no configuration.",
+    "",
+    "Validate after editing:  sing-box check -c config.json",
+    "Written against the sing-box 1.11+ schema (route rule `action`, not the",
+    "removed `block` outbound). The supervisor runs `check` before every start,",
+    "so a schema mismatch surfaces as one error line, never a crash loop."
+  ],
+
+  "log": { "level": "warn", "timestamp": true },
+
+  "experimental": {
+    "$comment": [
+      "The Clash-compatible management API — the ONE surface ZoFHub reads",
+      "(lib/singbox.mjs → GET /api/admin/proxy).",
+      "",
+      "LOOPBACK ONLY, ALWAYS. Anyone who reaches this API can rewrite routing",
+      "and enumerate every live connection. ZoFHub reads it server-side",
+      "precisely so no browser ever touches it."
+    ],
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "secret": "${SINGBOX_API_SECRET}"
+    }
+  },
+
+  "inbounds": [
+    {
+      "$comment": [
+        "`mixed` speaks SOCKS5 and HTTP CONNECT on one port. ZoFHub uses SOCKS5",
+        "and sends the DESTINATION HOSTNAME (ATYP=0x03) rather than a resolved",
+        "IP, so sing-box performs the DNS lookup — remote resolution, which is",
+        "the point of proxying at all.",
+        "",
+        "listen is 127.0.0.1 and must stay that way on a shared host: an open",
+        "SOCKS proxy on a public interface is an abuse relay within hours."
+      ],
+      "type": "mixed",
+      "tag": "socks-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2080
+    }
+  ],
+
+  "outbounds": [
+    { "type": "direct", "tag": "direct" }
+  ],
+
+  "route": {
+    "$comment": [
+      "Rules match in order; `final` is the fallback.",
+      "",
+      "The private/loopback reject is load-bearing, not decorative. Without it a",
+      "proxied visitor could ask sing-box for 127.0.0.1 — which includes the",
+      "clash_api controller above, the ZoFHub web server itself, and on a cloud",
+      "host the 169.254.169.254 instance-metadata endpoint that hands out",
+      "credentials. wisp-js applies its own SSRF filter before the stream is",
+      "opened; this is the second, independent layer, and neither trusts the",
+      "other to be correct.",
+      "",
+      "`action: reject` replaces the `block` outbound type removed after 1.11."
+    ],
+    "rules": [
+      {
+        "ip_cidr": [
+          "127.0.0.0/8",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "169.254.0.0/16",
+          "100.64.0.0/10",
+          "0.0.0.0/8",
+          "::1/128",
+          "fc00::/7",
+          "fe80::/10"
+        ],
+        "action": "reject"
+      }
+    ],
+    "final": "direct"
+  }
+}

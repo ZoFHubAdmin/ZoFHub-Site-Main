@@ -35,7 +35,7 @@
   <main class="legal-shell">
     <div class="legal-hero">
       <h1>Cookie Policy</h1>
-      <p class="legal-updated">Last updated: June 28, 2026</p>
+      <p class="legal-updated">Last updated: September 28, 2026</p>
     </div>
 
     <div class="legal-body">
@@ -58,6 +58,28 @@
           Third-party ad networks may set their own when their ads load. See Section 3.</li>
       </ul>
 
+      <h3>Advertising frequency cap</h3>
+      <p>Where a full-screen ad is shown between games, we store a single timestamp in local storage
+        (<code>zofhub.adfreq.v1</code>) recording when it last appeared, so it cannot reappear for at
+        least twenty minutes. It holds a time and nothing else &mdash; no identifier, no browsing
+        history &mdash; it never leaves your browser, and clearing site data removes it. If local
+        storage is unavailable we cannot enforce the cap, and no full-screen ad is shown.</p>
+
+      <h3>Ad-block check</h3>
+      <p>If an ad blocker is detected, local storage keeps <code>zofhub.support.v1</code>: a count of
+        consecutive pages with a blocker on, the kind of evidence, a timestamp, and up to three
+        ad-network script addresses that failed to load. Session storage keeps
+        <code>zofhub.support.note</code> so the explanatory note is shown once per visit. Neither
+        leaves your browser. See the Privacy Policy, Section 3.</p>
+
+      <h3>Other functional storage</h3>
+      <ul>
+        <li><code>zofhub.inapp.min</code> (session storage) — remembers that you minimised the notice
+          shown inside apps such as TikTok or Instagram.</li>
+        <li><code>zh_geo</code> (cookie, seven days) — set only if you add <code>?geo=stay</code> to
+          the address, so you are not sent to your region's ZoFHub domain.</li>
+      </ul>
+
       <h2>3. Third-party cookies</h2>
       <p><strong>We do not load Google advertising code</strong> (AdSense or otherwise), so no Google
         advertising cookies are set by this Site.</p>
@@ -70,10 +92,11 @@
           set their own cookies and similar identifiers to select, frequency-cap and measure ads.
           Those cookies belong to the network, not to us, and we cannot read them. Depending on which
           are enabled, they may include:
-          <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener">Adsterra</a>,
+          <a href="https://ad-maven.com/privacy-policy/" target="_blank" rel="noopener">Ad-Maven</a>,
+          <a href="https://www.exoclick.com/privacy-policy/" target="_blank" rel="noopener">ExoClick</a>,
           <a href="https://hilltopads.com/privacy-policy" target="_blank" rel="noopener">HilltopAds</a>,
-          <a href="https://monetag.com/privacy-policy/" target="_blank" rel="noopener">Monetag</a>,
-          <a href="https://ad-maven.com/privacy-policy/" target="_blank" rel="noopener">Ad-Maven</a>, and
+          <a href="https://www.clickadu.com/privacy" target="_blank" rel="noopener">Clickadu</a>,
+          <a href="https://members.mondiad.com/privacy" target="_blank" rel="noopener">Mondiad</a>, and
           <a href="https://www.popads.net/privacy_policy" target="_blank" rel="noopener">PopAds</a>.
           Each link goes to that network's own privacy policy and opt-out. That is the complete list —
           we use no other advertising network, and never Google AdSense.</li>

@@ -12,6 +12,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 // Load the same env file the SERVER loads. Without this the test process has no
@@ -25,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 // loader sets nothing, the list is empty, and the suite still runs — it just
 // falls back to the pattern assertions, exactly as it does today.
 import '../lib/load-env.mjs';
+import { AI_PROVIDER_HOSTS } from '../lib/ai-hosts.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.TEST_PORT) || 3399;
@@ -453,15 +455,31 @@ describe('the server is never an AI proxy', () => {
     // an ordinary query, not an edge case.
     //
     // Latency is the discriminator: the outbound call had a 2.5s abort budget,
-    // so a sub-second response proves no upstream request was made.
+    // so a fast response proves no upstream request was made.
+    //
+    // Best of three, UNCACHED. A server-side AI call is systematic — every miss
+    // waits on it — while a slow answer caused by this suite's own server being
+    // busy (the background catalog refresh right after boot) is transient. A
+    // single sample could not tell them apart and failed intermittently; the
+    // fastest of three uncached attempts can. POST with a history is what makes
+    // them uncached: a personalised request never reads the vibe cache, and it
+    // takes exactly the same AI branch as a GET.
     for (const q of ['relaxing puzzle', 'qwertyuiop zxcvbnm plughfjord']) {
-      const t0 = Date.now();
-      const r = await visitor('/api/vibe?q=' + encodeURIComponent(q));
-      const ms = Date.now() - t0;
-      assert.equal(r.status, 200);
-      const j = await r.json();
-      assert.ok(ms < 1500, `"${q}" took ${ms}ms — the server appears to have called an AI provider`);
-      assert.notEqual(j.source, 'ai', 'source:"ai" means the server ran inference');
+      let best = Infinity;
+      let j;
+      for (let attempt = 0; attempt < 3 && best >= 1500; attempt++) {
+        const t0 = Date.now();
+        const r = await visitor('/api/vibe', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ q, history: [`probe-${attempt}-${Date.now()}`] }),
+        });
+        best = Math.min(best, Date.now() - t0);
+        assert.equal(r.status, 200);
+        j = await r.json();
+        assert.ok(!/ai/.test(String(j.source)), `source:"${j.source}" means the server ran inference`);
+      }
+      assert.ok(best < 1500, `"${q}" never answered in under 1.5s (best ${best}ms) — the server appears to wait on an AI provider`);
       // The feature must still work: the curated map is the source of truth.
       assert.ok(j.games.length > 0, 'Vibe Finder must still return games without the AI');
     }
@@ -509,12 +527,22 @@ describe('the server is never an AI proxy', () => {
     }
   });
 
-  test('/thumb never proxies an arbitrary host either', async () => {
-    // /thumb was already correct — a non-allowlisted host gets a 302 so the
-    // BROWSER fetches it, and the server never touches the bytes. Pinning it so
-    // that property cannot regress into a general image proxy.
-    const r = await visitor('/thumb?u=' + encodeURIComponent('https://image.pollinations.ai/prompt/cat'), { redirect: 'manual' });
-    assert.ok(r.status === 302 || r.status === 403, `expected redirect or refusal, got ${r.status}`);
+  test('/thumb never proxies an arbitrary host, and no longer redirects to one', async () => {
+    // /thumb rewrites only allowlisted CDN hosts. It used to 302 any OTHER host
+    // to the target so the browser fetched it — which made /thumb an OPEN
+    // REDIRECT (/thumb?u=https://phishing.example bounced a visitor off-site).
+    // Nothing legitimate produced such a link, so a non-allowlisted host is now
+    // REFUSED outright. Pinning the stronger property.
+    const r = await visitor('/thumb?u=' + encodeURIComponent('https://phishing.example/cat.png'), { redirect: 'manual' });
+    assert.equal(r.status, 400, `a non-allowlisted host must be refused, not redirected (got ${r.status})`);
+    assert.ok(!(r.status >= 300 && r.status < 400), 'must not be an open redirect');
+    // An AI host is refused as an AI host (403), ahead of the allowlist — and so
+    // is one smuggled inside an allowlisted CDN's path.
+    for (const u of ['https://image.pollinations.ai/prompt/cat',
+      'https://img.cloudimage.io/v7/image.pollinations.ai/prompt/cat.png']) {
+      const a = await visitor('/thumb?u=' + encodeURIComponent(u), { redirect: 'manual' });
+      assert.equal(a.status, 403, `${u} got ${a.status}`);
+    }
   });
 
   test('AI pipeline metadata is not published to anonymous callers', async () => {
@@ -544,6 +572,149 @@ describe('the server is never an AI proxy', () => {
                      'run-ad-auction', 'join-ad-interest-group']) {
       assert.ok(pp.includes(`${f}=()`), `${f} must be explicitly denied`);
     }
+  });
+});
+
+describe('every AI provider, on every route that fetches for a caller', () => {
+  // lib/ai-hosts.mjs, applied by /asset, /thumb and /api/proxy/diag. Each case
+  // is refused BEFORE any connection: the answer is a fixed 403, not a 502 or a
+  // timeout that would mean the server went looking.
+  const visitor = (path, init = {}) =>
+    get(path, { ...init, redirect: 'manual', headers: { 'X-Forwarded-For': '203.0.113.9', ...(init.headers || {}) } });
+  const spellings = (d) => [`https://${d}/x`, `https://api.${d}/x`, `https://${d}./x`, `https://${d.toUpperCase()}/x`];
+
+  test('all twenty-two domains, their subdomains and trailing-dot spellings, on /asset', async () => {
+    for (const d of AI_PROVIDER_HOSTS) {
+      for (const u of spellings(d)) {
+        const r = await visitor('/asset?u=' + encodeURIComponent(u));
+        assert.equal(r.status, 403, `/asset fetched ${u} (${r.status})`);
+      }
+    }
+  });
+
+  test('…on /thumb', async () => {
+    for (const d of AI_PROVIDER_HOSTS) {
+      for (const u of spellings(d)) {
+        const r = await visitor('/thumb?u=' + encodeURIComponent(u));
+        assert.equal(r.status, 403, `/thumb answered ${r.status} for ${u}`);
+      }
+    }
+  });
+
+  test('…and on /api/proxy/diag, refused before the rate budget is spent', async () => {
+    // 88 requests from one address. If the AI refusal still came AFTER the
+    // rate limiter, most of these would be 429s instead of the refusal.
+    for (const d of AI_PROVIDER_HOSTS) {
+      for (const u of spellings(d)) {
+        const r = await visitor('/api/proxy/diag?u=' + encodeURIComponent(u));
+        assert.equal(r.status, 403, `/api/proxy/diag answered ${r.status} for ${u}`);
+        assert.match((await r.json()).error, /AI providers/);
+      }
+    }
+  });
+
+  test('an AI URL smuggled through another URL is refused too', async () => {
+    for (const u of [
+      'https://relay.example/?url=https://api.openai.com/v1/chat/completions',
+      'https://relay.example/?url=https%3A%2F%2Ftext.pollinations.ai%2Fhi',
+      'https://relay.example/fetch/api.anthropic.com/v1/messages',
+    ]) {
+      assert.equal((await visitor('/asset?u=' + encodeURIComponent(u))).status, 403, u);
+      assert.equal((await visitor('/api/proxy/diag?u=' + encodeURIComponent(u))).status, 403, u);
+    }
+  });
+});
+
+describe('the server-side AI routes refuse every spelling, method and body', () => {
+  // This suite runs with NODE_ENV=test from 127.0.0.1, so an internet visitor is
+  // simulated with X-Forwarded-For. test/production-guards.test.mjs repeats the
+  // important cases against a real NODE_ENV=production boot.
+  const asVisitor = (path, init = {}) =>
+    get(path, { ...init, headers: { 'X-Forwarded-For': '203.0.113.9', ...(init.headers || {}) } });
+
+  test('every method, every spelling', async () => {
+    for (const path of ['/api/ai/text', '/api/ai/image', '/api/ai/echo', '/API/AI/TEXT',
+      '/api/ai/text/', '/api/ai/%74ext', '/api/ai/image?prompt=cat']) {
+      for (const method of ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']) {
+        const r = await asVisitor(path, { method });
+        assert.equal(r.status, 403, `${method} ${path} → ${r.status}`);
+      }
+    }
+  });
+
+  test('a CORS preflight is refused, not answered', async () => {
+    const r = await asVisitor('/api/ai/text', {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil.example', 'Access-Control-Request-Method': 'POST' },
+    });
+    assert.equal(r.status, 403);
+    assert.equal(r.headers.get('access-control-allow-origin'), null);
+  });
+
+  test('the body is never parsed: an oversized or malformed one still gets 403, not 413 or 400', async () => {
+    for (const body of ['x'.repeat(300 * 1024), '{not json']) {
+      const r = await asVisitor('/api/ai/text', { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+      assert.equal(r.status, 403, `got ${r.status}`);
+    }
+  });
+
+  test('spoofed "local" headers change nothing for a remote client', async () => {
+    const r = await asVisitor('/api/ai/echo', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Host: 'localhost', Origin: 'http://localhost',
+        'X-Real-IP': '127.0.0.1', Forwarded: 'for=127.0.0.1' },
+      body: '{"prompt":"hi"}',
+    });
+    assert.equal(r.status, 403);
+  });
+
+  test('a tunnel on loopback naming a remote visitor is refused, whichever header it uses', async () => {
+    for (const headers of [{ Forwarded: 'for=203.0.113.9' }, { 'X-Real-IP': '203.0.113.9' }, { 'CF-Connecting-IP': '203.0.113.9' }]) {
+      const r = await get('/api/ai/echo', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: '{"prompt":"hi"}' });
+      assert.equal(r.status, 403, JSON.stringify(headers));
+    }
+  });
+});
+
+describe('/api/site-config is one route that answers everything', () => {
+  // There used to be two routes here; the first always answered, so the second
+  // — the ad payload — was dead code and no page ever received an ad.
+  test('settings, proxy view and ad fields arrive together, privately cached', async () => {
+    const r = await get('/api/site-config?surface=/');
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('cache-control') || '', /^private/);
+    const j = await r.json();
+    for (const k of ['ok', 'announcement', 'features', 'proxy', 'adsAllowed', 'adScripts', 'slots',
+      'interstitial', 'native', 'preroll', 'popunder', 'supportGate']) {
+      assert.ok(k in j, `${k} is missing`);
+    }
+    assert.equal(j.adsAllowed, true);
+    assert.equal(typeof j.supportGate, 'boolean');
+  });
+
+  test('a proxy surface gets every ad field, empty', async () => {
+    for (const surface of ['/browser', '/gust/', '/uv/x']) {
+      const j = await (await get('/api/site-config?surface=' + encodeURIComponent(surface))).json();
+      assert.equal(j.adsAllowed, false, surface);
+      assert.deepEqual(j.adScripts, []);
+      assert.deepEqual(j.slots, { header: '', sidebar: '' });
+      for (const k of ['interstitial', 'native', 'preroll', 'popunder', 'push']) assert.equal(j[k], null, `${surface} ${k}`);
+    }
+  });
+
+  test('without a surface, the Referer decides — and no Referer means no ads', async () => {
+    // REGRESSION: an empty Referer resolved against a base URL is "/", which
+    // made every anonymous request look like the homepage.
+    assert.equal((await (await get('/api/site-config')).json()).adsAllowed, false);
+    const viaRef = async (ref) => (await (await get('/api/site-config', { headers: { Referer: ref } })).json()).adsAllowed;
+    assert.equal(await viaRef(`${BASE}/browser`), false);
+    assert.equal(await viaRef(`${BASE}/`), true, 'a same-host Referer is how a page without ?surface= is classified');
+    assert.equal(await viaRef('https://elsewhere.example/'), false, 'another site\'s Referer classified one of ours');
+  });
+
+  test('exactly one handler is registered', () => {
+    const src = readFileSync(join(root, 'server.js'), 'utf8');
+    assert.equal((src.match(/app\.get\('\/api\/site-config'/g) || []).length, 1);
   });
 });
 

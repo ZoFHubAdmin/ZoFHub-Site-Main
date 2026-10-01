@@ -1,0 +1,4 @@
+{
+  "_note": "CONTROL_MEMORY_SEED: maintenance mode on. Honoured only with no database configured.",
+  "settings": { "site.maintenance": { "enabled": true, "message": "Back in ten minutes." } }
+}

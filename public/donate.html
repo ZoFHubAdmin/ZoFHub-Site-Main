@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <meta name="description" content="Support ZoFHub with a voluntary donation. Crypto only — no account, no perks, nothing collected." />
+  <title>Donate · ZoFHub</title>
+  <meta property="og:site_name" content="ZoFHub" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Support ZoFHub" />
+  <meta property="og:description" content="ZoFHub is free and has no accounts. Donations are voluntary and buy nothing." />
+  <meta property="og:image" content="/assets/favicon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Support ZoFHub" />
+  <meta name="twitter:description" content="ZoFHub is free and has no accounts. Donations are voluntary and buy nothing." />
+  <meta name="twitter:image" content="/assets/favicon.png" />
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260801a" />
+</head>
+<body class="page-donate">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai">AI</a>
+        <a href="/community">Community</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="donate-shell">
+    <div class="donate-hero">
+      <h1 id="donateHeading">Support ZoFHub</h1>
+      <p class="donate-blurb" id="donateBlurb">
+        ZoFHub is free, has no accounts and shows no paywall. If it is useful to you,
+        a donation helps cover hosting.
+      </p>
+    </div>
+
+    <!-- Filled by donate.js → renderDonateInto(), from /api/donate. The wallet
+         addresses are served by the API and never written into this page, so a
+         cached HTML file can never show a stale or wrong address. -->
+    <section class="donate-methods" id="donateList" aria-label="Donation methods">
+      <p class="dn-empty">Loading…</p>
+    </section>
+
+    <section class="donate-notes">
+      <h2>Before you send anything</h2>
+      <p class="dn-warn">
+        Donations are voluntary and <strong>non-refundable</strong>, and they buy nothing —
+        no perks, no ad removal, no special access. Crypto transactions cannot be reversed:
+        check the address and the network before sending, and send a small test amount first.
+        ZoFHub never asks for a payment through chat, email or a game.
+      </p>
+      <p class="donate-fine">
+        ZoFHub does not run a payment processor and does not watch the blockchain. Nothing
+        here records who sent what — there is no receipt, no donor list and no account to
+        credit. Your wallet is the only record of the transaction.
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260801a"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
+  <script type="module">
+    import { renderDonateInto } from '/js/donate.js?v=20260801a';
+    renderDonateInto(document.getElementById('donateList'));
+  </script>
+</body>
+</html>

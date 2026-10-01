@@ -22,6 +22,10 @@
     .credits-table-wrap a { word-break: break-word; }
     .lic { font-weight: 700; white-space: nowrap; }
     .lic-copyleft { color: #ffb454; }
+    /* Secondary detail inside a table cell — a former project name, or the
+       licence of a component nested inside the one the row names. Normal
+       weight and dimmed so it reads as a footnote, not as a second entry. */
+    .muted { opacity: .62; font-weight: 400; white-space: normal; }
   </style>
 </head>
 <body class="page-legal">
@@ -84,7 +88,8 @@
             <tr><td><a href="https://github.com/MercuryWorkshop/EpoxyTransport" target="_blank" rel="noopener">Epoxy transport</a></td><td>TLS-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
             <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
             <tr><td><a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a></td><td>WASM curl (used by GUST)</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
-            <tr><td><a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GUST</a></td><td>Service-worker-free proxy browser (libcurl.js + Wisp)</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GUST</a></td><td>Service-worker-free proxy browser (libcurl.js + Wisp) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/MercuryWorkshop/anuraOS" target="_blank" rel="noopener">AnuraOS</a></td><td>Browser-based web OS with v86 x86 emulation, optional engine served on its own origin &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
           </tbody>
         </table>
       </div>
@@ -92,10 +97,18 @@
       <h2>AGPL-3.0 §13 — network-use source offer</h2>
       <p>Because ZoFHub serves the AGPL-3.0 components above over a network, their users are offered the
         <strong>corresponding source</strong>: it is each project's upstream repository (linked above) at
-        the version pinned in the site's <code>package-lock.json</code>. ZoFHub runs them unmodified; any
-        local changes would be kept in ZoFHub's own repository. To request the source for a specific
+        the version pinned in the site's <code>package-lock.json</code>. To request the source for a specific
         deployed build, contact us at {{CONTACT}} or via the <strong>ZoFHub Discord</strong> linked in the
         footer below.</p>
+      <p><strong>Two of these are modified, as AGPL-3.0 &sect;5 requires us to state.</strong>
+        <strong>GUST</strong> (changed 2026-07-30) has its default Wisp server repointed to this site's own
+        same-origin <code>/wisp/</code> endpoint instead of the upstream public one, so proxy traffic never
+        leaves this domain, and carries ZoFHub's shared cloak system for parity with the rest of the site.
+        <strong>AnuraOS</strong> (changed 2026-09-20) is served with a <code>wisp-url</code> added to its
+        <code>config.json</code> defaults, pointing at this deployment's own tunnel &mdash; upstream ships
+        none, so the app would otherwise have no working tunnel; no other file is altered. The corresponding
+        source for both is linked from <a href="/licenses">/licenses</a>. Every other component above is
+        served unmodified.</p>
       <p><strong>The live, machine-checked version of this offer is at
         <a href="/licenses">/licenses</a></strong> (JSON: <a href="/licenses.json">/licenses.json</a>).
         That page is generated from the packages this server is actually running, so the versions it
@@ -124,9 +137,27 @@
             <tr><td>Interstellar</td><td><a href="https://github.com/UseInterstellar/Interstellar" target="_blank" rel="noopener">UseInterstellar/Interstellar</a></td><td class="lic lic-copyleft">GPL-3.0-or-later</td></tr>
             <tr><td>DayDream</td><td><a href="https://github.com/NightProxy/DayDream" target="_blank" rel="noopener">NightProxy/DayDream</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
             <tr><td>Nebula</td><td><a href="https://github.com/NebulaServices/Nebula" target="_blank" rel="noopener">NebulaServices/Nebula</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td>InvisiProxy LTS <span class="muted">(formerly Holy Unblocker LTS)</span></td><td><a href="https://github.com/QuiteAFancyEmerald/InvisiProxy" target="_blank" rel="noopener">QuiteAFancyEmerald/InvisiProxy</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td>Kasm Workspaces <span class="muted">(remote desktop images)</span></td><td><a href="https://github.com/kasmtech/workspaces-images" target="_blank" rel="noopener">kasmtech/workspaces-images</a></td><td class="lic">MIT <span class="muted">· KasmVNC inside is GPL-2.0</span></td></tr>
           </tbody>
         </table>
       </div>
+      <p><strong>MASQR.</strong> ZoFHub ships <strong>no Masqr code</strong> either. The
+        <a href="https://github.com/titaniumnetwork-dev/MasqrProject" target="_blank" rel="noopener">MASQR project</a>
+        (© Mercury Workshop 2024, <em>AntiSkip License</em> — MIT's text plus an added condition, so not MIT)
+        named a problem this site has: a mirror domain dies once a shared link reaches a filter vendor whose
+        crawler fetches it and classifies it as a proxy. ZoFHub's own implementation of that idea lives in
+        <code>lib/masqr.mjs</code>, is written from scratch, and is <strong>off by default</strong>.
+        Details in <code>docs/proxy/MASQR.md</code>.</p>
+
+      <p><strong>InvisiProxy.</strong> ZoFHub ships <strong>no InvisiProxy code</strong> — no copy, no dependency,
+        no bundled build. Reviewing it did change two things here, both written from scratch against different
+        libraries: ZoFHub's Wisp tunnel now states its egress rules explicitly instead of inheriting them from a
+        library default, and there is now a check that every proxy engine really renders pages. Credit for those
+        ideas belongs to InvisiProxy and its contributors — © TitaniumNetwork and the InvisiProxy contributors,
+        led by <a href="https://github.com/QuiteAFancyEmerald" target="_blank" rel="noopener">QuiteAFancyEmerald</a>.
+        The full provenance record, including what was deliberately <em>not</em> taken and why, is in
+        <code>docs/proxy/INVISIPROXY.md</code> and <code>data/invisiproxy-upstream.json</code>.</p>
 
       <h2>Games</h2>
       <p>The games on ZoFHub are embedded through their publishers' <strong>official / authorized embed

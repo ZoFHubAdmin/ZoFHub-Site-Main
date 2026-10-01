@@ -1,0 +1,116 @@
+{
+  "_comment": [
+    "PROVENANCE RECORD for MASQR. Data, not configuration — nothing at runtime reads",
+    "this. docs/proxy/MASQR.md is the prose version.",
+    "",
+    "ZoFHub vendors NO Masqr code, so 'incorporated' is empty by design. 'adopted'",
+    "records the idea, which was reimplemented from scratch. The rejected list is",
+    "unusually long because upstream's reference backend is a demo, and several of",
+    "its choices would have been defects in a production site."
+  ],
+  "project": "The MASQR Project",
+  "upstream": "https://github.com/titaniumnetwork-dev/MasqrProject",
+  "documentation": "https://docs.titaniumnetwork.org/technologies/masqr",
+  "license": "AntiSkip License",
+  "licenseNote": "NOT MIT, despite being MIT text. The LICENSE file adds a condition that the user is not, and is not acting for, SurfSkip. GitHub classifies it NOASSERTION and there is no SPDX identifier. Permissive for this project, which has no connection to SurfSkip, but it must not be recorded as MIT.",
+  "copyright": "Copyright 2024 Mercury Workshop",
+  "copyrightNote": "The LICENSE names Mercury Workshop, not TitaniumNetwork, even though the repository sits in the titaniumnetwork-dev organisation.",
+  "reviewedCommit": "HEAD as of 2024-02-19, the last upstream push",
+  "reviewedOn": "2026-09-21",
+  "upstreamDefaultBranch": "master",
+
+  "integrationMode": "reimplemented-idea",
+  "vendored": false,
+  "dependencyAdded": false,
+  "codeCopied": false,
+
+  "whatItSolvesHere": "A mirror domain usually dies because a shared link reaches a filter vendor, whose crawler fetches it, sees a web proxy, and files the domain under proxy/anonymizer. ZoFHub's answer to that has been mirror rotation, which is the cure. This is the prevention.",
+
+  "adopted": [
+    {
+      "idea": "Do not show the proxy to a client that was not handed a key out-of-band; give the key out in a link.",
+      "upstreamReference": "MasqrBackend/index.js — the Express middleware and its cookie/licence flow",
+      "zofhubImplementation": "lib/masqr.mjs",
+      "codeCopied": false
+    }
+  ],
+
+  "incorporated": [],
+
+  "deliberateDifferences": [
+    {
+      "area": "licence validation",
+      "upstream": "fetches https://license.mercurywork.shop/validate?license=<key>&host=<host> on every request",
+      "zofhub": "HMAC-signed keys verified offline",
+      "why": "Upstream puts the key in a query string (logged by every hop), makes a third party the gatekeeper of your own site, adds an un-timeout-ed network call to every request, and fails closed if that host is down."
+    },
+    {
+      "area": "the grant cookie",
+      "upstream": "sets authcheck=true",
+      "zofhub": "the cookie carries the signed key and is re-verified on every request; HttpOnly, SameSite=Lax, Secure in production",
+      "why": "A plain true/false cookie is bypassed by typing one line into the browser console, which makes the gate decorative."
+    },
+    {
+      "area": "host binding",
+      "upstream": "a licence is bound to one hostname",
+      "zofhub": "keys are deliberately NOT host-bound",
+      "why": "This site's mirrors are disposable. Host-binding would invalidate every key at exactly the moment a rotation happens, which is the worst possible time."
+    },
+    {
+      "area": "logging",
+      "upstream": "console.logs the full validation URL, key included",
+      "zofhub": "the key is never logged",
+      "why": "A secret in a log is a secret in a backup."
+    },
+    {
+      "area": "how the key is asked for",
+      "upstream": "WWW-Authenticate: Basic, behind a 10-second refresh check",
+      "zofhub": "a ?k= parameter, consumed and stripped via a redirect",
+      "why": "Upstream's own comment notes the browser credential dialog 'gives it away'. A redirect also keeps the key out of history, Referer headers and access logs."
+    },
+    {
+      "area": "path matching",
+      "upstream": "bypasses on req.url.includes(\"/bare/\")",
+      "zofhub": "exact and prefix matching against PROXY_SURFACES",
+      "why": "A substring test means /anything?x=/bare/ walks straight through. This repository has already been bitten by that exact class of bug in the Wisp route."
+    },
+    {
+      "area": "what an unauthenticated client sees",
+      "upstream": "a per-domain decoy page (Checkfailed.html, Masqrd/<host>.html)",
+      "zofhub": "404 on the proxy paths; the real games hub everywhere else",
+      "why": "ZoFHub genuinely is a games hub, so there is nothing to fabricate. Serving a decoy would be the dishonest part, and maintaining one per domain does not scale to disposable mirrors."
+    },
+    {
+      "area": "scope",
+      "upstream": "gates the entire site",
+      "zofhub": "gates only proxy surfaces, and only document requests",
+      "why": "Gating the games would destroy the site's actual purpose and make it look MORE suspicious, not less. Never gated: /healthz (gating it restart-loops the container), the legal pages, robots.txt."
+    },
+    {
+      "area": "path traversal",
+      "upstream": "builds a file path from the attacker-controlled Host header, guarded by one leading-../ strip",
+      "zofhub": "reads no file from request input at all",
+      "why": "The safest handling of a hostile path component is not to have one."
+    }
+  ],
+
+  "rejectedEntirely": [
+    { "component": "LicensingServer/index.js", "reason": "In-memory Map (lost on restart), a cleanupLicenses() that iterates with for...in over Map.keys() and therefore never runs, a `delete map[key]` that does nothing, and setInterval as the scheduler — which this repository's RULE 16 forbids outright." },
+    { "component": "MasqrFront/masqr.js", "reason": "Stores localStorage['LICENSE_CHECK'] = true as proof of validation, which any visitor can set." },
+    { "component": "MasqrBackend/Checkfailed.html", "reason": "A decoy page. See 'what an unauthenticated client sees' above." }
+  ],
+
+  "configuration": {
+    "MASQR_ENABLED": "off by default",
+    "MASQR_SECRET": "required when enabled; the gate refuses to enable without it and says so",
+    "MASQR_KEY_TTL_DAYS": 30,
+    "MASQR_DENY": "404 | redirect",
+    "adminMintRoute": "POST /api/admin/masqr/key"
+  },
+
+  "honestLimits": [
+    "This is discovery resistance, not access control. A key holder can pass the key on, and the games hub is open to everyone regardless.",
+    "Keys cannot be revoked individually — they are signed, not stored. Rotating MASQR_SECRET invalidates all of them at once.",
+    "Subresources are not gated, so a crawler that already knows a deep asset path could still fetch it. Those paths are only discoverable from the page it cannot read."
+  ]
+}

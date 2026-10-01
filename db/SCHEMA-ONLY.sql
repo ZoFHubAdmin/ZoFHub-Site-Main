@@ -1,7 +1,7 @@
 -- ============================================================================
 -- ZoFHub · SCHEMA ONLY — provision a fresh Supabase project
 -- ============================================================================
--- Every schema file in dependency order (13). No catalog data.
+-- Every schema file in dependency order (17). No catalog data.
 --
 -- GENERATED — do not edit. Regenerate with:  npm run build-schema-only
 --
@@ -1087,28 +1087,30 @@ create index if not exists scores_dupe_probe_idx
 -- ============================================================================
 -- >>> feedback.sql
 -- ============================================================================
--- db/feedback.sql — user feedback, and the retirement of the leaderboard.
+-- db/feedback.sql — user feedback.
 --
--- Runs LAST in the migration order, so the drops below act on tables the earlier
--- migrations created. Those earlier files are left untouched on purpose: they
--- are the applied history of this database, and rewriting history so it never
--- mentions scores would make a replay from scratch diverge from what production
--- actually did.
+-- Earlier files are left untouched on purpose: they are the applied history of
+-- this database, and rewriting history so it never mentions scores would make a
+-- replay from scratch diverge from what production actually did.
 --
--- ── Part 1: retire the leaderboard ─────────────────────────────────────────
--- The feature is gone from the application (no routes, no page, no admin tab),
--- so these objects are unreachable. Dropping them stops a table nobody reads
--- from accruing rows, and removes two SECURITY DEFINER functions — code that
--- runs with elevated rights and should not exist without a caller.
---
--- This DESTROYS the scores table and its data. It held 1 row at the time of
--- writing. Anything of value would need exporting first; there was nothing.
+-- ── Part 1: the leaderboard retirement, undone ─────────────────────────────
 
-drop function if exists public.submit_score(text, text, integer, text);
-drop function if exists public.submit_score(text, text, integer);
-drop function if exists public.prune_scores(integer);
-drop view     if exists public.scores_public;
-drop table    if exists public.scores;
+-- RETIREMENT REVERSED. The leaderboard is back in the application (lib/scores.mjs,
+-- GET/POST /api/scores, /leaderboard), so this file no longer drops the table it
+-- reads. The drops are kept below, commented, because they DID run against
+-- production once and a reader of this file needs to know that -- deleting the
+-- lines outright would make the applied history unexplainable.
+--
+--   drop function if exists public.submit_score(text, text, integer, text);
+--   drop function if exists public.submit_score(text, text, integer);
+--   drop function if exists public.prune_scores(integer);
+--   drop view     if exists public.scores_public;
+--   drop table    if exists public.scores;
+--
+-- Because Supabase tracks migrations by FILENAME, editing this file does not
+-- un-drop anything on a database where it already ran. That is what
+-- db/scores-restore.sql is for: a forward migration that re-creates the table.
+-- A replay from scratch now keeps the table all the way through.
 
 -- ── Part 2: feedback ───────────────────────────────────────────────────────
 -- Private by construction. Feedback is not a public wall: people report bugs,
@@ -1244,6 +1246,1034 @@ revoke all on function public.prune_orphan_game_stats() from public, anon, authe
 
 comment on function public.prune_orphan_game_stats is
   'Deletes game_stats rows whose slug is no longer in games. No FK exists by design — a wholesale catalog refresh must not fail on one counter.';
+
+
+-- ============================================================================
+-- >>> scores-restore.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · restore the leaderboard   (run ONCE in the Supabase SQL editor)
+-- =====================================================================
+-- WHY THIS FILE EXISTS AS ITS OWN MIGRATION.
+--
+-- db/community.sql creates public.scores. db/feedback.sql then dropped it --
+-- the leaderboard was deliberately retired, and the drop ran against
+-- production. Supabase tracks migrations by FILENAME, so editing feedback.sql
+-- after the fact un-drops nothing on a database where it already ran. The only
+-- correct fix for a live database is a new forward migration, which is this.
+--
+-- SAFE AND RE-RUNNABLE. Everything is IF NOT EXISTS / OR REPLACE. On a database
+-- where the table survived, this changes nothing; on one where it was dropped,
+-- it comes back with the same shape, indexes and policy the application expects.
+--
+--   Dashboard -> SQL Editor -> New query -> paste this file -> Run.
+--
+-- The application degrades gracefully until then: GET /api/scores answers with
+-- available:false and an empty board, and submissions are refused with a plain
+-- message rather than a 500.
+-- =====================================================================
+
+create table if not exists public.scores (
+  id          bigint generated by default as identity primary key,
+  slug        text         not null,
+  player_name varchar(40)  not null default 'Player',
+  score       bigint       not null default 0,
+  status      text         not null default 'ok',   -- 'ok' = visible, 'flagged' = quarantined outlier
+  flag_reason text,
+  created_at  timestamptz  not null default now()
+);
+
+-- Re-add the moderation columns for the case where an OLD scores table (from
+-- before db/community-scores-integrity.sql) is what survived.
+alter table public.scores add column if not exists status      text not null default 'ok';
+alter table public.scores add column if not exists flag_reason text;
+
+comment on table public.scores is
+  'Player-reported leaderboard scores per game slug. status=ok is public; flagged rows are held for review. Written only by the Node server, which enforces single-use proof-of-play tokens and score ceilings (lib/scores.mjs).';
+
+-- Read paths the server actually uses.
+create index if not exists scores_slug_score_idx   on public.scores (slug, score desc);
+create index if not exists scores_score_idx        on public.scores (score desc);
+create index if not exists scores_slug_player_idx  on public.scores (slug, player_name);
+create index if not exists scores_status_score_idx on public.scores (status, score desc);
+
+-- One row per player per game: the server does keep-best by updating in place,
+-- and without this constraint a race between two submissions could leave two.
+create unique index if not exists scores_slug_player_uniq
+  on public.scores (slug, player_name);
+
+-- RLS: the publishable key that ships in the browser may read VISIBLE rows and
+-- nothing else. It must never write -- every insert goes through the Node
+-- server with the secret key, which is where the anti-cheat rules live. A
+-- browser that could insert directly would bypass all of them.
+alter table public.scores enable row level security;
+drop policy if exists "Public can read scores"         on public.scores;
+drop policy if exists "Public can read visible scores" on public.scores;
+create policy "Public can read visible scores"
+  on public.scores for select using (status = 'ok');
+
+-- Keep the table BOUNDED. Flagged rows older than 7 days are purged (nobody is
+-- going to review a fortnight-old outlier), and only the top N visible scores
+-- per game are kept.
+create or replace function public.prune_scores(keep_per_game integer default 200)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  removed integer := 0;
+  n integer;
+begin
+  delete from public.scores
+   where status = 'flagged' and created_at < now() - interval '7 days';
+  get diagnostics n = row_count;
+  removed := removed + n;
+
+  with ranked as (
+    select id, row_number() over (partition by slug order by score desc, created_at asc) as rn
+      from public.scores
+     where status = 'ok'
+  )
+  delete from public.scores s
+   using ranked r
+   where s.id = r.id and r.rn > keep_per_game;
+  get diagnostics n = row_count;
+  removed := removed + n;
+
+  return removed;
+end;
+$$;
+
+revoke all on function public.prune_scores(integer) from public, anon, authenticated;
+
+
+-- ============================================================================
+-- >>> 14_subscriber_emails.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · subscriber_emails   (run ONCE in the Supabase SQL editor)
+-- =====================================================================
+-- CENSORSHIP INSURANCE. If this domain is blocked, the only way to tell
+-- anyone where the mirror is, is to already have a way to reach them.
+-- That is the entire purpose of this table and it is why it holds so little.
+--
+-- TWO COLUMNS, ON PURPOSE. No IP, no user agent, no signup timestamp, no
+-- referrer, no confirmation state. The homepage promises "no accounts, zero
+-- tracking", and a schema is the only place that promise can actually be kept:
+-- a column that does not exist cannot be logged, joined, correlated or
+-- subpoenaed. Anything added here later makes that sentence a lie, so it should
+-- not be added here later.
+--
+-- A WRITE-ONLY VAULT. RLS is deny-by-default and the public (anon) key is
+-- granted INSERT and nothing else. A browser can drop an address in; a browser
+-- cannot read one back, cannot enumerate, cannot count, and cannot amend. Even
+-- with the publishable key in hand — and it ships to every visitor, by design —
+-- there is no query that returns somebody else's address. The server reads this
+-- table with the secret key, which bypasses RLS, and that key never leaves the
+-- backend.
+--
+--   Dashboard -> SQL Editor -> New query -> paste -> Run.
+-- =====================================================================
+
+create table if not exists public.subscriber_emails (
+  id    uuid primary key default gen_random_uuid(),
+  email text not null
+);
+
+comment on table public.subscriber_emails is
+  'Mirror-update list. Deliberately two columns: no IP, no timestamp, no consent log — the homepage promises zero tracking and this schema is what keeps that true. Write-only to the anon key.';
+
+-- One row per address. Without this, the insert endpoint is a free way to grow
+-- the table without bound by resubmitting the same address.
+-- Case-insensitive: Foo@x.com and foo@x.com are one person.
+create unique index if not exists subscriber_emails_lower_email_uniq
+  on public.subscriber_emails (lower(email));
+
+-- ── Row-Level Security: deny by default ──────────────────────────────────
+alter table public.subscriber_emails enable row level security;
+alter table public.subscriber_emails force row level security;
+
+-- Clear any earlier policy so re-running this file is safe and the final
+-- posture is exactly what is written below, not whatever accumulated.
+drop policy if exists "anon can insert a subscriber email" on public.subscriber_emails;
+drop policy if exists "public can read subscribers"        on public.subscriber_emails;
+
+-- INSERT only. There is deliberately NO select, update or delete policy, so
+-- every other operation is refused by RLS for anon and authenticated alike.
+create policy "anon can insert a subscriber email"
+  on public.subscriber_emails
+  for insert
+  to anon, authenticated
+  with check (
+    -- Enforced in the database as well as the server: a shape check here still
+    -- applies to a direct PostgREST insert that never touched our Express route.
+    email is not null
+    and length(email) between 6 and 254
+    and position('@' in email) > 1
+  );
+
+-- ── Grants ───────────────────────────────────────────────────────────────
+-- RLS decides WHICH rows; grants decide WHICH VERBS. Both have to say yes, so
+-- the verbs are narrowed here too rather than relying on policies alone.
+revoke all on table public.subscriber_emails from anon, authenticated;
+grant insert on table public.subscriber_emails to anon, authenticated;
+grant all    on table public.subscriber_emails to service_role;
+
+-- A sequence grant is not needed: the primary key is a uuid default, not a
+-- serial, so an inserting role never touches a sequence.
+
+
+-- ============================================================================
+-- >>> 15_ai_feedback.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · ai_feedback   (run ONCE in the Supabase SQL editor)
+-- =====================================================================
+-- Feedback on AI answers, shaped so it can improve the system WITHOUT
+-- becoming a pipe from "anyone can type" to "model weights".
+--
+-- WHAT THIS IS NOT. It is not a conversation log. The AI runs entirely in
+-- the visitor's browser (public/js/ai.js talks to providers directly), and
+-- this server never sees a chat. A row appears here only when somebody
+-- deliberately rates, corrects or reports ONE answer. There is no column
+-- for a conversation id, and adding one would turn a feedback table into
+-- surveillance of a feature whose whole design is that we cannot see it.
+--
+-- CONSENT IS PER ROW, NOT PER USER. `consent_training` records what the
+-- person agreed to for THIS submission. The default is false, and false
+-- means the row may be counted and evaluated but may never enter a
+-- training set. lib/ai-feedback.mjs enforces the same rule in code; this
+-- is the copy that survives a bug in the application.
+--
+-- REDACTED ON ARRIVAL. The API redacts emails, phone numbers, card-shaped
+-- digits, API tokens, street addresses and IPs BEFORE insert. There is
+-- deliberately no column holding the original text: a raw copy would
+-- outlive the redaction in backups and replicas.
+--
+--   Dashboard -> SQL Editor -> New query -> paste -> Run.
+-- =====================================================================
+
+create table if not exists public.ai_feedback (
+  id           uuid primary key default gen_random_uuid(),
+  created_at   timestamptz not null default now(),
+
+  -- One of: rating | correction | regenerate | accepted | report | delivery_failure
+  type         text not null check (type in
+                 ('rating','correction','regenerate','accepted','report','delivery_failure')),
+
+  -- Redacted text. Bounded here as well as in the API so a direct PostgREST
+  -- insert cannot store an essay.
+  input        text check (input is null or length(input) <= 4000),
+  output       text check (output is null or length(output) <= 4000),
+  correction   text check (correction is null or length(correction) <= 4000),
+  rating       smallint check (rating is null or rating in (-1, 0, 1)),
+
+  -- PROVENANCE. Which backend and model produced the answer being judged, and
+  -- which system-prompt version was in force. Without these a row is unusable:
+  -- you cannot tell whether a complaint is about Llama, about Pollinations, or
+  -- about a prompt that has since been rewritten.
+  provider       text check (provider is null or length(provider) <= 40),
+  model          text check (model is null or length(model) <= 120),
+  prompt_version text check (prompt_version is null or length(prompt_version) <= 40),
+
+  -- The routing decision from lib/ai-feedback.mjs, stored so a curator can see
+  -- why a row landed where it did rather than re-deriving it months later.
+  lanes        text[] not null default '{}',
+  route_reason text check (route_reason is null or length(route_reason) <= 300),
+
+  -- Consent, and the derived verdict. training_eligible is false unless the
+  -- person opted in AND the signal type is one that can carry a training target.
+  consent_training  boolean not null default false,
+  training_eligible boolean not null default false,
+
+  -- How many redactions fired. A high count is a signal that someone pasted
+  -- something personal, and curation should treat the row with suspicion.
+  redactions   integer not null default 0,
+
+  -- Curation state. A row is never used for anything until a human moves it.
+  --   pending  -> untouched
+  --   approved -> may enter a curated dataset
+  --   rejected -> excluded permanently
+  review_state text not null default 'pending'
+                 check (review_state in ('pending','approved','rejected')),
+
+  -- RETENTION. Set on insert by the API. prune_ai_feedback() deletes past it,
+  -- so "we keep this for N days" is enforced by a job rather than by intention.
+  expires_at   timestamptz not null default (now() + interval '180 days')
+);
+
+comment on table public.ai_feedback is
+  'Feedback on individual AI answers. Redacted before insert, consent recorded per row, never a conversation log. Training use requires consent_training AND human approval.';
+
+-- Curation reads filter on these three constantly.
+create index if not exists ai_feedback_state_idx on public.ai_feedback (review_state, created_at desc);
+create index if not exists ai_feedback_training_idx on public.ai_feedback (training_eligible, review_state);
+create index if not exists ai_feedback_expiry_idx on public.ai_feedback (expires_at);
+
+-- ── Row-Level Security: deny by default ──────────────────────────────────
+alter table public.ai_feedback enable row level security;
+alter table public.ai_feedback force row level security;
+
+drop policy if exists "anon can submit ai feedback" on public.ai_feedback;
+drop policy if exists "public can read ai feedback"  on public.ai_feedback;
+
+-- INSERT only, and only the shapes the application produces. There is
+-- deliberately NO select/update/delete policy: a browser can leave feedback and
+-- can never read anyone's back. The server reads with the secret key, which
+-- bypasses RLS and never leaves the backend.
+create policy "anon can submit ai feedback"
+  on public.ai_feedback
+  for insert
+  to anon, authenticated
+  with check (
+    type in ('rating','correction','regenerate','accepted','report','delivery_failure')
+    and coalesce(length(input), 0) <= 4000
+    and coalesce(length(output), 0) <= 4000
+    and coalesce(length(correction), 0) <= 4000
+    -- A client may NOT declare itself training-eligible. That verdict is the
+    -- server's, and pinning it here means a forged PostgREST insert cannot
+    -- smuggle a row into the training pool.
+    and training_eligible = false
+    and review_state = 'pending'
+  );
+
+revoke all on table public.ai_feedback from anon, authenticated;
+grant insert on table public.ai_feedback to anon, authenticated;
+grant all    on table public.ai_feedback to service_role;
+
+-- ── Retention ────────────────────────────────────────────────────────────
+-- Approved rows are exempt: they have been reviewed and belong to a dataset
+-- whose provenance would break if rows vanished underneath it. Everything else
+-- is deleted on schedule, including rows nobody ever looked at.
+create or replace function public.prune_ai_feedback()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  removed integer;
+begin
+  delete from public.ai_feedback
+   where expires_at < now()
+     and review_state <> 'approved';
+  get diagnostics removed = row_count;
+  return removed;
+end;
+$$;
+
+revoke all on function public.prune_ai_feedback() from public, anon, authenticated;
+grant execute on function public.prune_ai_feedback() to service_role;
+
+-- ── Right to erasure ─────────────────────────────────────────────────────
+-- There is no user id to key on, by design. So deletion is offered the only
+-- honest way it can be: by the exact text somebody submitted, which they are
+-- the only person likely to still have.
+create or replace function public.forget_ai_feedback(p_text text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  removed integer;
+begin
+  if p_text is null or length(btrim(p_text)) < 12 then
+    return 0;   -- refuse to mass-delete on a short string
+  end if;
+  delete from public.ai_feedback
+   where input = p_text or output = p_text or correction = p_text;
+  get diagnostics removed = row_count;
+  return removed;
+end;
+$$;
+
+revoke all on function public.forget_ai_feedback(text) from public, anon, authenticated;
+grant execute on function public.forget_ai_feedback(text) to service_role;
+
+
+-- ============================================================================
+-- >>> control-plane.sql
+-- ============================================================================
+-- =====================================================================
+-- ZoFHub · control plane   (run ONCE in the Supabase SQL editor, or let the
+--                           GitHub integration apply supabase/migrations/)
+-- =====================================================================
+-- The storage behind the admin control centre: staff accounts, a real content
+-- lifecycle for games, providers, categories and tags, typed site settings, and
+-- the approved-target model that governs the proxy.
+--
+-- DESIGN RULES THIS FILE FOLLOWS
+--
+--   1. SERVER-ONLY, FAIL CLOSED. Every table created here has RLS enabled and
+--      NO policy, and the public roles are explicitly revoked. The publishable
+--      key that ships to browsers can read none of it; only the Node server,
+--      holding the secret key, can. That is stated here rather than left to
+--      grants.sql, because on a database where grants.sql already ran this
+--      file is applied AFTER it and would otherwise inherit Supabase's default
+--      "anon may do anything RLS allows" privileges.
+--
+--   2. THE DATABASE ENFORCES INTEGRITY, NOT JUST THE APP. Status values are
+--      CHECK constraints, categories are a foreign key, provider references are
+--      a foreign key with ON DELETE RESTRICT, and a category that still holds
+--      games cannot be deleted. Application validation sits in front of these;
+--      it does not replace them.
+--
+--   3. NOTHING HERE DESTROYS DATA. Existing games default to `published`, so the
+--      public catalog is unchanged the moment this runs. Backfills only fill
+--      columns that are NULL.
+--
+--   4. NO REDUNDANT TABLES. Proxy sessions and health are deliberately NOT
+--      tables: a per-tunnel session row is a browsing record of an anonymous
+--      visitor, and keeping it would contradict the privacy model. They live in
+--      server memory with a bounded history. Proxy audit events go to the
+--      existing admin_audit_logs rather than a parallel log.
+--
+-- Idempotent: every CREATE is guarded, every constraint is added inside an
+-- exception handler, and re-running the file is a no-op.
+-- =====================================================================
+
+
+-- ── 1. Staff accounts ─────────────────────────────────────────────────────
+-- ZoFHub has no public user accounts, and this does not add any: visitors are
+-- anonymous by design. These are STAFF — the people who run the site. The
+-- owner configured in the environment (ADMIN_USERNAME / ADMIN_PASSWORD_HASH)
+-- remains the break-glass account and is deliberately NOT a row here, so no
+-- database edit and no admin screen can lock the owner out or demote them.
+create table if not exists public.admin_users (
+  id                   uuid primary key default gen_random_uuid(),
+  username             text        not null,
+  display_name         text,
+  role                 text        not null,
+  status               text        not null default 'active',
+  -- scrypt$N$r$p$salt$hash — the same versioned format as ADMIN_PASSWORD_HASH.
+  -- NULL once an account is deleted: a deleted account can never log in again.
+  password_hash        text,
+  must_change_password boolean     not null default true,
+  status_reason        text,
+  created_at           timestamptz not null default now(),
+  created_by           text        not null,
+  updated_at           timestamptz not null default now(),
+  updated_by           text,
+  last_login_at        timestamptz,
+  deleted_at           timestamptz
+);
+
+do $$ begin
+  alter table public.admin_users add constraint admin_users_role_check
+    check (role in ('super_admin', 'admin', 'content_manager', 'moderator', 'analyst', 'support'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.admin_users add constraint admin_users_status_check
+    check (status in ('active', 'suspended', 'deactivated', 'deleted'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.admin_users add constraint admin_users_username_check
+    check (username ~ '^[a-z0-9][a-z0-9._-]{2,39}$');
+exception when duplicate_object then null; end $$;
+-- A deleted account keeps its username RESERVED. The audit trail records who did
+-- what by username, and letting a new account reuse a deleted one's name would
+-- make every historical entry ambiguous.
+create unique index if not exists admin_users_username_uidx on public.admin_users (lower(username));
+create index if not exists admin_users_status_idx on public.admin_users (status, role);
+
+comment on table public.admin_users is
+  'Staff accounts for the admin console. Not visitors — ZoFHub has no public accounts. The environment-configured owner is intentionally not a row here.';
+
+-- Sessions learn which staff account they belong to. NULL = the environment
+-- owner. ON DELETE CASCADE is safe because accounts are soft-deleted in normal
+-- operation; a hard delete of the row should take its sessions with it.
+alter table public.admin_sessions add column if not exists user_id   uuid references public.admin_users (id) on delete cascade;
+-- When the holder last re-entered their password. Destructive actions require
+-- this to be recent, so a stolen-but-idle session cannot delete anything.
+alter table public.admin_sessions add column if not exists reauth_at timestamptz;
+create index if not exists admin_sessions_user_idx on public.admin_sessions (user_id) where revoked_at is null;
+
+
+-- ── 2. The audit trail learns structure, and becomes tamper-evident ────────
+-- The existing table is append-only (a trigger refuses UPDATE and DELETE). What
+-- it lacked was structure to answer "everything that happened to game 4421"
+-- without string-matching a free-text target, and any way to DETECT a row that
+-- was inserted out of band or rewritten by someone who disabled the trigger.
+alter table public.admin_audit_logs add column if not exists actor_id      uuid;
+alter table public.admin_audit_logs add column if not exists actor_role    text;
+alter table public.admin_audit_logs add column if not exists resource_type text;
+alter table public.admin_audit_logs add column if not exists resource_id   text;
+alter table public.admin_audit_logs add column if not exists request_id    text;
+alter table public.admin_audit_logs add column if not exists prev_hash     text;
+alter table public.admin_audit_logs add column if not exists row_hash      text;
+
+create index if not exists admin_audit_resource_idx on public.admin_audit_logs (resource_type, resource_id, id desc);
+create index if not exists admin_audit_actor_idx    on public.admin_audit_logs (actor_id, id desc);
+
+-- Hash chain. Each new row stores sha256(previous row_hash | its own fields).
+-- Rewriting or removing a chained row breaks every hash after it, which
+-- admin_audit_verify() below reports. The advisory lock serialises appends so
+-- two concurrent inserts cannot both chain onto the same predecessor.
+create or replace function public.admin_audit_chain()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  prev text;
+begin
+  perform pg_advisory_xact_lock(7340031);
+  select l.row_hash into prev
+    from public.admin_audit_logs l
+   where l.row_hash is not null
+   order by l.id desc
+   limit 1;
+  new.prev_hash := prev;
+  new.row_hash := encode(sha256(convert_to(concat_ws('|',
+      coalesce(prev, ''), new.id::text,
+      to_char(new.at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US'),
+      coalesce(new.username, ''), new.action, coalesce(new.target, ''), new.outcome,
+      coalesce(new.actor_id::text, ''), coalesce(new.actor_role, ''),
+      coalesce(new.resource_type, ''), coalesce(new.resource_id, ''),
+      coalesce(new.detail::text, '')), 'UTF8')), 'hex');
+  return new;
+end $$;
+
+drop trigger if exists trg_admin_audit_chain on public.admin_audit_logs;
+create trigger trg_admin_audit_chain
+  before insert on public.admin_audit_logs
+  for each row execute function public.admin_audit_chain();
+
+-- Re-derive the newest p_limit chained rows and report the first one whose
+-- stored hash does not match its contents or whose link to its predecessor is
+-- broken. The oldest row in the window is the anchor: its predecessor may have
+-- aged out through retention, which is not tampering.
+create or replace function public.admin_audit_verify(p_limit integer default 1000)
+returns table (checked integer, first_bad_id bigint)
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  r record;
+  expected text;
+  last_hash text := null;
+  n integer := 0;
+  lim integer := least(greatest(coalesce(p_limit, 1000), 1), 100000);
+begin
+  first_bad_id := null;
+  for r in
+    select * from (
+      select * from public.admin_audit_logs
+       where row_hash is not null
+       order by id desc
+       limit lim
+    ) w order by w.id asc
+  loop
+    expected := encode(sha256(convert_to(concat_ws('|',
+        coalesce(r.prev_hash, ''), r.id::text,
+        to_char(r.at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US'),
+        coalesce(r.username, ''), r.action, coalesce(r.target, ''), r.outcome,
+        coalesce(r.actor_id::text, ''), coalesce(r.actor_role, ''),
+        coalesce(r.resource_type, ''), coalesce(r.resource_id, ''),
+        coalesce(r.detail::text, '')), 'UTF8')), 'hex');
+    if expected is distinct from r.row_hash
+       or (n > 0 and r.prev_hash is distinct from last_hash) then
+      first_bad_id := r.id;
+      checked := n + 1;
+      return next;
+      return;
+    end if;
+    last_hash := r.row_hash;
+    n := n + 1;
+  end loop;
+  checked := n;
+  return next;
+end $$;
+
+
+-- ── 3. Game providers ─────────────────────────────────────────────────────
+-- The auditable chain the admin console enforces:
+--     game → provider → approved origin → embedding policy
+-- A game may only be created or re-pointed at an embed URL whose origin this
+-- provider lists, and only while the provider is `approved`. A `suspended` or
+-- `revoked` provider's games are withheld from the public catalog.
+create table if not exists public.game_providers (
+  id             text primary key,
+  name           text        not null,
+  status         text        not null default 'pending',
+  embed_origins  text[]      not null default '{}',
+  asset_origins  text[]      not null default '{}',
+  -- direct: the visitor's browser frames the provider itself (required for the
+  -- SDK-based distributors). proxied: framed through this site's /embed route.
+  embed_mode     text        not null default 'direct',
+  -- NULL = no sandbox attribute. Adding one to a third-party game is a
+  -- behaviour change that has to be revalidated per provider, so it is opt-in.
+  sandbox_policy text,
+  allow_features text[]      not null default '{}',
+  terms_url      text,
+  license_basis  text,
+  notes          text,
+  reviewed_at    timestamptz,
+  reviewed_by    text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  updated_by     text
+);
+
+do $$ begin
+  alter table public.game_providers add constraint game_providers_id_check
+    check (id ~ '^[a-z0-9][a-z0-9-]{1,39}$');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.game_providers add constraint game_providers_status_check
+    check (status in ('approved', 'restricted', 'pending', 'suspended', 'revoked'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.game_providers add constraint game_providers_embed_mode_check
+    check (embed_mode in ('direct', 'proxied'));
+exception when duplicate_object then null; end $$;
+
+-- Seeded from the licensing audit (tools/audit-licensing.mjs), not invented:
+--   SAFE       → approved     ACCOUNT / GRAY → restricted (existing games keep
+--   PARTNER-ID → suspended                     serving; no new ones)
+-- ON CONFLICT DO NOTHING: an operator's later decision is never overwritten.
+insert into public.game_providers
+  (id, name, status, embed_origins, asset_origins, embed_mode, terms_url, license_basis, notes, reviewed_by)
+values
+  ('gamedistribution', 'GameDistribution', 'approved',
+   '{https://html5.gamedistribution.com}', '{https://img.gamedistribution.com}', 'direct',
+   'https://gamedistribution.com/publishers/partnership/',
+   'Distributes its catalog to third-party portals at no cost through its official feed. Games must run unmodified in GameDistribution''s own iframe with its SDK and ads intact.',
+   'Seeded from the licensing audit (tier SAFE).', 'migration'),
+  ('gamemonetize', 'GameMonetize', 'approved',
+   '{https://html5.gamemonetize.co,https://html5.gamemonetize.com}', '{https://img.gamemonetize.com}', 'direct',
+   'https://gamemonetize.com/',
+   'Licensed for third-party embedding through its own iframe and SDK.',
+   'Seeded from the licensing audit (tier SAFE).', 'migration'),
+  ('y8', 'Y8 (embed directory)', 'approved',
+   '{https://www.y8.com,https://y8.com}', '{https://cdn.y8.com,https://cdn2.y8.com,https://img.y8.com}', 'proxied',
+   'https://www.y8.com/games_for_your_website',
+   'Y8''s own "Games for your website" embed directory.',
+   'Seeded from the licensing audit (tier SAFE).', 'migration'),
+  ('onlinegames', 'OnlineGames.io', 'restricted',
+   '{https://www.onlinegames.io,https://cloud.onlinegames.io}', '{https://www.onlinegames.io}', 'direct',
+   null, 'Permits embedding via its own codes; hotlink-protected.',
+   'Tier GRAY: existing canonical titles keep serving; no new games until verified.', 'migration'),
+  ('htmlgames', 'HTMLGames', 'restricted',
+   '{https://cdn.htmlgames.com,https://www.htmlgames.com}', '{https://cdn.htmlgames.com,https://www.htmlgames.com}', 'proxied',
+   null, 'Free to embed only through its official embed programme.',
+   'Tier ACCOUNT: needs a publisher account before new games are added.', 'migration'),
+  ('famobi', 'Famobi', 'restricted',
+   '{https://play.famobi.com}', '{https://img.cdn.famobi.com}', 'proxied',
+   null, 'Free to embed through a publisher account and its feed.',
+   'Tier ACCOUNT: needs a publisher account before new games are added.', 'migration'),
+  ('gameflare', 'GameFlare', 'restricted',
+   '{https://distribution.gameflare.com}', '{https://data.gameflare.com}', 'direct',
+   null, 'Requires GameFlare''s distribution programme.',
+   'Tier ACCOUNT: needs a publisher account before new games are added.', 'migration'),
+  ('gamezop', 'Gamezop', 'suspended',
+   '{}', '{https://static.gamezop.com}', 'direct',
+   null, 'Embeds carry ANOTHER publisher''s partner id — not licensed to this site.',
+   'Tier PARTNER-ID: withheld until the site has its own partner id.', 'migration')
+on conflict (id) do nothing;
+
+
+-- ── 4. Categories and tags ────────────────────────────────────────────────
+create table if not exists public.game_categories (
+  slug        text primary key,
+  label       text        not null,
+  description text,
+  parent_slug text references public.game_categories (slug) on update cascade on delete restrict,
+  sort_order  integer     not null default 0,
+  visible     boolean     not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  updated_by  text
+);
+
+-- Legacy keys are free-form ("puzzle games", "2048 & merge") and the public
+-- category URLs are built from them, so they are accepted as they are. The admin
+-- console only ever CREATES strict slugs; this constraint just keeps the column
+-- lowercase and bounded.
+do $$ begin
+  alter table public.game_categories add constraint game_categories_slug_check
+    check (slug = lower(slug) and char_length(slug) between 1 and 40 and slug !~ '[\r\n\t]');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.game_categories add constraint game_categories_label_check
+    check (char_length(label) between 1 and 60);
+exception when duplicate_object then null; end $$;
+
+insert into public.game_categories (slug, label)
+select distinct g.category, initcap(replace(g.category, '-', ' '))
+  from public.games g
+ where g.category = lower(g.category) and char_length(g.category) between 1 and 40
+on conflict (slug) do nothing;
+insert into public.game_categories (slug, label) values ('arcade', 'Arcade')
+on conflict (slug) do nothing;
+
+-- The foreign key. Added NOT VALID so a row with an unusual legacy value can
+-- never make this migration fail, then validated when every row conforms — which
+-- the seed above guarantees for any lowercase value.
+do $$ begin
+  alter table public.games add constraint games_category_fk
+    foreign key (category) references public.game_categories (slug)
+    on update cascade on delete restrict not valid;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  if not exists (
+    select 1 from public.games g
+     where not exists (select 1 from public.game_categories c where c.slug = g.category)
+  ) then
+    alter table public.games validate constraint games_category_fk;
+  end if;
+end $$;
+
+create table if not exists public.game_tags (
+  slug       text primary key,
+  label      text        not null,
+  created_at timestamptz not null default now()
+);
+do $$ begin
+  alter table public.game_tags add constraint game_tags_slug_check
+    check (slug ~ '^[a-z0-9][a-z0-9-]{0,39}$');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.game_tag_links (
+  game_id  bigint not null references public.games (id)      on delete cascade,
+  tag_slug text   not null references public.game_tags (slug) on update cascade on delete cascade,
+  primary key (game_id, tag_slug)
+);
+create index if not exists game_tag_links_tag_idx on public.game_tag_links (tag_slug);
+
+
+-- ── 5. The games table gains a lifecycle ──────────────────────────────────
+-- `is_working` stays exactly what it was: the link checker's verdict on whether
+-- the embed still loads. `status` is the EDITORIAL state. A game is public only
+-- when both say so — a published game that stops loading is hidden by the link
+-- checker, and a working game that was never approved is hidden by its status.
+alter table public.games add column if not exists status            text     not null default 'published';
+alter table public.games add column if not exists provider_id       text     references public.game_providers (id) on update cascade on delete restrict;
+alter table public.games add column if not exists external_id       text;
+alter table public.games add column if not exists description       text;
+alter table public.games add column if not exists short_description text;
+alter table public.games add column if not exists publisher         text;
+alter table public.games add column if not exists developer         text;
+alter table public.games add column if not exists featured          boolean  not null default false;
+alter table public.games add column if not exists sort_order        integer  not null default 0;
+alter table public.games add column if not exists embed_width       smallint;
+alter table public.games add column if not exists embed_height      smallint;
+alter table public.games add column if not exists license_review    jsonb;
+alter table public.games add column if not exists review_note       text;
+alter table public.games add column if not exists created_by        text;
+alter table public.games add column if not exists updated_by        text;
+alter table public.games add column if not exists published_at      timestamptz;
+alter table public.games add column if not exists archived_at       timestamptz;
+
+do $$ begin
+  alter table public.games add constraint games_status_check
+    check (status in ('draft', 'pending_review', 'approved', 'published', 'unpublished', 'archived', 'rejected'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.games add constraint games_text_len_check
+    check (coalesce(char_length(description), 0) <= 4000
+       and coalesce(char_length(short_description), 0) <= 280
+       and coalesce(char_length(review_note), 0) <= 1000);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.games add constraint games_embed_size_check
+    check ((embed_width is null or embed_width between 100 and 4096)
+       and (embed_height is null or embed_height between 100 and 4096));
+exception when duplicate_object then null; end $$;
+
+create index if not exists games_status_id_idx on public.games (status, id desc);
+create index if not exists games_provider_idx  on public.games (provider_id, id desc);
+create index if not exists games_updated_idx   on public.games (updated_at desc, id desc);
+create index if not exists games_featured_idx  on public.games (sort_order, id desc) where featured;
+-- One row per provider game. Partial, so the thousands of legacy rows without a
+-- provider id are unconstrained.
+create unique index if not exists games_provider_external_uidx
+  on public.games (provider_id, external_id) where external_id is not null;
+
+-- Backfill provider_id from the embed host. Only NULL rows are touched, so an
+-- operator's later reassignment survives a re-run.
+update public.games set provider_id = case
+    when game_url ~* '^https://html5\.gamedistribution\.com/'                 then 'gamedistribution'
+    when game_url ~* '^https://html5\.gamemonetize\.(co|com)/'                then 'gamemonetize'
+    when game_url ~* '^https://(www\.)?y8\.com/embed/'                        then 'y8'
+    when game_url ~* '^https://(www|cloud)\.onlinegames\.io/'                 then 'onlinegames'
+    when game_url ~* '^https://(cdn|www)\.htmlgames\.com/'                    then 'htmlgames'
+    when game_url ~* '^https://play\.famobi\.com/'                            then 'famobi'
+    when game_url ~* '^https://distribution\.gameflare\.com/'                 then 'gameflare'
+    when game_url ~* '^https://[a-z0-9]+\.play\.gamezop\.com/'                then 'gamezop'
+  end
+ where provider_id is null
+   and game_url ~* '^https://(html5\.gamedistribution\.com|html5\.gamemonetize\.(co|com)|(www\.)?y8\.com/embed|(www|cloud)\.onlinegames\.io|(cdn|www)\.htmlgames\.com|play\.famobi\.com|distribution\.gameflare\.com|[a-z0-9]+\.play\.gamezop\.com)/';
+
+-- GameDistribution ids are the 32-hex path segment. Only the OLDEST row per id
+-- receives it, so a duplicate already in the table cannot violate the unique
+-- index above; the importer then recognises that game instead of re-adding it.
+update public.games g
+   set external_id = m.gd_id
+  from (
+    select min(id) as id, lower(substring(game_url from 'gamedistribution\.com/([0-9a-fA-F]{32})')) as gd_id
+      from public.games
+     where provider_id = 'gamedistribution'
+       and game_url ~* 'gamedistribution\.com/[0-9a-f]{32}'
+     group by 2
+  ) m
+ where g.id = m.id and g.external_id is null
+   and not exists (
+     select 1 from public.games x
+      where x.provider_id = 'gamedistribution' and x.external_id = m.gd_id
+   );
+
+-- The public read path now requires BOTH verdicts. Without this a draft, a game
+-- held for licensing review, or a rejected game would be readable straight from
+-- the publishable key, however carefully the server filtered its own queries.
+drop policy if exists "Public can read working games" on public.games;
+create policy "Public can read working games"
+  on public.games for select
+  using (is_working = true and status = 'published');
+
+create or replace view public.games_public
+with (security_invoker = true) as
+  select
+    id,
+    slug,
+    title,
+    game_url,
+    coalesce(nullif(thumbnail_url, ''), '/default-placeholder.svg') as thumbnail_url,
+    category,
+    last_checked
+  from public.games
+  where is_working = true and status = 'published';
+
+
+-- ── 6. Atomic operations the API cannot express safely ────────────────────
+-- A bulk status change must be all-or-nothing. PostgREST offers no multi-
+-- statement transaction, so the check-then-write happens inside one function
+-- call, which is one transaction: if ANY target is missing or not in an allowed
+-- source state, it raises and nothing changes.
+create or replace function public.cms_bulk_transition(
+  p_ids   bigint[],
+  p_to    text,
+  p_from  text[],
+  p_actor text
+)
+returns integer
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  n integer;
+  wanted integer := coalesce(array_length(p_ids, 1), 0);
+begin
+  if wanted = 0 then return 0; end if;
+  if wanted > 500 then
+    raise exception 'bulk operations are limited to 500 games (got %)', wanted;
+  end if;
+  if (select count(distinct x) from unnest(p_ids) x) <> wanted then
+    raise exception 'duplicate ids in bulk request';
+  end if;
+  if (select count(*) from public.games where id = any (p_ids) and status = any (p_from)) <> wanted then
+    raise exception 'one or more games are missing or not in an allowed state for %', p_to;
+  end if;
+  update public.games
+     set status       = p_to,
+         updated_by   = p_actor,
+         published_at = case when p_to = 'published' then now() else published_at end,
+         archived_at  = case when p_to = 'archived' then now() when p_to <> 'archived' then null else archived_at end
+   where id = any (p_ids);
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+-- Replace a game's tag set in one transaction, creating unknown tags.
+create or replace function public.cms_set_game_tags(p_game_id bigint, p_tags text[])
+returns integer
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  n integer;
+begin
+  if coalesce(array_length(p_tags, 1), 0) > 30 then
+    raise exception 'a game may carry at most 30 tags';
+  end if;
+  insert into public.game_tags (slug, label)
+  select t, initcap(replace(t, '-', ' ')) from unnest(p_tags) t
+  on conflict (slug) do nothing;
+  delete from public.game_tag_links where game_id = p_game_id;
+  insert into public.game_tag_links (game_id, tag_slug)
+  select distinct p_game_id, t from unnest(p_tags) t;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+-- One round trip for the dashboard's content summary.
+create or replace function public.cms_status_counts()
+returns table (status text, games bigint)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select g.status, count(*) from public.games g group by g.status
+$$;
+
+
+-- ── 7. Typed site settings ────────────────────────────────────────────────
+-- The KEYS are defined in code (lib/settings-registry.mjs), each with a type and
+-- bounds. This table only stores values. A key the code does not define is
+-- ignored on read and refused on write, so this can never become a way to set
+-- arbitrary configuration — and nothing stored here is ever executed.
+create table if not exists public.site_settings (
+  key        text primary key,
+  value      jsonb       not null,
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+do $$ begin
+  alter table public.site_settings add constraint site_settings_key_check
+    check (key ~ '^[a-z][a-z0-9_.]{2,63}$');
+exception when duplicate_object then null; end $$;
+
+
+-- ── 8. Proxy governance ───────────────────────────────────────────────────
+-- Engines: Ultraviolet, Scramjet, GUST, AnuraOS. Whether each is served, and
+-- operator notes. The engine CODE is not configurable from here — only whether
+-- it is offered.
+create table if not exists public.proxy_providers (
+  id         text primary key,
+  enabled    boolean     not null default true,
+  notes      text,
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+do $$ begin
+  alter table public.proxy_providers add constraint proxy_providers_id_check
+    check (id ~ '^[a-z0-9][a-z0-9-]{1,39}$');
+exception when duplicate_object then null; end $$;
+
+-- Approved destinations. The tunnel may open a connection ONLY to a host that
+-- matches an `approved`, unexpired row here, on one of that row's ports. There
+-- is no wildcard-everything pattern: the CHECK below requires at least two DNS
+-- labels, and the application additionally refuses public-suffix wildcards
+-- such as *.co.uk.
+create table if not exists public.proxy_targets (
+  id          bigint generated by default as identity primary key,
+  pattern     text        not null,
+  ports       integer[]   not null default '{443}',
+  status      text        not null default 'pending',
+  purpose     text        not null,
+  owner       text,
+  expires_at  timestamptz,
+  approved_by text,
+  approved_at timestamptz,
+  created_by  text        not null,
+  created_at  timestamptz not null default now(),
+  updated_by  text,
+  updated_at  timestamptz not null default now()
+);
+do $$ begin
+  alter table public.proxy_targets add constraint proxy_targets_pattern_check
+    check (pattern ~ '^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+       and pattern !~ '^(\*\.)?[0-9.]+$'            -- a destination names a site, never an address
+       and char_length(pattern) <= 253);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.proxy_targets add constraint proxy_targets_status_check
+    check (status in ('pending', 'approved', 'revoked'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.proxy_targets add constraint proxy_targets_ports_check
+    check (cardinality(ports) between 1 and 4 and ports <@ array[80, 443, 8080, 8443]);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.proxy_targets add constraint proxy_targets_purpose_check
+    check (char_length(purpose) between 3 and 300);
+exception when duplicate_object then null; end $$;
+create unique index if not exists proxy_targets_pattern_uidx on public.proxy_targets (lower(pattern));
+create index if not exists proxy_targets_status_idx on public.proxy_targets (status, expires_at);
+
+-- Resource limits and access mode. One row, id 'default'; the application
+-- validates every field against hard bounds before it is applied.
+create table if not exists public.proxy_policies (
+  id         text primary key default 'default',
+  policy     jsonb       not null default '{}',
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+do $$ begin
+  alter table public.proxy_policies add constraint proxy_policies_single_row
+    check (id = 'default');
+exception when duplicate_object then null; end $$;
+
+
+-- ── 9. Every new table is server-only ─────────────────────────────────────
+alter table public.admin_users      enable row level security;
+alter table public.game_providers   enable row level security;
+alter table public.game_categories  enable row level security;
+alter table public.game_tags        enable row level security;
+alter table public.game_tag_links   enable row level security;
+alter table public.site_settings    enable row level security;
+alter table public.proxy_providers  enable row level security;
+alter table public.proxy_targets    enable row level security;
+alter table public.proxy_policies   enable row level security;
+
+do $$
+declare
+  server_only constant text[] := array[
+    'admin_users', 'game_providers', 'game_categories', 'game_tags',
+    'game_tag_links', 'site_settings', 'proxy_providers', 'proxy_targets',
+    'proxy_policies'
+  ];
+  rel text;
+  grantee_role text;
+begin
+  foreach rel in array server_only loop
+    foreach grantee_role in array array['anon', 'authenticated'] loop
+      continue when not exists (select 1 from pg_roles where rolname = grantee_role);
+      execute format('revoke all on public.%I from %I', rel, grantee_role);
+    end loop;
+    if exists (select 1 from pg_roles where rolname = 'service_role') then
+      execute format('grant all privileges on public.%I to service_role', rel);
+    end if;
+  end loop;
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'grant usage, select on all sequences in schema public to service_role';
+  end if;
+end $$;
+
+-- The functions are the server's, not the public's.
+revoke all on function public.cms_bulk_transition(bigint[], text, text[], text) from public;
+revoke all on function public.cms_set_game_tags(bigint, text[])                  from public;
+revoke all on function public.cms_status_counts()                                from public;
+revoke all on function public.admin_audit_verify(integer)                        from public;
+do $$
+declare
+  fn text;
+begin
+  foreach fn in array array[
+    'public.cms_bulk_transition(bigint[], text, text[], text)',
+    'public.cms_set_game_tags(bigint, text[])',
+    'public.cms_status_counts()',
+    'public.admin_audit_verify(integer)'
+  ] loop
+    if exists (select 1 from pg_roles where rolname = 'anon') then
+      execute format('revoke all on function %s from anon', fn);
+    end if;
+    if exists (select 1 from pg_roles where rolname = 'authenticated') then
+      execute format('revoke all on function %s from authenticated', fn);
+    end if;
+    if exists (select 1 from pg_roles where rolname = 'service_role') then
+      execute format('grant execute on function %s to service_role', fn);
+    end if;
+  end loop;
+end $$;
 
 
 -- ============================================================================

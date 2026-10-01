@@ -20,8 +20,8 @@ function readHidden(prompt) {
     // Swallow echo so a shoulder-surfer and a scrollback buffer both see nothing.
     const onData = (ch) => {
       const s = String(ch);
-      if (s === '\n' || s === '\r' || s === '') return;
-      process.stdout.write('[2K[200D' + prompt + '*'.repeat(rl.line.length));
+      if (s === '\n' || s === '\r' || s === '\u0004') return;
+      process.stdout.write('\u001b[2K\u001b[200D' + prompt + '*'.repeat(rl.line.length));
     };
     process.stdout.write(prompt);
     process.stdin.on('data', onData);

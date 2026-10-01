@@ -6,7 +6,7 @@
    ============================================================ */
 
 .gust-shell {
-  height: calc(100vh - var(--header-h));
+  height: calc(100vh - var(--header-h) - var(--legal-bar-h, 0px) - var(--inapp-bar-h, 0px));
   padding: 8px clamp(10px, 1.6vw, 20px) 12px;
   display: flex;
   flex-direction: column;

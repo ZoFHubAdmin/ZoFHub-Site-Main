@@ -46,13 +46,19 @@ EXCLUDED_DIRS = {
     'NautilusOS':    'vendored proxy app',
     'DayDream':      'vendored proxy app',
     'suroi':         'vendored GPL self-host kit',
+    # Where tools/fetch-anura.mjs unpacks AnuraOS: 526 files of somebody else's
+    # web OS, which runs as its own service on its own origin. Without this,
+    # `npm run fetch-anura` turns a clean audit into a wall of ERRORs about
+    # AnuraOS's own internal imports (./adapters/memory.js and friends) — other
+    # people's code reported as this repository's defects.
+    'vendor':        'fetched companion apps (AnuraOS) — served from their own origin',
     '.claude':       'agent scratch',
     '.vscode':       'editor config',
 }
 
 # Specific subtrees, matched as repo-relative prefixes.
 EXCLUDED_PREFIXES = (
-    ('public/gust/', 'vendored GUST proxy app — serves itself'),
+    ('proxy-engine/assets/gust/', 'vendored GUST proxy app — serves itself'),
 )
 
 SOURCE_EXTS = {'.js', '.mjs', '.cjs', '.html', '.css', '.json', '.sql', '.py', '.md', '.yaml', '.yml'}

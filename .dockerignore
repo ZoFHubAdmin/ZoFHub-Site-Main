@@ -5,8 +5,11 @@ npm-debug.log
 **/.git
 .gitignore
 .env
+# Documentation belongs to the repository, not the running image. Nothing at
+# runtime reads it: the served licence pages come from lib/licenses.mjs and
+# legal/, never from Markdown. Every project document lives under docs/.
+docs
 *.md
-!README.md
 
 # Reference-only proxy sites cloned for study — ZoFHub uses the npm
 # @mercuryworkshop/scramjet + @titaniumnetwork-dev/ultraviolet packages,

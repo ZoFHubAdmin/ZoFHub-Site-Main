@@ -5,18 +5,20 @@
 // Answers one question before you deploy: WILL THE ADS ACTUALLY LOAD?
 //
 // Why this exists. Ad misconfiguration on this site is silent. The server
-// accepts your tags, /api/site-config serves them, proxy-ads.js injects them —
+// accepts your tags, /api/site-config serves them, the page injects them —
 // and then the browser's Content-Security-Policy can refuse every one. Nothing
 // crashes, no endpoint 500s, the page looks perfect. The only trace is a console
 // line nobody reads, so weeks pass and the obvious conclusion is "this network
-// doesn't pay". Measured against the loader domains Adsterra, HilltopAds and
-// Monetag actually hand out, all four were blocked before this was wired up.
+// doesn't pay". Measured against real network loader domains, all four were
+// blocked before the CSP was derived from configuration.
 //
 // So this walks the same path a visitor's browser does, and reports on each hop:
-//   1. env       — are the tags present, https, and free of Google ad code?
-//   2. CSP       — is each origin allowlisted in the policy the server sends?
-//   3. serving   — does /api/site-config really hand the tags to the page?
-//   4. reachable — does the ad host answer at all (DNS/TLS/HTTP)?
+//   1. env       — which of the six networks is active, in which role, with
+//                  which regional overrides; which variables are set but unread
+//   2. CSP       — is each script origin allowlisted in the policy the server sends?
+//   3. serving   — does /api/site-config really hand each placement to the pages
+//                  it belongs on (hub page, game page) and nothing to /browser?
+//   4. reachable — does each ad host answer at all (DNS/TLS/HTTP)?
 //
 // Exit code is non-zero if anything would stop an ad from rendering, so it can
 // gate a deploy.
@@ -41,70 +43,83 @@ let failures = 0, warnings = 0;
 const fail = s => { failures++; console.log(bad(s)); };
 const caution = s => { warnings++; console.log(warn(s)); };
 
-// ---- 1. What is configured? -----------------------------------------------
-// Read through lib/ad-providers.mjs — the SAME resolver the server uses — so
-// this tool can never disagree with what actually ships. Reading the env vars
-// directly (as this did before the provider layer existed) meant it only ever
-// saw the two legacy variables and would cheerfully report "no ads configured"
-// while five networks were live.
-const { resolveAdConfig, SLOTS } = await import('../lib/ad-providers.mjs');
-const cfg = resolveAdConfig(process.env);
+const { resolveAdConfig, adminAdConfig, ROLES, ROLE_FIELDS, roleOwner, INTERSTITIAL_COOLDOWN_MS } =
+  await import('../lib/ad-providers.mjs');
+const { geoConfig } = await import('../lib/geo.mjs');
+const geo = geoConfig(process.env);
+const cfg = resolveAdConfig(process.env, { regions: geo.regionIds });
+const admin = adminAdConfig(cfg);
 
-console.log('\n1. Configuration');
+// ---- 1. Configuration -----------------------------------------------------
+console.log('\n1. Configuration (six networks, one role each)');
 for (const p of cfg.providers) {
   const state = p.active ? 'ACTIVE'
     : p.enabled ? 'enabled but NOT configured'
     : p.configured ? 'configured but DISABLED'
     : 'off';
-  const detail = p.active
-    ? `${p.scriptCount} script(s)${p.slotsProvided.length ? `, slots: ${p.slotsProvided.join('/')}` : ''}${p.zone ? ', zone set' : ''}`
-    : '';
-  console.log(`  ${p.name.padEnd(12)} ${state.padEnd(28)} ${detail}`);
+  const detail = [
+    p.fieldsProvided.length ? p.fieldsProvided.join(', ') : '',
+    p.regionsOverridden.length ? `regions: ${p.regionsOverridden.join('/')}` : '',
+    p.zone ? 'zone set' : '',
+  ].filter(Boolean).join(' · ');
+  console.log(`  ${p.name.padEnd(11)} ${p.role.padEnd(13)} ${state.padEnd(28)} ${detail}`);
   if (p.enabled && !p.configured) {
-    caution(`${p.name}: ${p.env}_ENABLED is set but no script, zone or tag is configured — it renders nothing`);
+    const fields = Object.keys(ROLE_FIELDS[p.role]).map((f) => `${p.env}_${f}`).join(' / ');
+    caution(`${p.name}: ${p.env}_ENABLED is set but ${fields} is not — it renders nothing`);
   }
 }
-if (cfg.legacyInUse) {
-  caution('legacy PROXY_* ad variables are in use — they work, but cannot be '
-    + 'attributed to a network or toggled individually. See docs/ADVERTISING.md.');
+for (const name of cfg.ignored) {
+  caution(`${name} is set but read by nothing (retired network, legacy slot, or outside the network's role)`);
+}
+for (const w of geo.warnings) caution(`[regions] ${w}`);
+
+// ---- 1b. Roles --------------------------------------------------------------
+// Strict roles: a placement renders only its owner's code, so the only way a
+// placement is dark is that its owner is off or unconfigured. Said out loud.
+console.log('\n1b. Roles');
+for (const role of ROLES) {
+  const owner = roleOwner(role);
+  const serving = admin.roleOwner[role];
+  const note = role === 'interstitial' && serving
+    ? `1 per ${Math.round(INTERSTITIAL_COOLDOWN_MS / 60000)} min (fixed)` : '';
+  console.log(`  ${role.padEnd(13)} ${(serving || 'dark').padEnd(12)} owner: ${owner?.name || '—'} ${note}`);
+}
+if (geo.regionIds.length) {
+  console.log(`  regions: ${geo.regionIds.join(', ')} — localised: ${admin.regionsLocalised.join(', ') || 'none (all use global tags)'}`);
 }
 
-const scripts = cfg.scripts;
-const slotSrcs = [];
-for (const slot of SLOTS) {
-  for (const m of String(cfg.slots[slot] || '').matchAll(/src\s*=\s*["']?(https?:\/\/[^"'\s>]+)/gi)) {
-    slotSrcs.push(m[1]);
+// Every script URL a browser would load, across the global and regional sets.
+const placementSets = [cfg.global, ...Object.values(cfg.regional)];
+const all = new Set();
+for (const p of placementSets) {
+  for (const u of p.push?.scripts || []) all.add(u);
+  for (const key of ['header', 'sidebar', 'interstitial', 'native', 'popunder']) {
+    const tag = String(p[key]?.tag || '');
+    for (const m of tag.matchAll(/src\s*=\s*["']?((?:https?:)?\/\/[^"'\s>]+)/gi)) all.add(m[1].startsWith('//') ? 'https:' + m[1] : m[1]);
+    for (const m of tag.matchAll(/["'`]((?:https:)?\/\/[a-z0-9.-]+\.[a-z]{2,}(?::\d+)?\/[^"'`\s]*?\.js)(?:[?#][^"'`\s]*)?["'`]/gi)) {
+      all.add(m[1].startsWith('//') ? 'https:' + m[1] : m[1]);
+    }
   }
 }
+const vastUrls = [...new Set(placementSets.map((p) => p.preroll?.vast).filter(Boolean))];
 const extraOrigins = (process.env.PROXY_AD_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
 if (!cfg.anyActive) {
   console.log('\n' + ok('no network is active — the site runs ad-free, nothing to check'));
-  console.log('\nTo enable one, set <NETWORK>_ENABLED=1 plus at least one of');
-  console.log('<NETWORK>_SCRIPT / <NETWORK>_ZONE / <NETWORK>_<SLOT>_TAG, then run this');
-  console.log('again. Networks: HILLTOPADS ADSTERRA MONETAG ADMAVEN POPADS');
-  console.log('Approval requirements: docs/ADVERTISING.md\n');
+  console.log('\nTo enable one, set <NETWORK>_ENABLED=1 plus its role variable:');
+  for (const p of cfg.providers) {
+    console.log(`  ${p.env.padEnd(11)} ${Object.keys(ROLE_FIELDS[p.role]).map((f) => `${p.env}_${f}`).join(' / ')}`);
+  }
+  console.log('Approval requirements: docs/features/ADVERTISING.md\n');
   process.exit(0);
 }
-console.log(`\n  resolved: ${scripts.length} loader script(s), `
-  + `${SLOTS.filter(s => cfg.slots[s]).length} filled slot(s)`);
+console.log(`\n  resolved: ${all.size} script URL(s), ${vastUrls.length} VAST tag(s)`);
 if (extraOrigins.length) console.log(`  PROXY_AD_ORIGINS : ${extraOrigins.join(' ')}`);
 
-const all = [...scripts, ...slotSrcs];
 for (const u of all) {
-  if (!/^https:\/\//i.test(u)) fail(`${u} — not https (the server drops non-https tags)`);
+  if (!/^https:\/\//i.test(u)) fail(`${u} — not https (the browser would refuse it on an https page)`);
   else if (BANNED.test(u)) fail(`${u} — Google ad code. AdSense on a proxy domain is an account-level ban; the server strips this.`);
   else console.log(ok(u.slice(0, 78)));
-}
-// A slot claimed by two networks is impossible by construction (first wins),
-// but a slot whose tag was rejected outright IS possible and looks identical to
-// "not configured" from the outside.
-for (const p of cfg.providers) {
-  for (const slot of p.slotsProvided) {
-    if (cfg.slotOwner[slot] !== p.id) {
-      caution(`${p.name} supplies a ${slot} tag but ${cfg.slotOwner[slot] || 'nothing'} owns that slot — only one network per slot`);
-    }
-  }
 }
 
 // ---- 2. Will the CSP permit them? -----------------------------------------
@@ -136,7 +151,7 @@ if (csp) {
   }
   // Wildcards do not cover their own apex, which is a genuinely surprising rule:
   // "https://*.foo.com" allows cdn.foo.com and still blocks foo.com. The server
-  // now compensates automatically, so flag it only if something removed that.
+  // compensates automatically, so flag it only if something removed that.
   for (const e of extraOrigins) {
     if (!e.startsWith('https://*.')) continue;
     const apex = 'https://' + e.slice('https://*.'.length);
@@ -144,29 +159,48 @@ if (csp) {
       caution(`${e} does not by itself permit ${apex} — a CSP wildcard never matches its own apex domain`);
     }
   }
-  if (!all.length) caution('no script URLs to check against the CSP');
+  if (!all.size) console.log(ok('no script URLs to check against the CSP (VAST and direct-link need none)'));
 }
 
-// ---- 3. Does the server actually serve the tags? --------------------------
-console.log('\n3. Delivery to the page (/api/site-config)');
+// ---- 3. Does the server actually serve each placement where it belongs? ----
+console.log('\n3. Delivery to the page (/api/site-config, per surface)');
+const surfaceCfg = async (surface) => (await fetch(`${BASE}/api/site-config?surface=${encodeURIComponent(surface)}`)).json();
 try {
-  const cfg = await (await fetch(BASE + '/api/site-config')).json();
-  const served = cfg.proxyAdScripts || [];
-  if (scripts.length && !served.length) fail('tags are set in .env but /api/site-config returns none — restart the server so it re-reads .env');
-  else console.log(ok(`serving ${served.length} script(s)${cfg.proxyBannerTag ? ' + a banner tag' : ''}`));
-  for (const s of scripts) if (!served.includes(s)) caution(`dropped by the server filter: ${s.slice(0, 60)}`);
+  const hub = await surfaceCfg('/');
+  const game = await surfaceCfg('/play/check-ads');
+  const proxy = await surfaceCfg('/browser');
+  const g = cfg.global;
+  const expect = [
+    ['header banner', Boolean(g.header), Boolean(hub.slots?.header)],
+    ['sidebar banner', Boolean(g.sidebar), Boolean(hub.slots?.sidebar)],
+    ['in-page push', Boolean(g.push), Boolean(hub.adScripts?.length)],
+    ['interstitial', Boolean(g.interstitial), Boolean(hub.interstitial)],
+    ['native widget', Boolean(g.native), Boolean(hub.native)],
+    ['video pre-roll (game page)', Boolean(g.preroll), Boolean(game.preroll)],
+    ['popunder (game page)', Boolean(g.popunder), Boolean(game.popunder)],
+  ];
+  for (const [what, want, got] of expect) {
+    if (want && !got) fail(`${what}: configured but /api/site-config does not serve it — restart the server so it re-reads the environment`);
+    else if (want) console.log(ok(`${what}: served`));
+  }
+  if (hub.preroll || hub.popunder) fail('a hub page was handed the pre-roll or popunder — those belong to game pages only');
+  const proxyLeak = proxy.adsAllowed || proxy.adScripts?.length || proxy.slots?.header || proxy.interstitial
+    || proxy.native || proxy.preroll || proxy.popunder;
+  if (proxyLeak) fail('/browser was handed advertising — the proxy boundary is broken');
+  else console.log(ok('/browser receives no advertising'));
+  console.log(ok(`ad-block premium gate: ${hub.supportGate ? 'ON' : 'off'}`));
 } catch {
   caution('could not read /api/site-config (server not running?)');
 }
 
 // ---- 4. Do the ad hosts answer at all? ------------------------------------
 console.log('\n4. Ad host reachability');
-for (const u of all) {
-  let host; try { host = new URL(u).hostname; } catch { continue; }
+for (const u of [...all, ...vastUrls]) {
+  let host; try { host = new URL(u.replace(/\[[A-Z_]+\]/g, '0')).hostname; } catch { continue; }
   try {
     const c = new AbortController();
     const t = setTimeout(() => c.abort(), 8000);
-    const r = await fetch(u, { method: 'GET', signal: c.signal, redirect: 'follow' });
+    const r = await fetch(u.replace(/\[[A-Z_]+\]/g, '0'), { method: 'GET', signal: c.signal, redirect: 'follow' });
     clearTimeout(t);
     // A 403/404 is fine here: it proves DNS+TLS work and the host is live. Only
     // a placeholder id would 404, which is worth flagging but is not a config bug.

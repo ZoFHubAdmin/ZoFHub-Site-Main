@@ -6,8 +6,9 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 16px clamp(14px, 2.4vw, 28px);
-  height: calc(100vh - var(--header-h) - 16px);
-  height: calc(100dvh - var(--header-h) - 16px);  /* dvh: stable under mobile URL-bar show/hide */
+  height: calc(100vh - var(--header-h) - 16px - var(--legal-bar-h, 0px) - var(--inapp-bar-h, 0px));
+  /* dvh: stable under mobile URL-bar show/hide */
+  height: calc(100dvh - var(--header-h) - 16px - var(--legal-bar-h, 0px) - var(--inapp-bar-h, 0px));
   min-height: 480px;
 }
 .ai-side {
@@ -316,3 +317,37 @@
 }
 .ai-disclaimer svg { flex: 0 0 13px; margin-top: 2px; opacity: .85; }
 @media (max-width: 560px) { .ai-disclaimer { font-size: 11px; } }
+
+/* ── AI settings (optional Hugging Face provider) ─────────────────────────
+   Collapsed by default and visually quiet: the AI works without it, so this
+   must not read as something a visitor has to configure before they can ask a
+   question. It only becomes prominent once it is actually active. */
+.ai-settings { margin-top: 10px; font-size: .82rem; }
+.ai-settings > summary {
+  cursor: pointer; list-style: none; padding: 6px 0;
+  color: var(--muted, #9aa4b2); user-select: none;
+}
+.ai-settings > summary::-webkit-details-marker { display: none; }
+.ai-settings > summary::before { content: '⚙ '; opacity: .8; }
+.ai-settings > summary:hover { color: var(--text, #e6e9ef); }
+.ai-settings > summary:focus-visible { outline: 2px solid var(--brand, #ffd426); outline-offset: 2px; border-radius: 4px; }
+.ai-settings-body { display: grid; gap: 6px; padding: 8px 0 4px; }
+.ai-settings-note { margin: 0; color: var(--muted, #9aa4b2); line-height: 1.45; }
+.ai-settings-note a { color: var(--brand, #ffd426); }
+.ai-settings-label { color: var(--muted, #9aa4b2); font-size: .78rem; }
+.ai-settings input, .ai-settings select {
+  width: 100%; box-sizing: border-box; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--line, #2a3140); background: var(--panel, #12161f);
+  color: var(--text, #e6e9ef); font: inherit; min-height: 32px;
+}
+.ai-settings-actions { display: flex; gap: 6px; }
+.ai-settings-btn {
+  flex: 1; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line, #2a3140); background: transparent;
+  color: var(--text, #e6e9ef); font: inherit; min-height: 32px;
+}
+.ai-settings-btn.primary { background: var(--brand, #ffd426); color: #10131a; border-color: transparent; font-weight: 600; }
+.ai-settings-btn:hover { border-color: var(--brand, #ffd426); }
+.ai-settings-state { color: var(--muted, #9aa4b2); line-height: 1.4; }
+.ai-settings-state[data-kind="ok"]   { color: #59d09a; }
+.ai-settings-state[data-kind="warn"] { color: #ffb84d; }

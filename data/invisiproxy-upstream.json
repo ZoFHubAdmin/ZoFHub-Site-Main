@@ -1,0 +1,66 @@
+{
+  "_comment": [
+    "PROVENANCE RECORD for InvisiProxy. This file is the machine-readable answer to",
+    "'which upstream version is this integration built against, and what did we take",
+    "from it?'. It is data, not configuration — nothing at runtime reads it to decide",
+    "behaviour. docs/proxy/INVISIPROXY.md is the prose version and the upgrade procedure.",
+    "",
+    "NOTE THE SHAPE OF THIS INTEGRATION: ZoFHub vendors NO InvisiProxy code. The",
+    "'incorporated' list below is empty on purpose, and 'adopted' records ideas that",
+    "were reimplemented from scratch against different libraries. See 'rationale'."
+  ],
+  "project": "InvisiProxy LTS",
+  "formerlyKnownAs": "Holy Unblocker LTS",
+  "upstream": "https://github.com/QuiteAFancyEmerald/InvisiProxy",
+  "homepage": "https://invisiproxy.com",
+  "license": "AGPL-3.0-only",
+  "copyright": "TitaniumNetwork and the InvisiProxy contributors",
+  "reviewedVersion": "v7.0.2.1",
+  "reviewedCommit": "243206fc698349403ea61015dfb384737921ebcb",
+  "reviewedOn": "2026-09-21",
+  "upstreamDefaultBranch": "master",
+
+  "integrationMode": "external-companion",
+  "vendored": false,
+  "dependencyAdded": false,
+
+  "rationale": [
+    "InvisiProxy is a complete web-proxy APPLICATION, not a library, and it is built on the same upstream primitives ZoFHub already integrates directly: Ultraviolet, Scramjet, Wisp, bare-mux, epoxy and libcurl. Vendoring it would duplicate working architecture rather than add capability.",
+    "It runs on Fastify 5 under a pnpm workspace; ZoFHub is Express 4 under npm with no build step. Its package.json also declares `postinstall: playwright install chromium`, which this repository's .npmrc (ignore-scripts=true) exists to prevent.",
+    "It is AGPL-3.0 and ZoFHub's own LICENSE is proprietary. ZoFHub serves over a network, so copying InvisiProxy source into the served work would engage AGPL-3.0 §13 for the resulting combination and oblige ZoFHub to offer its own corresponding source. Keeping it as a separately deployed service leaves those obligations with whoever deploys it."
+  ],
+
+  "incorporated": [],
+
+  "adopted": [
+    {
+      "idea": "An explicit, application-level egress policy for the Wisp tunnel rather than reliance on library defaults.",
+      "upstreamReference": "src/server.mjs — the Mrrowisp constructor (allowPrivateIPs: false, allowUDP: false, whitelist.ports, connectionsLimitPerIP, floodProtection)",
+      "zofhubImplementation": "lib/wisp-policy.mjs",
+      "codeCopied": false,
+      "note": "Reimplemented against @mercuryworkshop/wisp-js's own option object. Upstream uses a different Wisp server (mrrowisp) with a different API, so no line of it is applicable, let alone copied. What was taken is the argument that these values belong in the application's configuration."
+    },
+    {
+      "idea": "A runnable check that every proxy engine actually serves pages.",
+      "upstreamReference": "proxyServiceValidator.js",
+      "zofhubImplementation": "tools/verify-proxy.mjs",
+      "codeCopied": false,
+      "note": "Method deliberately NOT adopted. Upstream fetches the generated proxy URL with axios and asserts status 200; a service worker does not intercept requests from a client it does not control, so that request bypasses the proxy and reports the origin server's response. ZoFHub's version drives a real browser and asserts on the rendered document."
+    }
+  ],
+
+  "rejected": [
+    { "component": "Fastify server, routes, templates, views and pages", "reason": "ZoFHub has its own Express application and its own site." },
+    { "component": "mrrowisp", "reason": "ZoFHub's wisp-js integration is pinned by test/wisp-egress-contract.test.mjs and carries proxied traffic through sing-box via an injected TCPSocket. Swapping the Wisp server would discard verified working architecture and that egress guarantee." },
+    { "component": "Ultraviolet v3.2.10-headers (custom tgz build)", "reason": "Upstream's own release note says 'may have issues not tested in-depth'. ZoFHub's npm 3.2.10 is verified working by tools/verify-proxy.mjs, so switching to an unpinnable GitHub tarball would replace a working dependency with an untested one. Recorded as the upgrade path if 'TypeError: headers is not iterable' is ever observed." },
+    { "component": "Client-side Tor/SOCKS5 transport options (socks5h://localhost:9050)", "reason": "ZoFHub routes egress server-side through sing-box (docs/proxy/SINGBOX.md). Adding a second, browser-side proxy selector would be a duplicate mechanism with a weaker guarantee." },
+    { "component": "config.json", "reason": "ZoFHub is configured by environment variables and validates them at startup." }
+  ],
+
+  "deployment": {
+    "envVar": "PROXY_INVISI_URL",
+    "runsIn": "its own deployment, on the operator's infrastructure",
+    "upstreamDeployDocs": "https://github.com/QuiteAFancyEmerald/InvisiProxy#readme",
+    "runtime": { "node": ">=22", "packageManager": "pnpm" }
+  }
+}

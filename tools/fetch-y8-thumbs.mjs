@@ -30,6 +30,18 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
+// This is a CLI script, not a module: its top level mutates the live catalog.
+// ESM runs that top level on import, so importing it would perform the write.
+// Refuse loudly instead. Running it normally is unaffected.
+import { isMain } from './_is-main.mjs';
+if (!isMain(import.meta.url)) {
+  throw new Error(
+    'tools/fetch-y8-thumbs.mjs is a command-line script and must not be imported — ' +
+    'importing it would run it against the live database. Run it with node instead.'
+  );
+}
+
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 for (const f of ['.env', '.env.example']) {
   const p = join(root, f);

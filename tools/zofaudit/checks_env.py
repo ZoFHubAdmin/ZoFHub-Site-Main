@@ -2,8 +2,8 @@
 
 There is no schema for process.env. A variable is created by being typed, in one
 file, and every other place that needs it has to spell it identically. The
-failure is always silent — `process.env.ADSTERRA_TAG` when the deploy sets
-`ADSTERRA_BANNER_TAG` is not an error, it is `undefined`, and the feature simply
+failure is always silent — `process.env.EXOCLICK_TAG` when the deploy sets
+`EXOCLICK_HEADER_TAG` is not an error, it is `undefined`, and the feature simply
 does not appear. On this project that means an ad slot that never fills or a
 provider that never loads, which looks exactly like "no ad was served".
 
@@ -20,8 +20,30 @@ from .repo import ROOT, read, rel, strip_js_comments, line_of, files_with_suffix
 
 CHECK = 'env'
 
-_ENV_READ = re.compile(r'process\.env\.([A-Z][A-Z0-9_]*)')
-_ENV_INDEX = re.compile(r"process\.env\[\s*'([A-Z][A-Z0-9_]*)'\s*\]")
+# `env.X` as well as `process.env.X`. Configuration modules take the
+# environment as a parameter — `masqrConfig(env = process.env)`, `geoConfig`,
+# `trustProxySetting`, `wispPolicy` — so their tests can pass a fake one, and a
+# pattern that only knew `process.env.` reported every one of those variables
+# as "nothing reads it". These are the same shapes test/deploy-config.test.mjs
+# recognises, so the two checkers agree about what the code reads.
+#
+# The optional `process.` is part of the match on purpose: _is_optional() looks
+# at the text just BEFORE the match for a `||` / `??`, and a match that began at
+# `env` would hide the `|| ` in front of `process.env.X` and report a fallback
+# read as a bare one.
+_ENV_READ = re.compile(r'(?:\bprocess\.)?\benv\.([A-Z][A-Z0-9_]*)')
+_ENV_INDEX = re.compile(r"""(?:\bprocess\.)?\benv\[\s*['"]([A-Z][A-Z0-9_]*)['"]\s*\]""")
+
+
+def _ad_prefixes() -> tuple[str, ...]:
+    """The ad registry reads `${prefix}_FIELD` through a template, which no
+    regex over source can see — so, like test/deploy-config.test.mjs, a name
+    under a provider's prefix counts as read. The prefixes come from the
+    registry itself, so a new network needs no change here."""
+    path = ROOT / 'lib' / 'ad-providers.mjs'
+    if not path.exists():
+        return ()
+    return tuple(p + '_' for p in re.findall(r"env:\s*'([A-Z0-9]+)'", read(path)))
 
 # Set by the platform or by Node itself, so their absence from .env.example is
 # correct rather than an omission.
@@ -168,7 +190,9 @@ def run(report) -> None:
         if rel(path).startswith('test/'):
             in_tests |= {m.group(1) for m in _ENV_READ.finditer(read(path))}
 
-    for name in sorted(n for n in example - set(read_in) - in_tests if not _is_ambient(n)):
+    ad_prefixes = _ad_prefixes()
+    for name in sorted(n for n in example - set(read_in) - in_tests
+                       if not _is_ambient(n) and not n.startswith(ad_prefixes)):
         report.add(Finding(
             CHECK, 'info', f'{name} is in .env.example but nothing reads it',
             path='.env.example'))

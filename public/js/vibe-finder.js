@@ -102,6 +102,54 @@ function injectStyles() {
   .vibe-status{margin-top:16px;font-size:13px;color:#c3b6ee;text-align:center;padding:12px}
   .vibe-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#ffd426;border-radius:50%;animation:vibeSpin .8s linear infinite;vertical-align:-3px;margin-right:8px}
   @keyframes vibeSpin{to{transform:rotate(360deg)}}
+
+  /* ── Skeletons ───────────────────────────────────────────────────────────
+     Shown in place of the results grid while a search is in flight. They use
+     the SAME grid and the same tile footprint as a real result, so the layout
+     the player is looking at does not move when the answer arrives — the
+     skeleton is the shape of the answer, not a placeholder box. */
+  .vibe-skel{border-radius:10px;overflow:hidden;background:#1a1338;border:1px solid rgba(255,255,255,.06)}
+  .vibe-skel i{display:block;width:100%;aspect-ratio:4/3;
+    background:linear-gradient(100deg,#221a45 30%,#2e2460 50%,#221a45 70%);
+    background-size:220% 100%;animation:vibeShim 1.15s ease-in-out infinite}
+  .vibe-skel u{display:block;height:9px;margin:8px;border-radius:4px;background:#241c4c;text-decoration:none}
+  @keyframes vibeShim{0%{background-position:120% 0}100%{background-position:-20% 0}}
+  /* Respect a reduced-motion preference: the shimmer is decoration, and for
+     some people it is a migraine trigger. The skeleton still communicates
+     "loading" through its presence alone. */
+  @media (prefers-reduced-motion:reduce){
+    .vibe-skel i{animation:none}
+    .vibe-spin{animation:none}
+  }
+
+  /* ── Result filters ──────────────────────────────────────────────────────
+     Built from the categories actually present in the CURRENT result set, with
+     live counts. Filtering happens in the browser over results already fetched:
+     re-querying the server to narrow 18 results the player can already see
+     would add a round trip and could change the ranking underneath them. */
+  .vibe-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .vibe-filters:empty{display:none}
+  .vibe-filters button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+    color:#c3b6ee;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;
+    transition:background .14s ease,color .14s ease,border-color .14s ease}
+  .vibe-filters button:hover{background:rgba(255,255,255,.09);color:#f3eeff}
+  .vibe-filters button[aria-pressed="true"]{background:#ffd426;border-color:#ffd426;color:#1a1038}
+  .vibe-filters .vf-count{opacity:.65;margin-left:5px;font-weight:600}
+
+  /* ── Errors ──────────────────────────────────────────────────────────────
+     An error is a state the player can act on, so it gets a retry control
+     rather than a sentence telling them to try again themselves. */
+  .vibe-err{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .vibe-err-msg{color:#ffb4b4}
+  .vibe-retry{border:0;border-radius:999px;padding:9px 20px;font-weight:800;font-size:13px;
+    cursor:pointer;background:#ffd426;color:#1a1038}
+  .vibe-retry:hover{filter:brightness(1.06)}
+
+  /* Results fade in rather than snapping, which also covers the one-frame gap
+     between removing the skeletons and painting the tiles. */
+  .vibe-results.is-fresh{animation:vibeIn .22s ease-out}
+  @keyframes vibeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.vibe-results.is-fresh{animation:none}}
   @media (max-width:560px){.vibe-back{padding:5vh 10px 10px}}`;
   document.head.appendChild(s);
 }
@@ -176,10 +224,153 @@ function reasonFor(g) {
   return '';
 }
 
+// ── Result state ───────────────────────────────────────────────────────────
+// The full result set as returned, plus the category filter applied over it.
+// Kept at module scope so a filter click can re-render without re-querying.
+let lastResults = [];
+let activeFilter = null;
+
+const CATEGORY_LABEL = (c) => String(c || 'arcade').replace(/[-_]+/g, ' ')
+  .replace(/\b\w/g, m => m.toUpperCase());
+
+/**
+ * Skeleton tiles in the results grid.
+ *
+ * Deliberately the same count and footprint as a real page of results, so the
+ * grid does not resize when the answer lands. A spinner alone gave no sense of
+ * how much was coming, and the results appearing into an empty box made the
+ * whole dialog jump.
+ */
+function renderSkeletons(n = 12) {
+  const wrap = $('.vibe-results', modal);
+  if (!wrap) return;
+  wrap.setAttribute('aria-busy', 'true');
+  wrap.classList.remove('is-fresh');
+  wrap.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const sk = el('div', { class: 'vibe-skel' });
+    sk.innerHTML = '<i></i><u></u>';
+    wrap.appendChild(sk);
+  }
+}
+
+/**
+ * Why the search failed, in terms the player can act on.
+ *
+ * The old handler had two outcomes — "took too long" or "something went wrong"
+ * — and reached the second one for a 500, a 503, a dropped connection and a
+ * malformed body alike. Worse, it never checked `response.ok` at all: an error
+ * body was parsed as though it were a result, so a 500 rendered as "no matches"
+ * and looked like a search that had worked and found nothing.
+ */
+function describeFailure({ aborted, status, kind }) {
+  if (!navigator.onLine) {
+    return { msg: 'You appear to be offline. Check your connection and try again.', retry: true };
+  }
+  if (aborted) {
+    return { msg: 'That took too long to answer. The server may be waking up — try again.', retry: true };
+  }
+  if (status === 429) {
+    return { msg: 'Too many searches just now. Give it a few seconds and try again.', retry: true };
+  }
+  if (status === 503) {
+    return { msg: 'The server is busy or restarting. Try again in a moment.', retry: true };
+  }
+  if (status >= 500) {
+    return { msg: `The server had a problem (error ${status}). Try again.`, retry: true };
+  }
+  if (status >= 400) {
+    return { msg: `That search could not be processed (error ${status}).`, retry: false };
+  }
+  if (kind === 'parse') {
+    return { msg: 'The server sent something unreadable. Try again.', retry: true };
+  }
+  return { msg: 'Something went wrong finding games. Try again.', retry: true };
+}
+
+/** An error state with a real retry control, not a sentence about retrying. */
+function setError(failure, retryQuery) {
+  const s = $('.vibe-status', modal);
+  const wrap = $('.vibe-results', modal);
+  if (wrap) { wrap.innerHTML = ''; wrap.removeAttribute('aria-busy'); }
+  setFilters([]);
+  if (!s) return;
+  s.innerHTML = '';
+  const box = el('div', { class: 'vibe-err' });
+  const msg = el('div', { class: 'vibe-err-msg' });
+  msg.textContent = failure.msg;
+  box.appendChild(msg);
+  if (failure.retry && retryQuery) {
+    const btn = el('button', { class: 'vibe-retry', type: 'button' });
+    btn.textContent = 'Try again';
+    btn.addEventListener('click', () => runSearch(retryQuery));
+    box.appendChild(btn);
+  }
+  s.appendChild(box);
+}
+
+/**
+ * Category filter chips, built from the result set that is actually on screen.
+ *
+ * Only categories present in the results are offered, each with its real count,
+ * so a chip can never lead to an empty grid — the commonest way a filter UI
+ * wastes a click.
+ */
+function setFilters(games) {
+  const bar = $('.vibe-filters', modal);
+  if (!bar) return;
+  bar.innerHTML = '';
+  if (!games.length) return;
+
+  const counts = new Map();
+  for (const g of games) {
+    const c = g.category || 'arcade';
+    counts.set(c, (counts.get(c) || 0) + 1);
+  }
+  // One category means the filter can only ever be a no-op.
+  if (counts.size < 2) return;
+
+  const mk = (key, label, count) => {
+    const b = el('button', { type: 'button' });
+    b.setAttribute('aria-pressed', String(activeFilter === key));
+    b.innerHTML = `${escapeHtml(label)}<span class="vf-count">${count}</span>`;
+    b.addEventListener('click', () => {
+      // Clicking the active chip clears it — the chip is a toggle, so "All" is
+      // a shortcut rather than the only way back.
+      activeFilter = (activeFilter === key) ? null : key;
+      renderResults();
+      setFilters(lastResults);
+    });
+    return b;
+  };
+
+  bar.appendChild(mk(null, 'All', games.length));
+  for (const [cat, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
+    bar.appendChild(mk(cat, CATEGORY_LABEL(cat), n));
+  }
+}
+
+/** Paint `lastResults` through the active filter. */
+function renderResults() {
+  const wrap = $('.vibe-results', modal);
+  if (!wrap) return;
+  const shown = activeFilter
+    ? lastResults.filter(g => (g.category || 'arcade') === activeFilter)
+    : lastResults;
+  wrap.removeAttribute('aria-busy');
+  wrap.innerHTML = '';
+  shown.forEach(g => wrap.appendChild(tileFor(g)));
+  // Restart the entry animation on each paint.
+  wrap.classList.remove('is-fresh');
+  void wrap.offsetWidth;
+  wrap.classList.add('is-fresh');
+}
+
 async function runSearch(text) {
   const q = (text || '').trim();
   if (!q) return;
   lastQuery = q;
+  activeFilter = null;
   if (inFlight) { try { inFlight.abort(); } catch {} }
   const ctrl = new AbortController();
   inFlight = ctrl;
@@ -189,9 +380,12 @@ async function runSearch(text) {
   const timer = setTimeout(() => ctrl.abort(), 15000);
   const btn = $('.vibe-form button', modal);
   if (btn) btn.disabled = true;
-  $('.vibe-results', modal).innerHTML = '';
   setKw('', [], false);
-  setStatus(`<span class="vibe-spin"></span>Finding games that match your vibe…`);
+  setFilters([]);
+  setStatus('<span class="vibe-spin"></span>Finding games that match your vibe…');
+  renderSkeletons();
+
+  let status = 0;
   try {
     // POST when there is something to personalize with, GET otherwise. The GET
     // path stays anonymous AND server-cacheable, which is what keeps the quick
@@ -205,26 +399,43 @@ async function runSearch(text) {
           signal: ctrl.signal,
         })
       : await fetch(`/api/vibe?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-    const d = await r.json();
     clearTimeout(timer);
+    status = r.status;
     if (q !== lastQuery) return;                         // a newer search superseded this one
-    const games = d.games || [];
+
+    // Check the STATUS before the body. Without this an error page was parsed
+    // as a result and rendered as "no matches".
+    if (!r.ok) { setError(describeFailure({ status }), q); return; }
+
+    let d;
+    try { d = await r.json(); }
+    catch { setError(describeFailure({ kind: 'parse' }), q); return; }
+    if (q !== lastQuery) return;
+
+    // Every field is guaranteed present by the server-side contract
+    // (lib/vibe-engine.mjs → vibeResponse), so this reads them directly rather
+    // than defending against absence. It still guards the ARRAY, because a
+    // proxy or captive portal can return a 200 that is not our JSON at all.
+    lastResults = Array.isArray(d.games) ? d.games : [];
     setKw(d.understood, d.keywords, d.personalized);
     // Remember the mood so the homepage feed can lean this way for a while.
     // Expires on its own (signals.js, VIBE_TTL_MS) — a mood is a state, not a
     // standing preference.
     vibeSignal.set(q);
-    if (!games.length) { setStatus('No matches — try a different vibe or tap a quick mood above.'); return; }
+
+    if (!lastResults.length) {
+      $('.vibe-results', modal).removeAttribute('aria-busy');
+      $('.vibe-results', modal).innerHTML = '';
+      setStatus('No matches — try a different vibe or tap a quick mood above.');
+      return;
+    }
     setStatus('');
-    const wrap = $('.vibe-results', modal);
-    wrap.innerHTML = '';
-    games.forEach(g => wrap.appendChild(tileFor(g)));
+    renderResults();
+    setFilters(lastResults);
   } catch (e) {
     clearTimeout(timer);
     if (q !== lastQuery) return;
-    setStatus(ctrl.signal.aborted
-      ? 'That took too long — check your connection and try again.'
-      : 'Something went wrong finding games. Try again.');
+    setError(describeFailure({ aborted: ctrl.signal.aborted, status }), q);
   } finally {
     if (btn) btn.disabled = false;
     if (inFlight === ctrl) inFlight = null;
@@ -248,7 +459,8 @@ function buildModal() {
       </form>
       <div class="vibe-chips">${VIBES.map(v => `<button type="button" data-vibe="${v}">${v}</button>`).join('')}</div>
       <div class="vibe-kw"></div>
-      <div class="vibe-status">Type a vibe above, or tap a quick mood.</div>
+      <div class="vibe-filters" role="group" aria-label="Filter results by category"></div>
+      <div class="vibe-status" role="status" aria-live="polite">Type a vibe above, or tap a quick mood.</div>
       <div class="vibe-results"></div>
     </div>`;
   document.body.appendChild(modal);

@@ -35,7 +35,7 @@
   <main class="legal-shell">
     <div class="legal-hero">
       <h1>Privacy Policy</h1>
-      <p class="legal-updated">Last updated: June 28, 2026</p>
+      <p class="legal-updated">Last updated: September 28, 2026</p>
     </div>
 
     <div class="legal-body">
@@ -87,6 +87,31 @@
         cookies in your browser at any time.
         For full details, see our <a href="/cookies">Cookie Policy</a>.</p>
 
+      <h3>The advertising frequency cap</h3>
+      <p>If a full-screen ad is shown between games, we store <strong>one timestamp</strong> in your
+        browser's local storage recording when it was last shown, so that it cannot be shown to you
+        again for at least twenty minutes. That timestamp is the whole record: it is not an
+        identifier, it contains nothing about you or the game you opened, it is never sent to our
+        servers or to an ad network, and it cannot be read by any other site. If local storage is
+        unavailable &mdash; private browsing, or storage switched off &mdash; we cannot count, so no
+        full-screen ad is shown at all. Clearing your browser data removes it.</p>
+
+      <h3>The ad-block check</h3>
+      <p>The ads above are what pay for the proxy servers, so the Site checks whether an ad blocker is
+        stopping them. The check runs <strong>in your browser only</strong>: it looks at whether a
+        test element was hidden and whether our ad containers and the ad networks' scripts loaded. If
+        a blocker is found, your browser keeps a small record in local storage
+        (<code>zofhub.support.v1</code>): how many pages in a row showed a blocker, what kind of
+        evidence it was, a timestamp, and the addresses of up to three ad-network scripts that failed
+        to load. It is never sent to our servers or to an ad network. After three pages with a
+        blocker on, the premium proxy engines (AnuraOS and the standalone browsers) are paused until
+        the blocker is paused; the games and the built-in engines are never affected. The first page
+        you load with the blocker paused clears the record.</p>
+      <p>To tell a blocked script apart from one that is merely broken, your browser may send a
+        request to that script's address with no cookies and no referrer, which receives nothing
+        that runs. On the proxy browser this only happens when you have told us you paused your
+        blocker and a previous check found network-level blocking; no ad is ever loaded there.</p>
+
       <h3>What game recommendations use</h3>
       <p>To suggest games you might like, we keep a small amount of information
         <strong>in your browser only</strong>. It is never stored on our servers, never linked to an
@@ -115,20 +140,25 @@
       <p>Advertising on this Site is served by third-party ad networks. Depending on which are
         enabled at any given time, these may include:</p>
       <ul>
-        <li><strong>Adsterra</strong> —
-          <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener">privacy policy</a></li>
-        <li><strong>HilltopAds</strong> —
-          <a href="https://hilltopads.com/privacy-policy" target="_blank" rel="noopener">privacy policy</a></li>
-        <li><strong>Monetag</strong> —
-          <a href="https://monetag.com/privacy-policy/" target="_blank" rel="noopener">privacy policy</a></li>
-        <li><strong>Ad-Maven</strong> —
+        <li><strong>Ad-Maven</strong> — a full-screen ad between games, at most once every twenty
+          minutes —
           <a href="https://ad-maven.com/privacy-policy/" target="_blank" rel="noopener">privacy policy</a></li>
-        <li><strong>PopAds</strong> —
+        <li><strong>ExoClick</strong> — the header and sidebar banners —
+          <a href="https://www.exoclick.com/privacy-policy/" target="_blank" rel="noopener">privacy policy</a></li>
+        <li><strong>HilltopAds</strong> — an in-page notification-style ad —
+          <a href="https://hilltopads.com/privacy-policy" target="_blank" rel="noopener">privacy policy</a></li>
+        <li><strong>Clickadu</strong> — a short video before a game starts, skippable after five
+          seconds —
+          <a href="https://www.clickadu.com/privacy" target="_blank" rel="noopener">privacy policy</a></li>
+        <li><strong>Mondiad</strong> — a labelled "Sponsored" block below the game recommendations —
+          <a href="https://members.mondiad.com/privacy" target="_blank" rel="noopener">privacy policy</a></li>
+        <li><strong>PopAds</strong> — a pop-under window, on desktop game pages only —
           <a href="https://www.popads.net/privacy_policy" target="_blank" rel="noopener">privacy policy</a></li>
       </ul>
       <p>This is the complete list of advertising networks ZoFHub can use. We do not work with any
         other network, and we never load Google AdSense or Google Ad Manager. At any given time only
-        the networks we have enabled are active — often fewer than the five listed here.</p>
+        the networks we have enabled are active — often fewer than the six listed here. None of them
+        is ever loaded on the proxy browser or any other proxy page.</p>
       <p>What this means for you:</p>
       <ul>
         <li>The network — not us — serves the ads, and it may set its own cookies or similar
@@ -141,7 +171,9 @@
           <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info/choices</a>
           and <a href="https://www.youronlinechoices.eu/" target="_blank" rel="noopener">youronlinechoices.eu</a>,
           and you can block or delete cookies in your browser at any time. An ad blocker will also
-          stop these networks loading; the Site is built to work normally with one enabled.</li>
+          stop these networks loading. The games and the built-in proxy engines keep working normally
+          with one enabled; the premium proxy engines are paused while it stays on (see
+          &ldquo;The ad-block check&rdquo; in Section 3).</li>
       </ul>
       <p>Games embedded from third-party providers may show their own in-game ads. Those run inside
         the game frame under the provider's own policies — see Section 5.</p>
@@ -159,7 +191,9 @@
           under <em>their</em> privacy policy, not ours.</li>
         <li><strong>Game providers</strong> — games are embedded from third-party providers, which may
           set their own cookies inside the game frame under their own privacy policies.</li>
-        <li><strong>Advertising</strong> — none currently (see Section 4).</li>
+        <li><strong>Advertising</strong> — only the networks listed in Section 4, and only
+          those we have enabled. None of them is ever loaded on the proxy browser or inside a
+          proxied page.</li>
       </ul>
 
       <h2>6. Children's privacy</h2>
@@ -196,6 +230,13 @@
       <h2>10. International users</h2>
       <p>We may process and store information in countries other than where you live. By using the
         Site, you understand your information may be transferred to and processed in those countries.</p>
+      <p><strong>Your approximate country.</strong> When the Site is served through a network edge
+        that tells us which country a request comes from (for example Cloudflare's
+        <code>CF-IPCountry</code> header), we use that two-letter country code for that one request
+        only: to send you to the ZoFHub domain for your region, and to choose the ad tags for your
+        region. We do not store or log it. If you would rather stay on the domain you opened, add
+        <code>?geo=stay</code> to the address; a <code>zh_geo</code> cookie then remembers that
+        choice for seven days.</p>
 
       <h2>11. Donations</h2>
       <p>Donating is entirely optional and buys nothing — no perks, no ad removal, no special

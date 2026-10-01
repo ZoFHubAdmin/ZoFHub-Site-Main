@@ -152,13 +152,32 @@ async function loadCatalog({ live }) {
     if (!url || !key) throw new Error('SUPABASE_URL / SUPABASE_SECRET_KEY not set — drop --live to use the export.');
     const { createClient } = await import('@supabase/supabase-js');
     const supa = createClient(url, key, { auth: { persistSession: false } });
+    // KEYSET pagination, not .range(). Two reasons, and the first is a
+    // correctness bug rather than a performance note:
+    //
+    //   * .range(from, from+999) with no .order() asks Postgres for rows in
+    //     WHATEVER order it likes. There is no stable ordering between pages,
+    //     so a row can appear on two pages or on none — and this tool decides
+    //     which games get marked broken, so a silently skipped page means
+    //     working games are never checked.
+    //   * OFFSET also makes the database walk and discard every row before the
+    //     window, so page 17 re-scans 16,000 rows to return 1,000.
+    //
+    // Keyset fixes both: each page asks for ids strictly greater than the last
+    // one seen, which is stable under concurrent writes and uses the index.
     const out = [];
-    for (let from = 0; ; from += 1000) {
+    let lastId = 0;
+    for (;;) {
       const { data, error } = await supa.from('games')
-        .select('slug, title, game_url, thumbnail_url, category, is_working').range(from, from + 999);
+        .select('id, slug, title, game_url, thumbnail_url, category, is_working')
+        .order('id', { ascending: true })
+        .gt('id', lastId)
+        .limit(1000);
       if (error) throw new Error(error.message);
-      out.push(...(data || []));
-      if (!data || data.length < 1000) break;
+      if (!data || data.length === 0) break;
+      out.push(...data);
+      lastId = data[data.length - 1].id;
+      if (data.length < 1000) break;
     }
     return out.filter(g => g.is_working !== false);
   }

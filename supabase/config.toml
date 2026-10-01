@@ -17,7 +17,7 @@
 # Entering `supabase` instead makes the integration look for
 # `supabase/supabase/migrations/`, find nothing, and apply nothing — with NO
 # error shown anywhere. Same silent outcome if the connected REPOSITORY is not
-# the repo you actually push to. Both are verified in supabase/README.md.
+# the repo you actually push to. Both are verified in docs/database/SUPABASE-MIGRATIONS.md.
 #
 # CONNECTED REPOSITORY must be the same repo this working tree pushes to:
 #     git remote get-url origin

@@ -1,29 +1,17 @@
-// ZoFHub · ad-slots.js — header banner, sidebar rectangle, interstitial governor.
+// ZoFHub · ad-slots.js — every ad placement that needs a place in OUR layout.
 // ---------------------------------------------------------------------------
-// This is the SECOND half of the ad system. The first half already exists and is
-// untouched:
-//   • proxy-ads.js  — injects PROXY_AD_SCRIPTS loader URLs (popunder/push/social
-//                     bar/interstitial — formats the NETWORK places by itself).
-//   • footer-ad.js  — the isolated footer banner from PROXY_BANNER_TAG.
+// Each placement belongs to exactly one network (lib/ad-providers.mjs), and a
+// placement renders only its owner's code:
 //
-// What this file adds is the placements a network CANNOT place on its own,
-// because they need a real container in OUR layout:
-//   • Header leaderboard  728×90  (desktop) / 320×50 (mobile) → PROXY_HEADER_TAG
-//   • Sidebar rectangle   300×250                             → PROXY_SIDEBAR_TAG
-//   • In-content banners  728×90 responsive                   → PROXY_INCONTENT_TAG
-// …plus `adFrequencyController`, a localStorage throttle so a network's
-// interstitial can't fire on every game launch.
+//   Header leaderboard  728×90 / 320×50 mobile   ExoClick    ZOFHUB_HEADER_TAG
+//   Sidebar rectangle   300×250                  ExoClick    ZOFHUB_SIDEBAR_TAG
+//   Native widget       below the "for you" rows Mondiad     ZOFHUB_NATIVE
+//   Popunder            desktop game pages only  PopAds      ZOFHUB_POPUNDER
+//   Interstitial        between games, 1/20 min  Ad-Maven    ZOFHUB_INTERSTITIAL
 //
-// ── WHY THE IN-CONTENT MOUNT EXISTS ────────────────────────────────────────
-// index.html, category.html and game.html have always DECLARED in-content ad
-// containers (.catalog-ad-top, .ad-inline, .catalog-ad-bottom — six of them).
-// They were filled by an older public/js/ads.js that no longer exists, and the
-// header/sidebar/footer modules that replaced it build their OWN containers and
-// never touch these. So the declared slots could not be filled by any code in
-// the repo, while main.css still forced them to `display:block; min-height:90px`
-// — roughly 520px of permanently blank space on the homepage alone, and zero
-// revenue from six positions the markup advertises. This mount closes that gap:
-// one configured tag fills all six, and with no tag they collapse to nothing.
+// The two placements a network positions entirely by itself are elsewhere:
+// HilltopAds' in-page push loader (proxy-ads.js) and Clickadu's video pre-roll
+// in front of the game frame (preroll.js).
 //
 // ── DESIGN RULES (all four are load-bearing, not preferences) ───────────────
 //
@@ -47,12 +35,19 @@
 //    touching the DOM. Belt and suspenders, deliberately.
 // ---------------------------------------------------------------------------
 
+import { adFrequencyController, INTERSTITIAL_COOLDOWN_MS } from './ad-frequency.js';
+
+export { adFrequencyController };
+
 const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
 
 // Sizes are declared here and rendered into CSS so the reserved box and the
 // creative can never disagree.
 const HEADER = { w: 728, h: 90, mobileW: 320, mobileH: 50 };
 const SIDEBAR = { w: 300, h: 250 };
+// A native widget's height is the network's choice; this is the floor that is
+// reserved when the slot opens, so the first rows it draws do not push the page.
+const NATIVE_MIN_H = 180;
 
 const CSS = `
 .zad{display:grid;place-items:center;overflow:hidden;isolation:isolate;position:relative}
@@ -77,10 +72,11 @@ const CSS = `
    let it fight the layout. */
 @media(max-width:900px){.zad-side-wrap{display:none}}
 
-/* In-content: the page owns the outer box (main.css reveals it only once
-   data-zad-filled is set); this just centres the creative inside it. */
-.zad-incontent{display:grid;place-items:center;width:100%;max-width:${HEADER.w}px;margin:0 auto}
-.zad-incontent > *{max-width:100%}
+/* Native: the page owns the outer box (main.css reveals it only once
+   data-zad-filled is set); this is the disclosure line and the reserved floor. */
+.zad-native-label{margin:0 0 6px;font:600 11px/1.2 system-ui,sans-serif;letter-spacing:.08em;
+  text-transform:uppercase;opacity:.6}
+.zad-native{min-height:${NATIVE_MIN_H}px;width:100%;isolation:isolate;position:relative;overflow:hidden}
 `;
 
 function injectCss() {
@@ -94,9 +90,10 @@ function injectCss() {
 // Inject an ad snippet WITH script execution.
 // innerHTML alone does NOT run <script> tags (HTML spec), so we parse the markup
 // in an inert <template> and re-create each script node in document order. Order
-// matters: banner tags are usually an inline config block (e.g. Adsterra's
-// `atOptions = {...}`) followed by the loader that READS that global. Reversing
-// them silently serves a blank slot.
+// matters: banner tags are usually an inline config block followed by the loader
+// that READS that global. Reversing them silently serves a blank slot. Attributes
+// and inline code are copied unchanged, so a network that requires its code to
+// run unmodified (PopAds) gets exactly the code it supplied.
 function injectMarkup(container, html) {
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
@@ -123,6 +120,18 @@ function readTag(name) {
   return raw;
 }
 
+// A role payload ({ provider, tag }) from a window global, with the same checks.
+function readRoleTag(name) {
+  const v = typeof window !== 'undefined' ? window[name] : null;
+  const tag = v && typeof v === 'object' && typeof v.tag === 'string' ? v.tag.trim() : '';
+  if (!tag) return '';
+  if (GOOGLE_AD_RE.test(tag)) {
+    console.warn(`[zofhub-ads] ${name} contained Google ad code and was refused (banned on proxy domains).`);
+    return '';
+  }
+  return tag;
+}
+
 // ── Header leaderboard ─────────────────────────────────────────────────────
 // Mounted directly AFTER <header class="site-header">, so it lands above the
 // content frame in normal document flow — no overlap with the sticky header.
@@ -134,7 +143,7 @@ export function mountHeaderAd() {
   if (!tag) return;                                                   // rule 1: no tag → no slot
 
   // The AI page is a fixed-height flex/grid shell; inserting a band above it
-  // would push the composer below the fold. Same exclusion footer-ad.js uses.
+  // would push the composer below the fold.
   if (document.body.classList.contains('page-ai') || document.querySelector('.ai-shell')) return;
 
   const header = document.querySelector('header.site-header');
@@ -154,7 +163,6 @@ export function mountHeaderAd() {
   header.parentNode.insertBefore(bar, header.nextSibling);
 
   injectMarkup(slot, tag);
-  console.log('[zofhub-ads] header slot mounted (%d×%d reserved)', HEADER.w, HEADER.h);
   return bar;
 }
 
@@ -185,136 +193,310 @@ export function mountSidebarAd() {
   sidebar.appendChild(wrap);
 
   injectMarkup(slot, tag);
-  console.log('[zofhub-ads] sidebar slot mounted (%d×%d reserved)', SIDEBAR.w, SIDEBAR.h);
   return wrap;
 }
 
-// ── In-content banners ─────────────────────────────────────────────────────
-// Fills the containers the PAGES declare, rather than creating new ones — the
-// positions were chosen with the layout (between rows, above the fold, below
-// the game) and re-inventing them here would put ads somewhere else.
+// ── Native widgets below the "for you" rows ────────────────────────────────
+// The page declares the positions (`.zad-native-slot` inside #featuredRow and
+// #forYouRow); this fills them. Two conditions on top of rule 1:
 //
-// `data-zad-filled` is the signal main.css keys on: an unfilled slot collapses
-// to nothing, so no configured tag means no reserved space (rule 1). The
-// attribute is set BEFORE the markup is injected so the box reserves its height
-// up-front and a late creative cannot shift the page (rule 2).
-const IN_CONTENT_SELECTOR = '.catalog-ad-top, .catalog-ad-bottom, .ad-inline';
-
-export function mountInContentAds() {
+//   • the row must be VISIBLE. #forYouRow stays hidden until this device has
+//     enough history to personalise; a widget loaded into a hidden row is an
+//     impression nobody could see, which networks treat as invalid traffic.
+//   • the row must be NEAR THE VIEWPORT. The widget's script loads only when
+//     the visitor scrolls within reach of it, so it never competes with the
+//     catalog for the first paint.
+//
+// The ROW is what is observed, not the slot: main.css keeps an unfilled slot at
+// display:none (rule 1), and an element with no box never intersects anything.
+// `data-zad-filled` is set BEFORE the markup goes in, so the reserved floor is
+// in place before the creative can draw (rule 2).
+export function mountNativeAds() {
   if (typeof window === 'undefined' || !document.body) return 0;
+  const tag = readRoleTag('ZOFHUB_NATIVE');
+  if (!tag) return 0;                                                 // rule 1
 
-  const tag = readTag('ZOFHUB_INCONTENT_TAG');
-  if (!tag) return 0;                                                 // rule 1: no tag → no slot
-
-  // The AI page is a fixed-height shell; the same exclusion the header and
-  // footer slots use, for the same reason.
-  if (document.body.classList.contains('page-ai') || document.querySelector('.ai-shell')) return 0;
-
+  const slots = [...document.querySelectorAll('.zad-native-slot:not([data-zad-filled])')];
+  if (!slots.length) return 0;
   injectCss();
 
-  let filled = 0;
-  for (const slot of document.querySelectorAll(IN_CONTENT_SELECTOR)) {
-    if (slot.dataset.zadFilled) continue;                             // mount once per slot
+  const fill = (slot) => {
+    if (slot.dataset.zadFilled) return;
     slot.dataset.zadFilled = '1';
-    slot.classList.add('zad');
-    if (!slot.getAttribute('aria-label')) slot.setAttribute('aria-label', 'Advertisement');
-    // A fresh child per slot: the same tag markup injected N times must not
-    // share a container, or a network's loader can overwrite its own earlier
-    // creative and leave every slot but the last one blank.
+    if (!slot.getAttribute('aria-label')) slot.setAttribute('aria-label', 'Sponsored');
+    const label = document.createElement('p');
+    label.className = 'zad-native-label';
+    label.textContent = 'Sponsored';
+    // A fresh child per slot: the same tag injected twice must not share a
+    // container, or a network's loader overwrites its own earlier widget.
     const inner = document.createElement('div');
-    inner.className = 'zad-incontent';
-    slot.appendChild(inner);
+    inner.className = 'zad-native';
+    slot.append(label, inner);
     injectMarkup(inner, tag);
-    filled++;
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    // No observer: fill only rows that are visible right now.
+    for (const s of slots) if (!s.closest('[hidden]')) fill(s);
+    return slots.length;
   }
-  if (filled) console.log('[zofhub-ads] %d in-content slot(s) filled', filled);
-  return filled;
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const slot = e.target.querySelector('.zad-native-slot:not([data-zad-filled])');
+      if (slot) fill(slot);
+      io.unobserve(e.target);
+    }
+  }, { rootMargin: '300px 0px' });
+  for (const s of slots) io.observe(s.closest('section') || s.parentElement || s);
+  return slots.length;
 }
 
-// ── adFrequencyController ──────────────────────────────────────────────────
-// Networks that sell interstitial and popunder formats will happily fire one on
-// EVERY page view. On a games site that means a full-screen ad between a
-// player and the game they just clicked — the fastest way to lose the audience
-// that generates the traffic in the first place.
-//
-// This is a local throttle: ask before triggering, and it says no unless enough
-// time has passed. State lives in localStorage so it survives reloads and is
-// shared across tabs on the same device.
-//
-//   import { adFrequencyController } from './ad-slots.js';
-//   if (adFrequencyController.allow('interstitial')) { /* fire it */ }
-//
-// It CANNOT throttle what a network's own loader does internally (that is the
-// network's dashboard setting — set the cap there too). What it does guarantee
-// is that OUR code never asks more often than this.
-const FREQ_KEY = 'zofhub.adfreq.v1';
-const DEFAULT_COOLDOWN_MS = 20 * 60 * 1000;   // 20 minutes
-
-function readState() {
+// ── Popunder: desktop game pages only ──────────────────────────────────────
+// PopAds works "behind the scenes" — its code opens the popunder on a later
+// click — so it needs no visible container. It is confined three ways, each
+// independently sufficient:
+//   • the server sends it only for /play/<slug> pages (lib/ad-providers.mjs);
+//   • layout.js never loads this module on a proxy surface;
+//   • this function re-checks the path and requires a DESKTOP browser: a fine
+//     pointer that can hover, a wide viewport, and no mobile user agent.
+// The code is injected byte-for-byte as supplied (see injectMarkup).
+export function isDesktopBrowser() {
   try {
-    const raw = localStorage.getItem(FREQ_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return (parsed && typeof parsed === 'object') ? parsed : {};
-  } catch { return {}; }        // private mode / storage disabled / corrupt JSON
+    const ua = navigator.userAgent || '';
+    if (/Mobi|Android|iPhone|iPad|iPod|Tablet|Silk|Kindle/i.test(ua)) return false;
+    // iPadOS reports a desktop Safari user agent; touch points give it away.
+    if (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1) return false;
+    const fine = window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches;
+    return Boolean(fine) && window.innerWidth >= 1024;
+  } catch { return false; }
 }
 
-function writeState(state) {
-  try { localStorage.setItem(FREQ_KEY, JSON.stringify(state)); } catch { /* non-fatal */ }
+export function mountPopunder() {
+  if (typeof window === 'undefined' || !document.body) return false;
+  if (document.querySelector('[data-zad-popunder]')) return false;    // mount once
+  if (!/^\/play\/[^/]+/.test(location.pathname)) return false;
+  if (!isDesktopBrowser()) return false;
+  const tag = readRoleTag('ZOFHUB_POPUNDER');
+  if (!tag) return false;                                             // rule 1
+
+  const holder = document.createElement('div');
+  holder.dataset.zadPopunder = '1';
+  holder.hidden = true;
+  holder.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(holder);
+  injectMarkup(holder, tag);
+  return true;
 }
 
-export const adFrequencyController = {
-  /**
-   * May `slot` fire right now? Records the timestamp when it returns true, so a
-   * caller cannot ask twice and get two yeses.
-   * @param {string} slot        logical name, e.g. 'interstitial'
-   * @param {number} cooldownMs  minimum gap between fires (default 20 min)
-   */
-  allow(slot = 'interstitial', cooldownMs = DEFAULT_COOLDOWN_MS) {
-    // If storage is unavailable we cannot throttle, so we deliberately fail
-    // CLOSED (return false). An untracked interstitial that fires on every
-    // single game launch is far worse than no interstitial at all.
-    let store;
-    try { store = window.localStorage; } catch { return false; }
-    if (!store) return false;
+// ── Between-games interstitial ─────────────────────────────────────────────
+// WHAT FIRES IT. A click on a game-launch link (`a[href^="/play/"]`). Those are
+// ordinary anchors built by catalog.js and game-page.js, so one delegated
+// listener on the document covers every tile on every page, including tiles
+// rendered long after load.
+//
+// THE FOUR RULES IT CANNOT BREAK:
+//
+//   1. THE PLAYER ALWAYS REACHES THE GAME. Every exit path navigates, and a
+//      failsafe timer navigates even if the creative hangs, throws, or the
+//      Continue button never renders. An ad that can trap a player costs the
+//      audience, not just the impression.
+//
+//   2. IT NEVER STEALS A DELIBERATE NAVIGATION. Modified clicks (ctrl / cmd /
+//      shift / alt / middle) and target=_blank anchors are left completely
+//      alone — someone opening a game in a new tab gets exactly that.
+//
+//   3. AT MOST ONE PER 20 MINUTES, DEVICE-WIDE. Enforced by
+//      adFrequencyController with INTERSTITIAL_COOLDOWN_MS — a constant; the
+//      server payload carries no value this code reads for it. The controller
+//      records the timestamp on the way through and fails CLOSED when
+//      localStorage is unavailable.
+//
+//   4. A DIRECT-LINK IS NEVER AUTO-OPENED. Ad-Maven's direct-link format is a
+//      destination URL, and their rules (restated in lib/ad-providers.mjs)
+//      require it to sit behind something a person deliberately clicks. So a
+//      URL-only configuration renders a labelled sponsored link the visitor may
+//      ignore. It never becomes a redirect, and it is never dressed up as the
+//      "Continue" control.
+const INTERSTITIAL_CSS = `
+.zad-int{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;padding:24px;
+  background:rgba(8,10,18,.92);backdrop-filter:blur(6px)}
+.zad-int-note{margin:0;font:600 12px/1.4 system-ui,sans-serif;letter-spacing:.08em;
+  text-transform:uppercase;color:rgba(255,255,255,.55)}
+.zad-int-box{display:grid;place-items:center;min-width:300px;min-height:250px;
+  max-width:100%;max-height:70vh;overflow:hidden;isolation:isolate;position:relative;
+  border-radius:12px;background:rgba(255,255,255,.04)}
+.zad-int-box > *{max-width:100%}
+.zad-int-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.zad-int-btn{appearance:none;border:0;border-radius:999px;padding:12px 26px;cursor:pointer;
+  font:700 15px/1 system-ui,sans-serif;background:#fff;color:#111}
+.zad-int-btn[disabled]{opacity:.55;cursor:default}
+.zad-int-link{font:600 13px/1 system-ui,sans-serif;color:rgba(255,255,255,.75);
+  text-decoration:underline;text-underline-offset:3px}
+@media(max-width:480px){.zad-int-box{min-width:0;width:100%}}
+`;
 
-    const now = Date.now();
-    const state = readState();
-    const last = Number(state[slot]) || 0;
+// How long Continue stays disabled. Short on purpose: a viewability floor for
+// the advertiser, not a punishment for the player.
+const INTERSTITIAL_DWELL_MS = 5000;
+// Absolute ceiling. If nothing has navigated by now something is broken, and
+// the player goes to the game regardless. Rule 1.
+const INTERSTITIAL_FAILSAFE_MS = 15000;
 
-    // A clock that jumped backwards (timezone change, manual set) would leave
-    // `last` in the future and block the slot forever — treat that as expired.
-    if (last > now) { state[slot] = now; writeState(state); return true; }
-    if (now - last < cooldownMs) return false;
+function readInterstitialConfig() {
+  const cfg = (typeof window !== 'undefined' && window.ZOFHUB_INTERSTITIAL) || null;
+  if (!cfg || typeof cfg !== 'object') return null;
+  const tag = typeof cfg.tag === 'string' ? cfg.tag.trim() : '';
+  const url = typeof cfg.url === 'string' ? cfg.url.trim() : '';
+  if (!tag && !url) return null;
+  // Same belt-and-suspenders re-check the other slots do, before any DOM write.
+  if (GOOGLE_AD_RE.test(tag) || GOOGLE_AD_RE.test(url)) {
+    console.warn('[zofhub-ads] interstitial contained Google ad code and was refused.');
+    return null;
+  }
+  if (url && !/^https:\/\//i.test(url)) return null;
+  return {
+    tag,
+    url,
+    provider: typeof cfg.provider === 'string' ? cfg.provider : '',
+  };
+}
 
-    state[slot] = now;
-    writeState(state);
-    return true;
-  },
+/** Show the interstitial, then go to `href`. Always ends in a navigation. */
+function showInterstitial(cfg, href) {
+  injectCss();
+  if (!document.getElementById('zad-int-css')) {
+    const st = document.createElement('style');
+    st.id = 'zad-int-css';
+    st.textContent = INTERSTITIAL_CSS;
+    document.head.appendChild(st);
+  }
 
-  /** Seconds until `slot` is allowed again (0 = allowed now). Read-only. */
-  cooldownRemaining(slot = 'interstitial', cooldownMs = DEFAULT_COOLDOWN_MS) {
-    const last = Number(readState()[slot]) || 0;
-    if (!last) return 0;
-    const left = cooldownMs - (Date.now() - last);
-    return left > 0 ? Math.ceil(left / 1000) : 0;
-  },
+  const prevFocus = document.activeElement;
+  let done = false;
 
-  /** Clear throttle state (testing / "why isn't my ad showing" debugging). */
-  reset(slot) {
-    if (!slot) { try { localStorage.removeItem(FREQ_KEY); } catch {} return; }
-    const state = readState();
-    delete state[slot];
-    writeState(state);
-  },
-};
+  // One funnel for every exit, so cleanup and navigation can never be skipped
+  // by whichever path happened to fire.
+  const go = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(failsafe);
+    clearInterval(ticker);
+    document.removeEventListener('keydown', onKey, true);
+    try { overlay.remove(); } catch { /* already gone */ }
+    try { prevFocus?.focus?.(); } catch { /* not focusable */ }
+    window.location.assign(href);
+  };
+  const failsafe = setTimeout(go, INTERSTITIAL_FAILSAFE_MS);
+  const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); go(); } };
 
-// Expose for console debugging and for any non-module inline script that wants
-// to gate its own interstitial call.
-if (typeof window !== 'undefined') window.adFrequencyController = adFrequencyController;
+  const overlay = document.createElement('div');
+  overlay.className = 'zad-int';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Advertisement — your game is loading');
 
-/** Mount every slot this page supports. Safe to call on any page. */
+  // Deliberately a <p>, not a heading: this overlay is injected into pages whose
+  // heading outline is asserted by test/page-structure.test.mjs, and a stray h2
+  // here would break the outline that test checks.
+  const note = document.createElement('p');
+  note.className = 'zad-int-note';
+  note.textContent = 'Advertisement';
+
+  const box = document.createElement('div');
+  box.className = 'zad-int-box zad';
+
+  const actions = document.createElement('div');
+  actions.className = 'zad-int-actions';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'zad-int-btn';
+  btn.disabled = true;
+  let left = Math.ceil(INTERSTITIAL_DWELL_MS / 1000);
+  btn.textContent = `Continue in ${left}`;
+  btn.addEventListener('click', go);
+  const ticker = setInterval(() => {
+    left -= 1;
+    if (left > 0) { btn.textContent = `Continue in ${left}`; return; }
+    clearInterval(ticker);
+    btn.disabled = false;
+    btn.textContent = 'Continue to game →';
+    try { btn.focus(); } catch { /* ignore */ }
+  }, 1000);
+  actions.appendChild(btn);
+
+  // Rule 4: the direct-link is offered, never taken on the visitor's behalf,
+  // and never styled as the primary control.
+  if (cfg.url) {
+    const a = document.createElement('a');
+    a.className = 'zad-int-link';
+    a.href = cfg.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer sponsored';
+    a.textContent = 'Open sponsored offer';
+    actions.appendChild(a);
+  }
+
+  overlay.append(note, box, actions);
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', onKey, true);
+
+  if (cfg.tag) {
+    // A creative that throws must not be able to block the navigation, so it is
+    // isolated from the exit path entirely.
+    try { injectMarkup(box, cfg.tag); }
+    catch (e) { console.warn('[zofhub-ads] interstitial creative failed:', e); }
+  }
+}
+
+/**
+ * Install the game-launch interstitial. Idempotent, safe on any page, and does
+ * nothing at all unless a network actually supplied an interstitial.
+ */
+export function mountInterstitial() {
+  if (typeof window === 'undefined' || !document.body) return false;
+  if (window.__zadInterstitialBound) return false;
+
+  const cfg = readInterstitialConfig();
+  if (!cfg) return false;                 // rule 1 of this file: no tag → nothing
+
+  window.__zadInterstitialBound = true;
+
+  document.addEventListener('click', (e) => {
+    // Rule 2: never intercept a click the visitor meant to handle themselves.
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+    const a = e.target?.closest?.('a[href]');
+    if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+
+    // Same-origin game launches only. Comparing the RESOLVED URL rather than the
+    // raw attribute means a relative, absolute or mirror-domain spelling of the
+    // same link all behave identically — which is the point of this site being
+    // domain-portable.
+    let dest;
+    try { dest = new URL(a.href, location.href); } catch { return; }
+    if (dest.origin !== location.origin) return;
+    if (!/^\/play\//.test(dest.pathname)) return;
+
+    // Rule 3. allow() records the timestamp, so a declined click costs nothing
+    // and a permitted one cannot be permitted twice.
+    if (!adFrequencyController.allow('interstitial', INTERSTITIAL_COOLDOWN_MS)) return;
+
+    e.preventDefault();
+    showInterstitial(cfg, dest.href);
+  }, true);
+
+  return true;
+}
+
+/** Mount every placement this page supports. Safe to call on any page. */
 export function mountAdSlots() {
   mountHeaderAd();
   mountSidebarAd();
-  mountInContentAds();
+  mountNativeAds();
+  mountPopunder();
+  mountInterstitial();
 }
