@@ -511,6 +511,17 @@ const VIEWS = {
       const proc = p.process || {};
       const sb = p.singbox || { reachable: false, configured: false, reason: 'not-configured' };
       const sbp = p.singboxProcess || { managed: false };
+      const eg = p.singboxEgress || { enabled: false, total: 0, singboxSharePct: null };
+
+      // The question the other two sing-box cards cannot answer: is it actually
+      // carrying our traffic? A daemon can be up, reachable and supervised while
+      // every stream quietly dials direct, so the share gets its own verdict.
+      //   null  → nothing proxied yet; no verdict to give.
+      //   100   → every stream tunnelled.
+      //   1-99  → some fell back; the daemon is flapping or was restarted.
+      //   0     → nothing is tunnelled. Degraded, and the site is still up.
+      const share = eg.singboxSharePct;
+      const egState = !eg.enabled ? '' : share === null ? '' : share >= 100 ? 'ok' : share > 0 ? 'warn' : 'bad';
 
       // Saturation is the number an operator acts on: how close the tunnel pool
       // is to refusing new connections. `rejected > 0` means it already has.
@@ -524,6 +535,12 @@ const VIEWS = {
           { state: t.rejected ? 'bad' : 'ok' })}
         ${stat('Traffic', bytes((t.bytesIn || 0) + (t.bytesOut || 0)),
           `${bytes(t.bytesIn)} in / ${bytes(t.bytesOut)} out`)}
+        ${stat('Via sing-box',
+          !eg.enabled ? 'off' : share === null ? '—' : String(share),
+          !eg.enabled ? 'egress not tunnelled'
+            : share === null ? 'no streams yet'
+            : `${fmt(eg.viaSingbox)} tunnelled / ${fmt(eg.viaDirect)} direct`,
+          { unit: eg.enabled && share !== null ? '%' : '', state: egState })}
       </div>`;
 
       // Engines are the reason a given proxy route works or 404s. A `false`
@@ -548,6 +565,30 @@ const VIEWS = {
             : '<p class="empty">No engines reported.</p>',
             { hint: 'Mounted at boot from proxy-engine/mount.mjs.' })}
         </div>
+        ${card('Proxy egress', eg.enabled
+          ? kv([
+            ['Path', share === null
+              ? pill('idle', '')
+              : share >= 100 ? pill('through sing-box', 'ok')
+              : share > 0 ? pill('partly falling back', 'warn')
+              : pill('direct (not tunnelled)', 'bad')],
+            ['Streams via sing-box', fmt(eg.viaSingbox)],
+            ['Streams direct', fmt(eg.viaDirect)],
+            ['SOCKS inbound', `<code>${esc(`${eg.socks?.host || '?'}:${eg.socks?.port || '?'}`)}</code>`],
+            ['Strict mode', eg.required
+              ? pill('on — a stream fails rather than leaking', 'ok')
+              : pill('off — falls back to direct', '')],
+            eg.refused ? ['Refused (strict)', fmt(eg.refused)] : null,
+            eg.lastError ? ['Last fallback cause', `<span class="stat-s">${esc(eg.lastError)}</span>`] : null,
+            eg.lastFallbackAt ? ['Last fallback', ago(eg.lastFallbackAt)] : null,
+          ])
+          : '<p class="empty">Tunnelled egress is off — the proxy dials out of this server directly.</p>',
+          {
+            state: egState,
+            hint: eg.enabled
+              ? 'Every proxied TCP stream is dialled through the daemon’s loopback SOCKS inbound. A failed dial falls back to a direct connection and is counted here.'
+              : 'Unset SINGBOX_EGRESS (or set it to 1) to route proxied streams through sing-box.',
+          })}
         ${card('sing-box (external)', sb.reachable
           ? kv([
             ['State', pill('connected', 'ok')],
@@ -576,14 +617,16 @@ const VIEWS = {
             sbp.lastExit ? ['Last exit', `code ${esc(String(sbp.lastExit.code))} · ${ago(sbp.lastExit.at)}`] : null,
             sbp.lastError ? ['Last error', `<span class="stat-s">${esc(sbp.lastError)}</span>`] : null,
           ])
-          // Not managed is the DEFAULT, not a fault — ZoFHub reads a daemon you
-          // start yourself unless you opt into supervision.
-          : '<p class="empty">Not managed — ZoFHub is not starting this daemon.</p>',
+          // Managed is now the DEFAULT, so "not managed" means someone turned it
+          // off — worth saying plainly rather than implying it is normal.
+          : '<p class="empty">Not managed — supervision is switched off (SINGBOX_MANAGED=0).</p>',
           {
-            state: !sbp.managed ? '' : sbp.running ? 'ok' : 'bad',
+            state: !sbp.managed ? '' : sbp.running ? 'ok' : sbp.gaveUp ? 'warn' : 'bad',
             hint: sbp.managed
-              ? 'ZoFHub renders the config, runs sing-box check, spawns and restarts it.'
-              : 'Set SINGBOX_MANAGED=1 to have ZoFHub start and supervise it.',
+              ? (sbp.gaveUp
+                ? `Stopped trying: ${sbp.gaveUp}. Egress falls back to direct until the binary is in the image.`
+                : 'ZoFHub renders the config, runs sing-box check, spawns and restarts it.')
+              : 'Managed mode is on by default; remove SINGBOX_MANAGED=0 to restore it.',
           })}
         ${card('Process', kv([
           ['Uptime', duration(proc.uptimeSec)],

@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-08-13T16:39:05.954Z",
+  "generatedAt": "2026-10-01T21:28:24.770Z",
   "disclaimer": "Source-based audit, not legal advice.",
   "byTier": {
-    "SAFE": 14343,
-    "GRAY": 311,
-    "PARTNER-ID": 228,
-    "ACCOUNT": 1775,
-    "REVIEW": 177,
-    "REMOVE": 4
+    "SAFE": 14451,
+    "GRAY": 294,
+    "PARTNER-ID": 229,
+    "ACCOUNT": 1935,
+    "REMOVE": 4,
+    "REVIEW": 17
   },
   "byDistributor": {
-    "GameDistribution": 159,
-    "OnlineGames.io": 311,
-    "Gamezop": 228,
-    "GameMonetize": 9513,
+    "GameDistribution": 149,
+    "OnlineGames.io": 294,
+    "Gamezop": 229,
+    "GameMonetize": 9599,
     "GameFlare": 154,
-    "Famobi": 599,
-    "Y8 (embed)": 4671,
-    "HTMLGames": 1022,
-    "(none)": 169,
+    "Famobi": 580,
+    "HTMLGames": 1201,
+    "Y8 (embed)": 4703,
     "Unknown S3 bucket": 4,
     "deadshot.io": 1,
+    "(none)": 9,
     "suroi.io": 1,
     "smashkarts.io": 1,
     "bloxd.io": 1,
@@ -30,6 +30,76 @@
     "turbowarp.org": 1
   },
   "trademark": [
+    {
+      "slug": "alice-in-tetrisland",
+      "title": "Alice in Tetrisland",
+      "tier": "ACCOUNT"
+    },
+    {
+      "slug": "mario-wheelie",
+      "title": "Mario Wheelie",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "kick-the-mario",
+      "title": "Kick the Mario",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-vs-luigi",
+      "title": "Mario Vs Luigi",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "run-mario-run",
+      "title": "Run Mario Run",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-pixel",
+      "title": "Mario Pixel",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-madness",
+      "title": "Mario Madness",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-3d-shooter",
+      "title": "Mario 3D Shooter",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-amp-banzai",
+      "title": "Mario &amp; Banzai",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-dash-jetpack",
+      "title": "Mario Dash JetPack",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "fat-mario-vs-zombies",
+      "title": "Fat Mario vs Zombies",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "grab-mario-adventure",
+      "title": "Grab Mario Adventure",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mario-dressup",
+      "title": "Mario Dressup",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "pixel-mario",
+      "title": "Pixel mario",
+      "tier": "SAFE"
+    },
     {
       "slug": "flappy-bird",
       "title": "Flappy Bird",
@@ -159,6 +229,376 @@
       "slug": "skibidi-toilet-io",
       "title": "Skibidi Toilet io",
       "tier": "GRAY"
+    },
+    {
+      "slug": "tetris-puzzle",
+      "title": "Tetris Puzzle",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "tetris-1024",
+      "title": "Tetris 1024",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "animal-tetris",
+      "title": "Animal Tetris",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "tetris-slider",
+      "title": "Tetris Slider",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "tetris-fun",
+      "title": "Tetris Fun",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "tetris-slide",
+      "title": "Tetris Slide",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "tetris-dimensions",
+      "title": "Tetris Dimensions",
+      "tier": "REVIEW"
+    },
+    {
+      "slug": "fnaf-strike-shooter",
+      "title": "FNAF Strike Shooter",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "escape-plan-in-squid-game",
+      "title": "Escape Plan in Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "huggy-in-squid-game",
+      "title": "Huggy In Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "kingdom-rush-tower-defense",
+      "title": "Kingdom Rush - Tower Defense",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "mobile-squid-game-all-mode",
+      "title": "Mobile Squid Game All Mode",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "naruto-free-fight",
+      "title": "Naruto Free Fight",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "naruto-free-fight-season-2",
+      "title": "Naruto Free Fight : Season 2",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game",
+      "title": "Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-battle-royale",
+      "title": "Squid Game - Battle Royale",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-2",
+      "title": "Squid Game 2",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-3d",
+      "title": "Squid Game 3D",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-3d-challenge",
+      "title": "Squid Game 3D Challenge",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-3d-game",
+      "title": "Squid Game 3D game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-3d-all-squid-games",
+      "title": "Squid Game 3D: All Squid Games",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-456",
+      "title": "Squid Game 456",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-bomb-bridge",
+      "title": "Squid Game : Bomb Bridge",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-all-challenges",
+      "title": "Squid Game All Challenges",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-challneges-3d",
+      "title": "Squid Game Challneges 3D",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-io",
+      "title": "Squid Game.io",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squidgame-multiplayer",
+      "title": "SquidGame Multiplayer",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "the-squid-game",
+      "title": "The Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "bendy-and-the-ink-3d-game",
+      "title": "Bendy and the Ink 3D Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "challenge-456-squid-game-3d",
+      "title": "Challenge 456: Squid Game 3D",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "naruto-3d-game",
+      "title": "Naruto 3D Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "one-piece-funny-games",
+      "title": "One Piece Funny Games",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "red-light-green-light-squid-game",
+      "title": "Red Light, Green Light - Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-runner-2",
+      "title": "Squid Game Runner 2",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "doodle-jump-4",
+      "title": "Doodle Jump 4",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "farmer-squid-game-challenge",
+      "title": "Farmer Squid Game Challenge",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-2026",
+      "title": "Flappy Bird 2026",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "ratomilton-at-squid-game-backrooms",
+      "title": "Ratomilton at Squid Game Backrooms",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-2-snake",
+      "title": "Squid Game 2 Snake",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-bubble-shooter",
+      "title": "Squid Game Bubble Shooter",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-coloring-round",
+      "title": "Squid Game Coloring Round",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-jigsaw-challenge",
+      "title": "Squid Game Jigsaw Challenge",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-match-survival",
+      "title": "Squid Game Match Survival",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "tralalero-tralala-red-light-squid-game",
+      "title": "Tralalero Tralala Red Light Squid Game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "dalgona-squid-game-3d",
+      "title": "Dalgona Squid Game 3D",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "doodle-jump",
+      "title": "Doodle Jump",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-2d",
+      "title": "flappy bird 2D",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-2d-game",
+      "title": "Flappy Bird 2D game",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-classic-pro",
+      "title": "Flappy Bird Classic Pro",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-clone",
+      "title": "FLAPPY BIRD CLONE",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-desert",
+      "title": "FLAPPY BIRD DESERT",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-universe",
+      "title": "FLAPPY BIRD UNIVERSE",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-challenge-gold",
+      "title": "Squid Game Challenge Gold",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-challenge-honeycomb",
+      "title": "Squid Game Challenge Honeycomb",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "celebrity-wednesday-addams-style",
+      "title": "Celebrity Wednesday Addams Style",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "plants-vs-zombies-coloring",
+      "title": "Plants vs Zombies Coloring",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "wednesday-addams-beauty-salon",
+      "title": "Wednesday Addams Beauty Salon",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-spinning-oia-oia-cat",
+      "title": "Flappy Bird Spinning oia oia Cat",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "multiplayer-flappy-bird",
+      "title": "Multiplayer Flappy Bird",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-3d-red-light-green-light",
+      "title": "Squid Game 3D Red Light Green Light",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-multiplayer-fighting",
+      "title": "Squid Game Multiplayer Fighting",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-online-multiplayer",
+      "title": "Squid Game Online Multiplayer",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squidgame-io",
+      "title": "SquidGame.io",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "bendy-circle",
+      "title": "Bendy Circle",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "flappy-bird-2025",
+      "title": "Flappy Bird 2025",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "jewelry-bonney-anime-one-piece",
+      "title": "Jewelry Bonney Anime One Piece",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "hill-climb-racing-adventure",
+      "title": "Hill Climb Racing Adventure",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "lego-pirate-adventure",
+      "title": "Lego Pirate Adventure",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid-game-swarm",
+      "title": "Squid Game Swarm",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "super-basketball-bluey",
+      "title": "Super Basketball Bluey",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "tetris_sand",
+      "title": "Tetris Sand",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "animation_vs_minecraft",
+      "title": "Animation Vs Minecraft",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "squid_game_sniper",
+      "title": "Squid Game Sniper",
+      "tier": "SAFE"
+    },
+    {
+      "slug": "tetris_cube",
+      "title": "Tetris Cube",
+      "tier": "SAFE"
     }
   ],
   "lists": {
@@ -202,6 +642,12 @@
       {
         "slug": "basket-random",
         "title": "Basket Random",
+        "distributor": "GameDistribution",
+        "host": "html5.gamedistribution.com"
+      },
+      {
+        "slug": "soccer-random",
+        "title": "Soccer Random",
         "distributor": "GameDistribution",
         "host": "html5.gamedistribution.com"
       },
@@ -286,6 +732,12 @@
       {
         "slug": "tilt-ball",
         "title": "Tilt Ball",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "drift-fury",
+        "title": "Drift Fury",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
       },
@@ -1114,6 +1566,12 @@
       {
         "slug": "bricksbreaker",
         "title": "BricksBreaker",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "head-basketball",
+        "title": "Head Basketball",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
       },
@@ -2252,6 +2710,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "moto-x3m-winter",
+        "title": "Moto X3M Winter",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "crazy-ball-picker",
         "title": "CRAZY BALL PICKER",
         "distributor": "GameMonetize",
@@ -3291,7 +3755,7 @@
       },
       {
         "slug": "circle_shooter_",
-        "title": "Circle Shooter",
+        "title": "Circle Shooter ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -4167,7 +4631,7 @@
       },
       {
         "slug": "girlzone_let_s_party_",
-        "title": "Girlzone Let S Party",
+        "title": "Girlzone Let S Party ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -5673,7 +6137,7 @@
       },
       {
         "slug": "on_the_road_",
-        "title": "On The Road",
+        "title": "On The Road ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -5746,8 +6210,8 @@
       {
         "slug": "jumpster",
         "title": "Jumpster",
-        "distributor": "GameMonetize",
-        "host": "html5.gamemonetize.co"
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       },
       {
         "slug": "one-bullet-to-grimace",
@@ -6520,8 +6984,8 @@
       {
         "slug": "spot-differences-bird-adventure",
         "title": "Spot Differences Bird Adventure",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "starforge-boss-rush",
@@ -7102,8 +7566,8 @@
       {
         "slug": "racing-horizon",
         "title": "Racing Horizon",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "stellar-pulse",
@@ -7916,6 +8380,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "basketball-io",
+        "title": "Basketball.io",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "aeroplane-chess-3d",
         "title": "Aeroplane Chess 3D",
         "distributor": "GameMonetize",
@@ -8608,6 +9078,12 @@
       {
         "slug": "pool-8-ball",
         "title": "Pool 8 Ball",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "snake",
+        "title": "Snake",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -9406,8 +9882,8 @@
       {
         "slug": "sprinter",
         "title": "Sprinter",
-        "distributor": "GameMonetize",
-        "host": "html5.gamemonetize.co"
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       },
       {
         "slug": "tricky-planner",
@@ -12896,6 +13372,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "crazy-strike-force",
+        "title": "Crazy Strike Force",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "2drpg",
         "title": "2DRpg",
         "distributor": "GameMonetize",
@@ -13062,6 +13544,12 @@
         "title": "Roxie S Kitchen Tuesday Taco",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
+      },
+      {
+        "slug": "madalin-stunt-cars-pro",
+        "title": "Madalin Stunt Cars Pro",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "sprint-canoe",
@@ -13582,8 +14070,8 @@
       {
         "slug": "crazy-traffic-racer",
         "title": "Crazy Traffic Racer",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "3d-funny-shooter",
@@ -13752,6 +14240,12 @@
         "title": "Vex 3",
         "distributor": "GameDistribution",
         "host": "html5.gamedistribution.com"
+      },
+      {
+        "slug": "color-circle",
+        "title": "Color Circle",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "defeat-virus",
@@ -16575,9 +17069,9 @@
       },
       {
         "slug": "arrowtix-train-your-brain",
-        "title": "Arrowtix - Train Your Brain",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "title": "Arrowtix   Train Your Brain",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "highschool-mean-girls-3",
@@ -19412,6 +19906,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "maze",
+        "title": "Maze",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
         "slug": "merge-the-planets-2048",
         "title": "Merge the Planets: 2048!",
         "distributor": "GameMonetize",
@@ -19636,6 +20136,12 @@
       {
         "slug": "creep-crushers",
         "title": "Creep Crushers",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "crescent-solitaire",
+        "title": "Crescent Solitaire",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
       },
@@ -23546,6 +24052,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "drift-rider",
+        "title": "Drift Rider",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "bamboo-panda",
         "title": "Bamboo Panda",
         "distributor": "GameMonetize",
@@ -24717,7 +25229,7 @@
       },
       {
         "slug": "basket_ball_",
-        "title": "Basket Ball",
+        "title": "Basket Ball ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -26410,8 +26922,8 @@
       {
         "slug": "magic-water-sort-color-puzzle",
         "title": "Magic Water Sort: Color Puzzle",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "magical-tic-tac-toe",
@@ -26512,8 +27024,8 @@
       {
         "slug": "foosball",
         "title": "Foosball",
-        "distributor": "GameMonetize",
-        "host": "html5.gamemonetize.co"
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       },
       {
         "slug": "knots",
@@ -28892,6 +29404,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "super-car-driving",
+        "title": "Super Car Driving",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "bridge-rush-amp-ndash-draw-bridge-puzzle-game",
         "title": "Bridge Rush &amp;ndash; Draw Bridge Puzzle Game",
         "distributor": "GameMonetize",
@@ -29127,9 +29645,9 @@
       },
       {
         "slug": "funny-shooter-2",
-        "title": "Funny Shooter 2",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "title": "FUNNY SHOOTER 2",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "run-to-fit",
@@ -29547,7 +30065,7 @@
       },
       {
         "slug": "princess_pregnant_",
-        "title": "Princess Pregnant",
+        "title": "Princess Pregnant ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -31622,6 +32140,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "spect",
+        "title": "Spect",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
         "slug": "speed-racer-higway-3d",
         "title": "Speed Racer Higway 3D",
         "distributor": "GameMonetize",
@@ -32074,6 +32598,12 @@
       {
         "slug": "toto-adventure",
         "title": "Toto Adventure",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "woblox",
+        "title": "Woblox",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -37546,8 +38076,8 @@
       {
         "slug": "virtual-neko-kitty-collector",
         "title": "Virtual Neko Kitty Collector",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "wild-hunting-clash",
@@ -42548,6 +43078,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "neon-switch",
+        "title": "Neon Switch",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "newborn-sweet-baby-twins",
         "title": "Newborn Sweet Baby Twins",
         "distributor": "GameMonetize",
@@ -43438,8 +43974,8 @@
       {
         "slug": "ultimate-flying-car",
         "title": "Ultimate Flying Car",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "amazing-digital-circus-horror-escape",
@@ -46420,8 +46956,8 @@
       {
         "slug": "cars-vs-zombies",
         "title": "Cars vs Zombies",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "don-not-cut-your-self",
@@ -56757,7 +57293,7 @@
       },
       {
         "slug": "omino_",
-        "title": "Omino",
+        "title": "Omino ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -57711,7 +58247,7 @@
       },
       {
         "slug": "yummy_taco_",
-        "title": "Yummy Taco",
+        "title": "Yummy Taco ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -58329,7 +58865,7 @@
       },
       {
         "slug": "rail_rush_",
-        "title": "Rail Rush",
+        "title": "Rail Rush ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -58563,7 +59099,7 @@
       },
       {
         "slug": "burger_rush_",
-        "title": "Burger Rush",
+        "title": "Burger Rush ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -58755,7 +59291,7 @@
       },
       {
         "slug": "goal_keeper_",
-        "title": "Goal Keeper",
+        "title": "Goal Keeper ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -58779,7 +59315,7 @@
       },
       {
         "slug": "death_race_",
-        "title": "Death Race",
+        "title": "Death Race ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -60560,6 +61096,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "legends-arena",
+        "title": "Legends Arena",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "mr-bullet-shooting-puzzle",
         "title": "MR Bullet: Shooting Puzzle",
         "distributor": "GameMonetize",
@@ -62318,6 +62860,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "ojello",
+        "title": "Ojello",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
         "slug": "panda-kitchen-idle-tycoon",
         "title": "Panda Kitchen Idle Tycoon",
         "distributor": "GameMonetize",
@@ -63336,6 +63884,12 @@
         "title": "Ricky Zoom - Junior Zoom Mechanic",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "slope",
+        "title": "Slope",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       },
       {
         "slug": "super-pong-ball-soccer-like-ping-pong-game",
@@ -64904,6 +65458,12 @@
         "host": "www.y8.com"
       },
       {
+        "slug": "moto-x3m-pool-party",
+        "title": "Moto X3M Pool Party",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "snake-sorting",
         "title": "Snake Sorting",
         "distributor": "GameMonetize",
@@ -66436,6 +66996,12 @@
       {
         "slug": "tora-boy-adventure",
         "title": "Tora Boy Adventure",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "masked-special-forces",
+        "title": "Masked Special Forces",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
       },
@@ -69530,6 +70096,12 @@
         "host": "html5.gamemonetize.co"
       },
       {
+        "slug": "basket-ball",
+        "title": "Basket Ball",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
         "slug": "bff-stylish-off-shoulder-outfits",
         "title": "Bff Stylish Off Shoulder Outfits",
         "distributor": "GameMonetize",
@@ -71499,7 +72071,7 @@
       },
       {
         "slug": "draw_the_path_",
-        "title": "Draw The Path",
+        "title": "Draw The Path ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -71673,7 +72245,7 @@
       },
       {
         "slug": "shape_shift_",
-        "title": "Shape Shift",
+        "title": "Shape Shift ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -71745,7 +72317,7 @@
       },
       {
         "slug": "jewels_match_",
-        "title": "Jewels Match",
+        "title": "Jewels Match ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -71973,7 +72545,7 @@
       },
       {
         "slug": "fruit_master_",
-        "title": "Fruit Master",
+        "title": "Fruit Master ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -71985,7 +72557,7 @@
       },
       {
         "slug": "knife_hit_",
-        "title": "Knife Hit",
+        "title": "Knife Hit ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -76317,7 +76889,7 @@
       },
       {
         "slug": "last_resistance_",
-        "title": "Last Resistance",
+        "title": "Last Resistance ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -77409,7 +77981,7 @@
       },
       {
         "slug": "frog_super_bubbles_",
-        "title": "Frog Super Bubbles",
+        "title": "Frog Super Bubbles ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -80268,6 +80840,12 @@
         "title": "Formula Rush",
         "distributor": "GameMonetize",
         "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "sokoban",
+        "title": "Sokoban",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       },
       {
         "slug": "balloon-paradise",
@@ -83319,7 +83897,7 @@
       },
       {
         "slug": "christmas_balls_",
-        "title": "Christmas Balls",
+        "title": "Christmas Balls ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -83439,7 +84017,7 @@
       },
       {
         "slug": "express_truck_",
-        "title": "Express Truck",
+        "title": "Express Truck ",
         "distributor": "Y8 (embed)",
         "host": "www.y8.com"
       },
@@ -83950,8 +84528,8 @@
       {
         "slug": "single-line-drawing-puzzle",
         "title": "Single Line: Drawing Puzzle",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "ski-rush",
@@ -84508,8 +85086,8 @@
       {
         "slug": "moto-race-city",
         "title": "Moto Race City",
-        "distributor": "GameDistribution",
-        "host": "html5.gamedistribution.com"
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
       },
       {
         "slug": "shooting-circle",
@@ -86220,6 +86798,516 @@
         "title": "Fruit Ninja",
         "distributor": "GameDistribution",
         "host": "html5.gamedistribution.com"
+      },
+      {
+        "slug": "fnaf-strike-shooter",
+        "title": "FNAF Strike Shooter",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "escape-plan-in-squid-game",
+        "title": "Escape Plan in Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "huggy-in-squid-game",
+        "title": "Huggy In Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "kingdom-rush-tower-defense",
+        "title": "Kingdom Rush - Tower Defense",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "mobile-squid-game-all-mode",
+        "title": "Mobile Squid Game All Mode",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "naruto-free-fight",
+        "title": "Naruto Free Fight",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "naruto-free-fight-season-2",
+        "title": "Naruto Free Fight : Season 2",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game",
+        "title": "Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-battle-royale",
+        "title": "Squid Game - Battle Royale",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-2",
+        "title": "Squid Game 2",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-3d",
+        "title": "Squid Game 3D",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-3d-challenge",
+        "title": "Squid Game 3D Challenge",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-3d-game",
+        "title": "Squid Game 3D game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-3d-all-squid-games",
+        "title": "Squid Game 3D: All Squid Games",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-456",
+        "title": "Squid Game 456",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-bomb-bridge",
+        "title": "Squid Game : Bomb Bridge",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-all-challenges",
+        "title": "Squid Game All Challenges",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-challneges-3d",
+        "title": "Squid Game Challneges 3D",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-io",
+        "title": "Squid Game.io",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squidgame-multiplayer",
+        "title": "SquidGame Multiplayer",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "the-squid-game",
+        "title": "The Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "bendy-and-the-ink-3d-game",
+        "title": "Bendy and the Ink 3D Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "challenge-456-squid-game-3d",
+        "title": "Challenge 456: Squid Game 3D",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "naruto-3d-game",
+        "title": "Naruto 3D Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "one-piece-funny-games",
+        "title": "One Piece Funny Games",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "red-light-green-light-squid-game",
+        "title": "Red Light, Green Light - Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-runner-2",
+        "title": "Squid Game Runner 2",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "doodle-jump-4",
+        "title": "Doodle Jump 4",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "farmer-squid-game-challenge",
+        "title": "Farmer Squid Game Challenge",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-2026",
+        "title": "Flappy Bird 2026",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "ratomilton-at-squid-game-backrooms",
+        "title": "Ratomilton at Squid Game Backrooms",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-2-snake",
+        "title": "Squid Game 2 Snake",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-bubble-shooter",
+        "title": "Squid Game Bubble Shooter",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-coloring-round",
+        "title": "Squid Game Coloring Round",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-jigsaw-challenge",
+        "title": "Squid Game Jigsaw Challenge",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-match-survival",
+        "title": "Squid Game Match Survival",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "tralalero-tralala-red-light-squid-game",
+        "title": "Tralalero Tralala Red Light Squid Game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "dalgona-squid-game-3d",
+        "title": "Dalgona Squid Game 3D",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "doodle-jump",
+        "title": "Doodle Jump",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-2d",
+        "title": "flappy bird 2D",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-2d-game",
+        "title": "Flappy Bird 2D game",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-classic-pro",
+        "title": "Flappy Bird Classic Pro",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-clone",
+        "title": "FLAPPY BIRD CLONE",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-desert",
+        "title": "FLAPPY BIRD DESERT",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-universe",
+        "title": "FLAPPY BIRD UNIVERSE",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-challenge-gold",
+        "title": "Squid Game Challenge Gold",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-challenge-honeycomb",
+        "title": "Squid Game Challenge Honeycomb",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "word-connect-webgl",
+        "title": "Word Connect",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "block-sort",
+        "title": "Block Sort",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "lexi-desert-glow",
+        "title": "Lexi Desert Glow",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "neon-jump-webgl",
+        "title": "Neon Jump",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "solitaire-hawaiian",
+        "title": "Solitaire Hawaiian",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "ping-pong-3d-webgl",
+        "title": "Ping Pong 3d",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "car-push-driving",
+        "title": "Car Push Driving",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "basketball-target-master",
+        "title": "Basketball Target Master",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "animal-jigsaw-puzzle",
+        "title": "Animal Jigsaw Puzzle",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "world-flags-quiz-webgl",
+        "title": "World Flags Quiz",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "color-block-away",
+        "title": "Color Block Away",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "dot-connect-puzzle",
+        "title": "Dot Connect Puzzle",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "lexi-cozy-cafe",
+        "title": "Lexi Cozy Cafe",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "piece-match-puzzle",
+        "title": "Piece Match Puzzle",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "color-ball-sort",
+        "title": "Color Ball Sort",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "baby-cathy-ep11-cooking-for-mom",
+        "title": "Baby Cathy Ep11 Cooking For Mom",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "queen-rescue",
+        "title": "Queen Rescue",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "tile-connect-puzzle",
+        "title": "Tile Connect Puzzle",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "celebrity-wednesday-addams-style",
+        "title": "Celebrity Wednesday Addams Style",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "plants-vs-zombies-coloring",
+        "title": "Plants vs Zombies Coloring",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "wednesday-addams-beauty-salon",
+        "title": "Wednesday Addams Beauty Salon",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-spinning-oia-oia-cat",
+        "title": "Flappy Bird Spinning oia oia Cat",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "multiplayer-flappy-bird",
+        "title": "Multiplayer Flappy Bird",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-3d-red-light-green-light",
+        "title": "Squid Game 3D Red Light Green Light",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-multiplayer-fighting",
+        "title": "Squid Game Multiplayer Fighting",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-online-multiplayer",
+        "title": "Squid Game Online Multiplayer",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squidgame-io",
+        "title": "SquidGame.io",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "bendy-circle",
+        "title": "Bendy Circle",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "flappy-bird-2025",
+        "title": "Flappy Bird 2025",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "jewelry-bonney-anime-one-piece",
+        "title": "Jewelry Bonney Anime One Piece",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "hill-climb-racing-adventure",
+        "title": "Hill Climb Racing Adventure",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "lego-pirate-adventure",
+        "title": "Lego Pirate Adventure",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "squid-game-swarm",
+        "title": "Squid Game Swarm",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "super-basketball-bluey",
+        "title": "Super Basketball Bluey",
+        "distributor": "GameMonetize",
+        "host": "html5.gamemonetize.co"
+      },
+      {
+        "slug": "tetris_sand",
+        "title": "Tetris Sand",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "animation_vs_minecraft",
+        "title": "Animation Vs Minecraft",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "squid_game_sniper",
+        "title": "Squid Game Sniper",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
+      },
+      {
+        "slug": "tetris_cube",
+        "title": "Tetris Cube",
+        "distributor": "Y8 (embed)",
+        "host": "www.y8.com"
       }
     ],
     "GRAY": [
@@ -86230,12 +87318,6 @@
         "host": "www.onlinegames.io"
       },
       {
-        "slug": "soccer-random",
-        "title": "Soccer Random",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
-      },
-      {
         "slug": "spend-bill-gates-money",
         "title": "Spend Bill Gates Money",
         "distributor": "OnlineGames.io",
@@ -86244,12 +87326,6 @@
       {
         "slug": "burnout-drift-hunter",
         "title": "Burnout Drift Hunter",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
-        "slug": "drift-fury",
-        "title": "Drift Fury",
         "distributor": "OnlineGames.io",
         "host": "www.onlinegames.io"
       },
@@ -86290,12 +87366,6 @@
         "host": "www.onlinegames.io"
       },
       {
-        "slug": "head-basketball",
-        "title": "Head Basketball",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "jeep-racing",
         "title": "Jeep Racing",
         "distributor": "OnlineGames.io",
@@ -86322,12 +87392,6 @@
       {
         "slug": "crazy-ball-adventures",
         "title": "Crazy Ball Adventures",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
-        "slug": "moto-x3m-winter",
-        "title": "Moto X3M Winter",
         "distributor": "OnlineGames.io",
         "host": "www.onlinegames.io"
       },
@@ -86434,12 +87498,6 @@
         "host": "www.onlinegames.io"
       },
       {
-        "slug": "basketball-io",
-        "title": "Basketball io",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "legendary-sniper",
         "title": "Legendary Sniper",
         "distributor": "OnlineGames.io",
@@ -86474,12 +87532,6 @@
         "title": "Army Driver",
         "distributor": "OnlineGames.io",
         "host": "www.onlinegames.io"
-      },
-      {
-        "slug": "snake",
-        "title": "Snake",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
       },
       {
         "slug": "masked-forces-zombie-survival",
@@ -86536,12 +87588,6 @@
         "host": "cloud.onlinegames.io"
       },
       {
-        "slug": "crazy-strike-force",
-        "title": "Crazy Strike Force",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "stack-fire-ball",
         "title": "Stack Fire Ball",
         "distributor": "OnlineGames.io",
@@ -86558,12 +87604,6 @@
         "title": "Velocity Rush",
         "distributor": "OnlineGames.io",
         "host": "cloud.onlinegames.io"
-      },
-      {
-        "slug": "madalin-stunt-cars-pro",
-        "title": "Madalin Stunt Cars Pro",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
       },
       {
         "slug": "geometry-vector",
@@ -86664,12 +87704,6 @@
       {
         "slug": "geometry-escape",
         "title": "Geometry Escape",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
-      },
-      {
-        "slug": "2048",
-        "title": "2048",
         "distributor": "OnlineGames.io",
         "host": "cloud.onlinegames.io"
       },
@@ -86795,7 +87829,7 @@
       },
       {
         "slug": "jul-moto-racing",
-        "title": "Jul Moto Racing ",
+        "title": "Jul Moto Racing",
         "distributor": "OnlineGames.io",
         "host": "cloud.onlinegames.io"
       },
@@ -86848,12 +87882,6 @@
         "host": "www.onlinegames.io"
       },
       {
-        "slug": "drift-rider",
-        "title": "Drift Rider",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "highway-racer-pro",
         "title": "Highway Racer Pro",
         "distributor": "OnlineGames.io",
@@ -86886,12 +87914,6 @@
       {
         "slug": "football-king",
         "title": "Football King",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
-        "slug": "gold-miner",
-        "title": "Gold Miner",
         "distributor": "OnlineGames.io",
         "host": "www.onlinegames.io"
       },
@@ -86934,12 +87956,6 @@
       {
         "slug": "age-of-battle",
         "title": "Age Of Battle",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
-      },
-      {
-        "slug": "super-car-driving",
-        "title": "Super Car Driving",
         "distributor": "OnlineGames.io",
         "host": "cloud.onlinegames.io"
       },
@@ -87268,18 +88284,6 @@
         "host": "cloud.onlinegames.io"
       },
       {
-        "slug": "pyramid-solitaire",
-        "title": "Pyramid Solitaire",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
-      },
-      {
-        "slug": "mahjong",
-        "title": "Mahjong",
-        "distributor": "OnlineGames.io",
-        "host": "cloud.onlinegames.io"
-      },
-      {
         "slug": "chess-freezenova",
         "title": "Chess FreezeNova",
         "distributor": "OnlineGames.io",
@@ -87490,12 +88494,6 @@
         "host": "cloud.onlinegames.io"
       },
       {
-        "slug": "legends-arena",
-        "title": "Legends Arena",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "warstrike",
         "title": "WarStrike",
         "distributor": "OnlineGames.io",
@@ -87598,12 +88596,6 @@
         "host": "cloud.onlinegames.io"
       },
       {
-        "slug": "moto-x3m-pool-party",
-        "title": "Moto X3M Pool Party",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
-      },
-      {
         "slug": "run-3-space",
         "title": "Run 3 Space",
         "distributor": "OnlineGames.io",
@@ -87614,12 +88606,6 @@
         "title": "Survival Island",
         "distributor": "OnlineGames.io",
         "host": "cloud.onlinegames.io"
-      },
-      {
-        "slug": "masked-special-forces",
-        "title": "Masked Special Forces",
-        "distributor": "OnlineGames.io",
-        "host": "www.onlinegames.io"
       },
       {
         "slug": "treasure-hunter",
@@ -88101,43 +89087,43 @@
         "slug": "happy-kittens-puzzle",
         "title": "Happy Kittens Puzzle",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "chess-grandmaster",
         "title": "Chess Grandmaster",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "oh-yes",
         "title": "Oh Yes",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pool-master",
         "title": "Pool Master",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "rampage-racer",
         "title": "Rampage Racer",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "merge-the-gems",
         "title": "Merge The Gems",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pirate-s-pillage-aye-aye",
         "title": "Pirate's Pillage! Aye! Aye!",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "ship-it-up",
@@ -88209,7 +89195,7 @@
         "slug": "harbor-dash",
         "title": "Harbor Dash",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "cuby-dash",
@@ -88221,31 +89207,31 @@
         "slug": "cyberfusion",
         "title": "Cyberfusion",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pop-soap",
         "title": "Pop Soap",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "minigolf-kingdom",
         "title": "Minigolf Kingdom",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "darts",
         "title": "Darts",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "laser-locked",
         "title": "Laser Locked",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "catch-a-pult",
@@ -88257,7 +89243,7 @@
         "slug": "triple-tile-match-master",
         "title": "Triple Tile Match Master",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "celebrity-kidcore-fashion",
@@ -88281,7 +89267,7 @@
         "slug": "drop-me",
         "title": "Drop Me",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "from-nerd-to-school-popular",
@@ -88293,25 +89279,25 @@
         "slug": "box-crush",
         "title": "Box Crush",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "bubble-shooter-classic",
         "title": "Bubble Shooter Classic",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "fancy-diver",
         "title": "Fancy Diver",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "aquatic-rescue",
         "title": "Aquatic Rescue",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "colour-chase",
@@ -88323,25 +89309,25 @@
         "slug": "jelly-bears",
         "title": "Jelly Bears",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "swipe-art-puzzle",
         "title": "Swipe Art Puzzle",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "word-finder",
         "title": "Word Finder",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "basket-champs",
         "title": "Basket Champs",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "where-s-the-ace",
@@ -88359,31 +89345,31 @@
         "slug": "animal-connection",
         "title": "Animal Connection",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "road-safety",
         "title": "Road Safety",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "blocks-adventure-jungle-saga",
         "title": "Blocks Adventure Jungle Saga",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "jello-go-round",
         "title": "Jello Go Round",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "tower-loot",
         "title": "Tower Loot",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "viking-siege",
@@ -88407,25 +89393,25 @@
         "slug": "bubble-wipeout",
         "title": "Bubble Wipeout",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "illuminate",
         "title": "Illuminate",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "street-dunkies",
         "title": "Street Dunkies",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "cricket-mania",
         "title": "Cricket Mania",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "sheriff-s-wrath",
@@ -88440,6 +89426,12 @@
         "host": "4665.play.gamezop.com"
       },
       {
+        "slug": "2048",
+        "title": "2048",
+        "distributor": "Gamezop",
+        "host": "4665.play.gamezop.com"
+      },
+      {
         "slug": "shape-smash",
         "title": "Shape Smash",
         "distributor": "Gamezop",
@@ -88449,31 +89441,31 @@
         "slug": "bubble-smash",
         "title": "Bubble Smash",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "coin-grab",
         "title": "Coin Grab",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "super-goalie-auditions",
         "title": "Super Goalie Auditions",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "greedy-gnomes",
         "title": "Greedy Gnomes",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "mirror-me",
         "title": "Mirror Me",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pumpkin-smasher",
@@ -88497,19 +89489,19 @@
         "slug": "hyperdrive-swinger",
         "title": "Hyperdrive Swinger",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "hex-burst",
         "title": "Hex Burst",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pixel-slime",
         "title": "Pixel Slime",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "hop-kangaroo-hop",
@@ -88527,7 +89519,7 @@
         "slug": "blaze-rider",
         "title": "Blaze Rider",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "the-sea-lion-act",
@@ -88557,7 +89549,7 @@
         "slug": "football-mania",
         "title": "Football Mania",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "lovie-chic-s-preppy-look",
@@ -88569,7 +89561,7 @@
         "slug": "flames-fortune",
         "title": "Flames & Fortune",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "save-your-pinky",
@@ -88599,19 +89591,19 @@
         "slug": "algerian-solitaire",
         "title": "Algerian Solitaire",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "fashion-intern-a-journey-into-style",
         "title": "Fashion Intern: A Journey Into Style",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "blackbeard-s-island",
         "title": "Blackbeard's Island",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "snack-time",
@@ -88629,13 +89621,13 @@
         "slug": "hats-off",
         "title": "Hats Off",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "clay-pigeon-tap-and-shoot",
         "title": "Clay Pigeon: Tap and Shoot",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "hill-top-tanks",
@@ -88653,19 +89645,19 @@
         "slug": "homerun-hit",
         "title": "Homerun Hit",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "kingdom-fight",
         "title": "Kingdom Fight",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "city-cricket",
         "title": "City Cricket",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "rocket-man",
@@ -88683,7 +89675,7 @@
         "slug": "cricket-gunda",
         "title": "Cricket Gunda",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "zuno",
@@ -88695,25 +89687,25 @@
         "slug": "high-or-low",
         "title": "High or Low",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "archery-champs",
         "title": "Archery Champs",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "cubes-got-moves",
         "title": "Cubes Got Moves",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "football-kickoff",
         "title": "Football Kickoff",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pizza-dash",
@@ -88743,25 +89735,25 @@
         "slug": "flappy-foot-chinko",
         "title": "Flappy Foot Chinko",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "dragon-annihilation",
         "title": "Dragon Annihilation",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "black-jack-grid",
         "title": "Black Jack Grid",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "foot-chinko",
         "title": "Foot Chinko",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "zombies-can-t-jump-2",
@@ -88779,7 +89771,7 @@
         "slug": "oh-no",
         "title": "Oh No",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "monster-girls-back-to-school",
@@ -88797,13 +89789,13 @@
         "slug": "rescue-juliet",
         "title": "Rescue Juliet",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "brick-plunge",
         "title": "Brick Plunge",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "tricky-trip",
@@ -88815,13 +89807,13 @@
         "slug": "carrom-hero",
         "title": "Carrom Hero",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "jelly-doods",
         "title": "Jelly Doods",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "bffs-retro-time-travel-fashion",
@@ -88839,7 +89831,7 @@
         "slug": "words-with-emojis",
         "title": "Words With Emojis",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "watch-the-walls",
@@ -88863,7 +89855,7 @@
         "slug": "battleships-armada",
         "title": "Battleships Armada",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "snake-king",
@@ -88875,19 +89867,19 @@
         "slug": "junior-chess",
         "title": "Junior Chess",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "mafia-billiard-tricks",
         "title": "Mafia Billiard Tricks",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "soccer-wizard",
         "title": "Soccer Wizard",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "saucer-dodge",
@@ -88917,7 +89909,7 @@
         "slug": "blackjack-21-pro",
         "title": "Blackjack 21 Pro",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "fruit-chop",
@@ -88929,13 +89921,13 @@
         "slug": "veggi-rabbit",
         "title": "Veggi Rabbit",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "dribble-kings",
         "title": "Dribble Kings",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "dunk-draw",
@@ -88953,7 +89945,7 @@
         "slug": "juicy-dash",
         "title": "Juicy Dash",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "plane-fight",
@@ -88965,13 +89957,13 @@
         "slug": "slit-sight",
         "title": "Slit Sight",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "furious-speed",
         "title": "Furious Speed",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "sticky-goo",
@@ -88995,19 +89987,19 @@
         "slug": "mahjong-at-home-aloha-edition",
         "title": "Mahjong At Home: Aloha Edition",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "kickin-it",
         "title": "Kickin It",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "templok",
         "title": "Templok",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "slide-and-divide",
@@ -89079,7 +90071,7 @@
         "slug": "mahjong-at-home-scandinavian-edition",
         "title": "Mahjong At Home: Scandinavian Edition",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "aqua-thief",
@@ -89103,13 +90095,13 @@
         "slug": "1212",
         "title": "1212!",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "tic-tac-toe-11",
         "title": "Tic Tac Toe 11",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "gerbil-jump",
@@ -89127,19 +90119,19 @@
         "slug": "let-s-go-fishing",
         "title": "Let's Go Fishing",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "little-bouncing-guys",
         "title": "Little Bouncing Guys",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "ludo-dash",
         "title": "Ludo Dash",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "hero-archer",
@@ -89151,7 +90143,7 @@
         "slug": "foosball-kick",
         "title": "Foosball Kick",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "enchanted-waters",
@@ -89199,7 +90191,7 @@
         "slug": "monsterjong",
         "title": "Monsterjong",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "assassin-s-hunt-wild-west",
@@ -89217,13 +90209,13 @@
         "slug": "ludo-with-friends",
         "title": "Ludo With Friends",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "let-me-grow",
         "title": "Let Me Grow",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "dodgy",
@@ -89235,13 +90227,13 @@
         "slug": "basketball-master",
         "title": "Basketball Master",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "crazy-pizza",
         "title": "Crazy Pizza",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "punch-heroes",
@@ -89253,7 +90245,7 @@
         "slug": "salazar",
         "title": "Salazar",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "grumpy-gorilla",
@@ -89265,37 +90257,37 @@
         "slug": "soccer-jerks",
         "title": "Soccer Jerks",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "trap-kill-virus",
         "title": "Trap & Kill Virus",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "merge-mania",
         "title": "Merge Mania",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "robotion",
         "title": "Robotion",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "table-tennis-shots",
         "title": "Table Tennis Shots",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pai-gow-poker",
         "title": "Pai Gow Poker",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "jumpy-the-first-jumper",
@@ -89307,43 +90299,43 @@
         "slug": "chef-tycoon",
         "title": "Chef Tycoon",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "candy-fiesta",
         "title": "Candy Fiesta",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "cowboy-vs-martians",
         "title": "Cowboy vs. Martians",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "quack-hunt",
         "title": "Quack Hunt",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "alien-kindergarten",
         "title": "Alien Kindergarten",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "lane-battles",
         "title": "Lane Battles",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "pebble-boy",
         "title": "Pebble Boy",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "aliens-attack",
@@ -89355,13 +90347,13 @@
         "slug": "groovy-ski",
         "title": "Groovy Ski",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "crossbar-shots",
         "title": "Crossbar Shots",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "final-war-dead-zone",
@@ -89379,19 +90371,19 @@
         "slug": "jelly-slice",
         "title": "Jelly Slice",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "hipster-tennis",
         "title": "Hipster Tennis",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "nut-physics",
         "title": "Nut Physics",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "solitaire-gold",
@@ -89409,13 +90401,13 @@
         "slug": "rafting-adventure",
         "title": "Rafting Adventure",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "kingdom-fight-2",
         "title": "Kingdom Fight 2",
         "distributor": "Gamezop",
-        "host": "zv1y2i8p.play.gamezop.com"
+        "host": "4665.play.gamezop.com"
       },
       {
         "slug": "crunching-ninjas",
@@ -89536,8 +90528,8 @@
       {
         "slug": "animals-connect",
         "title": "Animals Connect",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "apocalypse-world",
@@ -89598,6 +90590,24 @@
         "title": "Forest Hunter",
         "distributor": "GameFlare",
         "host": "distribution.gameflare.com"
+      },
+      {
+        "slug": "spades-spider-solitaire",
+        "title": "Spades Spider Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "candy-mahjong",
+        "title": "Candy Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "atlantis-gem",
+        "title": "Atlantis Gem",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "spike-solitaire",
@@ -89732,6 +90742,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "mindful-mahjong",
+        "title": "Mindful Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "slacking-gym",
         "title": "Slacking Gym",
         "distributor": "Famobi",
@@ -89804,10 +90820,28 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "connect-3-easter",
+        "title": "Connect 3 - Easter",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "color-tunnel",
         "title": "Color Tunnel",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "daily-path",
+        "title": "Daily Path",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "tetrix-3d",
+        "title": "Tetrix 3D",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "tripeaks-halloween",
@@ -89844,6 +90878,12 @@
         "title": "Sort Bird",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "achilles-solitaire",
+        "title": "Achilles Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "match-3d",
@@ -89906,6 +90946,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "unlock-the-king",
+        "title": "Unlock the King",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "double-tower-of-hanoi-solitaire",
         "title": "Double Tower of Hanoi Solitaire",
         "distributor": "HTMLGames",
@@ -89938,8 +90984,8 @@
       {
         "slug": "spider-solitaire",
         "title": "Spider Solitaire",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "mah-domino",
@@ -90026,6 +91072,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "tower-of-hanoi-sort",
+        "title": "Tower of Hanoi Sort",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "water-sort",
         "title": "Water Sort",
         "distributor": "HTMLGames",
@@ -90034,6 +91086,12 @@
       {
         "slug": "palabra-de-c-digo-del-dia",
         "title": "Palabra de Código Del Dia",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "minesweeper",
+        "title": "Minesweeper",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -90068,6 +91126,24 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "flower-match-3",
+        "title": "Flower Match 3",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "block-drop",
+        "title": "Block Drop",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "wood-block-puzzle",
+        "title": "Wood Block Puzzle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "emoji-pairs",
         "title": "Emoji Pairs",
         "distributor": "HTMLGames",
@@ -90088,6 +91164,12 @@
       {
         "slug": "daily-binario",
         "title": "Daily Binario",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "pentris",
+        "title": "Pentris",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -90156,6 +91238,12 @@
         "title": "Teeth Runner",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "medieval-castle-defense",
+        "title": "Medieval Castle Defense",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "tripeaks-farm",
@@ -90326,6 +91414,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "gem-challenge",
+        "title": "Gem Challenge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "egypt-solitaire",
         "title": "Egypt Solitaire",
         "distributor": "HTMLGames",
@@ -90372,6 +91466,12 @@
         "title": "Timber Guy",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "wild-west-mysteries",
+        "title": "Wild West Mysteries",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "sports-car-wash",
@@ -90512,6 +91612,24 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "pyramid-solitaire-ancient-aztec",
+        "title": "Pyramid Solitaire - Ancient Aztec",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "kakuro-master",
+        "title": "Kakuro Master",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "picture-nonogram",
+        "title": "Picture Nonogram",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "fruit-bubble",
         "title": "Fruit Bubble",
         "distributor": "HTMLGames",
@@ -90540,6 +91658,24 @@
         "title": "Sailor Pop",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "memory-puzzle",
+        "title": "Memory Puzzle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "daily-photo-guess",
+        "title": "Daily Photo Guess",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "solitaire-reverse",
+        "title": "Solitaire Reverse",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "funny-faces",
@@ -90760,8 +91896,8 @@
       {
         "slug": "wild-west-solitaire",
         "title": "Wild West Solitaire",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "cooking-rage",
@@ -90810,6 +91946,60 @@
         "title": "Sushi Rolls - Cooking With Emma",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "country-labyrinth-4",
+        "title": "Country Labyrinth 4",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "10x10-arabic",
+        "title": "10x10 Arabic",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "mahjong-connect-merge",
+        "title": "Mahjong Connect Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "car-match",
+        "title": "Car Match",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "binairo",
+        "title": "Binairo",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "mystical-forest",
+        "title": "Mystical Forest",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "winter-hidden-stars",
+        "title": "Winter - Hidden Stars",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "game-of-15",
+        "title": "Game of 15",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "monkey-connect",
+        "title": "Monkey Connect",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "robot-wars-rise-of-resistance",
@@ -90910,6 +92100,48 @@
       {
         "slug": "valentine-link",
         "title": "Valentine Link",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "neon-flip",
+        "title": "Neon Flip",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "tripeaks-mania",
+        "title": "Tripeaks Mania",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "ocean-treasure",
+        "title": "Ocean Treasure",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "tropical-fruit-mahjong",
+        "title": "Tropical Fruit Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "higher-or-lower",
+        "title": "Higher or Lower",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "daily-guess",
+        "title": "Daily Guess",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "mahjong-collection",
+        "title": "Mahjong Collection",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -91154,6 +92386,18 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "xmas-card-connect",
+        "title": "Xmas Card Connect",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "2048-christmas",
+        "title": "2048 Christmas",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "gems",
         "title": "Gems",
         "distributor": "HTMLGames",
@@ -91318,8 +92562,8 @@
       {
         "slug": "mahjong-classic",
         "title": "Mahjong Classic",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "the-courage-of-an-american-grandfather",
@@ -91330,12 +92574,6 @@
       {
         "slug": "daily-stostone",
         "title": "Daily StoStone",
-        "distributor": "HTMLGames",
-        "host": "cdn.htmlgames.com"
-      },
-      {
-        "slug": "color-circle",
-        "title": "Color Circle",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -91460,6 +92698,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "free-aliens",
+        "title": "Free Aliens",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "cowboys-vs-martians",
         "title": "Cowboys vs. Martians",
         "distributor": "Famobi",
@@ -91490,6 +92734,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "sound-tiles",
+        "title": "Sound Tiles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "circus-mahjong",
         "title": "Circus Mahjong",
         "distributor": "HTMLGames",
@@ -91516,6 +92766,12 @@
       {
         "slug": "christmas-merge",
         "title": "Christmas Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "city-sniper",
+        "title": "City Sniper",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -91584,6 +92840,12 @@
         "title": "Russian Hill Driver",
         "distributor": "GameFlare",
         "host": "distribution.gameflare.com"
+      },
+      {
+        "slug": "big-tripeaks",
+        "title": "Big Tripeaks",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "drag-racing-club",
@@ -91784,6 +93046,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "daily-binairo",
+        "title": "Daily Binairo+",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "tower-smash",
         "title": "Tower Smash",
         "distributor": "Famobi",
@@ -91876,6 +93144,12 @@
       {
         "slug": "b-squeda-de-palabras-diaria",
         "title": "Búsqueda de Palabras Diaria",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "love-mahjong",
+        "title": "Love Mahjong",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -92042,6 +93316,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "frozen-freecell",
+        "title": "Frozen Freecell",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "circus-solitaire",
         "title": "Circus Solitaire",
         "distributor": "HTMLGames",
@@ -92108,12 +93388,6 @@
         "host": "play.famobi.com"
       },
       {
-        "slug": "maze",
-        "title": "Maze",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
-      },
-      {
         "slug": "soccertastic-world-cup-18",
         "title": "Soccertastic World Cup 18",
         "distributor": "Famobi",
@@ -92126,8 +93400,8 @@
         "host": "cdn.htmlgames.com"
       },
       {
-        "slug": "crescent-solitaire",
-        "title": "Crescent Solitaire",
+        "slug": "sudoku-classic",
+        "title": "Sudoku Classic",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -92178,6 +93452,12 @@
         "title": "Sushi Roll",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "marble-shooter",
+        "title": "Marble Shooter",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "tea-treatment",
@@ -92272,8 +93552,8 @@
       {
         "slug": "emoji-match",
         "title": "Emoji Match",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "playful-kitty",
@@ -92292,6 +93572,24 @@
         "title": "Park Your Car",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "hex-match",
+        "title": "Hex Match",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "lunar-lander",
+        "title": "Lunar Lander",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "goblin-run",
+        "title": "Goblin Run",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "daily-hexnum",
@@ -92320,6 +93618,24 @@
       {
         "slug": "dagelijkse-paspuzzel",
         "title": "Dagelijkse Paspuzzel",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "picture-pie-ancient-city",
+        "title": "Picture Pie - Ancient City",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "hidden-spots-city",
+        "title": "Hidden Spots - City",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "wild-west-klondike",
+        "title": "Wild West Klondike",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -92462,6 +93778,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "soccer-pinball",
+        "title": "Soccer Pinball",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "harbour-escape",
         "title": "Harbour Escape",
         "distributor": "HTMLGames",
@@ -92546,6 +93868,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "nautilus-mahjong",
+        "title": "Nautilus Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "crazy-bull-attack",
         "title": "Crazy Bull Attack",
         "distributor": "GameFlare",
@@ -92556,6 +93884,12 @@
         "title": "Penalty Shootout: Multi League",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "jewels-of-the-medici",
+        "title": "Jewels of the Medici",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "mahjongg-china",
@@ -92626,6 +93960,12 @@
       {
         "slug": "summer-beach",
         "title": "Summer Beach",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "rotate-puzzle-summer-beach",
+        "title": "Rotate Puzzle - Summer Beach",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -92714,6 +94054,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "soccer-bubbles",
+        "title": "Soccer Bubbles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "black-soldier-of-rome",
         "title": "Black Soldier of Rome",
         "distributor": "GameFlare",
@@ -92746,8 +94092,8 @@
       {
         "slug": "mahjong-collision",
         "title": "Mahjong Collision",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "squad-hero-tower",
@@ -92912,6 +94258,18 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "daily-number-sums",
+        "title": "Daily Number Sums",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "smoothie-connect",
+        "title": "Smoothie Connect",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "element-balls",
         "title": "Element Balls",
         "distributor": "Famobi",
@@ -93058,8 +94416,8 @@
       {
         "slug": "klondike-solitaire",
         "title": "Klondike Solitaire",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "jigsaw-jam-cars",
@@ -93200,6 +94558,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "gold-miner",
+        "title": "Gold Miner",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "mahjong-for-christmas",
         "title": "Mahjong for Christmas",
         "distributor": "HTMLGames",
@@ -93254,6 +94618,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "guardian-lighthouse-hidden-secrets",
+        "title": "Guardian Lighthouse - Hidden Secrets",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "japanjong",
         "title": "JapanJong",
         "distributor": "HTMLGames",
@@ -93304,6 +94674,18 @@
       {
         "slug": "princess-jewels",
         "title": "Princess Jewels",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "viking-tiles",
+        "title": "Viking Tiles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "1010-halloween",
+        "title": "1010 Halloween",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -93854,12 +95236,6 @@
         "host": "cdn.htmlgames.com"
       },
       {
-        "slug": "spect",
-        "title": "Spect",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
-      },
-      {
         "slug": "speed-maniac",
         "title": "Speed Maniac",
         "distributor": "Famobi",
@@ -93928,12 +95304,6 @@
       {
         "slug": "train-2048",
         "title": "Train 2048",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
-      },
-      {
-        "slug": "woblox",
-        "title": "Woblox",
         "distributor": "Famobi",
         "host": "play.famobi.com"
       },
@@ -94076,8 +95446,68 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "love-hidden-hearts",
+        "title": "Love Hidden Hearts",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "rotate-puzzle-winter-fun",
+        "title": "Rotate Puzzle - Winter Fun",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "magic-tiles",
+        "title": "Magic Tiles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "street-hidden-objects",
+        "title": "Street Hidden Objects",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "aquatic-slice",
+        "title": "Aquatic Slice",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "steps-solitaire",
+        "title": "Steps Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "triple-connect",
         "title": "Triple Connect",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bubble-circle",
+        "title": "Bubble Circle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "the-lost-crown",
+        "title": "The Lost Crown",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "tripeaks-castle",
+        "title": "Tripeaks Castle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "cavern-hidden-stars",
+        "title": "Cavern - Hidden Stars",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -94100,6 +95530,48 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "mahjongg-pyramids",
+        "title": "Mahjongg Pyramids",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "pantagruel-double-klondike",
+        "title": "Pantagruel Double Klondike",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "christmas-match-3",
+        "title": "Christmas Match 3",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "christmas-buster",
+        "title": "Christmas Buster",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "christmas-tree-solitaire",
+        "title": "Christmas Tree Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "delicious-duos",
+        "title": "Delicious Duos",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "triple-cars",
+        "title": "Triple Cars",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "ninja-cube",
         "title": "Ninja Cube",
         "distributor": "GameFlare",
@@ -94110,6 +95582,18 @@
         "title": "Police Helicopter",
         "distributor": "GameFlare",
         "host": "distribution.gameflare.com"
+      },
+      {
+        "slug": "sushi-master-match3",
+        "title": "Sushi Master - Match3",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "solitaire-collection-2",
+        "title": "Solitaire Collection 2",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "baby-lily-birthday",
@@ -94346,6 +95830,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "memory-mahjong",
+        "title": "Memory Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "planet-solitaire",
         "title": "Planet Solitaire",
         "distributor": "HTMLGames",
@@ -94448,6 +95938,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "pyramid-solitaire-great-pyramid",
+        "title": "Pyramid Solitaire - Great Pyramid",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "bingo",
         "title": "Bingo",
         "distributor": "HTMLGames",
@@ -94502,6 +95998,24 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "diamond-mahjong",
+        "title": "Diamond Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "halloween-pairs",
+        "title": "Halloween Pairs",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "clock-solitaire",
+        "title": "Clock Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "mahjong-tower",
         "title": "Mahjong Tower",
         "distributor": "HTMLGames",
@@ -94532,6 +96046,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "medieval-defense",
+        "title": "Medieval Defense",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "tens",
         "title": "Tens",
         "distributor": "HTMLGames",
@@ -94556,6 +96076,36 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "witch-world",
+        "title": "Witch World",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "imagen-palavra",
+        "title": "Imagen Palavra",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bilder-worter",
+        "title": "Bilder Wörter",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "love-bubbles",
+        "title": "Love Bubbles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "cube-block",
+        "title": "Cube Block",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "find-500-differences",
         "title": "Find 500 Differences",
         "distributor": "Famobi",
@@ -94574,6 +96124,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "number-chain",
+        "title": "Number Chain",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "spider-solitaire-1-suit",
         "title": "Spider Solitaire 1 suit",
         "distributor": "HTMLGames",
@@ -94584,6 +96140,12 @@
         "title": "Basketball",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "wild-flower-solitaire",
+        "title": "Wild Flower Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "jolly-jong-math",
@@ -94840,8 +96402,8 @@
       {
         "slug": "candy-bubble",
         "title": "Candy Bubble",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "fit-it-quick",
@@ -94854,6 +96416,12 @@
         "title": "Mini Race Rush",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "gate-solitaire",
+        "title": "Gate Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "president",
@@ -94880,16 +96448,34 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "nonogram-saga",
+        "title": "Nonogram Saga",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "brain-trainer",
         "title": "Brain Trainer",
         "distributor": "Famobi",
         "host": "play.famobi.com"
       },
       {
+        "slug": "illustrations-3",
+        "title": "Illustrations 3",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "braindom",
         "title": "Braindom",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "connect-the-bubbles",
+        "title": "Connect the Bubbles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "the-letter-seeker-of-truths",
@@ -94920,6 +96506,24 @@
         "title": "Burnin Rubber",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "ancient-wonders-jigsaw",
+        "title": "Ancient Wonders Jigsaw",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "match-3-master",
+        "title": "Match 3 Master",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "memory-flip",
+        "title": "Memory Flip",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "pilot-heroes",
@@ -94994,6 +96598,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "pyramid-solitaire",
+        "title": "Pyramid Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "tiki-taka-run",
         "title": "Tiki Taka Run",
         "distributor": "Famobi",
@@ -95020,6 +96630,12 @@
       {
         "slug": "link-numbers",
         "title": "Link Numbers",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "mahjong",
+        "title": "MahJong",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -95084,6 +96700,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "reach-7",
+        "title": "Reach 7",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "axe-of-the-ancients-dwarven-fury",
         "title": "Axe of the Ancients: Dwarven Fury",
         "distributor": "GameFlare",
@@ -95092,6 +96714,12 @@
       {
         "slug": "jewel-master",
         "title": "Jewel Master",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "picture-words",
+        "title": "Picture Words",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -95108,8 +96736,8 @@
         "host": "cdn.htmlgames.com"
       },
       {
-        "slug": "neon-switch",
-        "title": "Neon Switch",
+        "slug": "4-winds",
+        "title": "4 Winds",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -95564,6 +97192,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "donuts",
+        "title": "Donuts",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "retro-bricks",
         "title": "Retro Bricks",
         "distributor": "HTMLGames",
@@ -95882,6 +97516,18 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "bounce-ball-2",
+        "title": "Bounce Ball 2",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "cube-buster",
+        "title": "Cube Buster",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "baseball",
         "title": "Baseball",
         "distributor": "HTMLGames",
@@ -95896,6 +97542,18 @@
       {
         "slug": "neon-rotate",
         "title": "Neon Rotate",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bus-puzzle",
+        "title": "Bus Puzzle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "dubai-hidden-objects",
+        "title": "Dubai Hidden Objects",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -95956,6 +97614,18 @@
       {
         "slug": "peg-solitaire",
         "title": "Peg Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "triple-dimensions-ice-age",
+        "title": "Triple Dimensions - Ice Age",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "magic-lamp-mahjong",
+        "title": "Magic Lamp Mahjong",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -96116,6 +97786,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "daily-mini-sudoku",
+        "title": "Daily Mini Sudoku",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "spooky-dimensions",
         "title": "Spooky Dimensions",
         "distributor": "HTMLGames",
@@ -96200,6 +97876,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "supermarket-stack",
+        "title": "Supermarket Stack",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "time-mahjong",
         "title": "Time Mahjong",
         "distributor": "HTMLGames",
@@ -96208,6 +97890,18 @@
       {
         "slug": "neon-lights",
         "title": "Neon Lights",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "mahjong-merge",
+        "title": "Mahjong Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "space-pinball",
+        "title": "Space Pinball",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -96668,6 +98362,18 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "slide-wood",
+        "title": "Slide Wood",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "pyramid-mahjong",
+        "title": "Pyramid Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "happy-zoobies",
         "title": "Happy Zoobies",
         "distributor": "HTMLGames",
@@ -96742,8 +98448,8 @@
       {
         "slug": "ancient-mahjong",
         "title": "Ancient Mahjong",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "palabra-de-l-gico-del-dia",
@@ -96756,6 +98462,12 @@
         "title": "Mommy Washing Toys",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "endless-bubble-shooter",
+        "title": "Endless Bubble Shooter",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "connect-four",
@@ -96926,8 +98638,26 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "bottle-shooter",
+        "title": "Bottle Shooter",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "forest-mahjong",
         "title": "Forest Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "huge-mahjong",
+        "title": "Huge Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "hunting-jack-at-the-train-station",
+        "title": "Hunting Jack - At the Train Station",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -97094,6 +98824,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "texas-hold-em-poker",
+        "title": "Texas Hold'em Poker",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "yukon-solitaire",
         "title": "Yukon Solitaire",
         "distributor": "HTMLGames",
@@ -97176,6 +98912,12 @@
         "title": "Wanderlust",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "downhill",
+        "title": "Downhill",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "flower-world-2",
@@ -97304,6 +99046,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "japanese-garden-hidden-secrets",
+        "title": "Japanese Garden - Hidden Secrets",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "hunting-jack-at-home",
         "title": "Hunting Jack - At Home",
         "distributor": "HTMLGames",
@@ -97318,6 +99066,12 @@
       {
         "slug": "tapman",
         "title": "Tapman",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "draw-domino",
+        "title": "Draw Domino",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -97404,6 +99158,12 @@
         "title": "Checkers Classic",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "gold-mine",
+        "title": "Gold Mine",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "klootzakken",
@@ -97598,6 +99358,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "holiday-tripeaks",
+        "title": "Holiday Tripeaks",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "shape-mahjong",
         "title": "Shape Mahjong",
         "distributor": "HTMLGames",
@@ -97714,8 +99480,8 @@
       {
         "slug": "treasure-hunt",
         "title": "Treasure Hunt",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "ultimate-boxing",
@@ -97934,6 +99700,18 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "frozen-bubbles",
+        "title": "Frozen Bubbles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "travel-mahjong",
+        "title": "Travel Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "hidden-flowers",
         "title": "Hidden Flowers",
         "distributor": "HTMLGames",
@@ -97956,6 +99734,12 @@
         "title": "Star Stars Arena",
         "distributor": "Famobi",
         "host": "play.famobi.com"
+      },
+      {
+        "slug": "imagen-palabra",
+        "title": "Imagen Palabra",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "alien-slide",
@@ -97994,6 +99778,18 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "freaky-freecell",
+        "title": "Freaky Freecell",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bubble-dropper",
+        "title": "Bubble Dropper",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "bottle-flip-challenge",
         "title": "Bottle Flip Challenge",
         "distributor": "Famobi",
@@ -98018,6 +99814,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "chaos-mahjong",
+        "title": "Chaos Mahjong",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "tower-rush",
         "title": "Tower Rush",
         "distributor": "Famobi",
@@ -98026,12 +99828,6 @@
       {
         "slug": "shards",
         "title": "Shards",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
-      },
-      {
-        "slug": "ojello",
-        "title": "Ojello",
         "distributor": "Famobi",
         "host": "play.famobi.com"
       },
@@ -98094,12 +99890,6 @@
         "title": "Neon Fence",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
-      },
-      {
-        "slug": "slope",
-        "title": "Slope",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
       },
       {
         "slug": "planet-hero",
@@ -98408,6 +100198,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "hidden-spots-trains",
+        "title": "Hidden Spots - Trains",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "lily-makeover",
         "title": "Lily Makeover",
         "distributor": "Famobi",
@@ -98456,8 +100252,86 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "istanbul-hidden-objects",
+        "title": "Istanbul Hidden Objects",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "daily-masyu",
+        "title": "Daily Masyu",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "plaatjes-woorden",
+        "title": "Plaatjes Woorden",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "pirate-mysteries",
         "title": "Pirate Mysteries",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "number-merge",
+        "title": "Number Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "treasure-maze",
+        "title": "Treasure Maze",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "matchstick-math-puzzle",
+        "title": "Matchstick Math Puzzle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "nikakudori",
+        "title": "Nikakudori",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "desert-oasis-hidden-secrets",
+        "title": "Desert Oasis - Hidden Secrets",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "neon-factory",
+        "title": "Neon Factory",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "pyramid-solitaire-ancient-rome",
+        "title": "Pyramid Solitaire - Ancient Rome",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "shanghai-mahjong-double-tiles",
+        "title": "Shanghai Mahjong - Double Tiles",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "marble-merge",
+        "title": "Marble Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "forgotten-relics",
+        "title": "Forgotten Relics",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -98608,8 +100482,8 @@
       {
         "slug": "reversi",
         "title": "Reversi",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "pipe-puzzle",
@@ -98674,12 +100548,6 @@
       {
         "slug": "bubbles-shooter",
         "title": "Bubbles Shooter",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
-      },
-      {
-        "slug": "basket-ball",
-        "title": "Basket & Ball",
         "distributor": "Famobi",
         "host": "play.famobi.com"
       },
@@ -98924,6 +100792,12 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "tile-stack",
+        "title": "Tile Stack",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "safari-mahjong",
         "title": "Safari Mahjong",
         "distributor": "HTMLGames",
@@ -98932,6 +100806,12 @@
       {
         "slug": "mahjong-3d-time",
         "title": "Mahjong 3D Time",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "terra-mahjong",
+        "title": "Terra Mahjong",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -99052,8 +100932,8 @@
       {
         "slug": "coffee-mahjong",
         "title": "Coffee Mahjong",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "purple-mole",
@@ -99108,6 +100988,12 @@
         "title": "Assault on the Evil Star",
         "distributor": "GameFlare",
         "host": "distribution.gameflare.com"
+      },
+      {
+        "slug": "pac-maze",
+        "title": "Pac Maze",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "mahjongg-valentine",
@@ -99166,6 +101052,18 @@
       {
         "slug": "pyramid-mahjong-solitaire",
         "title": "Pyramid Mahjong Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "drop",
+        "title": "Drop",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "jewels-classic",
+        "title": "Jewels Classic",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -99248,6 +101146,12 @@
         "host": "cdn.htmlgames.com"
       },
       {
+        "slug": "granada-solitaire",
+        "title": "Granada Solitaire",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "rotate-puzzle-cats-and-dogs",
         "title": "Rotate Puzzle - Cats and Dogs",
         "distributor": "HTMLGames",
@@ -99274,6 +101178,24 @@
       {
         "slug": "unlock-the-lock",
         "title": "Unlock The Lock",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "tri-puzzle",
+        "title": "Tri Puzzle",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "spider-match-3",
+        "title": "Spider Match 3",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bubble-shooter-3d",
+        "title": "Bubble Shooter 3D",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -99650,8 +101572,14 @@
         "host": "cdn.htmlgames.com"
       },
       {
-        "slug": "sokoban",
-        "title": "Sokoban",
+        "slug": "hexa-merge",
+        "title": "Hexa Merge",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "bubbleshooter",
+        "title": "BubbleShooter",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -99874,8 +101802,8 @@
       {
         "slug": "mahjong-3d",
         "title": "Mahjong 3D",
-        "distributor": "Famobi",
-        "host": "play.famobi.com"
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
       },
       {
         "slug": "blackjack-chain",
@@ -99950,6 +101878,24 @@
         "host": "play.famobi.com"
       },
       {
+        "slug": "tap-it-away-2d",
+        "title": "Tap it Away 2D",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "daily-2-queens",
+        "title": "Daily 2 Queens",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "car-park-sort",
+        "title": "Car Park Sort",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
         "slug": "jungle-sniper",
         "title": "Jungle Sniper",
         "distributor": "HTMLGames",
@@ -99970,6 +101916,12 @@
       {
         "slug": "halloween-tripeaks",
         "title": "Halloween Tripeaks",
+        "distributor": "HTMLGames",
+        "host": "cdn.htmlgames.com"
+      },
+      {
+        "slug": "medieval-castle-hidden-differences",
+        "title": "Medieval Castle Hidden Differences",
         "distributor": "HTMLGames",
         "host": "cdn.htmlgames.com"
       },
@@ -100112,1070 +102064,6 @@
         "host": "distribution.gameflare.com"
       }
     ],
-    "REVIEW": [
-      {
-        "slug": "spades-spider-solitaire",
-        "title": "Spades Spider Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "candy-mahjong",
-        "title": "Candy Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "atlantis-gem",
-        "title": "Atlantis Gem",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mindful-mahjong",
-        "title": "Mindful Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "connect-3-easter",
-        "title": "Connect 3 - Easter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-path",
-        "title": "Daily Path",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tetrix-3d",
-        "title": "Tetrix 3D",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "achilles-solitaire",
-        "title": "Achilles Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "unlock-the-king",
-        "title": "Unlock the King",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tower-of-hanoi-sort",
-        "title": "Tower of Hanoi Sort",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "minesweeper",
-        "title": "Minesweeper",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "flower-match-3",
-        "title": "Flower Match 3",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "block-drop",
-        "title": "Block Drop",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "wood-block-puzzle",
-        "title": "Wood Block Puzzle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pentris",
-        "title": "Pentris",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "medieval-castle-defense",
-        "title": "Medieval Castle Defense",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "gem-challenge",
-        "title": "Gem Challenge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "wild-west-mysteries",
-        "title": "Wild West Mysteries",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pyramid-solitaire-ancient-aztec",
-        "title": "Pyramid Solitaire - Ancient Aztec",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "kakuro-master",
-        "title": "Kakuro Master",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "picture-nonogram",
-        "title": "Picture Nonogram",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "memory-puzzle",
-        "title": "Memory Puzzle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-photo-guess",
-        "title": "Daily Photo Guess",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "solitaire-reverse",
-        "title": "Solitaire Reverse",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "deadshot-io",
-        "title": "Deadshot io",
-        "distributor": "deadshot.io",
-        "host": "deadshot.io"
-      },
-      {
-        "slug": "country-labyrinth-4",
-        "title": "Country Labyrinth 4",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "10x10-arabic",
-        "title": "10x10 Arabic",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mahjong-connect-merge",
-        "title": "Mahjong Connect Merge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "car-match",
-        "title": "Car Match",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "binairo",
-        "title": "Binairo",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mystical-forest",
-        "title": "Mystical Forest",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "winter-hidden-stars",
-        "title": "Winter - Hidden Stars",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "game-of-15",
-        "title": "Game of 15",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "monkey-connect",
-        "title": "Monkey Connect",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "neon-flip",
-        "title": "Neon Flip",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tripeaks-mania",
-        "title": "Tripeaks Mania",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "ocean-treasure",
-        "title": "Ocean Treasure",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tropical-fruit-mahjong",
-        "title": "Tropical Fruit Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "higher-or-lower",
-        "title": "Higher or Lower",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-guess",
-        "title": "Daily Guess",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mahjong-collection",
-        "title": "Mahjong Collection",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tetrix-xl",
-        "title": "Tetrix XL",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "xmas-card-connect",
-        "title": "Xmas Card Connect",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "2048-christmas",
-        "title": "2048 Christmas",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "suroi",
-        "title": "Suroi",
-        "distributor": "suroi.io",
-        "host": "suroi.io"
-      },
-      {
-        "slug": "free-aliens",
-        "title": "Free Aliens",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "sound-tiles",
-        "title": "Sound Tiles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "city-sniper",
-        "title": "City Sniper",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "big-tripeaks",
-        "title": "Big Tripeaks",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "smash-karts",
-        "title": "Smash Karts",
-        "distributor": "smashkarts.io",
-        "host": "smashkarts.io"
-      },
-      {
-        "slug": "bloxd-io",
-        "title": "Bloxd io",
-        "distributor": "bloxd.io",
-        "host": "bloxd.io"
-      },
-      {
-        "slug": "daily-binairo",
-        "title": "Daily Binairo+",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "love-mahjong",
-        "title": "Love Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "frozen-freecell",
-        "title": "Frozen Freecell",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "sudoku-classic",
-        "title": "Sudoku Classic",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "marble-shooter",
-        "title": "Marble Shooter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hex-match",
-        "title": "Hex Match",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "lunar-lander",
-        "title": "Lunar Lander",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "goblin-run",
-        "title": "Goblin Run",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "picture-pie-ancient-city",
-        "title": "Picture Pie - Ancient City",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hidden-spots-city",
-        "title": "Hidden Spots - City",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "wild-west-klondike",
-        "title": "Wild West Klondike",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "soccer-pinball",
-        "title": "Soccer Pinball",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "nautilus-mahjong",
-        "title": "Nautilus Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "jewels-of-the-medici",
-        "title": "Jewels of the Medici",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "lolbeans-io",
-        "title": "LOLbeans io",
-        "distributor": "lolbeans.io",
-        "host": "lolbeans.io"
-      },
-      {
-        "slug": "rotate-puzzle-summer-beach",
-        "title": "Rotate Puzzle - Summer Beach",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "soccer-bubbles",
-        "title": "Soccer Bubbles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-number-sums",
-        "title": "Daily Number Sums",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "smoothie-connect",
-        "title": "Smoothie Connect",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "guardian-lighthouse-hidden-secrets",
-        "title": "Guardian Lighthouse - Hidden Secrets",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "viking-tiles",
-        "title": "Viking Tiles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "1010-halloween",
-        "title": "1010 Halloween",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "fortzone-battle-royale",
-        "title": "Fortzone Battle Royale",
-        "distributor": "playhop.com",
-        "host": "playhop.com"
-      },
-      {
-        "slug": "love-hidden-hearts",
-        "title": "Love Hidden Hearts",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "rotate-puzzle-winter-fun",
-        "title": "Rotate Puzzle - Winter Fun",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "magic-tiles",
-        "title": "Magic Tiles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "street-hidden-objects",
-        "title": "Street Hidden Objects",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "aquatic-slice",
-        "title": "Aquatic Slice",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "steps-solitaire",
-        "title": "Steps Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bubble-circle",
-        "title": "Bubble Circle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "the-lost-crown",
-        "title": "The Lost Crown",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tripeaks-castle",
-        "title": "Tripeaks Castle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "cavern-hidden-stars",
-        "title": "Cavern - Hidden Stars",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mahjongg-pyramids",
-        "title": "Mahjongg Pyramids",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pantagruel-double-klondike",
-        "title": "Pantagruel Double Klondike",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "christmas-match-3",
-        "title": "Christmas Match 3",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "christmas-buster",
-        "title": "Christmas Buster",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "christmas-tree-solitaire",
-        "title": "Christmas Tree Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "delicious-duos",
-        "title": "Delicious Duos",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "triple-cars",
-        "title": "Triple Cars",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "sushi-master-match3",
-        "title": "Sushi Master - Match3",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "solitaire-collection-2",
-        "title": "Solitaire Collection 2",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "memory-mahjong",
-        "title": "Memory Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pyramid-solitaire-great-pyramid",
-        "title": "Pyramid Solitaire - Great Pyramid",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "diamond-mahjong",
-        "title": "Diamond Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "halloween-pairs",
-        "title": "Halloween Pairs",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "clock-solitaire",
-        "title": "Clock Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "medieval-defense",
-        "title": "Medieval Defense",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "witch-world",
-        "title": "Witch World",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "imagen-palavra",
-        "title": "Imagen Palavra",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bilder-worter",
-        "title": "Bilder Wörter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "love-bubbles",
-        "title": "Love Bubbles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "cube-block",
-        "title": "Cube Block",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "number-chain",
-        "title": "Number Chain",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "wild-flower-solitaire",
-        "title": "Wild Flower Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "football-bros-io",
-        "title": "Football Bros IO",
-        "distributor": "footballbros.io",
-        "host": "footballbros.io"
-      },
-      {
-        "slug": "gate-solitaire",
-        "title": "Gate Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "nonogram-saga",
-        "title": "Nonogram Saga",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "illustrations-3",
-        "title": "Illustrations 3",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "connect-the-bubbles",
-        "title": "Connect the Bubbles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "ancient-wonders-jigsaw",
-        "title": "Ancient Wonders Jigsaw",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "match-3-master",
-        "title": "Match 3 Master",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "memory-flip",
-        "title": "Memory Flip",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "reach-7",
-        "title": "Reach 7",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "picture-words",
-        "title": "Picture Words",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "4-winds",
-        "title": "4 Winds",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mahjong-seasons",
-        "title": "Mahjong Seasons",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "donuts",
-        "title": "Donuts",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bounce-ball-2",
-        "title": "Bounce Ball 2",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "cube-buster",
-        "title": "Cube Buster",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bus-puzzle",
-        "title": "Bus Puzzle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "dubai-hidden-objects",
-        "title": "Dubai Hidden Objects",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "triple-dimensions-ice-age",
-        "title": "Triple Dimensions - Ice Age",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "magic-lamp-mahjong",
-        "title": "Magic Lamp Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-mini-sudoku",
-        "title": "Daily Mini Sudoku",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "supermarket-stack",
-        "title": "Supermarket Stack",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "mahjong-merge",
-        "title": "Mahjong Merge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "space-pinball",
-        "title": "Space Pinball",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "slide-wood",
-        "title": "Slide Wood",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pyramid-mahjong",
-        "title": "Pyramid Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "endless-bubble-shooter",
-        "title": "Endless Bubble Shooter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bottle-shooter",
-        "title": "Bottle Shooter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "huge-mahjong",
-        "title": "Huge Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hunting-jack-at-the-train-station",
-        "title": "Hunting Jack - At the Train Station",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "texas-hold-em-poker",
-        "title": "Texas Hold'em Poker",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "downhill",
-        "title": "Downhill",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "japanese-garden-hidden-secrets",
-        "title": "Japanese Garden - Hidden Secrets",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "draw-domino",
-        "title": "Draw Domino",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "gold-mine",
-        "title": "Gold Mine",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "holiday-tripeaks",
-        "title": "Holiday Tripeaks",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "frozen-bubbles",
-        "title": "Frozen Bubbles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "travel-mahjong",
-        "title": "Travel Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "imagen-palabra",
-        "title": "Imagen Palabra",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "freaky-freecell",
-        "title": "Freaky Freecell",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bubble-dropper",
-        "title": "Bubble Dropper",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "chaos-mahjong",
-        "title": "Chaos Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hidden-spots-trains",
-        "title": "Hidden Spots - Trains",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "istanbul-hidden-objects",
-        "title": "Istanbul Hidden Objects",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-masyu",
-        "title": "Daily Masyu",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "plaatjes-woorden",
-        "title": "Plaatjes Woorden",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "number-merge",
-        "title": "Number Merge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "treasure-maze",
-        "title": "Treasure Maze",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "matchstick-math-puzzle",
-        "title": "Matchstick Math Puzzle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "nikakudori",
-        "title": "Nikakudori",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "desert-oasis-hidden-secrets",
-        "title": "Desert Oasis - Hidden Secrets",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "neon-factory",
-        "title": "Neon Factory",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pyramid-solitaire-ancient-rome",
-        "title": "Pyramid Solitaire - Ancient Rome",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "shanghai-mahjong-double-tiles",
-        "title": "Shanghai Mahjong - Double Tiles",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "marble-merge",
-        "title": "Marble Merge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "forgotten-relics",
-        "title": "Forgotten Relics",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tile-stack",
-        "title": "Tile Stack",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "terra-mahjong",
-        "title": "Terra Mahjong",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "pac-maze",
-        "title": "Pac Maze",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "drop",
-        "title": "Drop",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "jewels-classic",
-        "title": "Jewels Classic",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "granada-solitaire",
-        "title": "Granada Solitaire",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tri-puzzle",
-        "title": "Tri Puzzle",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "spider-match-3",
-        "title": "Spider Match 3",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bubble-shooter-3d",
-        "title": "Bubble Shooter 3D",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hexa-merge",
-        "title": "Hexa Merge",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "bubbleshooter",
-        "title": "BubbleShooter",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "tap-it-away-2d",
-        "title": "Tap it Away 2D",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "daily-2-queens",
-        "title": "Daily 2 Queens",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "car-park-sort",
-        "title": "Car Park Sort",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "medieval-castle-hidden-differences",
-        "title": "Medieval Castle Hidden Differences",
-        "distributor": "(none)",
-        "host": "(none)"
-      },
-      {
-        "slug": "hill-climb-racing-scratch",
-        "title": "Hill Climb Racing Scratch",
-        "distributor": "turbowarp.org",
-        "host": "turbowarp.org"
-      }
-    ],
     "REMOVE": [
       {
         "slug": "cars-simulator",
@@ -101200,6 +102088,110 @@
         "title": "Police Stunt Cars",
         "distributor": "Unknown S3 bucket",
         "host": "unblocked-games.s3.amazonaws.com"
+      }
+    ],
+    "REVIEW": [
+      {
+        "slug": "deadshot-io",
+        "title": "Deadshot io",
+        "distributor": "deadshot.io",
+        "host": "deadshot.io"
+      },
+      {
+        "slug": "tetrix-xl",
+        "title": "Tetrix XL",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "suroi",
+        "title": "Suroi",
+        "distributor": "suroi.io",
+        "host": "suroi.io"
+      },
+      {
+        "slug": "smash-karts",
+        "title": "Smash Karts",
+        "distributor": "smashkarts.io",
+        "host": "smashkarts.io"
+      },
+      {
+        "slug": "bloxd-io",
+        "title": "Bloxd io",
+        "distributor": "bloxd.io",
+        "host": "bloxd.io"
+      },
+      {
+        "slug": "lolbeans-io",
+        "title": "LOLbeans io",
+        "distributor": "lolbeans.io",
+        "host": "lolbeans.io"
+      },
+      {
+        "slug": "fortzone-battle-royale",
+        "title": "Fortzone Battle Royale",
+        "distributor": "playhop.com",
+        "host": "playhop.com"
+      },
+      {
+        "slug": "football-bros-io",
+        "title": "Football Bros IO",
+        "distributor": "footballbros.io",
+        "host": "footballbros.io"
+      },
+      {
+        "slug": "mahjong-seasons",
+        "title": "Mahjong Seasons",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "hill-climb-racing-scratch",
+        "title": "Hill Climb Racing Scratch",
+        "distributor": "turbowarp.org",
+        "host": "turbowarp.org"
+      },
+      {
+        "slug": "tetris-puzzle",
+        "title": "Tetris Puzzle",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "tetris-1024",
+        "title": "Tetris 1024",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "animal-tetris",
+        "title": "Animal Tetris",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "tetris-slider",
+        "title": "Tetris Slider",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "tetris-fun",
+        "title": "Tetris Fun",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "tetris-slide",
+        "title": "Tetris Slide",
+        "distributor": "(none)",
+        "host": "(none)"
+      },
+      {
+        "slug": "tetris-dimensions",
+        "title": "Tetris Dimensions",
+        "distributor": "(none)",
+        "host": "(none)"
       }
     ]
   }

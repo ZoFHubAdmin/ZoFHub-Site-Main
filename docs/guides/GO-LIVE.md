@@ -84,7 +84,7 @@ or a VPS.
 | `MASQR_DENY` | — | `404` (default) or `redirect` |
 | `PROXY_INVISI_URL` | — | optional [InvisiProxy](../proxy/INVISIPROXY.md) instance you host yourself; unset = engine not offered |
 | `PROXY_KASM_URL` | — | optional [Kasm](../proxy/KASM.md) desktop you host yourself. **Userinfo is stripped** — a `user:pass@` URL would otherwise leak the password through `/api/proxies` |
-| `SINGBOX_*` | — | optional sing-box backend — read-only (`SINGBOX_API_URL`) or managed (`SINGBOX_MANAGED=1`). See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
+| `SINGBOX_*` | — | **on by default** in the Docker image: sing-box carries the proxy's egress and ZoFHub supervises it. `SINGBOX_MANAGED=0` stops supervising, `SINGBOX_EGRESS=0` stops tunnelling, `SINGBOX_REQUIRE=1` fails a stream rather than falling back to direct. Without the binary (Render's native Node runtime, for one) every stream takes the direct fallback and `/api/admin/proxy` says so. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
 | `DONATE_*_ADDRESS` | — | donation addresses, **environment only, never committed**. Checksum-verified at boot; a method that fails is dropped rather than served |
 | `NODE_ENV` | `production` | |
 
@@ -140,7 +140,7 @@ for an always-proxy games hub, in order:
 - [ ] Admin: log in at `/admin`; confirm a logged-out request to
       `/api/admin/dashboard` returns **401**, not 200.
 - [ ] `/browser` loads and `/api/site-config` shows `"proxy": true` (always-on proxy).
-- [ ] `npm test` passes (1009 tests) and `npm run audit:repo` reports no errors
+- [ ] `npm test` passes (1354 tests) and `npm run audit:repo` reports no errors
       you have not consciously accepted.
 - [ ] **`npm run verify-proxy` renders real pages through every engine.** An HTTP
       200 from a proxy route proves nothing — the page can still be blank.

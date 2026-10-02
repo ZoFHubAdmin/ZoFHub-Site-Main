@@ -11,7 +11,7 @@ import net from 'node:net';
 
 import {
   createSingboxTCPSocket, egressStats, _resetEgressStats,
-  socksTarget, singboxEgressEnabled,
+  socksTarget, singboxEgressEnabled, buildConnectRequest,
 } from '../lib/singbox-socket.mjs';
 
 // net.Server.close() stops ACCEPTING but then waits for every live connection
@@ -47,13 +47,27 @@ function startSocks({ replyCode = 0x00, appendAfterReply = null, onConnect = nul
       }
       if (stage === 'req') {
         if (buf.length < 5) return;
-        const alen = buf[4];
-        const total = 5 + alen + 2;
+        // Parse by ATYP, as a real SOCKS server must. Assuming domain here was
+        // a harness bug that hid itself until the client started sending the
+        // correct type for IP literals.
+        const atyp = buf[3];
+        let addrLen; let host;
+        if (atyp === 0x01) addrLen = 4;
+        else if (atyp === 0x04) addrLen = 16;
+        else if (atyp === 0x03) addrLen = 1 + buf[4];
+        else { sock.destroy(); return; }
+        const total = 4 + addrLen + 2;
         if (buf.length < total) return;
+        if (atyp === 0x01) host = [...buf.subarray(4, 8)].join('.');
+        else if (atyp === 0x04) {
+          const w = [];
+          for (let i = 0; i < 8; i++) w.push(buf.readUInt16BE(4 + i * 2).toString(16));
+          host = w.join(':');
+        } else host = buf.subarray(5, 4 + addrLen).toString('utf8');
         const rec = {
-          ver: buf[0], cmd: buf[1], atyp: buf[3],
-          host: buf.subarray(5, 5 + alen).toString('utf8'),
-          port: buf.readUInt16BE(5 + alen),
+          ver: buf[0], cmd: buf[1], atyp,
+          host,
+          port: buf.readUInt16BE(4 + addrLen),
         };
         seen.push(rec);
         onConnect?.(rec);
@@ -317,3 +331,76 @@ test('an origin reset does not raise an unhandled error event', async () => {
     raw.destroy();
   } finally { await socks.close(); }
 });
+
+// ── CONNECT address types ──────────────────────────────────────────────────
+// The governor resolves DNS itself and hands this layer a validated IP, so the
+// IP-literal paths are the COMMON case in production, not an edge case.
+test('a hostname is encoded as ATYP=domain', () => {
+  const req = buildConnectRequest('example.com', 443);
+  assert.equal(req[0], 0x05);
+  assert.equal(req[1], 0x01, 'CONNECT');
+  assert.equal(req[3], 0x03, 'ATYP=domain');
+  assert.equal(req[4], 'example.com'.length);
+  assert.equal(req.subarray(5, 5 + 11).toString(), 'example.com');
+  assert.equal(req.readUInt16BE(16), 443);
+});
+
+test('an IPv4 literal is encoded as ATYP=ipv4, not a domain that says "1.2.3.4"', () => {
+  const req = buildConnectRequest('93.184.216.34', 8443);
+  assert.equal(req[3], 0x01, 'ATYP=ipv4');
+  assert.deepEqual([...req.subarray(4, 8)], [93, 184, 216, 34]);
+  assert.equal(req.readUInt16BE(8), 8443);
+  assert.equal(req.length, 10, 'ipv4 request is exactly 10 bytes');
+});
+
+test('an IPv6 literal is encoded as ATYP=ipv6 with the right 16 bytes', () => {
+  // Checked against Node's own parser rather than a hand-copied expectation.
+  for (const ip of ['::1', '2606:2800:220:1:248:1893:25c8:1946', 'fe80::1', '::ffff:93.184.216.34']) {
+    const req = buildConnectRequest(ip, 443);
+    assert.equal(req[3], 0x04, `${ip}: ATYP=ipv6`);
+    assert.equal(req.length, 22, `${ip}: ipv6 request is 22 bytes`);
+    assert.equal(req.readUInt16BE(20), 443, `${ip}: port`);
+    const expect = Buffer.from(
+      new Uint8Array(net.isIPv6(ip) ? ipv6Reference(ip) : []),
+    );
+    assert.deepEqual([...req.subarray(4, 20)], [...expect], `${ip}: bytes`);
+  }
+});
+
+test('a bracketed IPv6 literal is accepted', () => {
+  const req = buildConnectRequest('[::1]', 443);
+  assert.equal(req[3], 0x04);
+  assert.deepEqual([...req.subarray(4, 20)], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]);
+});
+
+test('an over-long hostname is refused rather than silently truncated', () => {
+  // The length field is one byte; truncating would dial a DIFFERENT host.
+  assert.throws(() => buildConnectRequest('a'.repeat(256) + '.com', 443), /too long/);
+});
+
+test('a malformed address falls through to the domain encoding', () => {
+  // "999.1.1.1" is not an IPv4 address. It must not be mis-encoded as one.
+  const req = buildConnectRequest('999.1.1.1', 443);
+  assert.equal(req[3], 0x03, 'not a valid v4 literal, so send it as a name');
+});
+
+/** Independent IPv6 expansion, used only to check the implementation. */
+function ipv6Reference(ip) {
+  const s = ip.replace(/^\[|\]$/g, '');
+  const v4 = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(s);
+  let str = s;
+  if (v4) {
+    const o = v4[1].split('.').map(Number);
+    str = s.slice(0, v4.index)
+      + ((o[0] << 8) | o[1]).toString(16) + ':' + ((o[2] << 8) | o[3]).toString(16);
+  }
+  const [l, r = ''] = str.split('::');
+  const L = l.split(':').filter(Boolean);
+  const R = r.split(':').filter(Boolean);
+  const words = str.includes('::')
+    ? [...L, ...Array(8 - L.length - R.length).fill('0'), ...R]
+    : L;
+  const out = [];
+  for (const w of words) { const n = parseInt(w, 16); out.push((n >> 8) & 0xff, n & 0xff); }
+  return out;
+}

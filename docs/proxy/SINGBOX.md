@@ -82,9 +82,14 @@ process. So the binary is built, not imported:
 docker build -t zofhub .                       # builds the pinned default
 ```
 
-The version is pinned in the Dockerfile (`ARG SINGBOX_VERSION`) and the build
-is ON by default, because sing-box carries the proxy egress rather than sitting
-beside it. Pass `--build-arg SINGBOX_VERSION=none` to skip the stage and build a
+The version is pinned in the Dockerfile (`ARG SINGBOX_VERSION`, currently
+`v1.14.1`) and the build is ON by default, because sing-box carries the proxy
+egress rather than sitting beside it.
+
+**The Go image and the sing-box tag are coupled — bump them together.**
+v1.14.1's `go.mod` requires `go 1.25.5`, and an older toolchain fails the build
+outright rather than warning, so stage 1 pins `golang:1.25.14-alpine`. Raising
+`SINGBOX_VERSION` without checking its `go.mod` is the way this build breaks. Pass `--build-arg SINGBOX_VERSION=none` to skip the stage and build a
 binary-free image; the site still runs, every stream takes the direct fallback,
 and `/api/admin/proxy` says so.
 
@@ -112,8 +117,17 @@ works separate and keeps both licenses intact.
 The `sing-box check` step is the load-bearing one. A daemon started with a bad
 config exits instantly; supervised naively that is a hot restart loop —
 hundreds of spawns a second, a filled disk, a pinned core. Validating first
-turns a crash loop into one error line. Verified: with the binary missing, the
-supervisor performs **zero** spawns and backs off 1s → 2s → 4s.
+turns a crash loop into one error line.
+
+**A missing binary is not a bad config, and no longer pretends to be.** ENOENT
+surfaces from `sing-box check`, not from `spawn`, so it used to take the
+"config rejected" branch: it retried every 60 seconds forever and logged
+`config rejected: spawn sing-box ENOENT` for a config that was perfectly valid.
+Both halves of that were wrong. `checkConfig` now flags `missingBinary`
+separately, and the supervisor **gives up** — one log line, no retry loop,
+`gaveUp: "binary not found"` in `/api/admin/proxy`, and egress degrades to
+direct. A rejected *config* still backs off 1s → 60s, because a redeploy can
+fix that one.
 
 `/api/admin/proxy` reports the daemon's API (`singbox`) and the supervisor
 (`singboxProcess`) **separately**, because "we never launched it" and "we
@@ -134,8 +148,9 @@ through it, so sing-box carries the site's real traffic and the Clash API
 reports actual connections rather than an empty table.
 
 ```
-browser → /wisp/ → wisp-js ServerConnection → SingboxTCPSocket
-        → SOCKS5 CONNECT (ATYP=0x03, hostname) → sing-box → origin
+browser → /wisp/ → wisp-js ServerConnection → GuardedTCPSocket
+        → (governor check + resolveGuarded)  → SingboxTCPSocket
+        → SOCKS5 CONNECT (ATYP by target)   → sing-box → origin
 ```
 
 **No upstream patch.** wisp-js supports an injected socket class: `routeRequest`
@@ -194,12 +209,54 @@ direct connection and is counted:
 worth alerting on. It is **`null`, not `0`**, before anything has been proxied,
 because 0% of zero streams is no data rather than a fault.
 
+### Verified against a real daemon, not a mock
+
+The unit tests speak real SOCKS5 over real sockets, but against a mock server —
+so they cannot confirm that *sing-box itself* accepts what this code sends. That
+was checked separately, against an actual **sing-box 1.14.1** binary:
+
+| Check | Result |
+|---|---|
+| `sing-box check` on the rendered default template | **passes** — `mixed` inbound and `action: reject` are valid for 1.14.x |
+| Supervisor renders → validates → spawns it | `[singbox] supervisor: running (ok)`, 0 restarts |
+| `curl --socks5-hostname` straight through the inbound | `HTTP 200` |
+| A real page fetched through `/wisp/` end to end | `HTTP/1.1 200 OK`, 1067 bytes |
+| `singboxEgress` after that fetch | `viaSingbox=1, viaDirect=0, share=100%` |
+| The daemon's own Clash counter | `downloadBytes=1067` — **matches the bytes the tunnel client received** |
+| Boot with **no** binary present | tunnel still returns `HTTP/1.1 200 OK`; `viaDirect=1`, fallback cause recorded, `/healthz` 200 |
+
+The last two rows are the ones that matter. The byte counter matching means the
+traffic genuinely crossed the daemon rather than merely being reported as
+having done so; and the no-binary row is the evidence that on-by-default is safe
+to ship, because the degraded path is a working site rather than a broken one.
+
 **What this does not weaken.** wisp-js resolves and filters the destination
 itself *before* connect, refusing loopback and private targets regardless of
-which socket class is injected. Hostnames go to sing-box as SOCKS5 `ATYP=0x03`
-so the daemon resolves them (remote DNS — no local leak), and both shipped
-configs reject private ranges again at the routing layer. Two independent
-checks, neither relying on the other being correct.
+which socket class is injected, and both shipped configs reject private ranges
+again at the routing layer. Two independent checks, neither relying on the other
+being correct.
+
+**DNS is resolved LOCALLY, not by the daemon — and that is a deliberate
+trade.** An earlier version of this page claimed remote DNS with "no local
+leak". That is **not** what the default path does. `GuardedTCPSocket`
+(`server.js`) calls `resolveGuarded()` *before* dialling, checks that every
+address the name answers with is public, and then replaces the hostname with the
+address it validated. That is what closes the DNS-rebinding window between the
+policy decision and the connection — without it, an approved name could answer
+with a public address for the check and a private one for the dial.
+
+The cost is real and worth stating: **this server's resolver sees every proxied
+hostname**, so sing-box is not providing DNS privacy in the default
+configuration. What it provides is egress — the origin sees the daemon's
+address, not this server's.
+
+Because the target is usually already an address by then,
+`buildConnectRequest()` encodes the CONNECT by **what the target actually is**:
+`ATYP=0x01` for an IPv4 literal, `0x04` for IPv6, `0x03` for a real hostname.
+Announcing an address as a domain name asks the daemon to re-parse it; sing-box
+tolerates that, but RFC 1928 has explicit types and not every SOCKS server
+guesses. A hostname still goes out as `ATYP=0x03`, so remote resolution works
+wherever the caller has not already resolved.
 
 ---
 
@@ -425,10 +482,11 @@ wait for the daemon, so a hung sing-box cannot hang the admin console.
 | [`proxy-engine/mount.mjs`](../../proxy-engine/mount.mjs) | `routeProxyUpgrade` — exact `/wisp/` match, closing the wsproxy bypass. |
 | `Dockerfile` | Stage 1 builds the pinned release; on by default. |
 | [`test/singbox.test.mjs`](../../test/singbox.test.mjs) | 28 tests: all seven failure modes, plus both shipped profiles. |
-| [`test/singbox-supervisor.test.mjs`](../../test/singbox-supervisor.test.mjs) | 24 tests: defaults, rendering, config-as-credential, wiring. |
-| [`test/singbox-egress.test.mjs`](../../test/singbox-egress.test.mjs) | 17 tests: real SOCKS5 over real sockets, fallback, strict mode. |
+| [`test/singbox-supervisor.test.mjs`](../../test/singbox-supervisor.test.mjs) | 26 tests: defaults, rendering, config-as-credential, wiring, missing-binary give-up. |
+| [`test/singbox-egress.test.mjs`](../../test/singbox-egress.test.mjs) | 23 tests: real SOCKS5 over real sockets, fallback, strict mode, CONNECT address types. |
 | [`test/wisp-egress-contract.test.mjs`](../../test/wisp-egress-contract.test.mjs) | 9 tests pinning wisp-js's injection point and the exact-path match. |
-| [`deploy/singbox/config.template.json`](../../deploy/singbox/config.template.json) | sing-box config template. Valid JSON; run `sing-box check`. |
+| [`deploy/singbox/config.template.json`](../../deploy/singbox/config.template.json) | **Default profile:** loopback mixed/SOCKS inbound — the egress path. Verified with `sing-box check` against a real 1.14.1 binary. |
+| [`deploy/singbox/config.reality.template.json`](../../deploy/singbox/config.reality.template.json) | **REALITY profile**, for a host where you own `:443`. Select it with `SINGBOX_CONFIG_TEMPLATE`. |
 | [`deploy/singbox/docker-compose.yml`](../../deploy/singbox/docker-compose.yml) | The two-service shape that lets sing-box own `:443`. |
 | `server.js` → `GET /api/admin/proxy` | Serves the `singbox` block beside in-process `tunnels`. |
 | `admin-ui/assets/admin.js` → Proxy view | Renders it, or "not connected". |

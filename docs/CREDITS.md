@@ -227,7 +227,7 @@ these images is the one distributing them, and those obligations are theirs.
 
 ZoFHub is not affiliated with or endorsed by Kasm Technologies Inc.
 
-## sing-box (optional transport backend — built, not vendored)
+## sing-box (default egress backend — built, not vendored)
 
 | Project | Repository | License |
 |---|---|---|
@@ -235,11 +235,12 @@ ZoFHub is not affiliated with or endorsed by Kasm Technologies Inc.
 
 sing-box is handled differently from everything above, and the difference is
 deliberate. Its source is **not** in this repository. The `Dockerfile` builds a
-**pinned, unmodified upstream release** into the image (`go install …@<tag>`,
-off by default via `SINGBOX_VERSION=none`), and ZoFHub talks to it as a
-**separate operating-system process** — over its HTTP management API
-(`lib/singbox.mjs`) and, in managed mode, by spawning and supervising it
-(`lib/singbox-supervisor.mjs`).
+**pinned, unmodified upstream release** into the image (`go install …@<tag>`;
+built by default, `SINGBOX_VERSION=none` skips the stage). ZoFHub talks to it as
+a **separate operating-system process** — over its HTTP management API
+(`lib/singbox.mjs`), by spawning and supervising it
+(`lib/singbox-supervisor.mjs`), and by dialling its SOCKS inbound for the
+proxy's egress (`lib/singbox-socket.mjs`).
 
 - **Why not vendored:** the served engines above are AGPL and this repo stays
   private, so committing them is fine. sing-box is GPL‑3.0, and GPL‑3.0 §5
@@ -252,8 +253,15 @@ off by default via `SINGBOX_VERSION=none`), and ZoFHub talks to it as a
   "an instance you run" — and never branding ZoFHub as affiliated with or
   endorsed by SagerNet. **ZoFHub is not affiliated with, endorsed by, or
   associated with sing-box or its authors.**
-- **If you enable it,** you distribute the sing-box binary in your image; keep
-  its `LICENSE` in place and its corresponding source offered per GPL‑3.0.
+- **This obligation is now live by default, not conditional.** The binary used
+  to be opt-in (`SINGBOX_VERSION=none`), so the GPL‑3.0 distribution terms only
+  mattered if you asked for them. The default image now **contains sing-box**,
+  which means anyone who ships that image is distributing a GPL‑3.0 program and
+  must keep its `LICENSE` in place and offer its corresponding source. The
+  source is an unmodified upstream release at the pinned tag, so pointing at the
+  repository above satisfies it — but it has to actually be offered. Build with
+  `--build-arg SINGBOX_VERSION=none` if you would rather not take that on; the
+  site runs without it.
 
 Full detail: [docs/proxy/SINGBOX.md](proxy/SINGBOX.md).
 

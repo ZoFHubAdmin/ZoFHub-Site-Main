@@ -1294,6 +1294,11 @@ const CSP_DIRECTIVES = {
     // even on browsers that no longer accept plain 'unsafe-eval' for wasm.
     "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
+    // Puter.js — an OPT-IN, user-chosen AI provider on /ai (public/js/puter-ai.js).
+    // Loaded browser-direct and billed to the visitor's own Puter account; it
+    // never touches a ZoFHub endpoint, so the server AI guard is unaffected.
+    // connect-src already permits https: for its API calls; this lets the SDK load.
+    'https://js.puter.com',
     // ── NO GOOGLE AD STACK HERE. THIS IS THE LAST LAYER. ────────────────────
     // googlesyndication / googletagmanager / googleadservices / doubleclick are
     // deliberately ABSENT. Every other layer already refuses to emit Google ad

@@ -26,6 +26,15 @@ services:
       # The admin panel reads sing-box over the PRIVATE compose network. This
       # address is not reachable from outside the compose project, which is the
       # point — see the ports note on the singbox service below.
+      #
+      # ONE EDIT IS REQUIRED for this to resolve: both shipped templates bind
+      # `external_controller` to 127.0.0.1, which inside a container means the
+      # container's OWN loopback — unreachable from the zofhub service, so the
+      # panel would read "unreachable" forever. In your rendered config.json set
+      #     "external_controller": "0.0.0.0:9090"
+      # That is safe HERE, and only here, because 9090 is deliberately not
+      # published below: it stays on the private compose network. Do not make
+      # that change on a host where the port is exposed.
       SINGBOX_API_URL: http://singbox:9090
       SINGBOX_API_SECRET: ${SINGBOX_API_SECRET:?set SINGBOX_API_SECRET in .env}
       SINGBOX_API_TIMEOUT_MS: "1500"
@@ -41,7 +50,8 @@ services:
     restart: unless-stopped
     command: ["run", "-c", "/etc/sing-box/config.json"]
     volumes:
-      # Rendered from config.template.json with your real values substituted.
+      # Rendered from config.reality.template.json with your real values
+      # substituted — the REALITY profile, not the default local-egress one.
       # Read-only: the container has no business rewriting its own config, and
       # the panel's hot-reload writes through the host path, not the container.
       - ./config.json:/etc/sing-box/config.json:ro
@@ -54,7 +64,8 @@ services:
       - "443:443"
     cap_add:
       # Required for the tun inbound only. Drop this if you use the VLESS/REALITY
-      # inbound alone, as config.template.json does — least privilege by default.
+      # inbound alone, as config.reality.template.json does — least privilege
+      # by default.
       - NET_ADMIN
     environment:
       SINGBOX_API_SECRET: ${SINGBOX_API_SECRET:?set SINGBOX_API_SECRET in .env}

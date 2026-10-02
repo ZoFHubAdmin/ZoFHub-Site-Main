@@ -42,10 +42,11 @@
   "inbounds": [
     {
       "$comment": [
-        "`mixed` speaks SOCKS5 and HTTP CONNECT on one port. ZoFHub uses SOCKS5",
-        "and sends the DESTINATION HOSTNAME (ATYP=0x03) rather than a resolved",
-        "IP, so sing-box performs the DNS lookup — remote resolution, which is",
-        "the point of proxying at all.",
+        "`mixed` speaks SOCKS5 and HTTP CONNECT on one port. ZoFHub uses SOCKS5.",
+        "",
+        "Note that the CONNECT usually carries an IP, not a name: ZoFHub resolves",
+        "and validates the destination itself before dialling (rebinding",
+        "protection), so this daemon is the egress hop, not the resolver.",
         "",
         "listen is 127.0.0.1 and must stay that way on a shared host: an open",
         "SOCKS proxy on a public interface is an abuse relay within hours."

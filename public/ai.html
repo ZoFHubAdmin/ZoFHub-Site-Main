@@ -60,10 +60,27 @@
         <details class="ai-settings" id="aiSettings">
           <summary>AI settings</summary>
           <div class="ai-settings-body">
+            <label class="ai-settings-label" for="aiProvider">AI provider</label>
+            <select id="aiProvider">
+              <option value="auto">Automatic — free (recommended)</option>
+              <option value="pollinations">Pollinations — free</option>
+              <option value="puter">Puter.js — your Puter account</option>
+              <option value="huggingface">Hugging Face — your token</option>
+            </select>
+            <p class="ai-settings-note" id="aiProviderNote" role="status"></p>
+
+            <!-- Puter model picker — shown only when Puter is the chosen provider.
+                 Populated live from puter.ai.listModels(); each option shows its
+                 cost, and the default sends no model so Puter picks its free tier. -->
+            <div class="ai-puter" id="aiPuter" hidden>
+              <label class="ai-settings-label" for="aiPuterModel">Puter model</label>
+              <select id="aiPuterModel"><option value="">Puter default (free tier)</option></select>
+            </div>
+
             <p class="ai-settings-note">
-              Add a free Hugging Face token for a faster, more reliable AI.
-              It is stored <strong>only in this browser</strong> and sent
-              straight to Hugging Face — it never reaches our servers.
+              The Hugging Face option below uses a free token for a faster, more
+              reliable AI. It is stored <strong>only in this browser</strong> and
+              sent straight to Hugging Face — it never reaches our servers.
             </p>
             <label class="ai-settings-label" for="aiHfToken">Hugging Face token</label>
             <input id="aiHfToken" type="password" autocomplete="off" spellcheck="false"
@@ -128,6 +145,7 @@
   <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>
   <script type="module" src="/js/ai.js?v=20260720"></script>
+  <script type="module" src="/js/ai-provider.js?v=20261001"></script>
   <script type="module" src="/js/ai-settings.js?v=20260921"></script>
 </body>
 </html>

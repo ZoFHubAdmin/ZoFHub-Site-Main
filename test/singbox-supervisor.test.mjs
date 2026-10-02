@@ -21,6 +21,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   singboxManaged, renderConfig, singboxProcessStatus, stopSingbox, ensureApiSecret,
+  checkConfig, startSingbox,
 } from '../lib/singbox-supervisor.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -286,5 +287,39 @@ describe('the build and the wiring', () => {
     const body = server.slice(at, at + 1800);
     assert.match(body, /singboxProcess: singboxProcessStatus\(\)/,
       'process state is not reported alongside the API telemetry');
+  });
+});
+
+
+describe('a missing binary is not reported as a bad config', () => {
+  // Regression: ENOENT surfaces from `sing-box check`, not from spawn, so it
+  // took the "config rejected" branch — which retries every 60s forever and
+  // printed "config rejected: spawn sing-box ENOENT" for a config that was
+  // perfectly valid. Both halves of that were wrong.
+  test('checkConfig flags a missing binary distinctly', async () => {
+    const r = await checkConfig('whatever.json');
+    // This repo's test environment has no sing-box on PATH.
+    if (r.ok) return;                       // a machine that HAS it: nothing to assert
+    assert.equal(r.missingBinary, true, 'must be flagged, not folded into `error`');
+    assert.match(r.error, /not found|cannot run/,
+      'the message must name the binary, not the config');
+    assert.doesNotMatch(r.error, /config rejected/);
+  });
+
+  test('startSingbox gives up rather than looping when the binary is absent', async () => {
+    const env = {
+      SINGBOX_MANAGED: '1',
+      SINGBOX_BIN: 'definitely-not-a-real-binary-zofhub',
+      SINGBOX_CONFIG_PATH: join(mkdtempSync(join(tmpdir(), 'zofhub-sb-')), 'config.json'),
+    };
+    const r = await startSingbox(env);
+    assert.equal(r.started, false);
+
+    const st = singboxProcessStatus(env);
+    assert.equal(st.running, false);
+    assert.equal(st.gaveUp, 'binary not found',
+      'a cause that cannot fix itself must stop retrying');
+    assert.match(String(st.lastError), /not available|not found|cannot run/);
+    await stopSingbox();
   });
 });

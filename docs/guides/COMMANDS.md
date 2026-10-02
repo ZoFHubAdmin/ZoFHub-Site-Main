@@ -158,7 +158,7 @@ believing any pass.
 | `npm run admin-hash` | Generate the scrypt `ADMIN_PASSWORD_HASH` for `/admin`. Never store the plaintext password. |
 | `npm run css-tokens` | Check the CSS design tokens are consistent. |
 | `npm run og-sync` | Refresh Open Graph / social preview metadata. |
-| `npm test` | The full suite — **1009 tests across 225 suites**, no network, no credentials required. |
+| `npm test` | The full suite — **1354 tests across 307 suites**, no network, no credentials required. |
 
 ---
 

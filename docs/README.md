@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-1009%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1354%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -12,7 +12,7 @@ A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
 2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **entirely in the visitor's browser**. Keyless, and **no prompt, reply or generated image ever touches this server** — that is enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
-3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, with an optional **managed [sing-box](proxy/SINGBOX.md)** backend for REALITY/VLESS transport.
+3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
 
 > **Public metadata is framed as a security tool.** The served `<title>`, Open
 > Graph and description tags present the site as a *"cloud-based web-security
@@ -38,7 +38,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)) — plus [AnuraOS](proxy/ANURA.md), a whole web OS with x86 emulation, served by this process on its own origin. `npm run verify-proxy` renders real pages through each one and fails if any stops working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
-- 🔌 **Managed sing-box (optional)** — ZoFHub can build a pinned [sing-box](proxy/SINGBOX.md) release into the image, render its config, `sing-box check` it, spawn it, restart it with backoff, and stop it on shutdown — as a decoupled child process that never blocks the event loop. Off by default. GPL-3.0, run as a separate program, not vendored.
+- 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon **degrades to a direct connection and reports it**, so the proxy never goes down over it. GPL-3.0, run as a separate program, not vendored.
 - 💚 **Crash-safe by design** — `/healthz` returns **503 above 85% memory** so an orchestrator recycles the container before the OOM killer hits mid-request; the Wisp tunnel has a global cap **and** a per-client cap so one runaway visitor cannot starve the pool.
 - 🔒 **Stated egress policy** — `/wisp/` is the one endpoint that dials an address a stranger chose, so its rules are written down rather than inherited from a library default: a **port allowlist** (80/443/8080/8443 — not 25, 22 or 3306), **no UDP**, private/loopback addresses refused, and a per-tunnel stream cap. Proven against a live tunnel, including a control case. See [docs/proxy/INVISIPROXY.md](proxy/INVISIPROXY.md#2-what-is-integrated).
 - 🕶️ **Mirror survival (MASQR)** — *off by default.* A mirror domain usually dies because a shared link reaches a filter vendor whose crawler fetches it, sees a proxy, and burns the domain. Switched on, an unauthenticated visitor sees only the games hub while the proxy surfaces answer 404; a signed key in a link unlocks them. Never gates `/healthz`, the legal pages or the games. Not access control — see [docs/proxy/MASQR.md](proxy/MASQR.md).
@@ -57,7 +57,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
-| Tests | `node:test` (built in — zero test dependencies), 1009 tests |
+| Tests | `node:test` (built in — zero test dependencies), 1354 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -486,8 +486,16 @@ the whole instance down.
 The managed **sing-box** backend follows the same discipline: it runs as a
 decoupled child process (never on the event loop), is validated with
 `sing-box check` before every start so a bad config becomes one error line
-instead of a hot restart loop, and backs off 1s → 60s on repeated failure. Full
-detail in **[docs/proxy/SINGBOX.md](proxy/SINGBOX.md)**.
+instead of a hot restart loop, and backs off 1s → 60s on repeated failure. A
+cause that *cannot* resolve itself — the binary simply not being in the image —
+stops retrying instead of looping forever, and says so.
+
+Because it now sits in the traffic path, its failure mode is the load-bearing
+part: a dead or absent daemon makes each proxied stream fall back to a direct
+connection, counted and reported as `singboxEgress` in `/api/admin/proxy`, so
+the proxy degrades visibly rather than failing. Operators who would rather fail
+than expose the server's own address set `SINGBOX_REQUIRE=1`. Full detail in
+**[docs/proxy/SINGBOX.md](proxy/SINGBOX.md)**.
 
 ---
 
@@ -559,18 +567,26 @@ docker build -t zofhub .
 docker run -p 8080:8080 --env-file .env zofhub
 ```
 
-The image is multi-stage. sing-box is **not** built by default
-(`SINGBOX_VERSION=none`), so the standard image is unchanged. To bake in a pinned
-release for managed mode:
+The image is multi-stage, and stage 1 builds **sing-box** — pinned to
+`v1.14.1`, on by default, because it carries the proxy's egress. To build a
+binary-free image instead:
 
 ```bash
-docker build --build-arg SINGBOX_VERSION=v1.10.7 -t zofhub .
+docker build --build-arg SINGBOX_VERSION=none -t zofhub .
 ```
 
-`go install` fetches that exact tag and verifies it against Go's checksum
-database — no sing-box source is vendored into this repository (its GPL-3.0 terms
-are incompatible with this repo's proprietary LICENSE, which is why the build
-keeps them separate programs). See [docs/proxy/SINGBOX.md](proxy/SINGBOX.md).
+That image still runs: the supervisor reports the binary missing once, stops
+retrying, and every proxied stream takes the direct fallback while
+`/api/admin/proxy` says so.
+
+`go install` fetches the exact tag and verifies it against Go's checksum
+database — no sing-box source is vendored into this repository (its GPL-3.0
+terms are incompatible with this repo's proprietary LICENSE, which is why the
+build keeps them separate programs). **Shipping the default image distributes a
+GPL-3.0 binary**, so keep its licence in place and its source offered; see
+[CREDITS.md](CREDITS.md#sing-box-default-egress-backend--built-not-vendored).
+Bump the Go base image and the sing-box tag together — v1.14.1 requires Go
+1.25.5. See [docs/proxy/SINGBOX.md](proxy/SINGBOX.md).
 
 ---
 
@@ -580,7 +596,7 @@ keeps them separate programs). See [docs/proxy/SINGBOX.md](proxy/SINGBOX.md).
 ZoFHub/
 ├── server.js              # the app: pages, API, game + AI routes (entry point)
 ├── render.yaml            # Render blueprint — one web service, hub + proxy together
-├── Dockerfile             # container image (Node 22-alpine, port 8080; optional sing-box stage)
+├── Dockerfile             # container image (Node 22-alpine, port 8080; sing-box stage, on by default)
 ├── LICENSE                # ZoFHub's own terms — the only non-code file left at the root
 ├── .github/workflows/     # ci.yml (5 jobs) + gameflare-verify.yml (manual only)
 │
@@ -622,7 +638,7 @@ ZoFHub/
 │   ├── audit.py           #   entry point for the repository auditor
 │   └── zofaudit/          #   the checks it runs (stdlib-only Python)
 ├── scripts/               # one-off data scripts
-├── test/                  # node:test suites (1009 tests, no framework)
+├── test/                  # node:test suites (1354 tests, no framework)
 ├── deploy/singbox/        # sing-box config templates + compose file
 ├── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
 ├── vendor/anura/          # AnuraOS bundle (AGPL-3.0, pinned, one declared modification)
@@ -639,7 +655,7 @@ Git-ignored and machine-local: `.env`, `logs/`, `verification-evidence/` (GameFl
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 1009 tests across 225 suites, node:test — no framework, no install step
+npm test        # 1354 tests across 307 suites, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 
