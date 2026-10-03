@@ -7,8 +7,11 @@
 > own connection and quota rather than through one shared server IP.
 >
 > Everything below follows from that. It is why Hugging Face appears here as a
-> browser client and a set of offline operator tools, and **not** as a server-side
-> inference stack.
+> browser client and a set of offline operator tools, why **Puter.js** is a
+> browser-direct, user-chosen provider rather than a server relay, and **not** a
+> server-side inference stack of any kind. The AI page lets the visitor pick the
+> provider (Pollinations · Puter.js · Hugging Face); the default stays free and
+> nothing is forced.
 
 ---
 
@@ -51,6 +54,7 @@ dependency pretending to be a feature.
 |---|---|---|
 | **`@huggingface/inference`** (huggingface.js) | `public/js/hf-inference.js`, served from `/hf/` | A real second text provider. Called from the browser with the user's own token. |
 | **`@huggingface/transformers`** (Transformers.js) | `public/js/ai.js` | Already present: SmolLM2-360M runs on-device when the network fails. Unchanged. |
+| **Puter.js** (`js.puter.com`, opt-in) | `public/js/puter-ai.js`; picker in `public/js/ai-provider.js` | A user-chosen third provider. Loaded **browser-direct** and billed to the visitor's **own** Puter account; honest about per-model cost (labels from `listModels()`, never a flat "free"), defaults to Puter's free tier, and never touches a ZoFHub endpoint — so the server guard is unaffected. |
 | **`datasets`** (Python) | `tools/curate-ai-dataset.py` | Dedup, quality filtering, fixed splits and per-split fingerprints for curated feedback. Operator-only. |
 
 ### Deliberately NOT integrated

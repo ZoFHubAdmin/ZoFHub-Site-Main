@@ -312,3 +312,51 @@ body:not(.zad-on):not(.zad-preview) .play-layout { grid-template-columns: minmax
   .play-actions > button > span { display: none; }
   .play-actions > button { padding: 6px; }
 }
+
+/* ============================================================================
+   Per-game SEO description + details — {{GAME_ABOUT}}, built in lib/game-seo.mjs.
+   Real, readable on-page content (not a hidden keyword block): a prose summary,
+   tag chips, and a details card that links back to the category.
+   ============================================================================ */
+.game-about {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 268px;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+}
+.about-title { margin: 0 0 10px; font-size: 18px; color: var(--text); }
+.about-text  { margin: 0; color: var(--text-dim); line-height: 1.62; font-size: 14.5px; }
+.about-tags {
+  list-style: none; margin: 12px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.about-tags li {
+  font-size: 12px; color: var(--text-mute);
+  background: rgba(170,140,255,.10); border: 1px solid var(--line);
+  border-radius: 999px; padding: 3px 10px;
+}
+.about-details {
+  background: rgba(0,0,0,.14); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px; align-self: start;
+}
+.about-details h3 {
+  margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-mute);
+}
+.about-details dl { margin: 0; }
+.about-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px;
+}
+.about-row:first-child { border-top: 0; }
+.about-row dt { color: var(--text-mute); }
+.about-row dd { margin: 0; color: var(--text-dim); text-align: right; }
+.about-row dd a { color: var(--accent-2); text-decoration: none; }
+.about-row dd a:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  .game-about { grid-template-columns: 1fr; }
+}

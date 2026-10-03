@@ -281,7 +281,7 @@ Everything that keeps the catalog healthy without you touching it. All times UTC
 | Job | When | What it does |
 |---|---|---|
 | `link-check` | hourly, `:00` | hides games whose link is truly dead (404/410) |
-| `grow` | hourly `:30`, 3-day gate inside | adds render-verified games over time |
+| `grow` | hourly `:30`, 36h gate inside | adds render-verified games over time |
 | `health` | daily 00:05 | logs working/dead counts |
 | `rec-cleanup` | daily 00:15 | removes stale unseen recommendations, trims to the cap |
 | `retention` | daily 03:40 | trims admin logs. The SQL function floors its own arguments, so this can shrink the audit trail but never erase it |

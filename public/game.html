@@ -4,19 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#1a0b3d" />
-  <meta name="description" content="Open {{TITLE}} in the ZoFHub sandbox — isolated, instant, no signup." />
+  <meta name="description" content="{{META_DESCRIPTION}}" />
   <!-- Send only the origin as document.referrer for the embedded game; many
        publisher SDKs accept that but reject the full /play/:slug URL. -->
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <title>{{TITLE}} · ZoFHub</title>
+  <title>{{SEO_TITLE}}</title>
+  <link rel="canonical" href="{{CANONICAL_URL}}" />
   <!-- Open Graph / social share (per-game) -->
   <meta property="og:site_name" content="ZoFHub" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="{{TITLE}} · ZoFHub" />
-  <meta property="og:description" content="Open {{TITLE}} in the ZoFHub sandbox — isolated, instant, no signup." />
+  <meta property="og:description" content="{{META_DESCRIPTION}}" />
+  <meta property="og:url" content="{{CANONICAL_URL}}" />
   <meta property="og:image" content="{{OG_IMAGE}}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="{{TITLE}} · ZoFHub" />
+  <meta name="twitter:description" content="{{META_DESCRIPTION}}" />
   <meta name="twitter:image" content="{{OG_IMAGE}}" />
 
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
@@ -40,6 +43,11 @@
        and Ad Manager ban proxy/anonymizer domains at the ACCOUNT level — a tag
        here could take down an unrelated AdSense account. This block previously
        held a commented-out AdSense loader inviting exactly that paste. -->
+
+  <!-- Structured data (schema.org VideoGame) — built server-side in
+       lib/game-seo.mjs from verified metadata only; `<` is escaped in the payload
+       so it can never close this script tag. -->
+  <script type="application/ld+json">{{JSON_LD}}</script>
 </head>
 <body class="page-game">
 
@@ -176,6 +184,10 @@
       <div class="ad-leaderboard">
         <div class="ad-slot ad-728x90" data-ad-type="leaderboard" data-slot="below-game-leaderboard"></div>
       </div>
+
+      <!-- Per-game SEO description + details — real, readable HTML built
+           server-side in lib/game-seo.mjs from verified metadata. -->
+      {{GAME_ABOUT}}
 
       <section class="play-related">
         <h2 class="row-title">You might also like</h2>

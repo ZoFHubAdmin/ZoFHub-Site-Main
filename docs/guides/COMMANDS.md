@@ -368,7 +368,7 @@ fails is dropped rather than served.
   proxy surface.** Google ad code can never load — it is refused at three layers.
   See [`docs/features/ADVERTISING.md`](../features/ADVERTISING.md).
 - **Cron jobs (`lib/cron-jobs.mjs`)** — 10 scheduled jobs (link-check hourly, catalog
-  grow every 3 days, Y8 sync weekly, orphan-stats weekly, and daily health,
+  grow every 36h, Y8 sync weekly, orphan-stats weekly, and daily health,
   recommendation cleanup, admin-log retention, score prune, AI-feedback prune and
   Supabase keep-alive). The full schedule is in
   [HOW-IT-WORKS.md §11](HOW-IT-WORKS.md#11-the-night-shift--ten-scheduled-jobs-libcron-jobsmjs). They only run **while the server process is alive**, so on a free host that

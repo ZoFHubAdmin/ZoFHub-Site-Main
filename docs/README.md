@@ -4,14 +4,14 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-1354%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1379%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
 A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
-2. **A free AI assistant** — chat + image generation via [Pollinations](https://pollinations.ai), running **entirely in the visitor's browser**. Keyless, and **no prompt, reply or generated image ever touches this server** — that is enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
+2. **A free AI assistant** — chat + image generation that runs **entirely in the visitor's browser**, with a **user-chosen provider** ([Pollinations](https://pollinations.ai) by default, or opt-in [Puter.js](https://puter.com) / Hugging Face — nothing forced). Keyless on the default path, and **no prompt, reply or generated image ever touches this server** — enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
 
 > **Public metadata is framed as a security tool.** The served `<title>`, Open
@@ -34,7 +34,8 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
 - 🙏 **Donations** — an optional "Support ZoFHub" dialog offering six **crypto-only** methods: **Solana**, **USDC**, **Bitcoin**, **Litecoin**, **Ethereum** and **Monero**. There is no card option, so a visitor without a wallet cannot donate — deliberate, not an oversight. SOL and USDC share **one address and one wallet**, listed separately so a donor holding dollars need not know USDC is an SPL token. Addresses live in the **environment, never in git**, are **checksum-verified at boot**, and a method that fails is dropped rather than served — a typo becomes a missing button, not lost donations. BTC, LTC and ETH get **full checksum** verification (ETH via a dependency-free **Keccak-256** + EIP-55 implementation, since `node:crypto` ships SHA-3, which is a different function); SOL, USDC and XMR are shape-checked only and say so. A **swap path** (pay BTC, LTC, SOL, ETH or DOGE; a non-custodial provider settles to Monero; nothing stored) exists as a server API but **no page offers it yet**. Full detail, including which party can and cannot see what: [DONATIONS.md](features/DONATIONS.md).
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for and no email required — the only addresses ever stored are ones a visitor volunteers, for the mirror-update list or a feedback reply. See [what the site remembers](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
-- 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with a "Vibe Finder" that recommends games from your mood and a local answer cache for instant repeats.
+- 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with an optional **provider picker** (Pollinations, Puter.js or Hugging Face — the default stays free and nothing is forced), a "Vibe Finder" that recommends games from your mood, and a local answer cache for instant repeats.
+- 🔎 **Per-game SEO** — every game page carries a **unique, factual description** and full metadata (canonical URL, Open Graph, `schema.org` JSON-LD), generated deterministically from verified catalog metadata — no AI filler, no fabrication, no per-request cost. See [GAME-SEO.md](features/GAME-SEO.md).
 - 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)) — plus [AnuraOS](proxy/ANURA.md), a whole web OS with x86 emulation, served by this process on its own origin. `npm run verify-proxy` renders real pages through each one and fails if any stops working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
@@ -54,10 +55,10 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Server | Node.js (≥22) + Express, ES modules, **no build step** |
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework, no bundler) |
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
-| AI | Pollinations, **browser-direct and keyless** — never proxied by this server |
+| AI | **Browser-direct**, never proxied by this server — Pollinations (default) + opt-in Puter.js / Hugging Face (user-chosen) |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
-| Tests | `node:test` (built in — zero test dependencies), 1354 tests |
+| Tests | `node:test` (built in — zero test dependencies), 1379 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -177,6 +178,20 @@ There is **no escape hatch**. The old `AI_SERVER_FALLBACK=1` switch was read *be
 The client half matches: `IS_LOCAL` in `pollinations.js` gates the text fallback and is **exported** so `ai.js` gates its image fallback on the identical condition — two copies of that rule would eventually drift, and the one that drifted would quietly start routing AI through the server. [`test/ai-guard.test.mjs`](../test/ai-guard.test.mjs) pins the rule, [`test/server.test.mjs`](../test/server.test.mjs) asserts an internet visitor is refused on all three routes in every method and spelling, and [`test/production-guards.test.mjs`](../test/production-guards.test.mjs) repeats it under a real production boot — loopback included.
 
 **What this buys you:** no AI compute or bandwidth on your host, no shared rate-limit pool (each visitor uses their own IP), and prompts that are never observable server-side.
+
+### A choice of provider — all browser-direct
+
+The default AI is Pollinations, but the AI page lets a visitor pick a provider in
+**AI settings**: Pollinations (free, keyless), **Puter.js**, or **Hugging Face**.
+**Nothing is forced** — the default stays free, and an explicit choice never
+silently spends another provider's quota. [`public/js/puter-ai.js`](../public/js/puter-ai.js)
+adds Puter as one more opt-in adapter, loaded browser-direct from `js.puter.com`
+and billed to the visitor's **own** Puter account; it is honest about cost
+(paid models are labelled from `listModels()` and never flattened to "free") and
+defaults to no explicit model so Puter uses its own free tier. Like the
+Pollinations and Hugging Face paths, Puter never touches a ZoFHub endpoint, so the
+server-side guard above is **unaffected by design**. Full detail:
+[AI-ARCHITECTURE.md](features/AI-ARCHITECTURE.md).
 
 ### The server refuses to fetch AI providers for a caller
 
@@ -603,7 +618,7 @@ ZoFHub/
 ├── docs/                  # ALL project documentation — you are here (docs/README.md)
 │   ├── guides/            #   how it works, commands, debugging, go-live, new machine
 │   ├── database/          #   catalog setup, migration order, one game, the Supabase mirror
-│   ├── features/          #   AI, ads, embeds, Y8, GameFlare, leaderboard, donations, visitors, Suroi
+│   ├── features/          #   AI, ads, game SEO, embeds, Y8, GameFlare, leaderboard, donations, visitors, Suroi
 │   ├── proxy/             #   egress policy, MASQR, sing-box, Kasm, AnuraOS
 │   ├── reports/           #   generated reports (do not edit by hand)
 │   └── CREDITS.md         #   third-party licences + the AGPL §13 source offer
@@ -638,7 +653,7 @@ ZoFHub/
 │   ├── audit.py           #   entry point for the repository auditor
 │   └── zofaudit/          #   the checks it runs (stdlib-only Python)
 ├── scripts/               # one-off data scripts
-├── test/                  # node:test suites (1354 tests, no framework)
+├── test/                  # node:test suites (1379 tests, no framework)
 ├── deploy/singbox/        # sing-box config templates + compose file
 ├── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
 ├── vendor/anura/          # AnuraOS bundle (AGPL-3.0, pinned, one declared modification)
@@ -655,7 +670,7 @@ Git-ignored and machine-local: `.env`, `logs/`, `verification-evidence/` (GameFl
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 1354 tests across 307 suites, node:test — no framework, no install step
+npm test        # 1379 tests across 317 suites, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 

@@ -150,6 +150,9 @@ const { createInvoice, swapConfig, swapStatusLine, SwapError, DEPOSIT_COINS } = 
 const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
         healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
+// Per-game SEO content (unique description + title/meta/canonical/JSON-LD),
+// generated deterministically from verified catalog metadata — see lib/game-seo.mjs.
+const { seoPayload } = await import('./lib/game-seo.mjs');
 // The one shared AI prompt + retrieval grounding, imported by the browser as a
 // static module and by the server from disk. There is deliberately no copy.
 const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
@@ -7224,6 +7227,14 @@ app.get('/play/:gameSlug', async (req, res) => {
     if (!t) return origin + '/assets/favicon.png';
     return origin + (t.startsWith('/') ? t : '/' + t);
   })();
+  // Per-game SEO payload (unique description, meta, canonical, JSON-LD). Built
+  // from this game's own verified metadata and memoised per origin on the cached
+  // game object, so a crawler or visitor hitting the page never recomputes it and
+  // never triggers AI or database work — it is pure string generation.
+  const seoOrigin = requestOrigin(req);
+  const seoCache = (game._seo ||= new Map());
+  let seo = seoCache.get(seoOrigin);
+  if (!seo) { seo = seoPayload(game, { origin: seoOrigin, image: ogImage }); seoCache.set(seoOrigin, seo); }
   const html = GAME_TEMPLATE
     .replace(/\{\{OG_IMAGE\}\}/g,     htmlEscape(ogImage))
     .replace(/\{\{TITLE\}\}/g,        htmlEscape(game.title))
@@ -7240,6 +7251,15 @@ app.get('/play/:gameSlug', async (req, res) => {
     // directOnly = GameMonetize/GameDistribution — the client loader must NEVER
     // fall back to the proxy for these (it black-screens them). Emitted as a bare
     // JS boolean into window.ZOFHUB_GAME, so no htmlEscape.
+    // SEO: pre-escaped by lib/game-seo.mjs, so JSON_LD and GAME_ABOUT are
+    // injected via function replacements (no htmlEscape — that would double-encode
+    // intended markup — and a function replacement so a `$` in a tag can't be read
+    // as a replacement pattern).
+    .replace(/\{\{SEO_TITLE\}\}/g,        () => htmlEscape(seo.seoTitle))
+    .replace(/\{\{META_DESCRIPTION\}\}/g, () => htmlEscape(seo.metaDescription))
+    .replace(/\{\{CANONICAL_URL\}\}/g,    () => htmlEscape(seo.canonical))
+    .replace(/\{\{JSON_LD\}\}/g,          () => seo.jsonLd)
+    .replace(/\{\{GAME_ABOUT\}\}/g,       () => seo.descriptionHtml)
     .replace(/\{\{DIRECT_ONLY\}\}/g,  isSdkDirectOnly ? 'true' : 'false')
     // Whether ANY region has a pre-roll configured — deliberately not this
     // visitor's region, so the page stays identical for every visitor. When it
