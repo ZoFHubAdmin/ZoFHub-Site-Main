@@ -140,7 +140,7 @@ for an always-proxy games hub, in order:
 - [ ] Admin: log in at `/admin`; confirm a logged-out request to
       `/api/admin/dashboard` returns **401**, not 200.
 - [ ] `/browser` loads and `/api/site-config` shows `"proxy": true` (always-on proxy).
-- [ ] `npm test` passes (1354 tests) and `npm run audit:repo` reports no errors
+- [ ] `npm test` passes (1379 tests) and `npm run audit:repo` reports no errors
       you have not consciously accepted.
 - [ ] **`npm run verify-proxy` renders real pages through every engine.** An HTTP
       200 from a proxy route proves nothing — the page can still be blank.
