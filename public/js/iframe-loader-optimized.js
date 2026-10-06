@@ -1,6 +1,7 @@
 // ZoFHub · Optimized Iframe Loader
 // Ultra-fast iframe loading with retry logic, timeout handling, and performance optimization
 import { $, el, toast } from './utils.js';
+import { reportGameFailure } from './telemetry.js';
 
 // Timeouts tuned so a slow-but-HEALTHY game is never restarted mid-load. A
 // game's iframe `load` event can take 5–12s for heavy WebGL titles; the old 4s
@@ -200,6 +201,10 @@ class OptimizedIframeLoader {
   onError() {
     if (!this.loaded) {
       console.warn(`[IframeLoader] Load error on stage ${this.currentStage}, retrying...`);
+      // The frame raised a real error rather than just running out of time.
+      // Remembered so that if we eventually give up, the report says WHY --
+      // 'http_error' and 'timeout' point at different problems.
+      this._failKind = 'http_error';
       this.advanceStage();
     }
   }
@@ -258,6 +263,10 @@ class OptimizedIframeLoader {
       
       if (!this.loaded && this.currentStage === -1 && data.embeddable === false) {
         console.log('[IframeLoader] Preflight detected blocking, jumping to proxy');
+        // The publisher refuses to be framed (X-Frame-Options / frame-ancestors).
+        // The proxy usually rescues this, so it is NOT a failure yet -- but if
+        // every stage still fails, 'refused' is the accurate diagnosis.
+        this._failKind = 'refused';
         this.clearTimers();
         this.advanceStage();
       }
@@ -314,6 +323,12 @@ class OptimizedIframeLoader {
   showError(msg) {
     this.clearTimers();
     this.loader?.classList.add('hide');
+
+    // The one honest place to record a broken game: we have exhausted every
+    // stage and the visitor is about to be told it did not load. An aggregate
+    // counter only — slug + how it failed, reduced server-side to a browser
+    // family. See public/js/telemetry.js and lib/telemetry.mjs.
+    reportGameFailure(this._failKind || 'timeout');
     
     if (!this.box || this.box.querySelector('.frame-error')) return;
     

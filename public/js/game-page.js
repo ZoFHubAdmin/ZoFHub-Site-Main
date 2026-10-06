@@ -7,6 +7,11 @@ import { OptimizedIframeLoader } from './iframe-loader-optimized.js';
 // The page's shared /api/site-config request (see site-config.js). Same
 // specifier as layout.js, so this is the same promise, not a second fetch.
 import { siteConfig } from './site-config.js';
+import { startVitals } from './telemetry.js';
+
+// Sampled, bucketed page-speed measurement. Identity-free and self-disabling on
+// browsers without PerformanceObserver — see public/js/telemetry.js.
+startVitals();
 
 const slug = window.ZOFHUB_GAME?.slug || (location.pathname.match(/\/play\/([^/?#]+)/) || [])[1];
 

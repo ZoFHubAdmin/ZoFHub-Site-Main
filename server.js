@@ -153,6 +153,12 @@ const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mj
 // Per-game SEO content (unique description + title/meta/canonical/JSON-LD),
 // generated deterministically from verified catalog metadata — see lib/game-seo.mjs.
 const { seoPayload } = await import('./lib/game-seo.mjs');
+// Aggregate, identity-free quality telemetry: which games fail to render on
+// which browsers, and bucketed Core Web Vitals. Counters only — there is no
+// visitor in lib/telemetry.mjs and deliberately nowhere to put one.
+const { buildFailure: buildFailureReport, buildVital: buildVitalReport,
+        parseFailureKey, parseVitalKey,
+        summarizeFailures, summarizeVitals } = await import('./lib/telemetry.mjs');
 // The one shared AI prompt + retrieval grounding, imported by the browser as a
 // static module and by the server from disk. There is deliberately no copy.
 const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
@@ -269,6 +275,23 @@ const playCounts   = new Map();  // slug -> lifetime plays
 const playsDirty   = new Set();  // slugs changed since last flush
 const playDedup    = new Map();  // `${ip}|${slug}` -> ts (anti rapid-refresh)
 let   playStatsTable = true;     // flips false if game_stats doesn't exist yet
+
+// ── Aggregate quality telemetry ────────────────────────────────────────────
+// Two counter maps, same shape and lifecycle as playCounts above: aggregate in
+// memory, flush once a minute, degrade to in-memory-only when the tables are
+// absent. The KEY is the whole row (see lib/telemetry.mjs) and contains nothing
+// but a slug and closed-vocabulary buckets — no ip, no session, no user agent,
+// no per-event timestamp. Two visitors hitting the same bug bump the same key,
+// which is the privacy property stated as a data structure rather than a promise.
+//
+// TELEMETRY_ENABLED=0 turns collection off entirely: the endpoints still answer
+// 204 so the client never sees an error, and nothing is recorded anywhere.
+const TELEMETRY_ENABLED = String(process.env.TELEMETRY_ENABLED ?? '1') !== '0';
+const failureCounts  = new Map();  // `slug|browser|platform|kind` -> count
+const failuresDirty  = new Map();  // same key -> count NOT yet flushed (a delta)
+const vitalCounts    = new Map();  // `metric|bucket|route|platform` -> count
+const vitalsDirty    = new Map();  // same key -> unflushed delta
+let   telemetryTables = true;      // flips false if the tables don't exist yet
 // Per-(category, seed) ordering cache so paging within one visit is O(1) and
 // stable. Cleared whenever the catalog is rebuilt. Capped + TTL'd so memory
 // can't grow without bound under many distinct visitor seeds.
@@ -1062,6 +1085,97 @@ async function flushPlayStats() {
   } catch (e) {
     console.warn('[plays] flush failed (will retry next tick):', e.message);
     for (const s of slugs) playsDirty.add(s); // requeue
+  }
+}
+
+// ── Telemetry persistence ──────────────────────────────────────────────────
+// Same three-part lifecycle as play counts: load at boot, aggregate in memory,
+// flush the DELTA once a minute.
+//
+// Why a delta rather than an upsert of the total (which is what game_stats
+// does): these counters are shared across instances. Two servers that each
+// upserted their own running total would clobber each other and the smaller
+// number would win. The delta goes through bump_game_failure() /
+// bump_web_vital(), which do `count + n` inside the database, so the increment
+// is atomic and correct with any number of instances.
+async function loadTelemetry() {
+  if (!telemetryTables) return;
+  const supa = getSupabaseAdmin();
+  if (!supa) return;
+  try {
+    const miss = (e) => /relation|does not exist|could not find|schema cache/i.test(e?.message || '');
+    const f = await supa.from('game_failures').select('slug, browser, platform, kind, count').limit(5000);
+    if (f.error) {
+      if (miss(f.error)) {
+        telemetryTables = false;
+        console.warn('[telemetry] tables not found — quality telemetry is in-memory only '
+          + '(run db/16_game_telemetry.sql to make it persist).');
+        return;
+      }
+      throw f.error;
+    }
+    for (const r of (f.data || [])) {
+      failureCounts.set(`${r.slug}|${r.browser}|${r.platform}|${r.kind}`, Number(r.count) || 0);
+    }
+    const v = await supa.from('web_vitals').select('metric, bucket, route, platform, count').limit(500);
+    if (v.error) { if (miss(v.error)) { telemetryTables = false; return; } throw v.error; }
+    for (const r of (v.data || [])) {
+      vitalCounts.set(`${r.metric}|${r.bucket}|${r.route}|${r.platform}`, Number(r.count) || 0);
+    }
+    console.log(`[telemetry] loaded ${failureCounts.size} failure combinations, `
+      + `${vitalCounts.size} vitals buckets`);
+  } catch (e) {
+    console.warn('[telemetry] load failed (in-memory only):', e.message);
+  }
+}
+
+async function flushTelemetry() {
+  if (!telemetryTables) return;
+  if (!failuresDirty.size && !vitalsDirty.size) return;
+  const supa = getSupabaseAdmin();
+  if (!supa) return;
+
+  // Take the pending deltas and clear, so reports arriving DURING the flush
+  // accumulate into the next one instead of being lost or double-counted.
+  const fPending = [...failuresDirty]; failuresDirty.clear();
+  const vPending = [...vitalsDirty];   vitalsDirty.clear();
+
+  const requeue = (map, pending) => {
+    for (const [k, n] of pending) map.set(k, (map.get(k) || 0) + n);
+  };
+
+  try {
+    for (const [key, n] of fPending) {
+      const p = parseFailureKey(key);
+      if (!p) continue;
+      const { error } = await supa.rpc('bump_game_failure', {
+        p_slug: p.slug, p_browser: p.browser, p_platform: p.platform, p_kind: p.kind, p_n: n,
+      });
+      if (error) throw error;
+    }
+  } catch (e) {
+    requeue(failuresDirty, fPending);
+    if (/function|does not exist|schema cache/i.test(e?.message || '')) {
+      telemetryTables = false;
+      console.warn('[telemetry] bump_game_failure() missing — run db/16_game_telemetry.sql. '
+        + 'Telemetry stays in memory.');
+      return;
+    }
+    console.warn('[telemetry] failure flush failed (will retry next tick):', e.message);
+  }
+
+  try {
+    for (const [key, n] of vPending) {
+      const p = parseVitalKey(key);
+      if (!p) continue;
+      const { error } = await supa.rpc('bump_web_vital', {
+        p_metric: p.metric, p_bucket: p.bucket, p_route: p.route, p_platform: p.platform, p_n: n,
+      });
+      if (error) throw error;
+    }
+  } catch (e) {
+    requeue(vitalsDirty, vPending);
+    console.warn('[telemetry] vitals flush failed (will retry next tick):', e.message);
   }
 }
 
@@ -2852,6 +2966,10 @@ const LIMITS = createLimiterSet({
   recSeen:         { capacity: 40,  refillMs: 1_000 },
   forYou:          { capacity: 30,  refillMs: 2_000 },
   proxyDiag:       { capacity: 10,  refillMs: 3_000 },
+  // Telemetry is fire-and-forget and bursty by nature: one page load can emit
+  // several vitals at once (LCP, CLS, INP, FCP, TTFB). Generous burst, slow
+  // refill — enough for honest reporting, not enough to spin a counter.
+  telemetry:       { capacity: 20,  refillMs: 3_000 },
   frameCheck:      { capacity: 30,  refillMs: 1_000 },
   presenceIp:      { capacity: PRESENCE_IP_BURST, refillMs: PRESENCE_IP_MS_PER_TOKEN },
   presenceSession: { capacity: PRESENCE_SESSION_BURST, refillMs: PRESENCE_SESSION_MS_PER_TOKEN },
@@ -4585,6 +4703,30 @@ app.get('/api/admin/audit/verify', async (req, res) => {
   } catch { res.status(502).json({ ok: false, error: 'verification failed' }); }
 });
 
+// ── GET /api/admin/quality ─────────────────────────────────────────────────
+// The aggregate quality picture: which games fail to render for which browsers,
+// and how real visitors experience page speed.
+//
+// `worst` is the actionable list — a game with a high `blank` count on one
+// browser family is a catalog problem the link-check cannot see, because the
+// embed URL answers 200 and only the render fails.
+//
+// There is nothing per-visitor to expose here, so this needs no redaction pass:
+// the underlying maps are counters keyed by closed-vocabulary buckets. An admin
+// reading this learns about GAMES and BROWSERS, never about a person.
+app.get('/api/admin/quality', (req, res) => {
+  if (!requirePerm(req, res, 'telemetry.read')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    ok: true,
+    enabled: TELEMETRY_ENABLED,
+    persisted: telemetryTables,      // false => tables absent, memory only
+    pending: { failures: failuresDirty.size, vitals: vitalsDirty.size },
+    failures: summarizeFailures(failureCounts, { top: 50 }),
+    vitals: summarizeVitals(vitalCounts),
+  });
+});
+
 // ── GET /api/admin/proxy ───────────────────────────────────────────────────
 // Telemetry for the proxy layer THIS SERVER ACTUALLY RUNS: the Wisp tunnel and
 // the engines mounted by proxy-engine/mount.mjs (GUST, Ultraviolet, Scramjet,
@@ -5849,6 +5991,75 @@ app.post('/api/play', (req, res) => {
   } catch {
     return res.json({ ok: false });
   }
+});
+
+// ========================================================================
+// POST /api/telemetry/failure — "this game did not render for me".
+// ------------------------------------------------------------------------
+// The quality signal the server cannot produce by itself. A game that paints a
+// black screen only on iOS Safari passes the link-check (the URL returns 200)
+// AND passes render-verification (it framed fine in headless Chromium). Only a
+// real browser failing to render it knows, so the browser has to say so.
+//
+// WHAT IS RECORDED: one increment on `slug|browser|platform|kind`. That is all.
+// The browser family and platform are derived HERE from the User-Agent header
+// we already received, then the raw UA is dropped — the client does not get to
+// send them, so it cannot invent values, and no UA string is ever stored. The
+// failure kind must be one of five known values or the report is dropped: that
+// is what keeps free text structurally unable to become a row.
+//
+// NOT recorded: ip, any hash of an ip, a session, a visitor id, a timestamp per
+// event, or the order reports arrived in. Two people hitting the same bug are
+// indistinguishable because they bump the same counter.
+//
+// Always 204. This is a beacon the client never reads, and a telemetry blip must
+// never turn into a visible error on a page that is already failing.
+// ========================================================================
+app.post('/api/telemetry/failure', express.json({ limit: '1kb' }), (req, res) => {
+  try {
+    if (!TELEMETRY_ENABLED) return res.status(204).end();
+    if (!writeAllow('telemetry', req.ip)) return res.status(204).end();
+    const r = buildFailureReport(
+      { slug: req.body?.slug, kind: req.body?.kind, ua: req.headers['user-agent'] },
+      (s) => bySlug.has(s),           // an unknown slug is refused, so this
+    );                                // endpoint cannot be used to grow the table
+    if (!r) return res.status(204).end();
+    failureCounts.set(r.key, (failureCounts.get(r.key) || 0) + 1);
+    failuresDirty.set(r.key, (failuresDirty.get(r.key) || 0) + 1);
+  } catch { /* a counter must never fail a request */ }
+  return res.status(204).end();
+});
+
+// ========================================================================
+// POST /api/telemetry/vitals — bucketed Core Web Vitals.
+// ------------------------------------------------------------------------
+// Sampled in the browser (see public/js/telemetry.js), and reduced to a bucket
+// BEFORE it is stored: an exact LCP of 2473.84ms is a far stronger identifier
+// than the good/needs-improvement/poor verdict anybody acts on. The path becomes
+// a page CLASS, so no URL and no query string (which here can carry a search
+// term) reaches storage.
+//
+// The whole table is capped at 180 rows by construction — 5 metrics x 3 buckets
+// x 6 routes x 2 platforms — for the entire site, forever.
+//
+// Accepts a small BATCH, because one page load legitimately produces several
+// metrics and five separate beacons would be five rate-limit tokens.
+// ========================================================================
+app.post('/api/telemetry/vitals', express.json({ limit: '2kb' }), (req, res) => {
+  try {
+    if (!TELEMETRY_ENABLED) return res.status(204).end();
+    if (!writeAllow('telemetry', req.ip)) return res.status(204).end();
+    const path = req.body?.path;
+    const ua = req.headers['user-agent'];
+    const list = Array.isArray(req.body?.metrics) ? req.body.metrics.slice(0, 8) : [];
+    for (const m of list) {
+      const r = buildVitalReport({ metric: m?.name, value: m?.value, path, ua });
+      if (!r) continue;               // one bad entry never discards the batch
+      vitalCounts.set(r.key, (vitalCounts.get(r.key) || 0) + 1);
+      vitalsDirty.set(r.key, (vitalsDirty.get(r.key) || 0) + 1);
+    }
+  } catch { /* never fail a request over a metric */ }
+  return res.status(204).end();
 });
 
 // ========================================================================
@@ -8176,6 +8387,10 @@ refreshCatalogFromSupabase().then(ok => {
 setInterval(() => { refreshCatalogFromSupabase().catch(() => {}); }, CATALOG_REFRESH_MS).unref();
 // Flush changed play counts to Supabase once a minute (also prunes the dedup map).
 setInterval(() => { flushPlayStats().catch(() => {}); }, 60 * 1000).unref();
+// Same cadence for aggregate quality telemetry. Separate call, not folded into
+// flushPlayStats, so a failure in one cannot stop the other from persisting.
+setInterval(() => { flushTelemetry().catch(() => {}); }, 60 * 1000).unref();
+loadTelemetry().catch(() => {});
 // On boot, immediately fetch any MISSING Y8 thumbnails from the web — best-effort,
 // in the BACKGROUND so it never delays the server. Because it's tied to server
 // boot, it runs on EVERY start command (npm start / dev / restart / production).
