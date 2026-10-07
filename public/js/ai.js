@@ -30,6 +30,13 @@ const MODEL  = 'HuggingFaceTB/SmolLM2-360M-Instruct'; // local in-browser fallba
 
 let pipelinePromise = null;
 let lastAnswerMeta = null;   // { provider, model } for feedback provenance
+// When the visitor explicitly chose Puter but it failed and we fell through to
+// the free default, this holds the human reason. done() surfaces it at the END
+// of the turn — a transient setStatus() here would be overwritten within
+// milliseconds by the fallback provider's own status, so the honest "Puter
+// didn't answer, the default did" message has to ride through to the finish.
+// Without this the swap is silent and Puter looks simply "broken".
+let puterFellBack = null;
 let current = null;
 let composing = false;
 
@@ -106,6 +113,7 @@ async function respond() {
   const reply = { role: 'assistant', content: '', streaming: true };
   current.messages.push(reply);
   render();
+  puterFellBack = null;   // fresh each turn, so a stale note can't leak forward
 
   const messages = buildContext();
 
@@ -136,7 +144,12 @@ async function respond() {
     } catch (e) {
       const why = String(e?.message || e);
       if (why === 'aborted') return;
-      if (why === 'puter-sdk-blocked') setStatus('Puter is blocked on this network — using the default AI.');
+      // Record WHY, in words the visitor can act on, and let the default chain
+      // below answer. done() shows this so the fallback is never silent.
+      puterFellBack =
+        why === 'puter-sdk-blocked' ? 'Puter is blocked on this network'
+        : why === 'puter-empty'     ? 'Puter returned an empty reply'
+        : 'Puter didn’t complete — its sign-in may have been dismissed, or the account is out of credits';
       console.warn('[ai] Puter unavailable, falling back:', why);
     }
   }
@@ -297,7 +310,15 @@ function showRateLimit(seconds) {
 
 function done(reply, txt, local) {
   reply.content = txt; reply.streaming = false; render();
-  setStatus(local ? 'Local engine ready' : 'Online AI ready · free & unlimited · try /image');
+  if (puterFellBack) {
+    // The visitor picked Puter, it failed, and one of the free providers
+    // answered instead. Say so plainly rather than passing the answer off as
+    // Puter's — surfacing the real cause, not a generic "ready".
+    setStatus(`${puterFellBack} — answered with the default AI instead.`);
+    puterFellBack = null;
+  } else {
+    setStatus(local ? 'Local engine ready' : 'Online AI ready · free & unlimited · try /image');
+  }
   finishTurn();
 }
 
