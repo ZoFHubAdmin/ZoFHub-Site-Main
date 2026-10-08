@@ -5658,6 +5658,21 @@ async function initControlPlane() {
   }
   CONTROL.proxy = createProxyService({ store, governor: PROXY_GOVERNOR, sessions: PROXY_SESSIONS, audit: controlAudit, onPolicy: applyProxyPolicy });
   await CONTROL.proxy.load();
+  // A reachable proxy with an EMPTY allowlist refuses every destination — the
+  // client shows "Not an approved destination" with NO console error, which
+  // reads to an operator as "the proxy browser is broken / loads nothing". It
+  // isn't: the engines (UV/Scramjet/Wisp) are fine and the allowlist is doing
+  // its job. Say so once, plainly, so the fix is understood as "approve
+  // destinations", not "debug the service worker". Fires only when the count is
+  // genuinely zero, read AFTER load(), so it can't false-warn a configured box.
+  try {
+    const snap = CONTROL.proxy.snapshot();
+    if (snap.policy.accessMode !== 'disabled' && snap.targets.approved === 0) {
+      console.warn('[control] proxy has 0 approved destinations — it will refuse EVERY site until '
+        + 'some are added (set PROXY_APPROVED_TARGETS, or approve them in the admin console). '
+        + 'The engines are fine; this is the allowlist working as designed.');
+    }
+  } catch { /* snapshot shape guard — never let a status line break init */ }
   for (const p of [...(CONTROL.settings.status().problems || []), ...(CONTROL.proxy.status().problems || [])]) console.warn(`[control] ${p}`);
   console.log(`[control] ${CONTROL.schema}${CONTROL.reason ? ` — ${CONTROL.reason}` : ''}`);
   // A migration applied later is picked up without a restart.
