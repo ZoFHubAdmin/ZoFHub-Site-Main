@@ -129,3 +129,6 @@ data/anura-download.zip
 # to commit to a repository that is pushed to a remote.
 data/ai-feedback-export.json
 data/ai-datasets/
+
+# Per-deployment active-games roster (runtime state, grows via the cron).
+data/active-roster.json

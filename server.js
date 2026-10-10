@@ -159,6 +159,38 @@ const { seoPayload } = await import('./lib/game-seo.mjs');
 const { buildFailure: buildFailureReport, buildVital: buildVitalReport,
         parseFailureKey, parseVitalKey,
         summarizeFailures, summarizeVitals } = await import('./lib/telemetry.mjs');
+// Active-games roster: serve only a capped, slowly-growing subset of the master
+// catalog (ACTIVE_GAMES_CAP, default 100; the grow cron promotes +30 every 36h).
+// See lib/active-roster.mjs. cap<=0 disables the cap and serves the whole set.
+const { selectActive: selectActiveGames, growRoster: growActiveRosterSlugs,
+        poolSlugs: rosterPoolSlugs, normalizeRoster } = await import('./lib/active-roster.mjs');
+// How many games the public site shows RIGHT NOW. Default 100; 0 (or less)
+// serves the entire catalog (the old behaviour, and the escape hatch). The
+// roster only ever grows from here — never shrinks — via the grow cadence.
+const ACTIVE_GAMES_CAP   = Math.max(0, parseInt(process.env.ACTIVE_GAMES_CAP ?? '100', 10) || 0);
+// Grow cadence + batch, shared with lib/cron-jobs.mjs' auto-expander so the two
+// agree on "+30 every 36h". Read here too because the roster growth lives in
+// this process alongside the catalog it mutates.
+const GROW_INTERVAL_HOURS = Math.max(1, parseInt(process.env.GROW_INTERVAL_HOURS || '36', 10) || 36);
+const GROW_TARGET         = Math.max(1, parseInt(process.env.GROW_TARGET || '30', 10) || 30);
+const ACTIVE_ROSTER_PATH  = join(__dirname, 'data', 'active-roster.json');
+
+/** The persisted active roster, or an empty one. Never throws. */
+function loadActiveRoster() {
+  try { return normalizeRoster(JSON.parse(readFileSync(ACTIVE_ROSTER_PATH, 'utf8'))); }
+  catch { return normalizeRoster(null); }
+}
+/** Persist the roster. Best-effort — a write failure must never break serving. */
+function saveActiveRoster(roster) {
+  try {
+    writeFileSync(ACTIVE_ROSTER_PATH, JSON.stringify({
+      cap: ACTIVE_GAMES_CAP,
+      slugs: roster.slugs || [],
+      updatedAt: new Date().toISOString(),
+      lastGrowAt: roster.lastGrowAt || null,
+    }));
+  } catch (e) { console.warn('[roster] could not persist active roster:', e.message); }
+}
 // The one shared AI prompt + retrieval grounding, imported by the browser as a
 // static module and by the server from disk. There is deliberately no copy.
 const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
@@ -744,7 +776,23 @@ function setCatalog(games, source) {
   }
   // Interleave Y8 games evenly so a big batch doesn't dominate the first pages.
   games = spreadCatalog(games);
-  CATALOG = { games, generatedAt: new Date().toISOString(), source };
+  // ── Active-games cap ───────────────────────────────────────────────────────
+  // `games` is now the MASTER POOL. When a cap is set, the public catalog is only
+  // the roster subset (stable, persisted, grown by the cron). The full pool is
+  // kept on CATALOG.pool so the roster-grow job and any catalog audit can still
+  // see everything. cap<=0 serves the whole pool unchanged.
+  const catalogPool = games;
+  if (ACTIVE_GAMES_CAP > 0) {
+    const prev = loadActiveRoster();
+    const sel = selectActiveGames(catalogPool, prev, ACTIVE_GAMES_CAP);
+    games = sel.games;
+    // Persist only when the chosen set actually changed, so a 30-minute refresh
+    // doesn't rewrite the file for nothing.
+    if (sel.roster.slugs.join('\n') !== prev.slugs.join('\n')) {
+      saveActiveRoster({ slugs: sel.roster.slugs, lastGrowAt: prev.lastGrowAt });
+    }
+  }
+  CATALOG = { games, pool: catalogPool, generatedAt: new Date().toISOString(), source };
   bySlug.clear();
   byCategory.clear();
   for (const g of CATALOG.games) {
@@ -8406,6 +8454,40 @@ setInterval(() => { flushPlayStats().catch(() => {}); }, 60 * 1000).unref();
 // flushPlayStats, so a failure in one cannot stop the other from persisting.
 setInterval(() => { flushTelemetry().catch(() => {}); }, 60 * 1000).unref();
 loadTelemetry().catch(() => {});
+
+// ── Active-games growth: promote +GROW_TARGET every GROW_INTERVAL_HOURS ──────
+// The user-facing "add 30 games every 36 hours" rule, enforced in-process so it
+// survives restarts (the clock lives in data/active-roster.json). This GROWS the
+// displayed roster out of the master pool; it is distinct from the cron in
+// lib/cron-jobs.mjs, which grows the master POOL itself (render-verified imports).
+// Checked hourly; the 36h gate is the lastGrowAt timestamp, so a restart can't
+// make it fire early or skip a cycle.
+function growActiveRoster() {
+  if (ACTIVE_GAMES_CAP <= 0) return;                     // cap disabled → nothing to grow
+  const pool = CATALOG.pool || CATALOG.games || [];
+  if (!pool.length) return;
+  const roster = loadActiveRoster();
+  const now = Date.now();
+  const last = Date.parse(roster.lastGrowAt || '');
+  if (!Number.isFinite(last)) {
+    // First run: start the 36h clock at the seeded roster, don't grow yet (the
+    // site opens at exactly ACTIVE_GAMES_CAP, then grows on the next cycle).
+    saveActiveRoster({ slugs: roster.slugs, lastGrowAt: new Date(now).toISOString() });
+    return;
+  }
+  if (now - last < GROW_INTERVAL_HOURS * 3600 * 1000) return;   // not due yet
+  const grown = growActiveRosterSlugs(rosterPoolSlugs(pool), roster.slugs, GROW_TARGET);
+  saveActiveRoster({ slugs: grown.slugs, lastGrowAt: new Date(now).toISOString() });
+  if (grown.added > 0) {
+    // Re-run the catalog build against the master pool so the promoted games
+    // appear immediately (and bySlug/byCategory are rebuilt) rather than waiting
+    // for the next Supabase refresh.
+    setCatalog(CATALOG.pool || CATALOG.games, CATALOG.source);
+    console.log(`[roster] promoted ${grown.added} game(s) → ${grown.slugs.length} active (every ${GROW_INTERVAL_HOURS}h)`);
+  }
+}
+setInterval(() => { try { growActiveRoster(); } catch (e) { console.warn('[roster] grow failed:', e.message); } }, 60 * 60 * 1000).unref();
+growActiveRoster();   // establishes the clock on boot (no growth on first call)
 // On boot, immediately fetch any MISSING Y8 thumbnails from the web — best-effort,
 // in the BACKGROUND so it never delays the server. Because it's tied to server
 // boot, it runs on EVERY start command (npm start / dev / restart / production).

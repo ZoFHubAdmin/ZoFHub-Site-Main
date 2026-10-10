@@ -42,7 +42,11 @@ async function get(path, opts = {}) {
 before(async () => {
   child = spawn(process.execPath, ['server.js'], {
     cwd: root,
-    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', NO_OPEN: '1' },
+    // ACTIVE_GAMES_CAP=0 → serve the WHOLE bundled catalog. This integration
+    // suite asserts full-catalog behaviour (pagination over thousands of rows,
+    // and the real game slugged "constructor"); the 100-game cap is its own
+    // concern, unit-tested in test/active-roster.test.mjs.
+    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', NO_OPEN: '1', ACTIVE_GAMES_CAP: '0' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', () => {});   // drain so the pipe never fills and stalls
