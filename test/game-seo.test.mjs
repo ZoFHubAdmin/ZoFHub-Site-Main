@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   tagList, gameDescription, metaDescription, seoTitle, canonicalUrl,
   jsonLdString, detailRows, descriptionSectionHtml, categorySlug, seoPayload,
+  howToPlay, howToPlayHtml,
 } from '../lib/game-seo.mjs';
 
 const basketball = { title: 'Basketball Random', slug: 'basketball-random', category: 'sports', tags: '2 Player,Basketball,Ragdoll,Arcade' };
@@ -135,5 +136,59 @@ describe('the bundled payload the /play handler consumes', () => {
     }
     assert.match(p.descriptionHtml, /class="game-about"/);
     assert.equal(p.canonical, 'https://zofhub.com/play/basketball-random');
+  });
+});
+
+describe('how to play — honest, genre-grounded, never a fabricated key map', () => {
+  test('controls and goal are chosen by genre', () => {
+    const racing = howToPlay({ title: 'Turbo', category: 'racing' });
+    assert.match(racing.controls, /accelerate|steer/i);
+    assert.match(racing.objective, /finish|clock/i);
+    const puzzle = howToPlay({ title: 'Blocks', category: 'puzzle' });
+    assert.match(puzzle.controls, /mouse|drag|click/i);
+  });
+
+  test('an unknown genre still yields usable guidance, never empty', () => {
+    const h = howToPlay({ title: 'Weird', category: 'totally-made-up' });
+    assert.ok(h.controls && h.objective);
+    assert.match(h.controls, /arrow keys|WASD|mouse/i);
+  });
+
+  test('a two-player tag (or title) switches on the shared-keyboard note', () => {
+    assert.equal(howToPlay(basketball).twoPlayer, true);       // "2 Player" tag
+    assert.equal(howToPlay({ title: '2 Player Tennis', category: 'sports' }).twoPlayer, true);
+    assert.equal(howToPlay(vex).twoPlayer, false);
+  });
+
+  test('the rendered block hedges in plain words rather than claiming exact keys', () => {
+    const html = howToPlayHtml({ title: 'Turbo Racer', category: 'racing' });
+    assert.match(html, /How to play Turbo Racer/);
+    assert.match(html, /vary from game to game|usually work/i);   // the honest hedge
+    assert.match(html, /<strong>Controls:<\/strong>/);
+    assert.match(html, /<strong>Goal:<\/strong>/);
+  });
+
+  test('two-player games show the WASD / arrow-keys split; solo games do not', () => {
+    assert.match(howToPlayHtml(basketball), /Two players:/);
+    assert.doesNotMatch(howToPlayHtml(vex), /Two players:/);
+  });
+
+  test('a malicious title cannot break out of the markup', () => {
+    const html = howToPlayHtml({ title: '<img src=x onerror=alert(1)>', category: 'arcade' });
+    assert.doesNotMatch(html, /<img[^>]*onerror/i);
+    assert.doesNotMatch(html, /<script/i);
+  });
+
+  test('the how-to-play block is part of the main description section', () => {
+    const html = descriptionSectionHtml(basketball);
+    assert.match(html, /class="game-about"/);
+    assert.match(html, /class="game-howto"/);
+    assert.match(html, /How to play Basketball Random/);
+  });
+
+  test('seoPayload carries the structured howToPlay too', () => {
+    const p = seoPayload(vex, { origin: 'https://zofhub.com' });
+    assert.ok(p.howToPlay && p.howToPlay.controls && p.howToPlay.objective);
+    assert.match(p.descriptionHtml, /game-howto/);
   });
 });
