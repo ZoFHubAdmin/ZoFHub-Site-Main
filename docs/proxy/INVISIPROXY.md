@@ -34,7 +34,7 @@ exactly the primitives ZoFHub already integrates directly:
 | Scramjet | `2.0.67-alpha.2` | `^1.1.0` |
 | bare-mux | `^2.1.9` | `^2.1.9` |
 | epoxy-transport | `^3.0.1` | `^2.1.28` |
-| Wisp server | `mrrowisp ^3.1.6` | `@mercuryworkshop/wisp-js ^0.4.1` |
+| Wisp server | `mrrowisp ^3.1.6` | `@mercuryworkshop/wisp-js ^0.5.0` |
 | HTTP framework | Fastify 5 | Express 4 |
 
 Importing it would not add a capability. It would add a second implementation of

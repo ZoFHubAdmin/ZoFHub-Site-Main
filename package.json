@@ -85,7 +85,7 @@
     "@mercuryworkshop/epoxy-transport": "^2.1.20",
     "@mercuryworkshop/libcurl-transport": "^2.0.5",
     "@mercuryworkshop/scramjet": "^1.1.0",
-    "@mercuryworkshop/wisp-js": "^0.4.1",
+    "@mercuryworkshop/wisp-js": "^0.5.0",
     "@supabase/supabase-js": "^2.108.1",
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
     "ai": "^7.0.126",
