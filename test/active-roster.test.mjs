@@ -1,8 +1,14 @@
-// The active-games roster: "show 100 now, grow +30 every 36h".
+// The active-games roster: "serve exactly N games, and never grow on your own".
+//
+// The semantics here REVERSED: the cap used to be a floor so a grow job could
+// push the roster past it. It is now a hard ceiling, and the grow helper is
+// gone. The test named for the 129-slug roster is the regression that matters —
+// that is the state this machine was actually found in.
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
+import * as roster from '../lib/active-roster.mjs';
 import {
-  normalizeRoster, poolSlugs, reconcileRoster, growRoster, selectActive,
+  normalizeRoster, poolSlugs, reconcileRoster, selectActive,
 } from '../lib/active-roster.mjs';
 
 const game = (slug) => ({ slug, title: slug });
@@ -10,7 +16,7 @@ const pool = (n, prefix = 'g') => Array.from({ length: n }, (_, i) => game(`${pr
 
 describe('normalizeRoster', () => {
   test('coerces junk into a well-formed roster', () => {
-    assert.deepEqual(normalizeRoster(null), { cap: null, slugs: [], updatedAt: null, lastGrowAt: null });
+    assert.deepEqual(normalizeRoster(null), { cap: null, slugs: [], updatedAt: null });
     const r = normalizeRoster({ cap: 100, slugs: ['A', 'a', ' b ', '', 3], updatedAt: 'x' });
     assert.equal(r.cap, 100);
     assert.deepEqual(r.slugs, ['a', 'b', '3']); // lowercased, trimmed, deduped, dropped empty
@@ -49,8 +55,8 @@ describe('selectActive — the cap', () => {
   });
 });
 
-describe('reconcileRoster — stability is the whole point', () => {
-  test('an existing roster is preserved, only filled up to the floor', () => {
+describe('reconcileRoster — stability, under a hard ceiling', () => {
+  test('an existing roster is preserved, and filled up to the target', () => {
     const slugs = poolSlugs(pool(1000));
     const r = reconcileRoster(slugs, ['g-900', 'g-901'], 5);
     // the two chosen stay, and are filled to 5 from the front of the pool
@@ -65,51 +71,61 @@ describe('reconcileRoster — stability is the whole point', () => {
     assert.equal(r.slugs.length, 3);
   });
 
-  test('a roster already ABOVE the floor keeps all of it (floor, not ceiling)', () => {
-    const slugs = poolSlugs(pool(1000));
-    const existing = slugs.slice(0, 130);          // grown past 100
-    const r = reconcileRoster(slugs, existing, 100);
-    assert.equal(r.slugs.length, 130);             // not truncated back to 100
-  });
-
   test('the reconciled set never exceeds the pool', () => {
     const r = reconcileRoster(poolSlugs(pool(7)), [], 100);
     assert.equal(r.slugs.length, 7);
   });
+
+  // ── The reversal, stated as a test ──────────────────────────────────────
+  test('a roster OVER the target is truncated back to it (ceiling, not floor)', () => {
+    const slugs = poolSlugs(pool(1000));
+    const existing = slugs.slice(0, 130);          // as the retired grow job left it
+    const r = reconcileRoster(slugs, existing, 100);
+    assert.equal(r.slugs.length, 100);             // truncated, not kept at 130
+  });
+
+  test('truncation keeps the FRONT of the roster, so the original set survives', () => {
+    const slugs = poolSlugs(pool(500));
+    const seeded = slugs.slice(0, 100);                       // the intended 100
+    const grown = [...seeded, ...slugs.slice(100, 129)];      // +29 the job appended
+    const r = reconcileRoster(slugs, grown, 100);
+    assert.deepEqual(r.slugs, seeded, 'the originally-seeded 100 are exactly what is left');
+  });
 });
 
-describe('growRoster — the +30 every 36h job', () => {
-  test('adds exactly N new games from the pool', () => {
-    const slugs = poolSlugs(pool(1000));
-    const start = slugs.slice(0, 100);
-    const r = growRoster(slugs, start, 30);
-    assert.equal(r.added, 30);
-    assert.equal(r.slugs.length, 130);
-    // the new ones are the next unused pool entries, order preserved
-    assert.deepEqual(r.slugs.slice(100), slugs.slice(100, 130));
+describe('the 129-game roster this machine was found with', () => {
+  // data/active-roster.json held 129 slugs while every surface claimed 100,
+  // because selectActive could not shrink a roster. It can now.
+  test('a 129-slug roster serves exactly 100 games under a cap of 100', () => {
+    const p = pool(5000);
+    const over = { slugs: poolSlugs(p).slice(0, 129) };
+    const r = selectActive(p, over, 100);
+    assert.equal(r.games.length, 100);
+    assert.equal(r.roster.slugs.length, 100, 'and the persisted roster is corrected too');
   });
 
-  test('is idempotent once the pool is exhausted', () => {
-    const slugs = poolSlugs(pool(20));
-    const full = [...slugs];
-    const r = growRoster(slugs, full, 30);
-    assert.equal(r.added, 0);
-    assert.equal(r.slugs.length, 20);
+  test('re-selecting is idempotent — it settles at 100 and stays there', () => {
+    const p = pool(5000);
+    let r = selectActive(p, { slugs: poolSlugs(p).slice(0, 129) }, 100);
+    const first = r.roster.slugs;
+    r = selectActive(p, r.roster, 100);
+    assert.deepEqual(r.roster.slugs, first);
+    assert.equal(r.games.length, 100);
+  });
+});
+
+describe('the growth machinery is GONE, not merely unscheduled', () => {
+  test('growRoster is no longer exported — there is nothing to re-wire', () => {
+    assert.equal(roster.growRoster, undefined);
+    assert.equal(roster.default.growRoster, undefined);
   });
 
-  test('never duplicates a slug already in the roster', () => {
-    const slugs = poolSlugs(pool(50));
-    const r = growRoster(slugs, ['g-5', 'g-6'], 10);
-    assert.equal(new Set(r.slugs).size, r.slugs.length);
-    assert.ok(r.slugs.includes('g-5') && r.slugs.includes('g-6'));
-  });
-
-  test('promoting grows the ACTIVE set on the next selectActive', () => {
-    const p = pool(1000);
-    const seeded = selectActive(p, { slugs: [] }, 100);
-    assert.equal(seeded.games.length, 100);
-    const grown = growRoster(poolSlugs(p), seeded.roster.slugs, 30);
-    const after = selectActive(p, grown, 100);
-    assert.equal(after.games.length, 130);   // 100 → 130 after one grow cycle
+  test('a repeated selectActive can never increase the served count', () => {
+    const p = pool(2000);
+    let r = selectActive(p, { slugs: [] }, 100);
+    for (let i = 0; i < 25; i++) {
+      r = selectActive(p, r.roster, 100);
+      assert.equal(r.games.length, 100, `grew on pass ${i}`);
+    }
   });
 });

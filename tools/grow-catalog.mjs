@@ -1,15 +1,20 @@
 // tools/grow-catalog.mjs
 //
-// Manually run ONE catalog-grow cycle — the same code the 3-day (72-hour) cron uses.
-// Every game it adds is render-verified (liveness + framing + soft-404 +
-// trusted host + not-a-fake-hash) so it can't introduce a black screen.
+// Manually run ONE catalog-grow cycle. Every game it adds is render-verified
+// (liveness + framing + soft-404 + trusted host + not-a-fake-hash) so it can't
+// introduce a black screen.
+//
+// THE CATALOG IS FROZEN at its baseline, and this is the operator path past that
+// freeze — so writing REQUIRES --confirm. There is no longer a cron behind this
+// code: the 36-hour 'grow' job was removed, and growCatalogOnce() refuses any
+// unconfirmed non-dry-run write at the point of the write (lib/cron-jobs.mjs).
 //
 // Usage:
-//   npm run grow                 # add up to 40 verified games to Supabase
 //   node tools/grow-catalog.mjs --dry-run        # verify only, write nothing
-//   node tools/grow-catalog.mjs --target=10      # add up to 10
+//   npm run grow -- --confirm                    # actually add verified games
+//   node tools/grow-catalog.mjs --confirm --target=10
 //
-// Unlike the cron, the CLI ignores the 3-day gate — it always runs now.
+// `npm run grow` with no --confirm is a no-op that explains itself.
 
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -28,13 +33,21 @@ for (const f of ['.env', '.env.example']) {
 }
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const CONFIRM = process.argv.includes('--confirm');
 const targetArg = process.argv.find(a => a.startsWith('--target='));
 const target = targetArg ? Math.max(1, parseInt(targetArg.split('=')[1]) || 0) : undefined;
 
 const { growCatalogOnce } = await import('../lib/cron-jobs.mjs');
 
-console.log(`[grow] starting ${DRY_RUN ? 'DRY RUN' : 'LIVE'}${target ? ` (target=${target})` : ''}…`);
-const stats = await growCatalogOnce({ dryRun: DRY_RUN, target });
+console.log(`[grow] starting ${DRY_RUN ? 'DRY RUN' : (CONFIRM ? 'LIVE (confirmed)' : 'LIVE')}${target ? ` (target=${target})` : ''}…`);
+const stats = await growCatalogOnce({ dryRun: DRY_RUN, target, confirm: CONFIRM });
+
+if (stats.refused) {
+  console.log('\n[grow] REFUSED — the catalog is frozen at its baseline.');
+  console.log('  Nothing was written. Re-run with --confirm to add games deliberately,');
+  console.log('  or with --dry-run to inspect the candidate pool.');
+  process.exit(0);
+}
 
 console.log('\n[grow] summary:');
 console.log(`  candidate pool : ${stats.pool}`);
