@@ -179,18 +179,21 @@ The client half matches: `IS_LOCAL` in `pollinations.js` gates the text fallback
 
 **What this buys you:** no AI compute or bandwidth on your host, no shared rate-limit pool (each visitor uses their own IP), and prompts that are never observable server-side.
 
-### A choice of provider — all browser-direct
+### One provider — browser-direct, text only
 
-The default AI is Pollinations, but the AI page lets a visitor pick a provider in
-**AI settings**: Pollinations (free, keyless), **Puter.js**, or **Hugging Face**.
-**Nothing is forced** — the default stays free, and an explicit choice never
-silently spends another provider's quota. [`public/js/puter-ai.js`](../public/js/puter-ai.js)
-adds Puter as one more opt-in adapter, loaded browser-direct from `js.puter.com`
-and billed to the visitor's **own** Puter account; it is honest about cost
-(paid models are labelled from `listModels()` and never flattened to "free") and
-defaults to no explicit model so Puter uses its own free tier. Like the
-Pollinations and Hugging Face paths, Puter never touches a ZoFHub endpoint, so the
-server-side guard above is **unaffected by design**. Full detail:
+The AI is **Pollinations' anonymous free tier**, called straight from the
+visitor's browser, and nothing else. There is no provider picker: the Puter.js
+and Hugging Face adapters and the AI-settings panel were removed, along with AI
+image generation.
+
+Why this endpoint and not the current documented one: `gen.pollinations.ai`
+requires `Authorization: Bearer sk_…`, and an `sk_` key is a server secret that
+cannot be shipped to a browser — using it would mean either leaking the secret or
+relaying every prompt through this server. The keyless anonymous tier on
+`text.pollinations.ai` is the only genuinely free browser-direct option, and
+model eligibility is **discovered** from the provider's own `tier` field rather
+than assumed, so an unknown-cost model stays disabled. Full detail, including
+what was probed and when:
 [AI-ARCHITECTURE.md](features/AI-ARCHITECTURE.md).
 
 ### The server refuses to fetch AI providers for a caller

@@ -164,17 +164,10 @@ describe('network telemetry and AI training data stay separate systems', () => {
     }
   });
 
-  test('the AI provider is NOT routed through the proxy, and that is deliberate', () => {
-    // Proxying Hugging Face would put the visitor's own hf_ token inside
-    // ZoFHub's tunnel, breaking the guarantee asserted elsewhere that the token
-    // never reaches a ZoFHub endpoint. "Use the proxy only where there is a
-    // clear architectural reason" cuts against it here.
-    const hf = read('public/js/hf-inference.js');
-    for (const proxied of ['/wisp/', 'BareMux', 'baremux', '/epoxy/', '__uv$config', 'scramjet']) {
-      assert.ok(!hf.includes(proxied),
-        `hf-inference.js routes through ${proxied} — the user's token would enter our tunnel`);
-    }
-  });
+    // A test here asserted that public/js/hf-inference.js never routed the
+    // visitor's Hugging Face token through our tunnel. Hugging Face is no
+    // longer an AI provider and that file is deleted, so there is no token to
+    // protect and nothing left to assert.
 });
 
 describe('advertising can never attach to it', () => {

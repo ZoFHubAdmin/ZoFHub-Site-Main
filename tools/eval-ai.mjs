@@ -21,7 +21,6 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scoreCase, summarise, comparison } from '../lib/ai-eval.mjs';
-import { resolveHfModel } from '../public/js/hf-models.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SET_PATH = join(ROOT, 'data', 'ai-eval-set.json');
@@ -70,7 +69,7 @@ async function askHuggingFace(messages, model) {
   const { chatCompletion } = await import('@huggingface/inference');
   const r = await chatCompletion({
     accessToken: token,
-    model: resolveHfModel(model),
+    model,
     messages,
     max_tokens: 400,
     temperature: 0.7,
@@ -85,7 +84,7 @@ const ask = (messages) => (PROVIDER === 'huggingface'
 // ── Run ────────────────────────────────────────────────────────────────────
 const suite = JSON.parse(readFileSync(SET_PATH, 'utf8'));
 const sys = systemPrompt();
-const runKey = PROVIDER === 'huggingface' ? `huggingface:${resolveHfModel(MODEL)}` : 'pollinations:openai-fast';
+const runKey = 'pollinations:openai-fast';   // the only provider left
 
 console.log(`eval set ${suite.version} · ${suite.cases.length} cases · ${runKey}\n`);
 

@@ -55,49 +55,14 @@
       <div class="ai-side-foot">
         <div class="ai-engine-status" id="aiEngineStatus">Connecting to AI…</div>
 
-        <!-- Optional second AI provider. Collapsed by default: the AI works
-             without it, and most people should never need to open this. -->
-        <details class="ai-settings" id="aiSettings">
-          <summary>AI settings</summary>
-          <div class="ai-settings-body">
-            <label class="ai-settings-label" for="aiProvider">AI provider</label>
-            <select id="aiProvider">
-              <option value="auto">Automatic — free (recommended)</option>
-              <option value="pollinations">Pollinations — free</option>
-              <option value="puter">Puter.js — your Puter account</option>
-              <option value="huggingface">Hugging Face — your token</option>
-            </select>
-            <p class="ai-settings-note" id="aiProviderNote" role="status"></p>
+        <!-- The AI provider picker, the Puter model select and the Hugging Face
+             token field used to live here. The site now uses ONE provider
+             (Pollinations, anonymous free tier, text only), so there is nothing
+             left to configure — and a settings panel offering a choice nobody
+             had a basis for making was worse than no panel.
 
-            <!-- Puter model picker — shown only when Puter is the chosen provider.
-                 Populated live from puter.ai.listModels(); each option shows its
-                 cost, and the default sends no model so Puter picks its free tier. -->
-            <div class="ai-puter" id="aiPuter" hidden>
-              <label class="ai-settings-label" for="aiPuterModel">Puter model</label>
-              <select id="aiPuterModel"><option value="">Puter default (free tier)</option></select>
-            </div>
-
-            <p class="ai-settings-note">
-              The Hugging Face option below uses a free token for a faster, more
-              reliable AI. It is stored <strong>only in this browser</strong> and
-              sent straight to Hugging Face — it never reaches our servers.
-            </p>
-            <label class="ai-settings-label" for="aiHfToken">Hugging Face token</label>
-            <input id="aiHfToken" type="password" autocomplete="off" spellcheck="false"
-                   placeholder="hf_…" aria-describedby="aiHfState" />
-            <label class="ai-settings-label" for="aiHfModel">Model</label>
-            <select id="aiHfModel"></select>
-            <div class="ai-settings-actions">
-              <button type="button" id="aiHfSave" class="ai-settings-btn primary">Save</button>
-              <button type="button" id="aiHfClear" class="ai-settings-btn">Remove</button>
-            </div>
-            <div class="ai-settings-state" id="aiHfState" role="status">Not set — using the default AI.</div>
-            <p class="ai-settings-note">
-              <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer">
-                Get a free token ↗</a> · a read token is enough.
-            </p>
-          </div>
-        </details>
+             The honesty notice this warrants lives under the composer instead,
+             where it is read at the moment of use. -->
       </div>
     </aside>
 
@@ -106,10 +71,9 @@
         <div class="ai-welcome">
           <div class="ai-welcome-mark"></div>
           <h1>ZoFHub AI</h1>
-          <p>Ask anything — homework help, brainstorming, writing, code. Free &amp; unlimited.</p>
+          <p>Ask anything — homework help, brainstorming, writing, code. Free to use.</p>
           <div class="ai-suggest">
             <button class="ai-suggest-card" data-prompt="Explain photosynthesis like I'm 10."><b>Explain</b><span>Photosynthesis, but simple</span></button>
-            <button class="ai-suggest-card" data-prompt="/image a neon space cat surfing a comet"><b>/image</b><span>Generate a picture</span></button>
             <button class="ai-suggest-card" data-prompt="Give me 5 fun game ideas to try on ZoFHub."><b>Ideas</b><span>What should I play?</span></button>
             <button class="ai-suggest-card" data-prompt="Write a JavaScript function that shuffles an array."><b>Code</b><span>Write some code</span></button>
           </div>
@@ -123,7 +87,10 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
         </button>
       </form>
-      <div class="ai-hint">Enter to send · Shift+Enter for newline · <b>/image</b> draw a picture · free &amp; unlimited</div>
+      <!-- No /image hint: AI image generation was removed. No "free &amp; unlimited"
+           either — the free tier is rate-limited, so claiming otherwise was simply
+           untrue. -->
+      <div class="ai-hint">Enter to send · Shift+Enter for newline</div>
       <!-- Sits directly under the composer, so it is read at the moment of use
            rather than buried in a footer nobody scrolls to. role="note" keeps it
            out of the live-region chatter as replies stream in. -->
@@ -131,8 +98,9 @@
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
              stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-        AI can make mistakes — including about games, people and dates.
-        Verify anything important; do not treat answers as fact.
+        AI responses may be inaccurate, incomplete, unavailable, or limited by the
+        provider's free tier. Verify important information. Avoid entering
+        passwords, private personal information, or other sensitive data.
       </p>
     </section>
   </main>
@@ -144,8 +112,6 @@
 
   <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>
-  <script type="module" src="/js/ai.js?v=20260720"></script>
-  <script type="module" src="/js/ai-provider.js?v=20261001"></script>
-  <script type="module" src="/js/ai-settings.js?v=20260921"></script>
+  <script type="module" src="/js/ai.js?v=20261015"></script>
 </body>
 </html>

@@ -253,10 +253,10 @@ const { normalizeEmail, isPlausibleEmail } = await import('./lib/subscribe.mjs')
 // Feedback routing + redaction. Pure module: no DB, no network, so the rules
 // that decide what may ever become training data are unit-testable.
 const { prepareFeedbackRecord } = await import('./lib/ai-feedback.mjs');
-// The model catalogue is shared with the browser (served at /js/hf-models.js),
-// so the allow-list the server validates against and the menu the UI shows can
-// never drift apart.
-const { hfCatalogue } = await import('./public/js/hf-models.js');
+// hfCatalogue() was imported here from public/js/hf-models.js, which is gone:
+// Hugging Face is no longer an AI provider on this site. The AI is text-only and
+// single-provider (Pollinations' anonymous free tier), so there is no second
+// catalogue to keep in step with a UI menu that no longer exists.
 const { loadSimilarityIndex, recommend: recommendGames, indexSize: simIndexSize, neighbours: simNeighbours } =
   await import('./lib/recommender.mjs');
 // Loads data/game-similarity.json once, at boot. Missing file is fine — the
@@ -1497,11 +1497,9 @@ const CSP_DIRECTIVES = {
     // even on browsers that no longer accept plain 'unsafe-eval' for wasm.
     "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
-    // Puter.js — an OPT-IN, user-chosen AI provider on /ai (public/js/puter-ai.js).
-    // Loaded browser-direct and billed to the visitor's own Puter account; it
-    // never touches a ZoFHub endpoint, so the server AI guard is unaffected.
-    // connect-src already permits https: for its API calls; this lets the SDK load.
-    'https://js.puter.com',
+    // https://js.puter.com was allowed here for the Puter.js AI provider. That
+    // provider was removed, so the origin is removed with it — a CSP allowance
+    // for a script nobody loads is pure attack surface.
     // ── NO GOOGLE AD STACK HERE. THIS IS THE LAST LAYER. ────────────────────
     // googlesyndication / googletagmanager / googleadservices / doubleclick are
     // deliberately ABSENT. Every other layer already refuses to emit Google ad
@@ -2170,25 +2168,16 @@ for (const [alias, target] of Object.entries(LEGAL_ALIASES)) {
   app.get(alias, (req, res) => res.redirect(301, target));
 }
 
-// ── /hf/ — the Hugging Face inference client, served from OUR origin ───────
-// public/js/ai.js used to reach @huggingface/transformers over cdn.jsdelivr.net.
-// For this audience that is the wrong dependency to have: ZoFHub exists because
-// school networks block things, and a filtered CDN turns the AI fallback into a
-// blank screen at exactly the moment the primary provider is also unreachable.
-// Serving the module from the same origin the page came from means it is
-// reachable whenever the site itself is.
+// ── /hf/ — REMOVED (was the Hugging Face inference client) ─────────────────
+// The /hf/ mount served @huggingface/inference's ESM build from this origin, so
+// the Hugging Face provider kept working on networks that filter cdn.jsdelivr.net.
+// That provider is gone, and the dependency with it, so the mount is removed.
 //
-// This is the ESM build, which was checked to reference no Node builtins, so it
-// runs unmodified in a browser. It is a static file mount: no request from a
-// visitor is proxied to Hugging Face by this server, and no token passes
-// through here — see lib/hf-models.mjs for why the token stays client-side.
-app.use('/hf/', express.static(join(__dirname, 'node_modules', '@huggingface', 'inference', 'dist', 'esm'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
-  index: false,
-  setHeaders: (res, p) => {
-    if (p.endsWith('.js')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
-  },
-}));
+// NOTE, because the two are easy to confuse: this was @huggingface/INFERENCE (a
+// network API client). The OFFLINE fallback in public/js/ai.js uses
+// @huggingface/TRANSFORMERS from cdn.jsdelivr.net and is untouched — it is what
+// answers when the device has no working network at all, and it runs entirely
+// on-device.
 
 app.use(express.static(PUBLIC_DIR, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
@@ -2664,21 +2653,17 @@ app.get('/api/ai/health', (req, res) => {
 
 app.get('/api/ai/providers', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  // The Hugging Face catalogue is published on BOTH paths, unlike the
-  // server-side provider list. It describes models the USER'S BROWSER may call
-  // with the USER'S OWN token — there is no server inference behind it and no
-  // credential in it, so withholding it in production would hide a menu while
-  // protecting nothing. It is how the AI page discovers models instead of
-  // hard-coding one (see lib/hf-models.mjs).
-  const huggingface = hfCatalogue();
+  // The `huggingface` catalogue used to be published here on both paths. Hugging
+  // Face is no longer a provider, so it is gone; the browser now discovers its
+  // (text-only, free-tier) models straight from the provider — see
+  // freeTextModels() in public/js/pollinations.js.
   if (!aiServerAllowed(req) && !adminAuthorized(req)) {
     return res.json({
       mode: 'client-side', serverInference: false,
       text: [], image: [], web_search: [],
-      huggingface,
     });
   }
-  res.json({ ...publicProviderList(), huggingface });
+  res.json(publicProviderList());
 });
 
 // Hands the browser the PUBLISHABLE Pollinations key (pk_) so the AI runs
@@ -2944,7 +2929,7 @@ ${prompt}
 // hardcoded MODEL_FALLBACKS so generation (and the whole site) never breaks.
 // Cached for 30 min and only hit on AI requests, so page/game loads are never
 // blocked by it.
-let _modelCache = { text: MODEL_FALLBACKS.text, image: MODEL_FALLBACKS.image, at: 0 };
+let _modelCache = { text: MODEL_FALLBACKS.text, at: 0 };
 const MODEL_TTL_MS = 30 * 60 * 1000;
 function extractModelNames(data) {
   const arr = Array.isArray(data) ? data : (Array.isArray(data?.models) ? data.models : []);
@@ -2965,15 +2950,14 @@ function pickModel(names, preferred, fallback) {
 }
 async function resolveModels() {
   if (Date.now() - _modelCache.at < MODEL_TTL_MS) return _modelCache;
-  const next = { text: MODEL_FALLBACKS.text, image: MODEL_FALLBACKS.image, at: Date.now() };
+  const next = { text: MODEL_FALLBACKS.text, at: Date.now() };
   try {
     const r = await aiFetch('https://text.pollinations.ai/models', { timeoutMs: 6000, headers: pollinationsHeaders() });
     if (r.ok) { const n = extractModelNames(await r.json()); if (n.length) next.text = pickModel(n, ['openai', 'openai-fast'], MODEL_FALLBACKS.text); }
   } catch { /* keep fallback */ }
-  try {
-    const r = await aiFetch('https://image.pollinations.ai/models', { timeoutMs: 6000, headers: pollinationsHeaders() });
-    if (r.ok) { const n = extractModelNames(await r.json()); if (n.length) next.image = pickModel(n, ['flux'], MODEL_FALLBACKS.image); }
-  } catch { /* keep fallback */ }
+  // The image-model lookup against image.pollinations.ai/models was removed with
+  // AI image generation. This whole function only ever serves the dev-only
+  // /api/ai/text route, which answers 403 in production.
   _modelCache = next;
   return next;
 }
@@ -3263,42 +3247,16 @@ app.post('/api/ai/text', async (req, res) => {
   }
 });
 
-// GET /api/ai/image?prompt=...&seed=... → STREAMS the generated image THROUGH
-// our server (masked). The browser only ever connects to our own origin over
-// TLS, so it never contacts image.pollinations.ai directly — a network/firewall
-// that blocks Pollinations can't see or block it, and the upstream token/referrer
-// stay server-side. Cached hard so re-viewing a generated image never regenerates.
-app.get('/api/ai/image', async (req, res) => {
-  // This route PIPES THE GENERATED IMAGE BYTES through this server, which is
-  // exactly the traffic that is supposed to stay on the visitor's device — so it
-  // is gated like /api/ai/text. In production the browser uses the direct
-  // image.pollinations.ai URL (an <img> sends no Origin, so Turnstile never
-  // applies) and this never runs.
-  if (!aiServerAllowed(req)) return refuseServerAi(res);
-  usage.noteAiRequest('image');
-  const prompt = (req.query.prompt || '').toString().slice(0, 1000).trim();
-  if (!prompt) { res.setHeader('Cache-Control', 'no-store'); return res.status(400).json({ error: 'missing prompt' }); }
-  // Per-user throttle (their own IP) so one client can't spam image gen.
-  if (!ipAllow(req.ip || 'unknown')) { res.setHeader('Cache-Control', 'no-store'); return res.status(429).json({ error: 'rate_limited', retryAfter: 4 }); }
-  // Stable seed per prompt (unless supplied) so the same prompt → cacheable image.
-  let seed = parseInt(req.query.seed, 10);
-  if (!Number.isFinite(seed)) seed = parseInt(createHash('sha1').update(prompt).digest('hex').slice(0, 8), 16);
-  const { image: imageModel } = await resolveModels();
-  const upstream = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&nologo=true&model=${encodeURIComponent(imageModel)}&seed=${seed}&referrer=${encodeURIComponent(POLLINATIONS_REFERRER)}`;
-  try {
-    // 60s — image generation can be slow. aiFetch clears its timeout once the
-    // response headers arrive, so the streamed body isn't cut off mid-transfer.
-    const r = await aiFetch(upstream, { timeoutMs: 60_000, headers: pollinationsHeaders({ Accept: 'image/*' }) });
-    if (!r.ok || !r.body) { res.setHeader('Cache-Control', 'no-store'); return res.status(502).json({ error: 'upstream ' + r.status }); }
-    res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, immutable');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    Readable.fromWeb(r.body).pipe(res);
-  } catch (e) {
-    res.setHeader('Cache-Control', 'no-store');
-    res.status(504).json({ error: 'image proxy failed' });
-  }
-});
+// AI IMAGE GENERATION: ROUTE REMOVED.
+//
+// GET /api/ai/image used to stream generated image bytes from
+// image.pollinations.ai through this server. AI image generation is no longer a
+// product feature, so the route is gone rather than left gated — the client that
+// called it (public/js/ai.js handleImage) is gone too, and so is the image-model
+// lookup in resolveModels().
+//
+// Ordinary site imagery is unrelated and untouched: game thumbnails are served
+// by /thumb and the static mounts, and no other route generated an image.
 
 // GET /api/ai/audio?prompt=...&voice=nova → { url }. Text-to-speech via
 // Pollinations' openai-audio model (free, keyless — verified working). The

@@ -12,10 +12,10 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scoreCase, summarise, comparison, CRITICAL_CATEGORIES } from '../lib/ai-eval.mjs';
-import {
-  HF_TEXT_MODELS, HF_DEFAULT_MODEL, isAllowedHfModel, resolveHfModel,
-  hfFailoverOrder, hfCatalogue, looksLikeHfToken,
-} from '../public/js/hf-models.js';
+// The Hugging Face model-catalogue tests were removed with the provider: the
+// AI is text-only and single-provider now, so public/js/hf-models.js no longer
+// exists. The promotion-gate tests below never depended on a provider — that was
+// the point of keeping lib/ai-eval.mjs pure — so they are untouched.
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -142,58 +142,6 @@ describe('the eval set is internally sound', () => {
   test('safety and factuality are represented', () => {
     for (const cat of CRITICAL_CATEGORIES) {
       assert.ok(suite.cases.some((c) => c.category === cat), `no ${cat} case`);
-    }
-  });
-});
-
-describe('the Hugging Face catalogue is an allow-list', () => {
-  test('an unknown model id is refused, not passed through', () => {
-    // The id arrives from the browser. Accepting an arbitrary one would let a
-    // visitor point the feature at any repository on the Hub.
-    for (const bad of ['evil/backdoor', '../../etc/passwd', '', null, 'meta-llama/Llama-3.1-8B-Instruct-uncensored']) {
-      assert.equal(isAllowedHfModel(bad), false, `accepted ${bad}`);
-      assert.equal(resolveHfModel(bad), HF_DEFAULT_MODEL, 'did not fall back to the default');
-    }
-  });
-
-  test('the default is in the catalogue', () => {
-    assert.equal(isAllowedHfModel(HF_DEFAULT_MODEL), true);
-  });
-
-  test('every listed model records at least one verified provider', () => {
-    // Each entry was checked against the live Hub. A model with no provider is
-    // a menu entry that fails at request time — SmolLM3-3B was excluded for
-    // exactly this reason.
-    for (const m of HF_TEXT_MODELS) {
-      assert.ok(Array.isArray(m.providers) && m.providers.length > 0, `${m.id} has no providers`);
-      assert.ok(m.label && m.good_for, `${m.id} is not described`);
-    }
-  });
-
-  test('failover prefers models with more independent providers', () => {
-    const order = hfFailoverOrder('Qwen/Qwen2.5-7B-Instruct');
-    assert.equal(order[0], 'Qwen/Qwen2.5-7B-Instruct', 'an explicit choice must come first');
-    const counts = order.slice(1).map((id) => HF_TEXT_MODELS.find((m) => m.id === id).providers.length);
-    assert.deepEqual(counts, [...counts].sort((a, b) => b - a),
-      'failover should fall back to the most widely served models first');
-  });
-
-  test('failover never lists a model twice', () => {
-    const order = hfFailoverOrder(HF_DEFAULT_MODEL);
-    assert.equal(new Set(order).size, order.length);
-  });
-
-  test('the public catalogue exposes no credentials and states the token rule', () => {
-    const cat = hfCatalogue();
-    assert.equal(cat.requiresUserToken, true, 'HF has no anonymous tier; the UI must say so');
-    assert.equal(cat.tokenStoredClientSideOnly, true);
-    assert.ok(!/hf_|secret|apiKey|token":/i.test(JSON.stringify(cat).replace(/"requiresUserToken"|"tokenStoredClientSideOnly"/g, '')));
-  });
-
-  test('token shape-check rejects the obvious mistakes', () => {
-    assert.equal(looksLikeHfToken('hf_' + 'a'.repeat(20)), true);
-    for (const bad of ['', 'hf_', 'sk-abcdefghijklmnop', 'hf_short', 'Bearer hf_aaaaaaaaaaaaaaaaaaaa', null]) {
-      assert.equal(looksLikeHfToken(bad), false, `accepted ${bad}`);
     }
   });
 });

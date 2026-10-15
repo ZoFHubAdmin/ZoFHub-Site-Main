@@ -1,20 +1,28 @@
 import { SYSTEM_PROMPT } from './ai-prompt.js';
-// ZoFHub · pollinations.js — CLIENT-SIDE AI, the simple keyless URL way.
+// ZoFHub · pollinations.js — THE ONE AI CLIENT. Text only, keyless, free tier.
 // ---------------------------------------------------------------------------
+// Every AI entry point on the site goes through this module: the /ai page
+// (public/js/ai.js) and the floating assistant (public/js/ai-helper.js). There
+// is deliberately no second implementation — the Hugging Face and Puter.js
+// providers, and AI image generation, were all removed.
+//
 // The prompt the user types is sent to a Pollinations WEB URL directly from the
 // visitor's browser, and the answer comes back on their end. NO API key, NO
-// login, NO pollen — using the endpoints that are still free & keyless:
+// login, NO pollen — using the endpoint that is still free & keyless:
 //   • Text:  GET/POST  https://text.pollinations.ai/…
-//   • Image: <img src>  https://image.pollinations.ai/prompt/…
-// (The newer gen.pollinations.ai/text and /image endpoints now REQUIRE a paid
-//  key — 401/402 — so we deliberately do NOT use them.)
+//
+// The CURRENT documented API (gen.pollinations.ai/v1/chat/completions) requires
+// `Authorization: Bearer sk_…`, and an sk_ key is a server secret that must
+// never reach a browser bundle — so it is deliberately not used. The full
+// evidence, including what was probed and when, is in the note by
+// freeTextModels() at the bottom of this file.
 //
 // One caveat we can't change: Pollinations' TEXT endpoint blocks BROWSER fetches
 // from http/localhost origins with a Cloudflare "Turnstile" 403 (it keys on the
 // Origin header). On a real https domain the keyless text URL works fine; on
 // localhost during development it doesn't, so there we fall back to this app's
-// own /api/ai/text (dev only). Images are unaffected — an <img> sends no Origin,
-// so image.pollinations.ai works on localhost and in production alike.
+// own /api/ai/text (DEV ONLY — IS_LOCAL is false on https, and the server route
+// answers 403 in production, so a visitor's prompt is never relayed through us).
 // If every network route fails, ai.js finishes with an on-device model, so the
 // chat is never fully dead.
 // ---------------------------------------------------------------------------
@@ -33,8 +41,10 @@ export const IS_LOCAL = typeof location !== 'undefined' && (
 
 const TEXT_POST = 'https://text.pollinations.ai/openai'; // OpenAI-compatible, streams
 const TEXT_GET  = 'https://text.pollinations.ai/';       // simple URL API: /<prompt>
-const IMG_DIRECT = 'https://image.pollinations.ai/prompt/';
 
+// The default, and the fallback when model discovery is unavailable. Verified
+// `tier:"anonymous"` on the live /models endpoint — see the note by
+// freeTextModels() below for why that field is what the free-only policy rests on.
 const MODEL     = 'openai-fast'; // keyless text model (GPT-OSS 20B reasoning)
 const REASONING = 'low';         // reasoning_effort:'low' → fast first token
 // Shared with ai.js and server.js — see public/js/ai-prompt.js. The three copies
@@ -152,6 +162,7 @@ async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
 // Streaming: browser → text.pollinations.ai/openai (keyless), token by token.
 async function textDirectStream(messages, { onToken, onStatus } = {}) {
   const key = await getPublishableKey();
+  const model = await freeModelName();          // free-only, discovered
   const postUrl = TEXT_POST + (key ? `?token=${encodeURIComponent(key)}&referrer=${encodeURIComponent(REFERRER)}` : '');
   const ctrl = new AbortController();
   let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
@@ -159,7 +170,7 @@ async function textDirectStream(messages, { onToken, onStatus } = {}) {
   try {
     const r = await fetch(postUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING, ...(key ? { token: key } : {}) }),
+      body: JSON.stringify({ model, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING, ...(key ? { token: key } : {}) }),
       signal: ctrl.signal,
     });
     if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
@@ -171,8 +182,12 @@ async function textDirectStream(messages, { onToken, onStatus } = {}) {
 async function textDirectGet(messages, { onToken, onStatus } = {}) {
   onStatus?.('Thinking…');
   const key = await getPublishableKey();
+  const model = await freeModelName();          // free-only, discovered
+  // encodeURIComponent on the prompt: the user's text is a PATH SEGMENT here, so
+  // spaces, punctuation, '#', '?' and non-ASCII must all be escaped or the URL
+  // silently means something else.
   const url = TEXT_GET + encodeURIComponent(flatten(messages))
-    + `?model=${encodeURIComponent(MODEL)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`
+    + `?model=${encodeURIComponent(model)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`
     + (key ? `&token=${encodeURIComponent(key)}` : '');
   const t = timed(GET_MS);
   try {
@@ -260,12 +275,100 @@ export async function pollTextPromptStream(prompt, opts) {
   return pollTextStream([{ role: 'system', content: SYSTEM }, { role: 'user', content: String(prompt).slice(0, 4000) }], opts);
 }
 
-// Images — loaded via <img src> straight from image.pollinations.ai (keyless; no
-// Origin header, so they work on localhost and in production, no key, no login).
-export function pollImageUrl(prompt, seed = Math.floor(Math.random() * 1e6), { w = 1024, h = 1024 } = {}) {
-  return `${IMG_DIRECT}${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}&referrer=${encodeURIComponent(REFERRER)}`;
+// ── AI IMAGE GENERATION WAS REMOVED ────────────────────────────────────────
+// pollImageUrl() and pollImageShieldUrl() used to build image.pollinations.ai
+// URLs for an <img src>. AI image generation is no longer a product feature, so
+// they are gone along with the /image command, the server's /api/ai/image route
+// and the image-model discovery. Ordinary site images are unaffected: they were
+// never generated.
+
+// ── FREE-ONLY MODEL DISCOVERY ──────────────────────────────────────────────
+// VERIFIED AGAINST THE LIVE API (2026-10-15), because the documentation and the
+// deployed service disagree and the difference decides whether this feature can
+// exist at all:
+//
+//   · The CURRENT documented API is POST https://gen.pollinations.ai/v1/chat/
+//     completions with `Authorization: Bearer <sk_…>`. Its own docs say "All
+//     generation requests require an API key". An sk_ key is a SERVER secret and
+//     may never be shipped in a browser bundle, so this endpoint is deliberately
+//     NOT used — there is no way to call it from a page without either leaking a
+//     secret or proxying every prompt through our server.
+//   · Legacy `pk_` publishable keys still exist but the docs say "Do not mint
+//     new ones", and they are capped at 1 pollen per IP per hour.
+//   · The ANONYMOUS tier on text.pollinations.ai is still live and keyless. All
+//     three of these returned 200 from a browser-like request with a production
+//     Origin header: GET /<prompt>, POST /openai, and GET /models.
+//
+// So: the anonymous tier is the only genuinely free, browser-direct, no-secret
+// option, and it is what this module uses.
+//
+// /models returns a `tier` field per model — currently a single entry,
+// `{"name":"openai-fast", "tier":"anonymous", …}`. That field is the evidence
+// the free-only policy needs, so eligibility is DISCOVERED rather than assumed:
+// a model counts as free only when its tier is explicitly one of FREE_TIERS and
+// it actually outputs text. An unknown tier stays DISABLED — "we could not
+// establish that this is free" must never render as "Free".
+const MODELS_URL = 'https://text.pollinations.ai/models';
+const FREE_TIERS = new Set(['anonymous']);
+const MODELS_TTL_MS = 30 * 60 * 1000;
+
+/** Is this /models entry a model we may use on the free tier? */
+export function isFreeTextModel(m) {
+  if (!m || typeof m !== 'object') return false;
+  if (typeof m.name !== 'string' || !m.name) return false;
+  // An explicitly known-free tier, and nothing else. A missing or unrecognised
+  // tier is "unknown cost", which is not the same as free.
+  if (!FREE_TIERS.has(String(m.tier || '').toLowerCase())) return false;
+  // Text in, text out. `output_modalities` is authoritative when present.
+  const out = Array.isArray(m.output_modalities) ? m.output_modalities.map(String) : null;
+  if (out && !out.includes('text')) return false;
+  const inp = Array.isArray(m.input_modalities) ? m.input_modalities.map(String) : null;
+  if (inp && !inp.includes('text')) return false;
+  return true;
 }
-export function pollImageShieldUrl(prompt, seed = 0) {
-  const s = seed || Math.floor(Math.random() * 1e6) + 1;
-  return `${IMG_DIRECT}${encodeURIComponent(prompt)}?nologo=true&seed=${s}&referrer=${encodeURIComponent(REFERRER)}`;
+
+let _modelsPromise = null;
+/**
+ * The free text models the provider currently offers, newest answer cached.
+ *
+ * Never throws and never blocks a send: on any failure it resolves to [] and the
+ * caller falls back to MODEL. Model discovery is a refinement, not a dependency
+ * — an outage of /models must not take the chat down with it.
+ */
+export function freeTextModels() {
+  if (_modelsPromise) return _modelsPromise;
+  _modelsPromise = (async () => {
+    try {
+      const t = timed(6000);
+      const r = await fetch(MODELS_URL, { signal: t.signal }).finally(() => t.clear());
+      if (!r.ok) return [];
+      const list = await r.json();
+      if (!Array.isArray(list)) return [];
+      return list.filter(isFreeTextModel).map((m) => ({
+        name: m.name,
+        description: typeof m.description === 'string' ? m.description : '',
+        tier: String(m.tier).toLowerCase(),
+        reasoning: m.reasoning === true,
+      }));
+    } catch { return []; }
+  })();
+  // Let a later send re-discover rather than trusting one answer forever.
+  setTimeout(() => { _modelsPromise = null; }, MODELS_TTL_MS);
+  return _modelsPromise;
+}
+
+/**
+ * The model to send, chosen from the discovered free set.
+ *
+ * MODEL ('openai-fast') is the default and is itself verified `tier:"anonymous"`.
+ * It is used when discovery returns nothing (offline, /models down) OR when the
+ * discovered set still contains it. If discovery succeeds and the default is NOT
+ * in the free set any more, the first discovered free model is used instead —
+ * which is how this survives the provider retiring a model without a deploy.
+ */
+export async function freeModelName() {
+  const free = await freeTextModels();
+  if (!free.length) return MODEL;
+  if (free.some((m) => m.name === MODEL)) return MODEL;
+  return free[0].name;
 }

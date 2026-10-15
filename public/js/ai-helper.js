@@ -7,7 +7,12 @@
 
 import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
-import { pollTextPromptStream } from './pollinations.js?v=20260729';
+// The version query MUST match the one in public/js/ai.js. A module specifier is
+// cache-keyed by its full URL, so two different ?v= values make the browser load
+// pollinations.js TWICE as two independent module instances — which means two
+// separate model-discovery caches and two publishable-key fetches on any page
+// that has both the chat and the orb.
+import { pollTextPromptStream } from './pollinations.js?v=20261015';
 
 // Called by layout.js's placeholder orb on FIRST interaction — this module and
 // pollinations.js are ~25KB together and most visitors never open the helper,

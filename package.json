@@ -79,8 +79,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@heyputer/puter.js": "^2.6.3",
-    "@huggingface/inference": "^4.13.30",
     "@mercuryworkshop/bare-mux": "^2.1.7",
     "@mercuryworkshop/epoxy-transport": "^2.1.20",
     "@mercuryworkshop/libcurl-transport": "^2.0.5",

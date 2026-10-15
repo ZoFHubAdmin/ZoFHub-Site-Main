@@ -1,122 +1,107 @@
-# The AI system: providers, feedback, evaluation
+# The AI system: one provider, text only
 
 > **Where the AI runs: in the visitor's browser.** ZoFHub's server performs no
-> model inference. `/api/ai/text`, `/api/ai/echo` and `/api/ai/image` return
-> **403 `client_side_only`** in production, and that is deliberate — the AI is
-> "free and unlimited" precisely because each request goes out on the visitor's
-> own connection and quota rather than through one shared server IP.
->
-> Everything below follows from that. It is why Hugging Face appears here as a
-> browser client and a set of offline operator tools, why **Puter.js** is a
-> browser-direct, user-chosen provider rather than a server relay, and **not** a
-> server-side inference stack of any kind. The AI page lets the visitor pick the
-> provider (Pollinations · Puter.js · Hugging Face); the default stays free and
-> nothing is forced.
+> model inference. `/api/ai/text` and `/api/ai/echo` return **403
+> `client_side_only`** in production, and that is deliberate — the AI is free
+> because each request goes out on the visitor's own connection and quota rather
+> than through one shared server IP.
 
 ---
 
-## 1. Why a second provider exists
+## 1. One provider, and what was removed
 
-The AI had exactly one text backend (Pollinations). Two measurements, taken from
-a production origin against the live endpoint, are why that changed:
+The AI used to host **four** implementations at once: Pollinations text,
+Pollinations image generation, Hugging Face (the visitor's own token) and
+Puter.js (the visitor's own account, billed to their credits). The AI page
+carried a provider picker asking visitors to choose between them.
 
-| Measurement | Result |
+That is gone. The AI is now **text-only, single-provider**:
+
+| Removed | What went with it |
 |---|---|
-| Streaming path, 12 sequential attempts | **6 returned an empty stream** |
-| Surviving GET fallback | 100% success, **p50 32.5s**, p95 43.9s |
-| Time-to-first-token (streaming) | 16.0s / 26.3s / 27.2s / 27.3s — **median ~26.6s** |
-| Eval run, 10 sequential requests | **7 returned HTTP 502** |
+| **AI image generation** | the `/image` `/img` `/draw` commands, `handleImage()`/`preloadImage()` and the image rendering branch in `public/js/ai.js`, `pollImageUrl()`/`pollImageShieldUrl()` in `public/js/pollinations.js`, the `GET /api/ai/image` route, the image-model lookup in `resolveModels()`, the `image` provider catalogue and the `flux` fallback in `lib/ai-providers.mjs`, and the `/image` suggestion card |
+| **Hugging Face** (`@huggingface/inference`) | `public/js/hf-inference.js`, `public/js/hf-models.js`, the `/hf/` same-origin mount, the `huggingface` field on `/api/ai/providers`, the token field in `public/ai.html`, the dependency |
+| **Puter.js** | `public/js/puter-ai.js`, `public/js/ai-provider.js`, the `https://js.puter.com` CSP `script-src` allowance, the model picker, the dependency |
+| **The provider picker** | `public/js/ai-settings.js` and the whole `<details class="ai-settings">` panel |
 
-Two distinct faults, both now addressed:
+**Ordinary site imagery is unrelated and untouched** — game thumbnails, the
+preroll and every other `<img>` were never generated.
 
-**The client was aborting working requests.** `FIRST_BYTE_MS` was `25000`, and
-the median time-to-first-token was ~26.6s. The browser gave up roughly a second
-before the model spoke, then waited ~32s for the slow fallback. It is now
-`45000` — clear of the observed p95 with headroom, and still under `GET_MS` so
-a hung stream leaves time for the fallback inside one send.
-(`public/js/pollinations.js`)
+Two things that look like the above but are **kept**:
 
-**One provider is one point of failure.** Hugging Face Inference Providers route
-a request across several independent companies, so a single outage is
-survivable. It is **opt-in** and changes nothing for a visitor who does not
-configure it.
+- **`@huggingface/transformers`** (Transformers.js) in `public/js/ai.js` — the
+  on-device offline fallback. It is a different package from
+  `@huggingface/inference`, runs entirely in the browser, and is what answers
+  when the device has no working network at all.
+- **`huggingface.co` in `lib/ai-hosts.mjs`** — that list is a **denylist** of
+  inference endpoints this server must never fetch on a caller's behalf.
+  Removing the entry would have *allowed* the proxy to reach Hugging Face, which
+  is the opposite of what the file is for.
 
 ---
 
-## 2. What is actually integrated, and what is not
+## 2. Which endpoint, and why — verified, not assumed
 
-Integration means the application executes the code. Anything else is a
-dependency pretending to be a feature.
+Checked against the live API on **2026-10-15**, because the documentation and the
+deployed service disagree, and the difference decides whether a keyless
+browser-direct AI can exist at all.
 
-### Integrated
-
-| Component | Where | Why |
-|---|---|---|
-| **`@huggingface/inference`** (huggingface.js) | `public/js/hf-inference.js`, served from `/hf/` | A real second text provider. Called from the browser with the user's own token. |
-| **`@huggingface/transformers`** (Transformers.js) | `public/js/ai.js` | Already present: SmolLM2-360M runs on-device when the network fails. Unchanged. |
-| **Puter.js** (`js.puter.com`, opt-in) | `public/js/puter-ai.js`; picker in `public/js/ai-provider.js` | A user-chosen third provider. Loaded **browser-direct** and billed to the visitor's **own** Puter account; honest about per-model cost (labels from `listModels()`, never a flat "free"), defaults to Puter's free tier, and never touches a ZoFHub endpoint — so the server guard is unaffected. |
-| **`datasets`** (Python) | `tools/curate-ai-dataset.py` | Dedup, quality filtering, fixed splits and per-split fingerprints for curated feedback. Operator-only. |
-
-### Deliberately NOT integrated
-
-These were evaluated against this codebase and excluded. Adding them would have
-produced imports with no execution path.
-
-| Component | Why not |
+| Endpoint | Result |
 |---|---|
-| **`transformers`** (Python) | There is no server-side inference path to host it. `/api/ai/*` is 403 in production by design, and `lib/vibe-engine.mjs` is a deterministic ranker over `data/game-attributes.json` — it calls no model. |
-| **`accelerate`** | Solves distributed/multi-GPU execution and mixed precision. This deploys as a single Node container on Render with no GPU and runs no training. |
-| **`optimum`** | Hardware-specific export and quantisation for Python model runtimes. Nothing here runs a Python model, so there is nothing to optimise. The browser path already uses ONNX + q4 via Transformers.js. |
-| **OpenEnv** | "An interface library for RL post training with environments." There is no RL loop, no policy, no rollout. |
+| `POST https://gen.pollinations.ai/v1/chat/completions` | **Requires `Authorization: Bearer sk_…`.** The docs state "All generation requests require an API key." |
+| Legacy `pk_` publishable keys | Still accepted, but the docs say *"Do not mint new ones"*; capped at 1 pollen per IP per hour |
+| `GET https://text.pollinations.ai/<prompt>` | **200, keyless** |
+| `POST https://text.pollinations.ai/openai` | **200, keyless**, OpenAI-compatible, streams |
+| `GET https://text.pollinations.ai/models` | **200, keyless** |
 
-If server-side inference is ever introduced, `optimum` and `accelerate` become
-relevant in that order. Today they would be ceremony.
+An `sk_` key is a **server secret** and may never be shipped in a browser
+bundle. So the modern documented endpoint is deliberately **not** used: calling
+it from a page would mean either leaking a secret or relaying every prompt
+through our server, and the second is the thing this architecture exists to
+avoid.
+
+The **anonymous tier on `text.pollinations.ai`** is therefore the only genuinely
+free, browser-direct, no-secret option, and it is what the site uses.
+
+If that tier is ever withdrawn, the honest outcome is a visible unavailable
+state — not a quiet fallback to a paid model and not a server relay.
+
+### The free-only policy is evidence-based
+
+`GET /models` returns a **`tier`** field per model:
+
+```json
+[{"name":"openai-fast","description":"GPT-OSS 20B Reasoning LLM (OVH)",
+  "tier":"anonymous","reasoning":true,
+  "input_modalities":["text"],"output_modalities":["text"]}]
+```
+
+That field is what the policy rests on. `freeTextModels()` in
+`public/js/pollinations.js` keeps a model only when:
+
+1. its `tier` is explicitly in `FREE_TIERS` (currently `anonymous`), **and**
+2. it actually takes text in and gives text out.
+
+An **unknown or unrecognised tier stays disabled** — "we could not establish
+that this is free" is not the same as "free", and must never render as *Free*.
+Discovery is cached for 30 minutes and **never blocks a send**: on any failure it
+resolves to `[]` and the client falls back to the verified default
+(`openai-fast`). If discovery succeeds and the default is no longer in the free
+set, the first discovered free model is used instead — which is how this survives
+the provider retiring a model without needing a deploy.
 
 ---
 
-## 3. The Hugging Face provider
+## 3. One client, every entry point
 
-**The token is the user's and never reaches this server.** Hugging Face has no
-anonymous inference tier — verified, not assumed: a tokenless call fails with
-`InferenceClientRoutingError`. So the visitor supplies their own free token in
-**AI settings**, it is stored in their browser's `localStorage`, and the request
-goes from their browser straight to Hugging Face.
-
-There is no endpoint on this server that accepts an `hf_` token. That is asserted
-by a live test which records every request the page makes and fails if the token
-appears in any of them.
-
-**The model list is an allow-list** (`HF_TEXT_MODELS` in [`public/js/hf-models.js`](../../public/js/hf-models.js)), and every entry was
-verified against the live Hub with
-`GET /api/models/<id>?expand[]=inferenceProviderMapping`:
-
-| Model | Live providers |
+| Entry point | File |
 |---|---|
-| `meta-llama/Llama-3.1-8B-Instruct` *(default)* | novita, nscale, featherless-ai, deepinfra |
-| `meta-llama/Llama-3.3-70B-Instruct` | novita, together, featherless-ai, scaleway, ovhcloud |
-| `Qwen/Qwen2.5-Coder-32B-Instruct` | nscale, featherless-ai |
-| `Qwen/Qwen2.5-7B-Instruct` | featherless-ai |
-| `google/gemma-2-2b-it` | featherless-ai |
+| The `/ai` page | `public/js/ai.js` |
+| The floating bottom-right assistant | `public/js/ai-helper.js` |
 
-`HuggingFaceTB/SmolLM3-3B` is **excluded**: the model exists and looks like an
-obvious fit, but no provider serves it, so offering it would put a menu entry in
-front of users that fails at request time. It remains a fine *local* model.
-
-Failover orders by **provider count, not parameter count** — a model four
-companies serve is worth more for "the user gets an answer" than a larger one
-behind a single provider.
-
-The client library is served from **`/hf/`, our own origin**, not a CDN. This
-site exists because school networks block things; a filtered `cdn.jsdelivr.net`
-must not be able to take the AI down.
-
-### Configuration
-
-Nothing is required. A user who wants the second provider opens **AI settings**
-on `/ai` and pastes a token from <https://huggingface.co/settings/tokens>.
-
-For the **operator** evaluation tool only, `HF_TOKEN` may be set in the
-environment. It is never read from a user's browser and never written to a file.
+Both import **`public/js/pollinations.js`** and nothing else. There is no second
+endpoint construction, model selection, timeout policy or error-normalisation
+path anywhere in the frontend.
 
 ---
 
@@ -199,7 +184,7 @@ human or another model cannot gate a deploy.
 
 ```bash
 npm run eval-ai                                  # against the default provider
-npm run eval-ai -- --provider huggingface --model meta-llama/Llama-3.1-8B-Instruct
+npm run eval-ai            # Pollinations is the only provider
 npm run eval-ai -- --set-baseline                # record a baseline
 ```
 
