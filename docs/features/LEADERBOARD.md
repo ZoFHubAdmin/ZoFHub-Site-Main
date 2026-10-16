@@ -175,3 +175,114 @@ All optional; the defaults above apply when unset.
 ---
 
 **Related:** [documentation map](../README.md#-documentation) · [the schema history](../database/RUN-IN-ORDER.md) · [visitor identity and other visitor features](VISITOR-FEATURES.md) · [the ten scheduled jobs](../guides/HOW-IT-WORKS.md#11-the-night-shift--ten-scheduled-jobs-libcron-jobsmjs)
+
+---
+
+## 8. Scoring profiles — what the number MEANS
+
+Everything above is about whether to *trust* a number. This section is about what
+the number *is*.
+
+### The problem
+
+`public.scores` had one numeric column, `score bigint`, and the submission form
+had one field labelled **"Score"**. Every game shared them. So:
+
+- a golf game measured in metres,
+- a time trial where the **smallest** number wins,
+- and a basketball game measured in rounds won
+
+all pushed a bare integer into the same ranking, and the player had to guess what
+number was wanted. "Higher is better" was hardcoded in the ranking — exactly
+backwards for a time trial, where it would also have made a player's first run
+unbeatable, because every faster lap was rejected as *"your previous score is
+higher"*.
+
+### The profile
+
+Each game carries a profile (`lib/scoring-profiles.mjs`,
+`db/17_scoring_profiles.sql`): which **metric**, in what **unit**, with what
+**precision** and **bounds**, and **which direction wins**. The form renders from
+it, the server validates against it, and the board ranks by it. The browser never
+decides any of this — it is told.
+
+The metric vocabulary is **closed** (`points`, `distance`, `time_fastest`,
+`survival_time`, `wins`, `goals`, `levels`, `objectives`, `laps`, `accuracy`),
+pinned by a CHECK constraint as well as in the application. Free-text units are
+how a board ends up with "meters", "metres", "m" and "Meters" as four
+incomparable rankings.
+
+### `source` — the honesty mechanism
+
+The catalog stores title, category and tags. It does **not** store how any given
+game counts a score. So for most games the true metric is not knowable from the
+data, and a system that guessed would print a confident
+**"Distance achieved (meters)"** on a game that actually counts points — a
+*specific false claim*, which is worse than the vague true one it replaced.
+
+Hence three states:
+
+| `source` | What it means | What the player sees |
+|---|---|---|
+| `default` | the neutral points metric | **"Score"** — claims no unit, so it can never be wrong about one |
+| `suggested` | derived from genre/tags/title, with the evidence in `basis` | **"Score"** — still the neutral field |
+| `confirmed` | a human checked the game | the specific metric and unit |
+
+`formFieldFor()` enforces that: a suggestion is **downgraded to the neutral
+field** before it reaches a player. A suggestion is a question for an
+administrator, not an answer for a visitor. The test named *"a suggestion never
+reaches a player"* is the one that pins it.
+
+Suggestions are **evidence-ordered** — a word in the title beats a tag, and a tag
+beats a category, because categories here are broad buckets ("arcade", "skill")
+that say almost nothing about scoring — and each one records *why* in words
+("a golf tag"), so the review is reviewable rather than a yes/no on an
+unexplained guess. When nothing matches, **"I cannot tell" is the answer**, and
+the game sits on the neutral default with no decision outstanding.
+
+### Ranking, and what must never share a board
+
+`rankRows()` takes the direction from the profile, so a time trial ranks
+ascending without any caller needing to know that. Ties share a rank ("1,2,2,4")
+and the earlier submission is listed first.
+
+`isComparable()` is what stops a "genre leaderboard" ranking metres, seconds and
+wins together: two games may share a board only when the metric, the unit **and**
+the direction all match. Same unit with opposite direction (`survival_time` vs
+`time_fastest`) is still **not** one board.
+
+The **all-games board** therefore shows only rows submitted under the neutral
+`points` metric, and says so in its response.
+
+### Migration safety
+
+`db/17_scoring_profiles.sql` is **additive**. `scores.score` is untouched and
+still written (rounded), while two new columns carry the detail:
+
+- `metric_id` — which metric the row was submitted under (existing rows default
+  to `points`, which is what they always meant)
+- `value_numeric` — the true value, including decimals
+
+Readers prefer `value_numeric` and fall back to `score`, so a null is not a
+broken row. Both the read and the write paths **retry without these columns** if
+the migration has not been applied — deploying the code first degrades to the
+previous behaviour instead of 502-ing every submission.
+
+### The admin surface
+
+| Route | Purpose |
+|---|---|
+| `GET /api/scores/profile?slug=` | what the submission form should render |
+| `GET /api/admin/scoring` | the worklist: `needsReview` (a suggestion awaiting a human), `confirmed`, and a count of games on the neutral default |
+| `PUT /api/admin/scoring/:slug` | confirm a metric. The **only** thing that produces a `confirmed` profile, and therefore the only thing that changes what a player's form says |
+
+Games on the neutral default are **not** listed as work: "Score" is the honest
+answer for a game whose scoring convention cannot be established, and nothing is
+waiting on anybody.
+
+### What this does not claim
+
+Scoring profiles make a submission *meaningful*. They do not make it *true*. The
+games are third-party cross-origin iframes, so there is still no way to read a
+real score out of one — every number is player-reported, and §1 above is still
+the honest premise.

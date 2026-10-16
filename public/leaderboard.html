@@ -55,15 +55,23 @@
 
     <section class="lb-card" id="lbCard" hidden aria-labelledby="lbBoardH">
       <h2 id="lbBoardH" class="sr-only">Top scores</h2>
+      <!-- How this board is ranked, in words. Filled from the game's scoring
+           profile, and it matters most on a lowest-first board (a time trial),
+           where a reader who was not told would assume the sort was broken. -->
+      <p class="lb-metricnote" id="lbMetricNote" hidden></p>
       <div class="lb-tablewrap">
         <table class="lb-table">
-          <caption class="sr-only">Top scores, highest first</caption>
+          <!-- Not "highest first": a time-trial board is ordered lowest first.
+               lbMetricNote above states the direction for the actual metric. -->
+          <caption class="sr-only">Top scores for this game</caption>
           <thead>
             <tr>
               <th scope="col" class="lb-rank">#</th>
               <th scope="col">Player</th>
               <th scope="col" class="lb-game">Game</th>
-              <th scope="col" class="lb-num">Score</th>
+              <!-- Relabelled per metric: "Distance (meters)", "Best time
+                   (seconds)", "Wins achieved"… -->
+              <th scope="col" class="lb-num" id="lbValueHead">Score</th>
             </tr>
           </thead>
           <tbody id="lbRows"></tbody>

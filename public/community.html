@@ -46,7 +46,11 @@
   <main class="community-shell">
     <div class="community-hero">
       <h1>Community Arcade</h1>
-      <p>Recommend a game you love, discover what other players are hyped about,.</p>
+      <!-- The full review disclosure lives beside the submit button and in the
+           confirmation, where it is read at the moment it matters. This is the
+           one-line version, so nobody reaches the form expecting a guarantee. -->
+      <p>Recommend a game you love and discover what other players are hyped about.
+        Requests are reviewed — not every game can be added.</p>
       <button class="btn-primary" id="openRecBtn">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         Recommend a game
@@ -77,22 +81,33 @@
       <form id="recForm" class="modal-form">
         <label>Game name <input name="title" maxlength="120" required placeholder="e.g. Slope" /></label>
         <label>Embed link <input name="embed_url" type="url" required placeholder="https://y8.com/embed/slope" /></label>
-        <label>Category
-          <select name="category">
-            <option value="arcade">Arcade</option>
-            <option value="racing">Racing</option>
-            <option value="shooting">Shooting</option>
-            <option value="action">Action</option>
-            <option value="puzzle">Puzzle</option>
-            <option value="sports">Sports</option>
-            <option value="adventure">Adventure</option>
-            <option value="casual">Casual</option>
-            <option value="board">Board</option>
-            <option value="simulator">Simulator</option>
-          </select>
-        </label>
-        <label>Why do you love it? <textarea name="note" maxlength="280" rows="2" placeholder="One line on why it's great (optional)"></textarea></label>
+        <label>Official game URL <span class="rec-opt">(optional, if you know it)</span>
+          <input name="official_url" type="url" maxlength="600" placeholder="https://…" /></label>
+
+        <!-- Rendered from public/js/recommendation-taxonomy.js rather than written
+             here, so the menu and the server's allow-list cannot drift apart.
+             Checkboxes, not a <select>: a game can genuinely be two things, and
+             the old single-choice menu forced a false pick. -->
+        <fieldset class="rec-genres">
+          <legend>Category <span class="rec-opt">(choose up to 3)</span></legend>
+          <div class="rec-genre-grid" id="recGenres"></div>
+          <!-- Shown and REQUIRED only when "Other" is ticked; "Other" with no
+               explanation is the one answer that carries no information. -->
+          <label class="rec-other" id="recOtherWrap" hidden>
+            Which kind of game is it?
+            <input name="other_text" id="recOtherText" maxlength="120" placeholder="e.g. a typing game" />
+          </label>
+        </fieldset>
+
+        <label>Why do you recommend it? <textarea name="note" maxlength="280" rows="2" placeholder="One line on why it's great (optional)"></textarea></label>
+        <label>Anything else we should know? <span class="rec-opt">(optional)</span>
+          <textarea name="extra" maxlength="280" rows="2" placeholder="Controls, age suitability, known issues…"></textarea></label>
         <label>Your name <input name="author" maxlength="40" placeholder="Anonymous" /></label>
+
+        <!-- The review promise, next to the submit button where it is actually
+             read. Filled from the DISCLOSURE constant so this and the
+             confirmation message cannot say different things. -->
+        <p class="rec-disclosure" id="recDisclosure"></p>
         <div class="modal-actions">
           <button type="button" class="btn-ghost" id="recCancel">Cancel</button>
           <button type="submit" class="btn-primary" id="recSubmit">Post recommendation</button>

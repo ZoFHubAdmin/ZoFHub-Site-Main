@@ -1,7 +1,7 @@
 -- ============================================================================
 -- ZoFHub · SCHEMA ONLY — provision a fresh Supabase project
 -- ============================================================================
--- Every schema file in dependency order (18). No catalog data.
+-- Every schema file in dependency order (20). No catalog data.
 --
 -- GENERATED — do not edit. Regenerate with:  npm run build-schema-only
 --
@@ -2455,6 +2455,240 @@ revoke all on function public.bump_web_vital(text, text, text, text, bigint)    
 -- in memory, is visible in the admin console, and is lost on restart. Nothing
 -- breaks and no request fails -- the same posture as game_stats.
 -- =====================================================================
+
+
+-- ============================================================================
+-- >>> 17_scoring_profiles.sql
+-- ============================================================================
+-- =====================================================================
+-- 17_scoring_profiles.sql — what a submitted score MEANS, per game.
+-- ---------------------------------------------------------------------
+-- THE PROBLEM THIS FIXES. public.scores has one numeric column, `score
+-- bigint`, and the submission form had one field labelled "Score". Every game
+-- shared them. So a golf game measured in metres, a time trial where the
+-- SMALLEST number wins, and a basketball game measured in rounds won all pushed
+-- a bare integer into the same ranking, and the player had to guess what number
+-- was wanted. "Higher is better" was hardcoded in the ranking, which is exactly
+-- backwards for a time trial.
+--
+-- WHAT THIS ADDS
+--   1. public.game_scoring_profiles — one row per game slug, saying which
+--      metric it measures, in what unit, with what precision and bounds, and
+--      which direction is better.
+--   2. Two NON-DESTRUCTIVE columns on public.scores:
+--        · metric_id     — which metric this row was submitted under
+--        · value_numeric — the true value, including decimals
+--      `score` is untouched and still written (rounded), so every existing row
+--      and every existing index keeps working. Reads prefer value_numeric and
+--      fall back to score, which is why the backfill below is a convenience
+--      rather than a requirement.
+--
+-- WHY SLUG AND NOT A FOREIGN KEY. Same reason public.scores has none: the
+-- SERVED catalog is not public.games alone. setCatalog() merges finalgames.json
+-- and the catalog-overrides `add` rules on top, and those games have no row in
+-- the table by design. A foreign key would refuse a profile for a game that is
+-- demonstrably playable. See the long note in db/schema-hardening.sql.
+--
+-- THE `source` COLUMN IS THE HONESTY MECHANISM. The catalog stores title,
+-- category and tags; it does NOT store how any given game counts a score. So
+-- for most games the true metric is not knowable from the data, and a system
+-- that guessed would print a confident "Distance achieved (meters)" on a game
+-- that actually counts points — a specific false claim, which is worse than the
+-- vague true one it replaced. Hence three states:
+--     'default'   the neutral points metric, labelled "Score". Claims no unit,
+--                 so it can never be wrong about one.
+--     'suggested' derived from genre/tags/title, with the evidence in `basis`.
+--                 Shown to an ADMINISTRATOR for confirmation and deliberately
+--                 NOT used to render a player's form (lib/scoring-profiles.mjs
+--                 formFieldFor() enforces that).
+--     'confirmed' a human checked the game. Only now does the player see the
+--                 specific metric and unit.
+--
+-- RLS: DENY-BY-DEFAULT WITH NO POLICIES, like game_telemetry. A scoring profile
+-- decides what counts as a valid score, so an anon key that could write one
+-- could make any number legal. Only the service key (the Node server) touches
+-- these tables.
+-- =====================================================================
+
+create table if not exists public.game_scoring_profiles (
+  slug                  text        primary key,
+  metric_id             text        not null default 'points',
+  display_label         text        not null default 'Score',
+  unit                  text,                    -- null = unitless (points, wins, laps)
+  value_type            text        not null default 'integer',
+  higher_is_better      boolean     not null default true,
+  decimal_precision     smallint    not null default 0,
+  minimum_value         numeric     not null default 0,
+  maximum_value         numeric     not null default 1000000000,
+  mode                  text,                    -- an optional named game mode
+  source                text        not null default 'default',
+  basis                 text,                    -- the evidence behind a suggestion
+  enabled               boolean     not null default true,
+  configuration_version integer     not null default 1,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+
+  -- Closed vocabularies, pinned in the database as well as in the application.
+  -- lib/scoring-profiles.mjs METRICS is the matching list; adding a metric means
+  -- editing both, deliberately.
+  constraint game_scoring_profiles_metric_chk check (metric_id in (
+    'points', 'distance', 'time_fastest', 'survival_time', 'wins',
+    'goals', 'levels', 'objectives', 'laps', 'accuracy'
+  )),
+  constraint game_scoring_profiles_source_chk check (source in ('default', 'suggested', 'confirmed')),
+  constraint game_scoring_profiles_type_chk check (value_type in ('integer', 'decimal')),
+  -- An integer metric with decimal places is incoherent; so is a reversed range.
+  constraint game_scoring_profiles_precision_chk check (
+    decimal_precision between 0 and 3
+    and (value_type <> 'integer' or decimal_precision = 0)
+  ),
+  constraint game_scoring_profiles_range_chk check (maximum_value > minimum_value),
+  constraint game_scoring_profiles_slug_chk check (slug = lower(slug) and length(slug) between 1 and 120)
+);
+
+comment on table public.game_scoring_profiles is
+  'Per-game scoring configuration: which metric, what unit, which direction wins. '
+  'source=confirmed is the only state a player''s submission form renders from; '
+  'suggested is an administrator''s to-do, not an assertion. Written only by the '
+  'Node server (lib/scoring-profiles.mjs).';
+comment on column public.game_scoring_profiles.source is
+  'default | suggested | confirmed. A suggested metric is NEVER shown to a player — '
+  'it is a derived guess awaiting human confirmation.';
+comment on column public.game_scoring_profiles.basis is
+  'Why a metric was suggested, in words ("a golf tag"), so the review is reviewable.';
+
+create index if not exists game_scoring_profiles_source_idx
+  on public.game_scoring_profiles (source);
+
+-- ── public.scores: two additive columns ───────────────────────────────
+-- Both nullable / defaulted, so every existing row stays valid and every
+-- existing index keeps serving. Nothing is dropped and nothing is rewritten.
+alter table public.scores add column if not exists metric_id     text not null default 'points';
+alter table public.scores add column if not exists value_numeric numeric;
+
+comment on column public.scores.metric_id is
+  'The metric this row was submitted under. Rows that predate scoring profiles '
+  'default to points, which is what they always meant.';
+comment on column public.scores.value_numeric is
+  'The true submitted value, including decimals. `score` is kept in step (rounded) '
+  'for the pre-existing indexes and for backward compatibility; readers prefer '
+  'value_numeric and fall back to score, so a null here is not a broken row.';
+
+-- A board is read per game AND per metric: two metrics must never be ranked
+-- together, so the metric is part of the lookup rather than filtered afterwards.
+create index if not exists scores_slug_metric_idx on public.scores (slug, metric_id);
+
+-- Convenience backfill. Readers already coalesce, so this only saves them the
+-- fallback; it is cheap, idempotent and touches no row that already has a value.
+update public.scores set value_numeric = score where value_numeric is null;
+
+-- ── RLS: closed, with no policies at all ──────────────────────────────
+alter table public.game_scoring_profiles enable row level security;
+alter table public.game_scoring_profiles force row level security;
+
+-- Stated explicitly because this file may run AFTER db/grants.sql on a live
+-- database (same reason as 14/15/16): a later grants sweep must not be what
+-- decides whether anon can write a scoring rule.
+revoke all on public.game_scoring_profiles from anon, authenticated;
+grant all on public.game_scoring_profiles to service_role;
+
+-- ── updated_at ────────────────────────────────────────────────────────
+create or replace function public.touch_scoring_profile()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists game_scoring_profiles_touch on public.game_scoring_profiles;
+create trigger game_scoring_profiles_touch
+  before update on public.game_scoring_profiles
+  for each row execute function public.touch_scoring_profile();
+
+
+-- ============================================================================
+-- >>> 18_recommendation_taxonomy.sql
+-- ============================================================================
+-- =====================================================================
+-- 18_recommendation_taxonomy.sql — a usable taxonomy for game requests.
+-- ---------------------------------------------------------------------
+-- WHAT THIS FIXES. public.recommendations had a single `category` column, and
+-- the form offered ten hardcoded <option> values written directly into
+-- public/community.html. The server accepted ANY 40-character string as a
+-- category, so the menu and the validation could not agree — "Platfromer" would
+-- have been stored without complaint — and a game that is genuinely two things
+-- (a puzzle platformer) had to be filed as one.
+--
+-- WHAT THIS ADDS, ALL ADDITIVE
+--   genres        text[]  the chosen genres, validated against the shared list
+--                         in public/js/recommendation-taxonomy.js (the ONE file
+--                         the form renders from and the server validates
+--                         against, so they cannot drift apart)
+--   other_text    text    required when 'other' is among the genres, because
+--                         "Other" with no explanation carries no information
+--   official_url  text    the game's own page, if the submitter knows it —
+--                         distinct from embed_url, which must be an embeddable
+--                         link from a supported host
+--   extra         text    anything else worth knowing (controls, age
+--                         suitability, known issues)
+--
+-- `category` IS KEPT AND STILL WRITTEN, set to the first chosen genre. Every
+-- existing row stays valid and every existing reader of that column keeps
+-- working; nothing is dropped and nothing is rewritten. The server also retries
+-- its insert without these columns if this migration has not run, so deploying
+-- the code first degrades to the old shape rather than rejecting submissions.
+--
+-- A REQUEST IS STILL ONLY A REQUEST. Nothing here touches the published
+-- catalog: a row in this table creates no game, triggers no import and grants no
+-- visibility. Additions go through the admin console and the catalog freeze
+-- (lib/catalog-lock.mjs), which is exactly what the disclosure beside the form
+-- tells the submitter.
+-- =====================================================================
+
+alter table public.recommendations add column if not exists genres       text[] not null default '{}';
+alter table public.recommendations add column if not exists other_text   text;
+alter table public.recommendations add column if not exists official_url text;
+alter table public.recommendations add column if not exists extra        text;
+
+comment on column public.recommendations.genres is
+  'Chosen genres, validated server-side against public/js/recommendation-taxonomy.js. '
+  'Up to 3. The legacy `category` column holds the first of these.';
+comment on column public.recommendations.other_text is
+  'Required when ''other'' is among the genres — an unexplained "Other" is not a category.';
+comment on column public.recommendations.official_url is
+  'The game''s own page, if known. NOT an embed link: embed_url is the embeddable one and is host-checked.';
+
+-- Bounds in the database as well as the application. The application is the
+-- place that produces good error messages; this is the place that makes the
+-- guarantee true no matter which code path wrote the row.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'recommendations_genres_len_chk') then
+    alter table public.recommendations
+      add constraint recommendations_genres_len_chk
+      check (array_length(genres, 1) is null or array_length(genres, 1) <= 3);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'recommendations_other_text_len_chk') then
+    alter table public.recommendations
+      add constraint recommendations_other_text_len_chk
+      check (other_text is null or length(other_text) <= 120);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'recommendations_extra_len_chk') then
+    alter table public.recommendations
+      add constraint recommendations_extra_len_chk
+      check (extra is null or length(extra) <= 280);
+  end if;
+end $$;
+
+-- Moderators filter the queue by genre, so that read gets an index. GIN because
+-- the predicate is array containment (genres && '{puzzle}'), which btree cannot
+-- serve.
+create index if not exists recommendations_genres_idx on public.recommendations using gin (genres);
 
 
 -- ============================================================================

@@ -10,6 +10,17 @@
 //   · error          — the request itself failed
 // Collapsing those into one "no scores" message is how a broken deployment gets
 // mistaken for a quiet one.
+//
+// THE NUMBER COLUMN IS NOT ALWAYS "SCORE". Each game carries a scoring profile
+// (lib/scoring-profiles.mjs), so this board labels its value column with that
+// game's metric and unit — "Distance (meters)", "Best time (seconds)", "Wins" —
+// and states which direction wins. That last part is load-bearing: on a time
+// trial the board is ordered LOWEST FIRST, and a reader who was not told would
+// reasonably conclude it was sorted backwards.
+//
+// The server does the ordering. It also restricts the ALL-GAMES board to plain
+// point totals, because metres, seconds and wins are not interchangeable
+// numbers; the note it sends with that board is rendered as-is.
 // ---------------------------------------------------------------------------
 
 const $ = (s) => document.querySelector(s);
@@ -20,7 +31,13 @@ const rowsEl = $('#lbRows');
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const nf = new Intl.NumberFormat();
+// A decimal metric must keep its decimals: Intl's default drops them, so 42.80
+// seconds would render as "42.8" and 128.50 metres as "128.5". Built per board
+// from the metric the server reports.
+function formatterFor(metric) {
+  const decimals = metric && metric.unit === 's' ? 2 : (metric && /time|distance|accuracy/.test(metric.id || '') ? 1 : 0);
+  return new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+}
 
 function say(text) {
   statusEl.textContent = text;
@@ -62,6 +79,19 @@ async function load() {
     document.title = `${data.game.title || data.game.slug} leaderboard · ZoFHub`;
   }
 
+  // Label the value column with this board's metric, and say which way it
+  // sorts. Both come from the server; the page never guesses.
+  const metric = data.metric || { id: 'points', label: 'Score', explanation: '' };
+  const valueHead = document.querySelector('#lbValueHead');
+  if (valueHead) valueHead.textContent = metric.label || 'Score';
+  const noteEl = document.querySelector('#lbMetricNote');
+  if (noteEl) {
+    const parts = [metric.explanation, data.note].filter(Boolean);
+    noteEl.textContent = parts.join(' ');
+    noteEl.hidden = !parts.length;
+  }
+  const fmt = formatterFor(metric);
+
   const scores = Array.isArray(data.scores) ? data.scores : [];
   if (!scores.length) {
     say(slug
@@ -75,7 +105,7 @@ async function load() {
       <td class="lb-rank">${medal(s.rank)}</td>
       <td class="lb-player">${esc(s.player_name)}</td>
       <td class="lb-game">${s.slug ? `<a href="/play/${encodeURIComponent(s.slug)}">${esc(s.slug)}</a>` : '—'}</td>
-      <td class="lb-num">${nf.format(s.score)}</td>
+      <td class="lb-num">${esc(fmt.format(Number(s.score) || 0))}</td>
     </tr>`).join('');
 
   statusEl.hidden = true;

@@ -1076,6 +1076,12 @@ body.nav-open { overflow: hidden; }
   font-size: clamp(28px, 5vw, 40px); margin: 0 0 8px;
 }
 .lb-sub { color: var(--text-dim); font-size: 14.5px; margin: 0; }
+/* How the board is ranked, in words. Sits above the table because a reader
+   needs it BEFORE reading the numbers — most of all on a lowest-first board. */
+.lb-metricnote { color: var(--text-dim); font-size: 12.5px; line-height: 1.55;
+  margin: 0 0 12px; padding: 9px 12px; border-radius: 9px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--line-2, rgba(170,140,255,.22)); }
+.lb-metricnote[hidden] { display: none; }
 .lb-status {
   text-align: center; color: var(--text-dim); font-size: 14px;
   padding: 34px 16px; margin: 0;

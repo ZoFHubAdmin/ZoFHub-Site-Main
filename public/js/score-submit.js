@@ -11,6 +11,18 @@
 // it may quarantine the submission. The UI reports back exactly what the server
 // said rather than assuming success, because a score shown as posted when it is
 // actually held for review is a lie the player would repeat to their friends.
+//
+// WHAT THE FIELD SAYS IS ALSO THE SERVER'S DECISION. The form used to hardcode a
+// label of "Score" and a whole-numbers-only pattern, for every game. So a golf
+// game measured in metres and a time trial measured in seconds both asked for
+// "Score" and refused a decimal point, and the player had to guess what number
+// was wanted. The label, unit, precision, bounds and keypad now come from
+// GET /api/scores/profile, and the client validates against what it was told
+// rather than against a rule of its own.
+//
+// A game whose metric nobody has confirmed gets the neutral "Score" field back —
+// the server decides that too (lib/scoring-profiles.mjs formFieldFor), so a
+// derived guess is never presented to a player as fact.
 // ---------------------------------------------------------------------------
 
 import { getPlayerName } from './identity.js';
@@ -20,6 +32,16 @@ const slug = String(game.slug || '').trim().toLowerCase();
 if (slug) init();
 
 let token = null;
+
+// What this game's submission field should look like. Null until the profile
+// arrives; FIELD_FALLBACK stands in if that request fails, so a profile outage
+// degrades to the old neutral field instead of a dead dialog.
+let field = null;
+const FIELD_FALLBACK = {
+  metricId: 'points', label: 'Score', unit: null, valueType: 'integer',
+  precision: 0, min: 0, max: 1000000000, inputMode: 'numeric', step: '1',
+  placeholder: 'e.g. 12500', help: '', generic: true,
+};
 
 function init() {
   // Ask for the token immediately; a failure is silent and simply means the
@@ -32,6 +54,14 @@ function init() {
     .then((r) => (r.ok ? r.json() : null))
     .then((d) => { if (d && d.ok && d.token) { token = d.token; mountButton(); } })
     .catch(() => { /* no leaderboard here → no control, no broken button */ });
+
+  // The profile is fetched in parallel rather than awaited: the button should
+  // appear as soon as the token does, and the dialog applies the field when it
+  // opens (by which time this has almost always landed).
+  fetch('/api/scores/profile?slug=' + encodeURIComponent(slug))
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => { if (d && d.ok && d.field) field = d.field; })
+    .catch(() => { /* FIELD_FALLBACK covers it */ });
 }
 
 function injectStyles() {
@@ -53,6 +83,7 @@ function injectStyles() {
     background:rgba(0,0,0,.28);border:1px solid var(--line-2,rgba(170,140,255,.28));
     color:inherit;font:14px inherit}
   .sc-card input:focus{outline:2px solid #ffd426;outline-offset:1px}
+  .sc-help{margin:7px 0 0!important;font-size:11.5px;opacity:.85}
   .sc-row{display:flex;gap:9px;margin-top:18px}
   .sc-row button{flex:1;padding:11px;border-radius:9px;border:0;font:800 13px inherit;cursor:pointer}
   .sc-go{background:#ffd426;color:#221a00}
@@ -86,6 +117,7 @@ function open() {
   if (!backEl) build();
   backEl.hidden = false;
   backEl.querySelector('#scScore').value = '';
+  applyField();
   backEl.querySelector('#scMsg').hidden = true;
   backEl.querySelector('#scScore').focus();
   document.addEventListener('keydown', onKey);
@@ -112,8 +144,9 @@ function build() {
         Unusually high scores are held for review before they appear.</p>
       <label for="scName">Name</label>
       <input id="scName" type="text" maxlength="40" autocomplete="nickname" spellcheck="false" />
-      <label for="scScore">Score</label>
-      <input id="scScore" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 12500" />
+      <label for="scScore" id="scScoreLabel">Score</label>
+      <input id="scScore" type="text" inputmode="numeric" placeholder="e.g. 12500" />
+      <p id="scHelp" class="sc-sub sc-help" hidden></p>
       <p id="scMsg" class="sc-msg" role="status" aria-live="polite" hidden></p>
       <div class="sc-row">
         <button type="button" class="sc-x" id="scCancel">Cancel</button>
@@ -128,6 +161,51 @@ function build() {
   try { backEl.querySelector('#scName').value = getPlayerName() || ''; } catch { /* optional */ }
 }
 
+/**
+ * Point the input at this game's metric.
+ *
+ * inputMode matters more than it looks: a decimal metric given
+ * inputMode="numeric" shows a phone keypad with NO decimal point, so the player
+ * physically cannot type 42.80. The server sends the right one per metric.
+ */
+function applyField() {
+  const f = field || FIELD_FALLBACK;
+  const label = backEl.querySelector('#scScoreLabel');
+  const input = backEl.querySelector('#scScore');
+  const help = backEl.querySelector('#scHelp');
+  if (label) { label.textContent = f.label; }
+  if (input) {
+    input.placeholder = f.placeholder || '';
+    input.inputMode = f.inputMode || 'numeric';
+    input.setAttribute('aria-describedby', 'scHelp');
+  }
+  if (help) {
+    help.textContent = f.help || '';
+    help.hidden = !f.help;
+  }
+}
+
+/** Validate against the profile we were given, not a rule of our own. */
+function checkValue(raw) {
+  const f = field || FIELD_FALLBACK;
+  const pattern = f.valueType === 'integer' ? /^\d{1,15}$/ : /^\d{1,15}(\.\d{1,3})?$/;
+  const name = String(f.label || 'score').toLowerCase();
+  if (!pattern.test(raw)) {
+    return f.valueType === 'integer'
+      ? `Enter ${name} as a whole number.`
+      : `Enter ${name} as a number (up to ${f.precision} decimal place${f.precision === 1 ? '' : 's'}).`;
+  }
+  const decimals = (raw.split('.')[1] || '').length;
+  if (decimals > f.precision) {
+    return `${f.label} allows at most ${f.precision} decimal place${f.precision === 1 ? '' : 's'}.`;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 'Enter a number.';
+  if (n < f.min) return `${f.label} cannot be below ${f.min}.`;
+  if (n > f.max) return `${f.label} cannot be above ${f.max}.`;
+  return null;   // the server checks all of this again; this is just fast feedback
+}
+
 function msg(text, kind) {
   const m = backEl.querySelector('#scMsg');
   m.textContent = text;
@@ -138,7 +216,8 @@ function msg(text, kind) {
 async function submit() {
   const go = backEl.querySelector('#scGo');
   const raw = backEl.querySelector('#scScore').value.trim();
-  if (!/^\d{1,15}$/.test(raw)) { msg('Enter your score as a whole number.', 'bad'); return; }
+  const problem = checkValue(raw);
+  if (problem) { msg(problem, 'bad'); return; }
   if (!token) { msg('This game session has expired — reload the page and try again.', 'bad'); return; }
 
   go.disabled = true;

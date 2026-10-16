@@ -818,3 +818,70 @@ describe('admin console access control', () => {
     assert.match((r.headers.get('x-robots-tag') || '').toLowerCase(), /noindex/);
   });
 });
+
+// ===========================================================================
+// Per-game scoring profiles, through the real server.
+// ---------------------------------------------------------------------------
+// GET /api/scores/profile answers WITHOUT a database: a game with no stored row
+// falls back to its genre-derived suggestion, and a suggestion renders as the
+// neutral "Score" field. So this is testable on the bundled catalog, which is
+// the point — the honest default must not depend on Supabase being reachable.
+// ===========================================================================
+describe('the submission form is told what to ask for', () => {
+  let slug;
+
+  before(async () => {
+    const r = await get('/api/games?limit=1');
+    const d = await r.json();
+    slug = (d.games || d.rows || [])[0]?.slug;
+    assert.ok(slug, 'needed a real catalog slug to test against');
+  });
+
+  test('a profile is served for a real game, with everything the form needs', async () => {
+    const r = await get('/api/scores/profile?slug=' + encodeURIComponent(slug));
+    assert.equal(r.status, 200);
+    const d = await r.json();
+    assert.equal(d.ok, true);
+    assert.equal(d.slug, slug);
+    for (const k of ['metricId', 'label', 'valueType', 'precision', 'min', 'max', 'inputMode', 'step', 'help']) {
+      assert.ok(d.field[k] !== undefined, `field is missing ${k}`);
+    }
+    assert.ok(['numeric', 'decimal'].includes(d.field.inputMode));
+    assert.ok(d.field.max > d.field.min);
+  });
+
+  test('an unconfirmed metric is served as the NEUTRAL field, never a guess', async () => {
+    // Nothing is stored yet, so every game is on 'default' or 'suggested'. In
+    // both cases the player must be shown "Score" — a derived unit presented as
+    // fact is worse than the vague-but-true label it replaced.
+    const r = await get('/api/scores/profile?slug=' + encodeURIComponent(slug));
+    const d = await r.json();
+    assert.equal(d.field.metricId, 'points');
+    assert.equal(d.field.label, 'Score');
+    assert.equal(d.field.generic, true);
+    assert.doesNotMatch(d.field.label, /meter|second|win/i);
+  });
+
+  test('a bad slug is refused and an unknown game is a 404', async () => {
+    assert.equal((await get('/api/scores/profile?slug=' + encodeURIComponent('../etc/passwd'))).status, 400);
+    assert.equal((await get('/api/scores/profile?slug=')).status, 400);
+    assert.equal((await get('/api/scores/profile?slug=definitely-not-a-real-game-xyz')).status, 404);
+  });
+
+  test('the board reports its metric and explains the ordering', async () => {
+    const r = await get('/api/scores?slug=' + encodeURIComponent(slug));
+    assert.equal(r.status, 200);
+    const d = await r.json();
+    // Without a database `available:false` is the honest answer; either way the
+    // response must carry the metric so the page can label its column.
+    assert.ok(d.metric === undefined || typeof d.metric.label === 'string');
+    if (d.metric) assert.match(d.metric.explanation, /first/);
+  });
+
+  test('the all-games board says it ranks only comparable numbers', async () => {
+    const d = await (await get('/api/scores')).json();
+    if (d.available !== false) {
+      assert.match(d.note, /cannot be ranked against each other/);
+    }
+  });
+});

@@ -232,6 +232,11 @@ function saveActiveRoster(roster) {
 // static module and by the server from disk. There is deliberately no copy.
 const { buildSystemPrompt, groundingBlock, findMentionedGames, looksLikeProvenanceQuestion }
   = await import('./public/js/ai-prompt.js');
+// The genre list the community form renders and the server validates against —
+// ONE file, imported by both, so the menu and the allow-list cannot drift. The
+// old code accepted any 40-character string as a category, which is how
+// "Platfromer" would have been stored.
+const recTaxonomy = await import('./public/js/recommendation-taxonomy.js');
 // Structural catalog health — the offline half of tools/audit-catalog.mjs.
 const { auditGames, ISSUE_LABELS } = await import('./lib/catalog-quality.mjs');
 // Ops telemetry for the admin console: a bounded, redacted error buffer and the
@@ -249,6 +254,12 @@ const { getCredits, creditsSummary } = await import('./lib/credits.mjs');
 const adminAuth = await import('./lib/admin-auth.mjs');
 const usage     = await import('./lib/usage-stats.mjs');
 const scoreRules = await import('./lib/scores.mjs');
+// Per-game scoring profiles: which metric a game is measured on, in what unit,
+// with what bounds, and WHICH DIRECTION WINS. lib/scores.mjs still owns the
+// anti-cheat rules (proof-of-play tokens, ceilings, outlier quarantine); this
+// owns what the number means. See lib/scoring-profiles.mjs and
+// db/17_scoring_profiles.sql.
+const scoring = await import('./lib/scoring-profiles.mjs');
 const { normalizeEmail, isPlausibleEmail } = await import('./lib/subscribe.mjs');
 // Feedback routing + redaction. Pure module: no DB, no network, so the rules
 // that decide what may ever become training data are unit-testable.
@@ -3495,16 +3506,110 @@ async function scoresAvailable() {
 
 /** Visible scores for one game (or all games). The admin key bypasses RLS, so
  *  status is filtered HERE and never left to the policy alone. */
-async function visibleScores(supa, slug, limit = 100) {
+async function visibleScores(supa, slug, limit = 100, metricId = null) {
   let q = supa.from('scores')
-    .select('slug, player_name, score, created_at')
+    .select('slug, player_name, score, value_numeric, metric_id, created_at')
     .eq('status', scoreRules.STATUS.OK)
     .order('score', { ascending: false })
     .order('created_at', { ascending: true })
     .limit(Math.min(500, Math.max(1, limit)));
   if (slug) q = q.eq('slug', slug);
+  // A board must never mix metrics, so the metric is part of the QUERY rather
+  // than something filtered afterwards.
+  if (metricId) q = q.eq('metric_id', metricId);
   const { data, error } = await q;
-  return error ? [] : (data || []);
+  if (error) {
+    // metric_id / value_numeric arrive with db/17_scoring_profiles.sql. On a
+    // database where that migration has not run yet, select them and the whole
+    // leaderboard 400s — so fall back to the pre-migration shape instead of
+    // showing an empty board. Reads already coalesce value_numeric → score.
+    if (/column .* does not exist|42703/i.test(error.message || '')) {
+      let legacy = supa.from('scores')
+        .select('slug, player_name, score, created_at')
+        .eq('status', scoreRules.STATUS.OK)
+        .order('score', { ascending: false })
+        .order('created_at', { ascending: true })
+        .limit(Math.min(500, Math.max(1, limit)));
+      if (slug) legacy = legacy.eq('slug', slug);
+      const r = await legacy;
+      return r.error ? [] : (r.data || []).map((x) => ({ ...x, metric_id: 'points', value_numeric: null }));
+    }
+    return [];
+  }
+  return data || [];
+}
+
+// ── Scoring profiles ───────────────────────────────────────────────────────
+// Cached in memory and refreshed lazily: a profile is read on every submission
+// and every board render, so a per-request round trip would make the leaderboard
+// the slowest thing on the page.
+//
+// THE FALLBACK IS THE INTERESTING PART. A game with no stored row gets
+// suggestedProfile(), which derives a metric from its genre/tags and marks it
+// `source:'suggested'`. A suggestion is NOT rendered into a player's form
+// (formFieldFor downgrades it to the neutral "Score" field) — it exists so the
+// admin console can ask a human "is Golf Bit measured in metres?" rather than
+// asserting it. So an unmigrated or empty table degrades to exactly the honest
+// behaviour the old code had, with a to-do list attached.
+const SCORING_PROFILE_TTL_MS = 5 * 60 * 1000;
+const scoringState = { profiles: new Map(), loadedAt: 0, available: null };
+
+const SCORING_PROFILE_COLS = 'slug, metric_id, display_label, unit, value_type, higher_is_better, '
+  + 'decimal_precision, minimum_value, maximum_value, mode, source, basis, enabled, configuration_version';
+
+async function loadScoringProfiles() {
+  const supa = getSupabaseAdmin();
+  if (!supa) { scoringState.available = false; return scoringState.profiles; }
+  // Fetch only the profiles for games actually BEING SERVED, in chunks.
+  //
+  // Not a bare select: this table accumulates a row per game that was ever
+  // configured, including ones since delisted, so an unfiltered read grows
+  // without bound while the served catalog stays capped. Filtering by the served
+  // slugs makes the query bounded by the cap instead of by the table, and the
+  // rows it would have dropped are ones nothing can ask for. Chunked at 80 for
+  // the same reason the grow job is: a single several-hundred-slug IN() builds a
+  // URL long enough to trip the Supabase fetch timeout.
+  const slugs = [...bySlug.keys()];
+  if (!slugs.length) { scoringState.loadedAt = Date.now(); return scoringState.profiles; }
+  const next = new Map();
+  try {
+    for (let i = 0; i < slugs.length; i += 80) {
+      const chunk = slugs.slice(i, i + 80);
+      const { data, error } = await supa.from('game_scoring_profiles')
+        .select(SCORING_PROFILE_COLS).in('slug', chunk).limit(chunk.length);
+      if (error) {
+        scoringState.available = false;
+        if (!/does not exist|42P01|could not find the table/i.test(error.message || '')) {
+          console.warn('[scoring] profiles could not be read:', error.message);
+        }
+        return scoringState.profiles;
+      }
+      for (const r of data || []) {
+        next.set(String(r.slug).toLowerCase(), scoring.normalizeProfile({
+          slug: r.slug, metricId: r.metric_id, displayLabel: r.display_label, unit: r.unit,
+          valueType: r.value_type, higherIsBetter: r.higher_is_better, precision: r.decimal_precision,
+          min: r.minimum_value, max: r.maximum_value, mode: r.mode, source: r.source,
+          basis: r.basis, enabled: r.enabled, configurationVersion: r.configuration_version,
+        }));
+      }
+    }
+    scoringState.profiles = next;
+    scoringState.available = true;
+  } catch (e) {
+    scoringState.available = false;
+    console.warn('[scoring] profile load failed:', e.message);
+  }
+  scoringState.loadedAt = Date.now();
+  return scoringState.profiles;
+}
+
+/** The profile for one game: the stored row, else its genre-derived suggestion. */
+async function scoringProfileFor(slug) {
+  if (Date.now() - scoringState.loadedAt > SCORING_PROFILE_TTL_MS) await loadScoringProfiles();
+  const stored = scoringState.profiles.get(slug);
+  if (stored) return stored;
+  const g = bySlug.get(slug);
+  return g ? scoring.suggestedProfile(g) : scoring.defaultProfile(slug);
 }
 
 // Hand out a single-use proof-of-play token. Called when a game is opened, so a
@@ -3525,6 +3630,21 @@ app.post('/api/scores/session', (req, res) => {
   res.json({ ok: true, token: scoreRules.issueSession(slug, Date.now(), owner) });
 });
 
+// GET /api/scores/profile?slug=… → everything the submission form needs.
+//
+// The form asks the SERVER what to render, rather than hardcoding "Score" and a
+// numeric-only pattern. formFieldFor() decides: a confirmed profile yields its
+// own label, unit, precision and bounds; anything unconfirmed yields the neutral
+// "Score" field, so a derived guess can never be presented to a player as fact.
+app.get('/api/scores/profile', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const slugRaw = typeof req.query.slug === 'string' ? req.query.slug.trim().toLowerCase() : '';
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slugRaw)) return res.status(400).json({ ok: false, error: 'bad slug' });
+  if (!bySlug.has(slugRaw)) return res.status(404).json({ ok: false, error: 'unknown game' });
+  const profile = await scoringProfileFor(slugRaw);
+  res.json({ ok: true, slug: slugRaw, field: scoring.formFieldFor(profile) });
+});
+
 // Public board. ?slug= for one game, omitted for the all-games board.
 app.get('/api/scores', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -3539,9 +3659,38 @@ app.get('/api/scores', async (req, res) => {
     });
   }
   const supa = getSupabaseAdmin();
-  const rows = await visibleScores(supa, slug, limit);
-  const ranked = scoreRules.rank(rows).slice(0, limit).map(scoreRules.publicRow);
-  const out = { ok: true, available: true, slug: slug || null, scores: ranked };
+
+  // ── ONE BOARD, ONE METRIC ────────────────────────────────────────────────
+  // For a single game, rank by ITS profile — which is what makes a time trial
+  // rank lowest-first instead of being ranked backwards.
+  //
+  // For the ALL-GAMES board there is no single profile, and metres, seconds and
+  // wins are not interchangeable numbers. So that board is restricted to rows
+  // submitted under the neutral `points` metric and says so, rather than
+  // presenting a mixed ranking as though the numbers were comparable.
+  const profile = slug ? await scoringProfileFor(slug) : scoring.defaultProfile('');
+  const rows = await visibleScores(supa, slug, limit, slug ? null : scoring.DEFAULT_METRIC);
+  const ranked = scoring.rankRows(profile, rows).slice(0, limit).map((r) => ({
+    rank: r.rank,
+    player_name: r.player_name,
+    // Prefer the true value; fall back to the legacy integer column.
+    score: Number(r.value_numeric ?? r.score) || 0,
+    slug: r.slug,
+    at: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : null,
+  }));
+
+  const field = scoring.formFieldFor(profile);
+  const out = {
+    ok: true, available: true, slug: slug || null, scores: ranked,
+    // What the page needs to label the column and explain the ordering, so a
+    // reader is never left guessing why a smaller number is winning.
+    metric: {
+      id: field.metricId, label: field.label, unit: field.unit,
+      higherIsBetter: profile.source === 'confirmed' ? profile.higherIsBetter : true,
+      explanation: field.help,
+    },
+    ...(slug ? {} : { mixedMetrics: false, note: 'The all-games board ranks only plain point totals, because distances, times and wins cannot be ranked against each other.' }),
+  };
   if (slug) {
     const g = bySlug.get(slug);
     if (g) out.game = { slug: g.slug, title: g.title };
@@ -3560,9 +3709,29 @@ app.post('/api/scores', async (req, res) => {
     return res.status(503).json({ ok: false, error: 'The leaderboard is not available right now.' });
   }
 
-  const v = scoreRules.validateSubmission(req.body, (s) => bySlug.has(s));
-  if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
-  const { slug, score, playerName } = v.value;
+  // Slug and player name first — they are profile-independent.
+  const slugRaw = typeof req.body?.slug === 'string' ? req.body.slug.trim().toLowerCase() : '';
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slugRaw)) return res.status(400).json({ ok: false, error: 'bad slug' });
+  if (!bySlug.has(slugRaw)) return res.status(400).json({ ok: false, error: 'unknown game' });
+  const slug = slugRaw;
+  const playerName = scoreRules.cleanName(req.body?.player_name ?? req.body?.playerName);
+
+  // ── THE VALUE IS JUDGED AGAINST THIS GAME'S PROFILE ─────────────────────
+  // Not against a global "whole number up to 1e9" rule. So a golf game accepts
+  // 128.5 metres, a time trial accepts 42.80 seconds, and an accuracy board
+  // refuses 140 because a percentage cannot exceed 100.
+  //
+  // The profile is fetched SERVER-SIDE from the slug. A metric, unit or bound
+  // sent by the browser is never read — the client could otherwise nominate a
+  // generous metric and have its own number validated against it.
+  const profile = await scoringProfileFor(slug);
+  const checked = scoring.validateScoreValue(profile, req.body?.score ?? req.body?.value);
+  if (!checked.ok) return res.status(400).json({ ok: false, error: checked.error });
+  const value = checked.value;
+  // `score` is the legacy bigint column and every pre-existing index reads it,
+  // so it is kept in step as a rounded integer while value_numeric carries the
+  // true value. A decimal metric therefore still sorts sanely on the old index.
+  const score = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.round(value)));
 
   // Proof of play. Single use, bound to this game, and it carries how long ago
   // the game was opened — which is what makes "submitted too fast" detectable.
@@ -3570,32 +3739,67 @@ app.post('/api/scores', async (req, res) => {
   if (!play.ok) return res.status(403).json({ ok: false, error: play.error });
 
   const supa = getSupabaseAdmin();
-  const board = (await visibleScores(supa, slug, 200)).map((r) => Number(r.score) || 0);
+  const board = (await visibleScores(supa, slug, 200, profile.metricId))
+    .map((r) => Number(r.value_numeric ?? r.score) || 0);
   // Status is decided HERE. A client may send anything it likes; it is never read.
-  const { status, reason } = scoreRules.classifyScore(score, board, { playedMs: play.playedMs });
+  //
+  // The outlier rule only makes sense on a higher-is-better board: on a time
+  // trial the suspicious submission is an impossibly SMALL number, and
+  // "10x the best" would quarantine the slowest honest run instead. Until that
+  // has its own rule, a lowest-first board gets the absolute ceiling and the
+  // too-fast check but no outlier comparison — an empty board rather than a
+  // wrong one.
+  const { status, reason } = scoreRules.classifyScore(
+    score,
+    profile.higherIsBetter ? board : [],
+    { playedMs: play.playedMs },
+  );
 
   try {
     // Keep-best, exactly as db/community.sql describes: one row per player per
     // game, updated only when they actually beat themselves.
+    //
+    // "Better" COMES FROM THE PROFILE. With a hardcoded "higher wins", a player
+    // on a time-trial board could never improve: their first run would stand
+    // forever and every faster lap would be rejected as "your previous score is
+    // higher". That is the same inverted assumption the ranking had.
     const { data: prior } = await supa.from('scores')
-      .select('id, score').eq('slug', slug).eq('player_name', playerName)
-      .order('score', { ascending: false }).limit(1);
+      .select('id, score, value_numeric').eq('slug', slug).eq('player_name', playerName)
+      .order('score', { ascending: !profile.higherIsBetter }).limit(1);
     const existing = prior && prior[0];
+    const priorValue = existing ? (Number(existing.value_numeric ?? existing.score) || 0) : null;
+    const beatsPrior = existing === undefined || existing === null ? true
+      : (profile.higherIsBetter ? value > priorValue : value < priorValue);
 
-    if (existing && Number(existing.score) >= score) {
+    if (existing && !beatsPrior) {
       return res.json({
-        ok: true, recorded: false, best: Number(existing.score),
-        message: 'Your previous score for this game is higher.',
+        ok: true, recorded: false, best: priorValue,
+        message: profile.higherIsBetter
+          ? 'Your previous score for this game is higher.'
+          : 'Your previous result for this game is already faster.',
       });
     }
+    // The write is attempted WITH the profile columns and retried without them
+    // if the migration has not been applied. Without this, deploying this code
+    // ahead of db/17_scoring_profiles.sql would 502 every submission — the
+    // leaderboard would look broken rather than merely un-upgraded.
+    const missingColumn = (e) => /column .* does not exist|42703|could not find the '/i.test(String(e?.message || ''));
+    const withProfile = { value_numeric: value, metric_id: profile.metricId };
+    const core = { score, status, flag_reason: reason };
+
     if (existing) {
-      const { error } = await supa.from('scores')
-        .update({ score, status, flag_reason: reason, created_at: new Date().toISOString() })
-        .eq('id', existing.id);
+      const patch = { ...core, created_at: new Date().toISOString() };
+      let { error } = await supa.from('scores').update({ ...patch, ...withProfile }).eq('id', existing.id);
+      if (error && missingColumn(error)) {
+        ({ error } = await supa.from('scores').update(patch).eq('id', existing.id));
+      }
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supa.from('scores')
-        .insert({ slug, player_name: playerName, score, status, flag_reason: reason });
+      const row = { slug, player_name: playerName, ...core };
+      let { error } = await supa.from('scores').insert({ ...row, ...withProfile });
+      if (error && missingColumn(error)) {
+        ({ error } = await supa.from('scores').insert(row));
+      }
       if (error) throw new Error(error.message);
     }
   } catch (e) {
@@ -3606,7 +3810,8 @@ app.post('/api/scores', async (req, res) => {
   // A quarantined score is reported honestly as held for review — never as a
   // silent success, and never as a place on a board it is not actually on.
   res.json({
-    ok: true, recorded: true, status,
+    ok: true, recorded: true, status, value,
+    metric: { id: profile.metricId, label: scoring.formFieldFor(profile).label },
     pending: status !== scoreRules.STATUS.OK,
     message: status === scoreRules.STATUS.OK
       ? 'Score saved.'
@@ -3862,7 +4067,19 @@ app.post('/api/recommendations', async (req, res) => {
   const embed_url = clean(b.embed_url || b.embedUrl || b.url, 600);
   const note      = clean(b.note, 280);
   const author    = clean(b.author, 40) || 'Anonymous';
-  const category  = clean(b.category, 40).toLowerCase() || 'arcade';
+  // GENRES, validated against the shared taxonomy. `category` is kept as the
+  // first chosen genre so existing readers of that column keep working.
+  const genreCheck = recTaxonomy.validateGenreSelection({
+    genres: b.genres ?? b.category,
+    otherText: b.other_text ?? b.otherText,
+  });
+  if (!genreCheck.ok) return res.status(400).json({ ok: false, error: genreCheck.error });
+  const genres    = genreCheck.genres;
+  const otherText = genreCheck.otherText;
+  const category  = genres[0];
+  // Two more free-text fields, cleaned by the SAME function the browser uses.
+  const officialUrl = clean(b.official_url || b.officialUrl, 600);
+  const extra       = recTaxonomy.cleanText(b.extra, 280);
 
   if (!title)               return res.status(400).json({ ok: false, error: 'A title is required.' });
   if (!recHostOk(embed_url)) return res.status(400).json({ ok: false, error: 'Embed link must be an https URL from a supported game host (GameDistribution, OnlineGames.io, GameMonetize, HTMLGames, or a y8.com/embed/ link).' });
@@ -3909,9 +4126,22 @@ app.post('/api/recommendations', async (req, res) => {
   const supa = getSupabaseAdmin();   // INSERTs a recommendation
   if (!supa) return res.status(503).json({ ok: false, error: 'Community storage is not configured yet.' });
   try {
-    const { data, error } = await supa.from('recommendations')
-      .insert({ title, embed_url, note, author, category })
-      .select('id, title, author, category, created_at').single();
+    const core = { title, embed_url, note, author, category };
+    // The richer taxonomy. Attempted first and retried WITHOUT these columns if
+    // db/18_recommendation_taxonomy.sql has not been applied yet — deploying
+    // ahead of the migration must not reject every submission and lose the
+    // contribution. The genres are still validated either way; on an
+    // un-migrated database only the extra detail is dropped.
+    const enriched = {
+      genres, other_text: otherText || null,
+      official_url: officialUrl || null, extra: extra || null,
+    };
+    const cols = 'id, title, author, category, created_at';
+    let { data, error } = await supa.from('recommendations')
+      .insert({ ...core, ...enriched }).select(cols).single();
+    if (error && /column .* does not exist|42703|could not find the '/i.test(error.message || '')) {
+      ({ data, error } = await supa.from('recommendations').insert(core).select(cols).single());
+    }
     if (error) throw error;
     if (possibleDuplicateOf) {
       // Surfaced to the submitter (so they can say "no, mine is different")
@@ -3941,11 +4171,22 @@ app.get('/api/recommendations', async (req, res) => {
   const supa = getSupabase();
   if (!supa) return res.json({ recommendations: [], source: 'no-supabase' });
   try {
-    const { data, error } = await supa.from('recommendations')
-      .select('id, title, embed_url, note, author, category, views, created_at')
+    // `genres` and the other taxonomy columns arrive with
+    // db/18_recommendation_taxonomy.sql. Selecting them on an un-migrated
+    // database 400s the whole list, so the read falls back to the original
+    // column set rather than showing an empty community page. The card renderer
+    // already falls back from genres[] to the legacy `category`.
+    const RICH = 'id, title, embed_url, note, author, category, genres, other_text, official_url, extra, views, created_at';
+    const BASE = 'id, title, embed_url, note, author, category, views, created_at';
+    const read = (cols) => supa.from('recommendations')
+      .select(cols)
       .eq('is_visible', true)
       .order('created_at', { ascending: false })
       .limit(limit);
+    let { data, error } = await read(RICH);
+    if (error && /column .* does not exist|42703|could not find the '/i.test(error.message || '')) {
+      ({ data, error } = await read(BASE));
+    }
     if (error) throw error;
     return res.json({ recommendations: data || [] });
   } catch (e) {
@@ -5378,6 +5619,105 @@ app.post('/api/admin/cache/clear', async (req, res) => {
 // Read-only. Hiding a game is a separate, reviewable step: `npm run quality --
 // --write` appends rules to data/catalog-overrides.json, which lands in a diff
 // rather than mutating the live site from a dashboard button.
+// ── GET /api/admin/scoring — the scoring-configuration worklist ────────────
+// The diagnostic behind "games missing a verified score configuration". Three
+// buckets, because they need different actions:
+//   needsReview  a metric was DERIVED from the game's genre/tags and is waiting
+//                for a human to confirm or reject it. Players are still seeing
+//                the neutral "Score" field, so nothing is wrong — there is just
+//                a decision outstanding.
+//   confirmed    somebody checked. These are the only games whose players see a
+//                specific metric and unit.
+//   default      on the neutral points metric with nothing to suggest. NOT a
+//                problem and NOT listed as work: "Score" is the honest answer
+//                for a game whose scoring convention we cannot establish.
+app.get('/api/admin/scoring', async (req, res) => {
+  if (!requirePerm(req, res, 'catalog.read')) return;
+  res.setHeader('Cache-Control', 'no-store');
+  await loadScoringProfiles();
+  const buckets = { needsReview: [], confirmed: [], default: 0 };
+  for (const g of CATALOG.games || []) {
+    const slug = String(g.slug || '').toLowerCase();
+    const stored = scoringState.profiles.get(slug);
+    const p = stored || scoring.suggestedProfile(g);
+    if (p.source === 'confirmed') {
+      buckets.confirmed.push({ slug, title: g.title, metricId: p.metricId, label: scoring.formFieldFor(p).label, enabled: p.enabled });
+    } else if (scoring.needsReview(p)) {
+      buckets.needsReview.push({
+        slug, title: g.title, category: g.category || null,
+        suggestedMetric: p.metricId,
+        // The evidence, in words, so the review is reviewable rather than a
+        // yes/no on an unexplained guess.
+        basis: p.basis,
+        stored: !!stored,
+      });
+    } else {
+      buckets.default += 1;
+    }
+  }
+  res.json({
+    ok: true,
+    storage: scoringState.available ? 'supabase' : 'none (suggestions only — apply db/17_scoring_profiles.sql to persist confirmations)',
+    metrics: Object.entries(scoring.METRICS).map(([id, m]) => ({
+      id, label: m.label, unit: m.unit, higherIsBetter: m.higherIsBetter,
+      valueType: m.valueType, precision: m.precision, min: m.min, max: m.max, describe: m.describe,
+    })),
+    counts: { needsReview: buckets.needsReview.length, confirmed: buckets.confirmed.length, onNeutralDefault: buckets.default },
+    needsReview: buckets.needsReview.slice(0, 200),
+    confirmed: buckets.confirmed.slice(0, 200),
+    note: 'A suggested metric is never shown to a player — the submission form stays on the neutral "Score" field until a profile is confirmed here.',
+  });
+});
+
+// ── PUT /api/admin/scoring/:slug — confirm (or clear) a game's metric ──────
+// This is the ONLY thing that produces a 'confirmed' profile, and therefore the
+// only thing that changes what a player's form says. A metric arriving from a
+// browser is validated against the closed METRICS vocabulary first; the rest of
+// the row is derived server-side, so a client cannot widen its own bounds.
+app.put('/api/admin/scoring/:slug', async (req, res) => {
+  if (!requirePerm(req, res, 'games.update')) return;
+  if (!requireAdminCsrf(req, res)) return;
+  res.setHeader('Cache-Control', 'no-store');
+
+  const slug = String(req.params.slug || '').toLowerCase().trim();
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug)) return res.status(400).json({ ok: false, error: 'bad slug' });
+  if (!bySlug.has(slug)) return res.status(404).json({ ok: false, error: 'unknown game' });
+
+  const metricId = String(req.body?.metricId || '').trim();
+  if (!scoring.METRIC_IDS.includes(metricId)) {
+    return res.status(400).json({ ok: false, error: 'unknown metric', allowed: scoring.METRIC_IDS });
+  }
+  const supa = getSupabaseAdmin();
+  if (!supa) return res.status(503).json({ ok: false, error: 'confirming a profile needs the database' });
+
+  // Built from the metric definition, then narrowed by whatever the caller
+  // explicitly overrode — normalizeProfile clamps all of it.
+  const profile = scoring.normalizeProfile({
+    slug, metricId, source: 'confirmed',
+    mode: req.body?.mode, enabled: req.body?.enabled,
+    precision: req.body?.precision, min: req.body?.min, max: req.body?.max,
+  });
+
+  try {
+    const { error } = await supa.from('game_scoring_profiles').upsert({
+      slug: profile.slug, metric_id: profile.metricId, display_label: profile.displayLabel,
+      unit: profile.unit, value_type: profile.valueType, higher_is_better: profile.higherIsBetter,
+      decimal_precision: profile.precision, minimum_value: profile.min, maximum_value: profile.max,
+      mode: profile.mode, source: 'confirmed', basis: null, enabled: profile.enabled,
+    }, { onConflict: 'slug' });
+    if (error) throw new Error(error.message);
+  } catch (e) {
+    if (/does not exist|42P01|could not find the table/i.test(e.message)) {
+      return res.status(503).json({ ok: false, error: 'apply db/17_scoring_profiles.sql first' });
+    }
+    console.warn('[scoring] profile upsert failed:', e.message);
+    return res.status(502).json({ ok: false, error: 'could not save that profile' });
+  }
+  scoringState.loadedAt = 0;          // force a reload on the next read
+  auditAction(req, 'scoring.confirm', slug, 'success', { metricId: profile.metricId, mode: profile.mode });
+  res.json({ ok: true, slug, profile: { metricId: profile.metricId, source: 'confirmed' }, field: scoring.formFieldFor(profile) });
+});
+
 app.get('/api/admin/catalog/quality', (req, res) => {
   if (!requireAdmin(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
