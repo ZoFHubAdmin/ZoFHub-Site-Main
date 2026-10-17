@@ -18610,6 +18610,96 @@
   "_comment_onlinegames": "OnlineGames.io is governed by embedonlinegamesio.json (the source of truth) via tools/sync-onlinegames.mjs — run `npm run og-sync` to check, `-- --write` to apply. The 2026-07-11 blanket hostIncludes:onlinegames.io block was REMOVED on 2026-08-04: it hid all 260 canonical games, and the canonical embeds were re-probed at 10/10 HTTP 200 with framing allowed. Non-canonical OnlineGames.io titles are now hidden individually by slug instead, so the blanket rule was both redundant and blocking the licensed set. NOTE: the July report was a RUNTIME black-screen, which an HTTP probe cannot disprove — if games black-screen again, restore the host block rather than re-adding it per slug.",
   "frameBlocked": [
     {
+      "slug": "twisty-rolling",
+      "url": "https://distribution.gameflare.com/embed/twisty-rolling/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-17T02:00:02.700Z"
+    },
+    {
+      "slug": "bird-flight",
+      "url": "https://distribution.gameflare.com/embed/bird-flight/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-17T02:00:02.668Z"
+    },
+    {
+      "slug": "octagon",
+      "url": "https://distribution.gameflare.com/embed/octagon/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-17T02:00:02.656Z"
+    },
+    {
+      "slug": "only-up-parkour",
+      "url": "https://distribution.gameflare.com/embed/only-up-parkour/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T23:00:38.364Z"
+    },
+    {
+      "slug": "platform-kid",
+      "url": "https://distribution.gameflare.com/embed/platform-kid/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T23:00:38.275Z"
+    },
+    {
+      "slug": "turbo-race-3d",
+      "url": "https://distribution.gameflare.com/embed/turbo-race-3d/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T14:14:47.098Z"
+    },
+    {
+      "slug": "slidepark-io",
+      "url": "https://distribution.gameflare.com/embed/slideparkio/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T14:14:45.758Z"
+    },
+    {
+      "slug": "pen-run",
+      "url": "https://distribution.gameflare.com/embed/pen-run/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T14:14:45.015Z"
+    },
+    {
+      "slug": "touchdown",
+      "url": "https://distribution.gameflare.com/embed/touchdown/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T14:14:44.873Z"
+    },
+    {
+      "slug": "maze-cube",
+      "url": "https://distribution.gameflare.com/embed/maze-cube/",
+      "reason": "x_frame_options_sameorigin",
+      "header": "x-frame-options",
+      "value": "sameorigin",
+      "status": 403,
+      "at": "2026-10-16T14:14:44.587Z"
+    },
+    {
       "slug": "skibidi-online",
       "url": "https://distribution.gameflare.com/embed/skibidi-online/",
       "reason": "x_frame_options_sameorigin",

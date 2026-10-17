@@ -11,7 +11,7 @@
 A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
-2. **A free AI assistant** — chat + image generation that runs **entirely in the visitor's browser**, with a **user-chosen provider** ([Pollinations](https://pollinations.ai) by default, or opt-in [Puter.js](https://puter.com) / Hugging Face — nothing forced). Keyless on the default path, and **no prompt, reply or generated image ever touches this server** — enforced by the server, not just by convention. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
+2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai), made by their own browser on their own IP. **No prompt or reply ever touches this server** — not by convention, but because there is no AI route left that could relay one. No image, audio or video generation, and no provider choice. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
 
 > **Public metadata is framed as a security tool.** The served `<title>`, Open
@@ -34,9 +34,9 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
 - 🙏 **Donations** — an optional "Support ZoFHub" dialog offering six **crypto-only** methods: **Solana**, **USDC**, **Bitcoin**, **Litecoin**, **Ethereum** and **Monero**. There is no card option, so a visitor without a wallet cannot donate — deliberate, not an oversight. SOL and USDC share **one address and one wallet**, listed separately so a donor holding dollars need not know USDC is an SPL token. Addresses live in the **environment, never in git**, are **checksum-verified at boot**, and a method that fails is dropped rather than served — a typo becomes a missing button, not lost donations. BTC, LTC and ETH get **full checksum** verification (ETH via a dependency-free **Keccak-256** + EIP-55 implementation, since `node:crypto` ships SHA-3, which is a different function); SOL, USDC and XMR are shape-checked only and say so. A **swap path** (pay BTC, LTC, SOL, ETH or DOGE; a non-custodial provider settles to Monero; nothing stored) exists as a server API but **no page offers it yet**. Full detail, including which party can and cannot see what: [DONATIONS.md](features/DONATIONS.md).
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for and no email required — the only addresses ever stored are ones a visitor volunteers, for the mirror-update list or a feedback reply. See [what the site remembers](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
-- 🤖 **Built-in AI** — text + image generation, streamed, browser-direct and keyless, with an optional **provider picker** (Pollinations, Puter.js or Hugging Face — the default stays free and nothing is forced), a "Vibe Finder" that recommends games from your mood, and a local answer cache for instant repeats.
+- 🤖 **Built-in AI** — **text only**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message, with no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
 - 🔎 **Per-game SEO** — every game page carries a **unique, factual description** and full metadata (canonical URL, Open Graph, `schema.org` JSON-LD), generated deterministically from verified catalog metadata — no AI filler, no fabrication, no per-request cost. See [GAME-SEO.md](features/GAME-SEO.md).
-- 🌐 **Proxy browser (optional)** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet engines for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)) — plus [AnuraOS](proxy/ANURA.md), a whole web OS with x86 emulation, served by this process on its own origin. `npm run verify-proxy` renders real pages through each one and fails if any stops working.
+- 🌐 **Proxy browser (optional)** — five bundled same-origin engines — GUST (libcurl.js + Wisp), Ultraviolet, Scramjet, [HORIZON](https://github.com/RiptideMC/HORIZON) and [Interstellar](https://github.com/UseInterstellar/Interstellar) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through each one and fails if any stops working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
 - 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon **degrades to a direct connection and reports it**, so the proxy never goes down over it. GPL-3.0, run as a separate program, not vendored.
@@ -55,7 +55,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Server | Node.js (≥22) + Express, ES modules, **no build step** |
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework, no bundler) |
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
-| AI | **Browser-direct**, never proxied by this server — Pollinations (default) + opt-in Puter.js / Hugging Face (user-chosen) |
+| AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations, text only |
 | Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
 | Tests | `node:test` (built in — zero test dependencies), 1379 tests |
@@ -155,23 +155,39 @@ on ordinary catalog decay trains people to ignore the check.
 
 ## 🔒 AI runs on the visitor's device
 
-Every AI call ZoFHub makes in production goes **browser-direct to Pollinations from the visitor's own machine, on their own IP**. No prompt, reply, or generated image passes through this server, and no API key is required.
+Every AI call ZoFHub makes is **one `GET`, made by the visitor's browser**, to
+`https://text.pollinations.ai/<url-encoded prompt>`, on their own connection and
+their own IP. The response body **is** the answer, read with `response.text()`.
+No prompt or reply passes through this server, and no API key is involved.
 
-| Feature | How it reaches Pollinations |
+| | |
 |---|---|
-| Chat / text | `fetch()` from the browser → `text.pollinations.ai` ([`public/js/pollinations.js`](../public/js/pollinations.js)) |
-| Images | `<img src="https://image.pollinations.ai/prompt/…">` — the browser loads the bytes |
-| Text-to-speech | the browser builds the Pollinations URL and plays it directly. No audio passes through us, and the prompt never reaches this server |
-| The `pk_` key | [`/api/ai/key`](../server.js) serves the **publishable** key so the browser can call Pollinations itself. Publishable keys are designed to be public; a secret `sk_` key must never go here |
+| **The one request** | `GET https://text.pollinations.ai/<encodeURIComponent(prompt)>` ([`public/js/pollinations.js`](../public/js/pollinations.js)) |
+| **Entry points using it** | the `/ai` chat page, and the floating assistant on every other page |
+| **Why it is readable cross-origin** | the endpoint answers `Access-Control-Allow-Origin: *`. `mode: 'no-cors'` is deliberately **not** used — an opaque response cannot be read, and would turn a visible failure into a silent blank reply |
+| **Authentication** | none. The anonymous tier is keyless. `gen.pollinations.ai` requires `Authorization: Bearer sk_…`, and an `sk_` secret may never ship in a browser bundle, so it is not used |
+| **Image / audio / video** | **none.** Not a feature of this site, at any layer |
 
-**Why server-side AI routes still exist.** Pollinations' text endpoint sits behind a Cloudflare Turnstile check keyed on the `Origin` header, and it rejects browser fetches from `http://` and `localhost` origins. A developer running the site locally would otherwise have no working AI at all. So `/api/ai/text`, `/api/ai/image` and `/api/ai/echo` remain — as a **local-development aid only**.
+**There are no server-side AI routes left.** `/api/ai/text`, `/api/ai/echo`,
+`/api/ai/audio`, `/api/ai/video`, `/api/ai/image`, `/api/ai/key`,
+`/api/ai/providers` and `/api/ai/health` have all been **removed**, along with
+the generation pipeline behind them (`lib/ai-pipeline.mjs`,
+`lib/ai-providers.mjs`) and the localhost dev hop that used to relay prompts.
+There is also **no local inference engine**: the Transformers.js + SmolLM2
+fallback is gone, because downloading hundreds of megabytes to answer in a
+visibly worse voice made an outage look like the AI had quietly got worse. A
+clear, retryable error is the honest outcome.
 
-**This is enforced, not promised.** `aiServerAllowed()` in [`server.js`](../server.js) refuses those routes when:
+**The guard remains as a regression guard.** `aiServerAllowed()` in
+[`server.js`](../server.js), with `AI_FALLBACK_ROUTES` in
+[`lib/ai-guard.mjs`](../lib/ai-guard.mjs), still refuses those paths before
+routing — so if a handler is ever re-added on one of them, it ships refused
+rather than open by accident. It refuses when:
 
 - `NODE_ENV=production` — always, no exceptions (`render.yaml` sets it), **or**
 - the client is not on loopback. `trust proxy` is on, so `req.ip` is the real client address and an internet visitor can never present as `127.0.0.1`.
 
-**The same guard covers the Vibe Finder.** `/api/vibe` sits outside `/api/ai/*`, and its optional AI refinement (`vibeKeywordsFromAI()`) was once the one path that escaped: a mood search that missed the curated map sent the visitor's **typed text** to Pollinations **from this server's IP** — measured at 3 s of dead wait on an ordinary query like "relaxing puzzle". It now checks `aiServerAllowed()` first, so in production the Vibe Finder uses only the curated mood map and the deterministic ranker in [`lib/vibe-engine.mjs`](../lib/vibe-engine.mjs). Nothing degrades — the AI was only ever an optional refinement — and every mood search is instant.
+**The Vibe Finder makes no AI call at all.** `/api/vibe` sits outside `/api/ai/*`, and its optional AI refinement (`vibeKeywordsFromAI()`) was once the one path that escaped the audit: a mood search that missed the curated map sent the visitor's **typed text** to Pollinations **from this server's IP** — measured at 3 s of dead wait on an ordinary query like "relaxing puzzle". It was first gated, and is now **deleted**. The Vibe Finder uses only the curated mood map, the intent parser and the deterministic ranker in [`lib/vibe-engine.mjs`](../lib/vibe-engine.mjs). Nothing degrades — both call sites already wrapped the AI in a `catch` that fell back to exactly what now runs unconditionally — and every mood search is instant.
 
 There is **no escape hatch**. The old `AI_SERVER_FALLBACK=1` switch was read *before* `NODE_ENV`, so it could re-open these routes on a live deployment; nothing reads it now. The rule lives in [`lib/ai-guard.mjs`](../lib/ai-guard.mjs) and is applied twice: by each route, and by a middleware that runs ahead of CORS, the body parser and the rate limiter — so a refused request is answered `403 {"error":"client_side_only"}` for every method and every spelling of the path, before its body is read. A tunnel that connects from loopback on an internet visitor's behalf is refused too, whichever forwarding header names the visitor. [`test/production-guards.test.mjs`](../test/production-guards.test.mjs) proves it against a real `NODE_ENV=production` boot.
 
@@ -622,14 +638,14 @@ ZoFHub/
 │   ├── guides/            #   how it works, commands, debugging, go-live, new machine
 │   ├── database/          #   catalog setup, migration order, one game, the Supabase mirror
 │   ├── features/          #   AI, ads, game SEO, embeds, Y8, GameFlare, leaderboard, donations, visitors, Suroi
-│   ├── proxy/             #   egress policy, MASQR, sing-box, Kasm, AnuraOS
+│   ├── proxy/             #   egress policy, MASQR, sing-box, Kasm
 │   ├── reports/           #   generated reports (do not edit by hand)
 │   └── CREDITS.md         #   third-party licences + the AGPL §13 source offer
 │
 ├── lib/                   # server modules — supabase, cron-jobs, cache, ad-providers,
 │                          #   ai-*, recommender, vibe-*, scores, donate/swap,
 │                          #   wisp-policy (proxy egress), masqr (mirror gate),
-│                          #   singbox-* (optional tunnel), kasm-host, anura-host, gameflare-*
+│                          #   singbox-* (optional tunnel), kasm-host, gameflare-*
 ├── proxy-engine/          # every AGPL proxy engine behind one mount function
 │   ├── mount.mjs          #   routing, static mounts, tunnel wiring
 │   └── assets/            #   gust/ (libcurl.js + Wisp) · uv/ (Ultraviolet) · scram/ (Scramjet)
@@ -659,9 +675,7 @@ ZoFHub/
 ├── test/                  # node:test suites (1379 tests, no framework)
 ├── deploy/singbox/        # sing-box config templates + compose file
 ├── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
-├── vendor/anura/          # AnuraOS bundle (AGPL-3.0, pinned, one declared modification)
-│
-└── DayDream/ Interstellar/ NautilusOS/ scramjet/
+└── DayDream/ NautilusOS/ scramjet/
                            # companion / reference upstream trees — their own licences,
                            #   their own docs, not deployed (see docs/CREDITS.md)
 ```
@@ -815,7 +829,6 @@ docs/
 | [MASQR.md](proxy/MASQR.md) | Mirror-survival gate — hides the proxy from crawlers | **off** |
 | [SINGBOX.md](proxy/SINGBOX.md) | Optional outbound tunnel (REALITY/VLESS): adapter and managed supervisor | **off** |
 | [KASM.md](proxy/KASM.md) | Kasm Workspaces and the external companion-desktop model | **off** |
-| [ANURA.md](proxy/ANURA.md) | AnuraOS — a whole web OS, served on its own origin, one declared modification | on **if the bundle is present** |
 
 #### reports/ and licensing
 
@@ -851,7 +864,7 @@ provenance — editing them would misrepresent what the upstream project says ab
 itself:
 
 ```
-DayDream/    Interstellar/    NautilusOS/    scramjet/    vendor/anura/
+DayDream/    NautilusOS/    scramjet/
 ```
 
 If one of them says something wrong *about ZoFHub*, the correction belongs in

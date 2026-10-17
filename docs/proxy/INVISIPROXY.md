@@ -82,7 +82,7 @@ it, for the same argument applied to GPL-3.0.
 ### (a) InvisiProxy as an optional engine
 
 Set `PROXY_INVISI_URL` to a running instance and it appears in the `/browser`
-engine picker alongside NautilusOS, Interstellar, DayDream and Nebula. It is
+engine picker alongside NautilusOS, DayDream and Nebula. It is
 probed for reachability, listed only while it is up, and framed with a new-tab
 escape hatch.
 

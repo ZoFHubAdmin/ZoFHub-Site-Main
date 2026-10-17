@@ -23,7 +23,7 @@ const BLANK = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SECRET_KEY'
   'MASQR_ENABLED', 'PROXY_AD_SCRIPTS', 'PROXY_AD_ORIGINS', 'TRUST_PROXY'];
 
 const ENV = {
-  NODE_ENV: 'production', PORT: String(PORT), NO_OPEN: '1', CRON_DISABLED: '1', ANURA_PORT: '0',
+  NODE_ENV: 'production', PORT: String(PORT), NO_OPEN: '1', CRON_DISABLED: '1',
   EXOCLICK_ENABLED: '1',
   EXOCLICK_HEADER_TAG: '<script async src="https://a.exo.test/ad-provider.js"></script><ins data-zoneid="1"></ins>',
   EXOCLICK_HEADER_TAG__SOUTH_ASIA: '<script async src="https://in.exo.test/ad-provider.js"></script>',
@@ -104,10 +104,14 @@ describe('NODE_ENV=production: the AI fallback routes are closed to everyone', (
     }
   });
 
-  test('the pipeline metadata is not published either', async () => {
-    const r = await req('/api/ai/health');
-    assert.equal(r.status, 200);
-    assert.deepEqual(r.json, { ok: true, mode: 'client-side', serverInference: false });
+  test('the pipeline metadata endpoints do not exist at all', async () => {
+    // These used to answer 200 with a minimal {mode:'client-side'} body in
+    // production and the full pipeline shape elsewhere. The pipeline is deleted,
+    // so they are gone outright — a route that cannot answer cannot over-answer.
+    for (const p of ['/api/ai/health', '/api/ai/providers', '/api/ai/key']) {
+      const r = await req(p);
+      assert.equal(r.status, 404, `${p} still answers in production`);
+    }
   });
 });
 

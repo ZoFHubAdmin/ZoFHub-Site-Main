@@ -248,34 +248,14 @@ function mountFooter() {
   // delete the disclosure that makes them accurate.
   const ownNote = footer.querySelector('.footer-legal')?.textContent.trim() || '';
 
-  // ── Compact variant ──────────────────────────────────────────────────────
-  // /ai and /browser are fixed-height app shells: their main element is sized
-  // to `calc(100vh - header)`, so a six-column footer would push the composer
-  // (or the proxy frame) below the fold and turn a deliberate single-screen
-  // layout into a scrolling page. They opt into a one-row legal bar instead,
-  // which links exactly the same documents — the legal pages stay reachable
-  // from every page on the site, which is the part that actually matters.
-  if (footer.classList.contains('site-footer-mini')) {
-    footer.innerHTML = `
-      <div class="footer-mini-inner">
-        <span class="footer-copy">&copy; ${year} ZoFHub</span>
-        <nav class="footer-mini-links" aria-label="Legal">
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-          <a href="/cookies">Cookies</a>
-          <a href="/dmca">DMCA</a>
-          <a href="/credits">Credits</a>
-          <a href="/licenses">Source</a>
-        </nav>
-      </div>`;
-    if (ownNote) {
-      const p = document.createElement('p');
-      p.className = 'footer-legal';
-      p.textContent = ownNote;
-      footer.querySelector('.footer-mini-inner')?.appendChild(p);
-    }
-    return;
-  }
+  // There is ONE footer, and every page gets it — /ai and /browser included.
+  // They used to opt into a cut-down one-row variant (`.site-footer-mini`) on
+  // the theory that a six-column block would push their composer or proxy frame
+  // below the fold. It would not: both shells are sized to `100vh - header`, so
+  // they fill the first screen by themselves and the footer sits below, reached
+  // by scrolling, exactly as it is everywhere else. What the variant really did
+  // was give two pages a different-looking footer and quietly withhold from them
+  // anything the real one gained. See the note in public/css/main.css.
 
   footer.innerHTML = `
     <div class="footer-main">
@@ -357,12 +337,10 @@ mountFooter();
 function mountMirrorSignup() {
   const footer = document.querySelector('.site-footer');
   if (!footer || footer.querySelector('.mirror-signup')) return;
-  // Not in the compact bar. /ai and /browser reserve an exact 38px for it, and
-  // a two-line form with an input and a button does not fit in 38px — it pushed
-  // the AI composer and the proxy frame off the bottom of the viewport. The
-  // signup still appears on every content page, which is where somebody reading
-  // a page is able to stop and type an address anyway.
-  if (footer.classList.contains('site-footer-mini')) return;
+  // This used to bail out on /ai and /browser, which reserved an exact 38px for
+  // a compact footer bar that a two-line form could not fit into. That variant is
+  // gone and both pages now carry the full footer, so the signup appears on every
+  // page — which is the consistent behaviour, and one less rule to remember.
   const anchor = footer.querySelector('.footer-bottom') || footer.lastElementChild;
   if (!anchor) return;
 

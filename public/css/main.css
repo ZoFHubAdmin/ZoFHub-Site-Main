@@ -384,39 +384,23 @@ kbd {
 .footer-col a { color: var(--text-mute); transition: color .14s ease, transform .14s ease; width: fit-content; }
 .footer-col a:hover { color: var(--text); transform: translateX(2px); }
 
-/* ── Compact legal bar ──────────────────────────────────────────────────────
-   /ai and /browser are fixed-height app shells, sized to the viewport. They
-   carry this one-row variant of the footer so the privacy, terms and DMCA
-   pages stay one click away from EVERY page on the site, without a six-column
-   block pushing the composer or the proxy frame below the fold.
+/* ── ONE FOOTER, ON EVERY PAGE ──────────────────────────────────────────────
+   There used to be a second, one-row "compact legal bar" variant
+   (.site-footer-mini) that /ai and /browser carried instead of the real
+   footer, on the grounds that they are fixed-height app shells and a
+   six-column block would push the composer or the proxy frame below the fold.
 
-   --legal-bar-h is the contract between this bar and those shells: the bar
-   declares its own height here, and each shell subtracts it from its viewport
-   calculation. Hard-coding the number in three files is how a footer ends up
-   overlapping a proxy toolbar after somebody changes the padding. */
-.page-ai, .page-browser { --legal-bar-h: 38px; }
+   It did not: those shells are sized to `100vh - header`, so they already fill
+   the first screen on their own and the footer simply sits BELOW them, exactly
+   as it does on every other page. What the variant actually produced was two
+   different footers on one site — a six-column one with the brand, the social
+   cluster, the tagline and the Play/Explore columns, and a bare row of six
+   links — so /ai and /browser looked like a different product, and anything
+   added to the real footer silently never appeared on them.
 
-.site-footer-mini {
-  margin-top: 0;
-  height: var(--legal-bar-h);
-  display: flex; align-items: center;
-  font-size: 12px;
-}
-.footer-mini-inner {
-  width: 100%; max-width: 1720px; margin: 0 auto;
-  padding: 0 clamp(12px, 2vw, 28px);
-  display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
-}
-.footer-mini-links { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.footer-mini-links a { color: var(--text-mute); transition: color .14s ease; }
-.footer-mini-links a:hover { color: var(--text); }
-.site-footer-mini .footer-legal { margin: 0; color: var(--text-dim); font-size: 11.5px; }
-/* Below this width the bar wraps to two rows, so the shells must stop
-   reserving a single row's worth of space for it. */
-@media (max-width: 720px) {
-  .page-ai, .page-browser { --legal-bar-h: 0px; }
-  .site-footer-mini { height: auto; padding: 8px 0; }
-}
+   Both now use the same <footer class="site-footer">, built by the same
+   mountFooter() in /js/layout.js. --legal-bar-h is gone with the variant; the
+   shells no longer reserve a row's height for a bar that is not there. */
 
 /* Footer bottom bar */
 .footer-bottom {

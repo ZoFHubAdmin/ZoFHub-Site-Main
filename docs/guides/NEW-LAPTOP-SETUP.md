@@ -27,7 +27,7 @@ Everything that matters is committed and comes down with `git clone`:
 - **All your code** — server, frontend, tools, SQL.
 - **`.env.example`** — every variable the server reads, commented. *(The real
   `.env` is **not** committed — see the warning above.)*
-- **The companion apps' files** — Interstellar, NautilusOS, DayDream, scramjet.
+- **The companion apps' files** — NautilusOS, DayDream, scramjet.
   *(Nebula is the one exception — see below.)*
 - **All data files** — catalogs, audits, caches, state.
 
@@ -126,7 +126,6 @@ repairs anything that didn't copy cleanly.)
    | Companion | Setup | Port |
    |---|---|---|
    | **NautilusOS** | none — pure static | 8091 |
-   | **Interstellar** | `cd Interstellar && npm install` | 8092 |
    | **DayDream** | `cd DayDream && pnpm install && pnpm run build`, then copy `config.example.js` → `config.js` | 8093 |
    | **Nebula** | *not in the repo* — restore with `git checkout 07a2a6f7 -- Nebula` first, then `cd Nebula && pnpm install && pnpm run build` and copy `config.example.toml` → `config.toml` | 8094 |
 

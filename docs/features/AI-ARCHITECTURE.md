@@ -1,94 +1,217 @@
-# The AI system: one provider, text only
+# The AI system: one request, text only
 
 > **Where the AI runs: in the visitor's browser.** ZoFHub's server performs no
-> model inference. `/api/ai/text` and `/api/ai/echo` return **403
-> `client_side_only`** in production, and that is deliberate — the AI is free
-> because each request goes out on the visitor's own connection and quota rather
-> than through one shared server IP.
+> model inference and has **no AI route at all** — there is nothing left that
+> could receive a prompt. Every answer comes from one `GET` the visitor's own
+> browser makes to `text.pollinations.ai`, on their own connection and quota
+> rather than through one shared server IP.
 
 ---
 
-## 1. One provider, and what was removed
+## 1. The whole thing
 
-The AI used to host **four** implementations at once: Pollinations text,
-Pollinations image generation, Hugging Face (the visitor's own token) and
-Puter.js (the visitor's own account, billed to their credits). The AI page
-carried a provider picker asking visitors to choose between them.
+```
+   the composer                      the visitor's browser
+   on /ai or the orb  ──prompt──▶  GET https://text.pollinations.ai/<encoded prompt>
+                                            │
+                                            │  200, text/plain
+                                            │  Access-Control-Allow-Origin: *
+                                            ▼
+   the message list  ◀──response.text()──  the body IS the answer
+```
 
-That is gone. The AI is now **text-only, single-provider**:
+One request. No API key, no login, no model negotiation, no streaming protocol,
+no provider choice, and no server of ours anywhere in the path.
 
-| Removed | What went with it |
+`public/js/pollinations.js` is the only place that builds it:
+
+```js
+export const ENDPOINT = 'https://text.pollinations.ai/';
+
+export function buildPromptUrl(prompt) {
+  const text = fitToUrlBudget(String(prompt ?? '').trim());
+  if (!text) throw ...;
+  const url = ENDPOINT + encodeURIComponent(text);       // encoded exactly once
+  if (new URL(url).origin !== ENDPOINT_ORIGIN) throw ... // the prompt cannot move the host
+  return url;
+}
+```
+
+`encodeURIComponent` escapes `/`, `?`, `#` and `&`, so a prompt cannot add a
+path segment, a query string or a fragment; and it leaves the unreserved set
+alone, which is legal in a path segment and keeps ordinary prose readable in a
+network log. The origin is re-checked on the built URL so that stays true even
+if someone later "simplifies" the encoding away.
+
+### Why it looks like this now
+
+The previous version tried **three routes in sequence** and made **two extra
+round-trips before the first one could start**:
+
+| # | Step | Problem |
+|---|---|---|
+| 1 | `await getPublishableKey()` → `fetch('/api/ai/key')` | **our own server**, on the AI path |
+| 2 | `await freeModelName()` → `fetch('…/models')` | a second blocking round-trip |
+| 3 | `POST /openai` with `Content-Type: application/json` | not a CORS-safelisted content type, so a **preflight OPTIONS** had to complete first |
+| 4 | `GET /<prompt>` | the route that actually works |
+| 5 | `POST /api/ai/text` (on localhost) | our server **relaying the prompt** |
+
+Each one is a way to fail or stall before reaching the endpoint, and the budgets
+made a stall expensive: `CONNECT_MS` 15s + `FIRST_BYTE_MS` 45s on the POST, then
+a 45s GET, plus backoff between them. A single message could sit for **over a
+minute** and still end up on route 4. That is what "the AI doesn't answer"
+looked like from a chair.
+
+Routes 1, 2, 3 and 5 are gone. What is left is route 4, alone, with no preflight
+(a GET with no custom headers is a *simple* cross-origin request) and no
+same-origin hop to go wrong. One bounded 60s timeout replaces the chain.
+
+### The failure, reproduced
+
+Not inferred from the code — measured in a real browser against both versions,
+by driving the actual `/ai` page and recording every network event:
+
+**Before** (the committed code, `http://127.0.0.1` origin):
+
+```
+composer ready at  372ms;  answer NEVER ARRIVED (gave up at 120s)
+     330ms  GET  /api/ai/key          -> 200     (our own server)
+     405ms  POST /api/ai/text         -> (no response in 120s)
+rendered: ""
+```
+
+**After** (this implementation, same page, same prompt):
+
+```
+composer ready at  900ms;  answer at 1593ms   (693ms from submit)
+     996ms  GET  https://text.pollinations.ai/<encoded prompt>
+    1487ms                            -> 200
+rendered: "A prime number is a natural number greater than 1 that can be
+           divided only by 1 and itself."
+```
+
+So the page really did hang with an empty assistant bubble, and the reason is
+visible in the trace: `IS_LOCAL` was true on an `http` origin, so
+`buildAttempts()` put the **server hop first**. `POST /api/ai/text` never came
+back, and because it was attempt *zero* the browser-direct GET — the request
+that works, in under a second — was never reached inside the window.
+
+Two distinct faults, and it is worth separating them:
+
+- **The architectural one**, which applied everywhere: our server sat in the AI
+  path, so its problems became the feature's problems. That is what this change
+  removes, permanently, by deleting the routes.
+- **The latency one**, which applied on a production origin: with `IS_LOCAL`
+  false the client skipped the server hop and led with `POST /openai` instead —
+  a preflighted request on a 15s connect + 45s first-byte budget, in front of
+  the GET's own 45s. The module's own comment records a measured ~26.6s median
+  time-to-first-token against what had been a 25s budget, i.e. the primary path
+  was aborting requests that were about to succeed.
+
+### The origin gate is real, and it keys on the SPELLING of the host
+
+The server hop existed for a stated reason: *"Pollinations' TEXT endpoint blocks
+BROWSER fetches from http/localhost origins with a Cloudflare Turnstile 403 (it
+keys on the Origin header)."*
+
+**That premise is correct.** Measured with the same prompt in the same second,
+varying only the `Origin` header:
+
+| `Origin` | Result |
 |---|---|
-| **AI image generation** | the `/image` `/img` `/draw` commands, `handleImage()`/`preloadImage()` and the image rendering branch in `public/js/ai.js`, `pollImageUrl()`/`pollImageShieldUrl()` in `public/js/pollinations.js`, the `GET /api/ai/image` route, the image-model lookup in `resolveModels()`, the `image` provider catalogue and the `flux` fallback in `lib/ai-providers.mjs`, and the `/image` suggestion card |
-| **Hugging Face** (`@huggingface/inference`) | `public/js/hf-inference.js`, `public/js/hf-models.js`, the `/hf/` same-origin mount, the `huggingface` field on `/api/ai/providers`, the token field in `public/ai.html`, the dependency |
-| **Puter.js** | `public/js/puter-ai.js`, `public/js/ai-provider.js`, the `https://js.puter.com` CSP `script-src` allowance, the model picker, the dependency |
-| **The provider picker** | `public/js/ai-settings.js` and the whole `<details class="ai-settings">` panel |
+| `http://localhost:8080` | **403** `{"error":"Missing Turnstile token"}` |
+| `http://127.0.0.1:8080` | **200** |
+| `https://zofhub.com` | **200** |
+| *(no Origin header)* | **200** |
 
-**Ordinary site imagery is unrelated and untouched** — game thumbnails, the
-preroll and every other `<img>` were never generated.
+So `localhost` is refused and `127.0.0.1` — the very same server — is not.
 
-Two things that look like the above but are **kept**:
+> **A correction.** An earlier version of this section claimed the premise "did
+> not reproduce". That was wrong: the trace it relied on came from
+> `http://127.0.0.1`, which is one of the spellings the gate allows. Testing one
+> loopback spelling does not test the other.
 
-- **`@huggingface/transformers`** (Transformers.js) in `public/js/ai.js` — the
-  on-device offline fallback. It is a different package from
-  `@huggingface/inference`, runs entirely in the browser, and is what answers
-  when the device has no working network at all.
-- **`huggingface.co` in `lib/ai-hosts.mjs`** — that list is a **denylist** of
-  inference endpoints this server must never fetch on a caller's behalf.
-  Removing the entry would have *allowed* the proxy to reach Hugging Face, which
-  is the opposite of what the file is for.
+**It still does not justify the server hop.** Three reasons:
+
+1. The condition is **local development only**. A deployed https origin is
+   served normally, so the hop was dead weight in production — which is where
+   every real visitor is.
+2. The trace showed the hop **hanging anyway**: `POST /api/ai/text` never
+   answered inside 120s, so on localhost it did not rescue the feature, it broke
+   it worse than the 403 would have.
+3. Relaying prompts through our server is the thing this architecture exists to
+   remove.
+
+There is also **no client-side workaround**, and it is worth being clear why: a
+browser always sends `Origin` on a cross-origin request, and `mode: 'no-cors'`
+would make the response unreadable. So the 403 is **detected and named** instead
+— `askAI()` reads the failure body, tags a Turnstile 403 as `origin-blocked`,
+and `describeFailure()` tells the developer to open the site at
+`http://127.0.0.1:<port>`, which is the one action that works.
 
 ---
 
 ## 2. Which endpoint, and why — verified, not assumed
 
-Checked against the live API on **2026-10-15**, because the documentation and the
-deployed service disagree, and the difference decides whether a keyless
-browser-direct AI can exist at all.
+Checked against the live API, because the documentation and the deployed service
+disagree, and the difference decides whether a keyless browser-direct AI can
+exist at all.
 
 | Endpoint | Result |
 |---|---|
 | `POST https://gen.pollinations.ai/v1/chat/completions` | **Requires `Authorization: Bearer sk_…`.** The docs state "All generation requests require an API key." |
 | Legacy `pk_` publishable keys | Still accepted, but the docs say *"Do not mint new ones"*; capped at 1 pollen per IP per hour |
-| `GET https://text.pollinations.ai/<prompt>` | **200, keyless** |
-| `POST https://text.pollinations.ai/openai` | **200, keyless**, OpenAI-compatible, streams |
-| `GET https://text.pollinations.ai/models` | **200, keyless** |
+| `GET https://text.pollinations.ai/<prompt>` | **200, keyless** — and the one the site uses |
 
 An `sk_` key is a **server secret** and may never be shipped in a browser
 bundle. So the modern documented endpoint is deliberately **not** used: calling
 it from a page would mean either leaking a secret or relaying every prompt
 through our server, and the second is the thing this architecture exists to
-avoid.
+avoid. The legacy `pk_` key is not used either — it bought a higher rate limit
+at the price of a `fetch('/api/ai/key')` sitting in front of every AI request.
 
-The **anonymous tier on `text.pollinations.ai`** is therefore the only genuinely
-free, browser-direct, no-secret option, and it is what the site uses.
+### The part that makes it possible at all
 
-If that tier is ever withdrawn, the honest outcome is a visible unavailable
-state — not a quiet fallback to a paid model and not a server relay.
+A cross-origin `fetch` can only **read** a response the other origin permits.
+Verified with a browser-shaped request carrying `Origin: https://zofhub.com`:
 
-### The free-only policy is evidence-based
-
-`GET /models` returns a **`tier`** field per model:
-
-```json
-[{"name":"openai-fast","description":"GPT-OSS 20B Reasoning LLM (OVH)",
-  "tier":"anonymous","reasoning":true,
-  "input_modalities":["text"],"output_modalities":["text"]}]
+```
+HTTP/1.1 200 OK
+Content-Type: text/plain; charset=utf-8
+Access-Control-Allow-Origin: *          ← this is the part that matters
+Access-Control-Allow-Methods: GET, POST, OPTIONS
 ```
 
-That field is what the policy rests on. `freeTextModels()` in
-`public/js/pollinations.js` keeps a model only when:
+`Access-Control-Allow-Origin: *` is what makes the body readable from a page.
+Without it the browser would hand back an **opaque** response and no amount of
+client code would help. `mode: 'no-cors'` is deliberately **not** used for
+exactly that reason: it cannot read the body, so it would convert a visible
+failure into a silent blank reply.
 
-1. its `tier` is explicitly in `FREE_TIERS` (currently `anonymous`), **and**
-2. it actually takes text in and gives text out.
+If the anonymous tier is ever withdrawn, the honest outcome is a visible error —
+not a quiet fallback to a paid model, not a server relay, and not a worse model
+pretending to be the same feature.
 
-An **unknown or unrecognised tier stays disabled** — "we could not establish
-that this is free" is not the same as "free", and must never render as *Free*.
-Discovery is cached for 30 minutes and **never blocks a send**: on any failure it
-resolves to `[]` and the client falls back to the verified default
-(`openai-fast`). If discovery succeeds and the default is no longer in the free
-set, the first discovered free model is used instead — which is how this survives
-the provider retiring a model without needing a deploy.
+### The throttle is not always a 429
+
+Measured, and worth knowing before debugging a phantom bug: sending two
+requests back to back — the `/ai` page, then the floating assistant — produced
+**200 and then 404**. The identical second request returned **200** when spaced
+out by ~16s.
+
+So this endpoint sometimes expresses its rate limit as a **404**, which is not
+what the status code normally means and not what its docs say. Consequences,
+both deliberate:
+
+- `describeFailure()` gives 404 its own wording that advises **waiting**, since
+  that is what actually works.
+- It does **not** set `rateLimited`. That flag starts a countdown and locks the
+  composer, and a genuine 404 (the endpoint moving) is indistinguishable from a
+  throttled one from inside the browser. Only a real 429 sets it, so the UI
+  never counts down on a guess.
+- `npm run verify-ai` deliberately **pauses ~16s** before exercising the second
+  entry point. Without the pause it failed on a limit it had caused itself —
+  which is exactly the false alarm this note exists to prevent.
 
 ---
 
@@ -100,8 +223,56 @@ the provider retiring a model without needing a deploy.
 | The floating bottom-right assistant | `public/js/ai-helper.js` |
 
 Both import **`public/js/pollinations.js`** and nothing else. There is no second
-endpoint construction, model selection, timeout policy or error-normalisation
-path anywhere in the frontend.
+endpoint construction, URL encoding, timeout policy or error-normalisation path
+anywhere in the frontend. Both import it at the **same `?v=`** — a module
+specifier is cache-keyed by its full URL, so two different versions would load
+the module twice as two independent instances.
+
+```
+askAI(prompt)              one GET, one bounded timeout, typed errors
+  ├─ askWithContext(msgs)  folds system prompt + last 8 turns into one string
+  └─ askPrompt(prompt)     a standalone question with the system prompt applied
+```
+
+### Failure is typed, and never silent
+
+`askAI` throws an `Error` carrying a `.code`, so each caller can say something
+specific and true instead of one generic apology:
+
+| `.code` | Shown as |
+|---|---|
+| `offline` | "Couldn't reach the AI service. Check your connection and try again." |
+| `timeout` | "The AI didn't answer in time. The free tier can be slow when it's busy." |
+| `http` (429) | the amber rate-limit card with a live countdown and an arming Retry |
+| `http` (5xx / 4xx) | the status, and whether it is worth retrying |
+| `empty-answer` | "The AI sent back an empty answer. Try rephrasing." |
+| `cancelled` | nothing — a newer message superseded this one and owns the UI |
+
+Both entry points pass an `AbortSignal`, so a new message cancels the one it
+supersedes (otherwise two overlapping sends resolve in arrival order and the
+**older** answer can overwrite the newer one) and `pagehide` cancels in flight.
+
+### What is deliberately not here
+
+| Not present | Why |
+|---|---|
+| **AI image / audio / video generation** | Not a feature of this site, at any layer. No `image.pollinations.ai` URL builder, no `/image` command, no `/api/ai/image`, `/api/ai/audio` or `/api/ai/video`, no image models. Ordinary site imagery — thumbnails, the preroll, every other `<img>` — was never this and is untouched |
+| **Any API key** | The anonymous tier needs none, and an `sk_` secret may never reach a browser |
+| **A server fallback** | `/api/ai/text` and `/api/ai/echo` are removed. No same-origin route accepts a prompt |
+| **A local inference engine** | The Transformers.js + SmolLM2-360M fallback is gone. It downloaded hundreds of megabytes to answer, in a markedly worse voice, the question the user had just asked the real model — and it ran whenever the network call failed for **any** reason, so an outage looked like the AI had quietly got much worse. A clear, retryable error is the honest outcome |
+| **Another provider** | Hugging Face and Puter.js are gone, with their settings UI and stored tokens |
+| **Model discovery** | `freeTextModels()` / `/models` is gone with the model parameter. The URL API needs no model named, so there is no "is this model free?" question to answer |
+| **Fake streaming** | The GET returns the whole answer at once. Splitting finished text into fake chunks would be theatre, so the UI shows typing dots and then the reply |
+
+Two things that look removable but are **kept**:
+
+- **`huggingface.co` in `lib/ai-hosts.mjs`** — that list is a **denylist** of
+  inference endpoints this server must never fetch on a caller's behalf.
+  Removing the entry would have *allowed* `/asset` and `/thumb` to reach Hugging
+  Face, which is the opposite of what the file is for.
+- **`aiServerAllowed()` and `AI_FALLBACK_ROUTES`** — a regression guard. The
+  routes are gone, but their paths are still refused before routing, so
+  re-adding a handler on one of them ships refused rather than open by accident.
 
 ---
 

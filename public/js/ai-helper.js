@@ -9,10 +9,8 @@ import { renderMarkdownLite, escapeHtml } from './utils.js';
 import { store } from './storage.js';
 // The version query MUST match the one in public/js/ai.js. A module specifier is
 // cache-keyed by its full URL, so two different ?v= values make the browser load
-// pollinations.js TWICE as two independent module instances — which means two
-// separate model-discovery caches and two publishable-key fetches on any page
-// that has both the chat and the orb.
-import { pollTextPromptStream } from './pollinations.js?v=20261015';
+// pollinations.js TWICE as two independent module instances.
+import { askPrompt, describeFailure } from './pollinations.js?v=20261016';
 
 // Called by layout.js's placeholder orb on FIRST interaction — this module and
 // pollinations.js are ~25KB together and most visitors never open the helper,
@@ -216,31 +214,44 @@ export function mountAIHelper(openNow = false) {
     return { title, category: cat, questions: out };
   }
 
-  // Ask the AI. pollTextPromptStream calls Pollinations DIRECTLY from this device
-  // (over the visitor's OWN connection — never our server) and STREAMS the answer
-  // token-by-token so it shows up live; it retries across browser-direct routes.
+  // Ask the AI. askPrompt sends ONE GET to text.pollinations.ai from this
+  // device, over the visitor's own connection — never our server — and returns
+  // the whole answer. Closing the panel or leaving the page cancels it.
+  let inFlight = null;
   async function ask(prompt, displayText) {
     if (busy) return;
     busy = true;
     addMsg('user', escapeHtml(displayText || prompt));
     const thinking = addMsg('ai', '<span class="ai-orb-dots"><span></span><span></span><span></span></span>');
+    const controller = new AbortController();
+    inFlight = controller;
     try {
-      const { text } = await pollTextPromptStream(prompt, {
-        onToken: (partial) => { thinking.innerHTML = renderMarkdownLite(partial); body.scrollTop = body.scrollHeight; },
-      });
+      const { text } = await askPrompt(prompt, { signal: controller.signal });
+      thinking.innerHTML = renderMarkdownLite(text);
       recordTurn(displayText || prompt, text);
     } catch (e) {
-      console.warn('[ai-orb] failed:', e?.message || e);
+      if (e?.code === 'cancelled') { thinking.remove(); return; }
+      console.warn('[ai-orb] failed:', e?.code || '', e?.message || e);
       if (e?.rateLimited) {
         renderRateLimit(thinking, e.retryAfter || 15);
       } else {
-        thinking.innerHTML = '<em>That didn’t come through — ask once more and it will.</em>';
+        // textContent, inside an <em> we build — an error string is never markup.
+        // The wording comes from describeFailure() in the shared client, so this
+        // panel and the /ai page cannot describe the same failure differently.
+        // This used to answer a 503 with "ask once more and it will", which is
+        // advice, and wrong.
+        thinking.innerHTML = '';
+        const em = document.createElement('em');
+        em.textContent = describeFailure(e);
+        thinking.appendChild(em);
       }
     } finally {
+      if (inFlight === controller) inFlight = null;
       busy = false;
       body.scrollTop = body.scrollHeight;
     }
   }
+  window.addEventListener('pagehide', () => inFlight?.abort());
 
   panel.querySelector('#aiOrbQuick')?.addEventListener('click', () => {
     if (cooling || busy) return;

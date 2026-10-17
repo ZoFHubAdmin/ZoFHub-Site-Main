@@ -86,7 +86,7 @@ catch {
 let srv = null;
 let base = BASE;
 if (!base) {
-  const env = { ...process.env, PORT: String(PORT), NO_OPEN: '1', CRON_DISABLED: '1', ANURA_PORT: '0' };
+  const env = { ...process.env, PORT: String(PORT), NO_OPEN: '1', CRON_DISABLED: '1', };
   srv = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env });
   srv.stdout.on('data', () => {});
   srv.stderr.on('data', () => {});

@@ -72,8 +72,9 @@ function findNodeModulesDir(pkg, repoRoot) {
  */
 export function mountProxyEngines(app, express, { repoRoot } = {}) {
   const proxyStatus = {
-    gust: false, ultraviolet: false, scramjet: false,
-    bare: false, wisp: false, epoxy: false,
+    gust: false, horizon: false, interstellar: false,
+    ultraviolet: false, scramjet: false,
+    bare: false, wisp: false, epoxy: false, libcurl: false,
   };
   const root = repoRoot || join(ENGINE_DIR, '..');
   let wisp = null;
@@ -102,6 +103,67 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
     console.warn('[zofhub] GUST: proxy-engine/assets/gust/index.html missing — engine unavailable.');
   }
 
+  // ── HORIZON ──────────────────────────────────────────────────────────────────────────────
+  // A single self-contained HTML file (a remodelled GUST): libcurl + Wisp, no
+  // service worker, no assets of its own. Served at /horizon exactly as GUST is
+  // served at /gust. Vendored with its Wisp target repointed to this origin's
+  // /wisp/ and its third-party relay pool removed, so its egress is governed by
+  // the same tunnel as every other engine (see the file header and
+  // /licenses/horizon-modifications).
+  const horizonIndex = join(ASSETS, 'horizon', 'index.html');
+  if (existsSync(horizonIndex)) {
+    proxyStatus.horizon = true;
+    app.get('/horizon', (req, res) => res.sendFile(horizonIndex));
+  } else {
+    console.warn('[zofhub] HORIZON: proxy-engine/assets/horizon/index.html missing ─ engine unavailable.');
+  }
+
+  // ── Interstellar ─────────────────────────────────────────────────────────────────────────
+  // A multi-page proxy UI that drives Ultraviolet + Scramjet through ITS OWN
+  // service worker, scoped to /interstellar/uv/. Unlike GUST and HORIZON it has
+  // a tree of pages and assets, all vendored under assets/interstellar and
+  // rewritten at vendor time to live beneath /interstellar. The UV and Scramjet
+  // ENGINE files are NOT vendored (they would drift from the package); they are
+  // served from the installed packages below, while the CONFIG files that name
+  // this mount's prefixes come from the vendored tree.
+  const interDir = join(ASSETS, 'interstellar');
+  const interIndex = join(interDir, 'index.html');
+  if (existsSync(interIndex)) {
+    proxyStatus.interstellar = true;
+    const page = (file) => (req, res) => res.sendFile(join(interDir, file));
+    app.get('/interstellar', page('index.html'));
+    app.get('/interstellar/home', page('home.html'));
+    app.get('/interstellar/games', page('games.html'));
+    app.get(['/interstellar/apps', '/interstellar/play.html'], page('apps.html'));
+    app.get('/interstellar/settings', page('settings.html'));
+    app.get('/interstellar/tabs', page('tabs.html'));
+    // The content-filter endpoint the search box calls on every navigation.
+    // Interstellar ships filtering OFF; a stub keeps that a clean 200 rather
+    // than a 404 on every keystroke. ZoFHub's approved-destination policy is
+    // what actually governs where the tunnel may connect, not this.
+    app.post('/interstellar/filter/verdict', (req, res) => res.json({ blocked: false }));
+    // Our rewritten engine CONFIGS win over the package files of the same name.
+    app.get('/interstellar/assets/ultraviolet/uv.config.js',
+      (req, res) => res.sendFile(join(interDir, 'assets', 'ultraviolet', 'uv.config.js')));
+    app.get('/interstellar/assets/scramjet/scramjet.config.js',
+      (req, res) => res.sendFile(join(interDir, 'assets', 'scramjet', 'scramjet.config.js')));
+    try {
+      const { uvPath } = require('@titaniumnetwork-dev/ultraviolet');
+      if (uvPath && existsSync(uvPath)) app.use('/interstellar/assets/ultraviolet/', express.static(uvPath));
+    } catch (e) { console.warn('[zofhub] Interstellar/UV:', e.message); }
+    const sjRoot = findNodeModulesDir('@mercuryworkshop/scramjet', root);
+    if (sjRoot && existsSync(join(sjRoot, 'dist'))) app.use('/interstellar/assets/scramjet/', express.static(join(sjRoot, 'dist')));
+    // Everything else Interstellar ships (page assets, SW, media, block pages).
+    app.use('/interstellar', express.static(interDir, {
+      setHeaders(res, filePath) {
+        if (filePath.endsWith('sw.js')) res.setHeader('Service-Worker-Allowed', '/interstellar/');
+        if (filePath.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+      },
+    }));
+  } else {
+    console.warn('[zofhub] Interstellar: proxy-engine/assets/interstellar/index.html missing ─ engine unavailable.');
+  }
+
   // ── Ultraviolet ──────────────────────────────────────────────────────────
   // Our own uv.config.js must win over the package default, so it is registered
   // ahead of the package static mount.
@@ -124,6 +186,14 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
   if (epoxyRoot && existsSync(join(epoxyRoot, 'dist'))) {
     app.use('/epoxy/', express.static(join(epoxyRoot, 'dist')));
     proxyStatus.epoxy = true;
+  }
+  // libcurl.js transport ─ the alternative Interstellar offers in Settings. Only
+  // reached when a visitor switches off epoxy, but a 404 there would strand them
+  // with a dead tunnel and no hint why, so it is mounted whenever installed.
+  const libcurlRoot = findNodeModulesDir('@mercuryworkshop/libcurl-transport', root);
+  if (libcurlRoot && existsSync(join(libcurlRoot, 'dist'))) {
+    app.use('/libcurl/', express.static(join(libcurlRoot, 'dist')));
+    proxyStatus.libcurl = true;
   }
 
   // ── Scramjet ─────────────────────────────────────────────────────────────

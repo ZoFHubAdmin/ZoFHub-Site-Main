@@ -185,7 +185,7 @@ describe('the stored record carries what a curator needs', () => {
       type: SIGNALS.CORRECTION,
       input: 'Which engine does the browser use?',
       output: 'It uses Chrome.',
-      correction: 'It offers Scramjet, Ultraviolet, GUST and AnuraOS.',
+      correction: 'It offers Scramjet, Ultraviolet, GUST, HORIZON and Interstellar.',
       provider: 'huggingface', model: 'meta-llama/Llama-3.1-8B-Instruct',
       promptVersion: '2026-09', consentTraining: true,
     });

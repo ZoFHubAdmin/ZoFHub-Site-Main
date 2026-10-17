@@ -68,7 +68,6 @@ or a VPS.
 | `MONDIAD_NATIVE_TAG` | — | native widget below the "for you" rows |
 | `POPADS_POPUNDER_TAG` | — | PopAds code, unmodified; desktop game pages only |
 | `REGION_ROUTES` | — | optional regional domains + regional ad tags (`<VAR>__<REGION>`); see `.env.example` |
-| `POLLINATIONS_REFERRER` | — | your domain (bare hostname), for AI attribution |
 | `CRON_SECRET` | ✓ | protects `/healthz` detail; set the SAME value in your uptime monitor |
 | `HEALTH_MEM_MAX_PCT` | — | `/healthz` returns 503 above this memory % (default 85) for zero-downtime recycles |
 | `WISP_MAX_PER_IP` | — | max concurrent proxy tunnels per client IP (default 32); stops one client starving the pool |
@@ -153,7 +152,9 @@ for an always-proxy games hub, in order:
 ## 6. Domain & DNS
 - [ ] Point your domain at the service; if a domain gets filtered, add a fresh one.
 - [ ] HTTPS (the host provisions certs automatically).
-- [ ] `POLLINATIONS_REFERRER` + GameMonetize/GD referrer = your real domain.
+- [ ] GameMonetize / GameDistribution referrer = your real domain. (The AI needs
+      nothing: it is one keyless GET from each visitor's own browser, so there is
+      no key, referrer or model to configure.)
 
 ## 7. Honest expectations
 A brand-new low-traffic games site earns little at first (games display RPMs are

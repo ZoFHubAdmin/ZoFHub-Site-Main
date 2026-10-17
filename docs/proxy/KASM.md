@@ -10,7 +10,6 @@ a fourth copy of the same idea:
 |---|---|---|
 | Scramjet, Ultraviolet | rewrite HTML/JS in a service worker | the visitor's tab |
 | GUST | libcurl.js + Wisp, no service worker | the visitor's tab |
-| AnuraOS | a web OS emulating x86 | the visitor's tab |
 | **Kasm** | **a real Linux desktop in a container** | **somebody's server** |
 
 A site that refuses every rewriting proxy cannot tell a Kasm session apart from
@@ -21,8 +20,8 @@ that it needs a real machine behind it.
 
 ## 1. Why ZoFHub cannot host it
 
-AnuraOS is static files, so `lib/anura-host.mjs` serves them from this process.
-Kasm cannot work that way, and no amount of effort changes that:
+Every other engine is static files, so `proxy-engine/mount.mjs` serves them from
+this process. Kasm cannot work that way, and no amount of effort changes that:
 
 - **Upstream ships Dockerfiles, not a bundle.**
   [`kasmtech/workspaces-images`](https://github.com/kasmtech/workspaces-images)
@@ -36,7 +35,7 @@ Kasm cannot work that way, and no amount of effort changes that:
 
 So there is one honest integration and this is it: **you** run the container,
 ZoFHub records its address, checks whether it is answering, and offers it in the
-engine picker. Same arrangement as `PROXY_ANURA_URL` and the other companions.
+engine picker. Same arrangement as the other operator-hosted companions.
 
 ---
 
@@ -173,4 +172,4 @@ one and the frame behaves differently, that is the gap.
 
 ---
 
-**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [the other external engines](INVISIPROXY.md#2-what-is-integrated) · [AnuraOS attribution](../CREDITS.md)
+**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [the other external engines](INVISIPROXY.md#2-what-is-integrated) · [engine attribution](../CREDITS.md)

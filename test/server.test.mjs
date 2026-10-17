@@ -133,7 +133,7 @@ describe('security headers and error hygiene', () => {
     }
     console.error(`      (checking ${secrets.length} configured secret value(s))`);
 
-    for (const p of ['/', '/api/health', '/api/games?limit=2', '/api/ai/health', '/api/categories']) {
+    for (const p of ['/', '/api/health', '/api/games?limit=2', '/api/vibe?q=puzzle', '/api/categories']) {
       const body = await (await get(p)).text();
       for (const s of secrets) {
         assert.ok(!body.includes(s), `${p} leaked a configured secret`);
@@ -234,16 +234,40 @@ describe('/api/for-you — recommendations', () => {
   });
 });
 
-describe('/api/ai/health', () => {
-  test('reports model health without exposing secrets', async () => {
-    const r = await get('/api/ai/health');
-    assert.equal(r.status, 200);
-    const j = await r.json();
-    assert.ok(Array.isArray(j.models) && j.models.length > 0);
-    assert.ok(Array.isArray(j.priority) && j.priority.length > 0);
-    assert.equal(typeof j.keyed, 'boolean');
-    const blob = JSON.stringify(j);
-    assert.ok(!/pk_[A-Za-z0-9]{6}|Bearer |apikey/i.test(blob), 'leaked a credential');
+describe('there is no AI surface on this server', () => {
+  // /api/ai/health reported model priority, cooldowns, which upstream endpoint
+  // the pipeline would call and whether it held a key. There is no pipeline to
+  // report on: the browser makes one keyless GET to text.pollinations.ai.
+  test('every AI route is gone, not merely gated', async () => {
+    for (const p of ['/api/ai/health', '/api/ai/providers', '/api/ai/key',
+                     '/api/ai/audio?prompt=x', '/api/ai/video?prompt=x']) {
+      const r = await get(p);
+      assert.equal(r.status, 404, `${p} still answers (${r.status}) — it should not exist`);
+    }
+  });
+
+  // These three keep their paths in AI_FALLBACK_ROUTES so that re-adding a
+  // handler on one cannot ship ungated. With no handler, the guard answers
+  // first, which is why these are 403 and the five above are 404.
+  test('the removed generation paths are refused by the regression guard', async () => {
+    for (const p of ['/api/ai/text', '/api/ai/image', '/api/ai/echo']) {
+      const r = await get(p, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-Forwarded-For': '203.0.113.9' },
+        body: JSON.stringify({ prompt: 'hi' }),
+      });
+      assert.equal(r.status, 403, `${p} must stay refused`);
+      assert.equal((await r.json()).error, 'client_side_only');
+    }
+  });
+
+  test('/api/ai/feedback survives — it stores a rating, it does not generate', async () => {
+    // The one remaining /api/ai/* route. It writes a feedback row; it never
+    // contacts a model, so the architecture rule does not reach it.
+    const r = await get('/api/ai/feedback', { method: 'POST',
+      headers: { 'content-type': 'application/json' }, body: JSON.stringify({}) });
+    assert.notEqual(r.status, 404, '/api/ai/feedback should still be routed');
+    assert.notEqual(r.status, 403, '/api/ai/feedback must not be caught by the AI guard');
   });
 });
 
@@ -431,17 +455,25 @@ describe('AI runs on the visitor device, never on this server', () => {
     assert.equal(r.status, 403);
   });
 
-  test('the metadata routes the browser genuinely needs still work', async () => {
-    // /api/ai/key hands over the PUBLISHABLE pk_ key so the browser can call
-    // Pollinations itself — serving it is the mechanism that keeps AI off this
-    // server, not a leak. It must never carry a secret sk_ key.
+  test('the browser needs no metadata route, and none is served', async () => {
+    // /api/ai/key used to hand over the publishable pk_ key. It is gone: the
+    // anonymous tier is keyless, so the endpoint bought nothing but a
+    // same-origin round-trip in front of every AI request — and an endpoint
+    // whose job is to serve a key is an endpoint that can serve the wrong one.
     for (const p of ['/api/ai/key', '/api/ai/health', '/api/ai/providers']) {
       const r = await asInternetVisitor(p);
-      assert.equal(r.status, 200, `${p} must stay reachable`);
+      assert.equal(r.status, 404, `${p} must not exist`);
     }
-    const { key } = await (await asInternetVisitor('/api/ai/key')).json();
-    assert.ok(key === '' || key.startsWith('pk_'), 'only a publishable pk_ key may be served');
-    assert.ok(!String(key).startsWith('sk_'), 'a secret key must never be served to the browser');
+  });
+
+  test('no response anywhere carries a Pollinations key', async () => {
+    // The strong form of the above: not "the key route is gone" but "no key
+    // reaches a browser from here", whatever route it asks for.
+    for (const p of ['/', '/ai', '/js/pollinations.js', '/js/ai.js', '/js/ai-helper.js']) {
+      const body = await (await asInternetVisitor(p)).text();
+      assert.doesNotMatch(body, /\bsk_[A-Za-z0-9]/, `${p} contains a secret key`);
+      assert.doesNotMatch(body, /\bpk_[A-Za-z0-9]/, `${p} contains a publishable key`);
+    }
   });
 });
 
@@ -519,15 +551,16 @@ describe('the server is never an AI proxy', () => {
     }
   });
 
-  test('routes that take a prompt in the QUERY STRING are closed', async () => {
-    // Neither performs inference — /api/ai/audio only string-builds a URL the
-    // browser plays. They are closed because the prompt travels in the URL, and
-    // hosting platforms log request paths: Render's access log would accumulate
-    // the text visitors asked to have spoken, in a log this code never writes
-    // and cannot clear. Nothing references either route.
+  test('routes that took a prompt in the QUERY STRING are deleted', async () => {
+    // Neither performed inference — /api/ai/audio only string-built a URL the
+    // browser played. They were closed because the prompt travelled in the URL
+    // and hosting platforms log request paths: Render's access log would
+    // accumulate the text visitors asked to have spoken, in a log this code
+    // never writes and cannot clear. Nothing referenced either route, and text
+    // is the only AI feature, so both are now gone rather than gated.
     for (const p of ['/api/ai/audio?prompt=private+text', '/api/ai/video?prompt=private+text']) {
       const r = await visitor(p);
-      assert.equal(r.status, 403, `${p} must be closed`);
+      assert.equal(r.status, 404, `${p} must not exist`);
     }
   });
 
@@ -549,21 +582,20 @@ describe('the server is never an AI proxy', () => {
     }
   });
 
-  test('AI pipeline metadata is not published to anonymous callers', async () => {
-    // Neither endpoint is called by any client code, yet both described the
-    // server-side pipeline: model priority, the upstream endpoint, whether a key
-    // is held, and the full provider inventory with URLs and limits. That
-    // advertises capability this deployment deliberately does not offer.
-    const h = await (await visitor('/api/ai/health')).json();
-    assert.equal(h.serverInference, false);
-    assert.equal(h.endpoint, undefined, 'must not reveal the upstream endpoint');
-    assert.equal(h.models, undefined, 'must not reveal the model inventory');
-    assert.equal(h.keyed, undefined, 'must not reveal whether a key is held');
-
-    const p = await (await visitor('/api/ai/providers')).json();
-    assert.equal(p.serverInference, false);
-    assert.deepEqual(p.text, [], 'must not list text providers');
-    assert.deepEqual(p.image, [], 'must not list image providers');
+  test('there is no pipeline metadata left to publish', async () => {
+    // These two endpoints described the server-side pipeline — model priority,
+    // the upstream endpoint, whether a key was held, the provider inventory
+    // with URLs and limits — which advertised capability this deployment does
+    // not offer. The pipeline and both endpoints are deleted, so the leak
+    // cannot be reintroduced by relaxing a check: there is nothing to relax.
+    for (const p of ['/api/ai/health', '/api/ai/providers']) {
+      const r = await visitor(p);
+      assert.equal(r.status, 404, `${p} must not exist`);
+      // And whatever a 404 body is, it must not describe a model or a key.
+      const body = await r.text();
+      assert.doesNotMatch(body, /openai-fast|gen\.pollinations|serverInference|modelPriority/i,
+        `the ${p} 404 still describes the removed pipeline`);
+    }
   });
 
   test('privacy-sensitive browser features are explicitly denied', async () => {

@@ -69,7 +69,7 @@
             <tr><td><a href="https://helmetjs.github.io" target="_blank" rel="noopener">Helmet</a></td><td>HTTP security headers</td><td class="lic">MIT</td></tr>
             <tr><td><a href="https://github.com/node-cron/node-cron" target="_blank" rel="noopener">node-cron</a></td><td>Scheduled maintenance jobs</td><td class="lic">ISC</td></tr>
             <tr><td><a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> (PostgreSQL)</td><td>Game catalog, scores &amp; community data</td><td class="lic">Apache-2.0 / MIT</td></tr>
-            <tr><td><a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a></td><td>Free browser-direct AI (chat &amp; images)</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a></td><td>Free browser-direct AI (text chat)</td><td class="lic">MIT</td></tr>
           </tbody>
         </table>
       </div>
@@ -89,7 +89,8 @@
             <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
             <tr><td><a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a></td><td>WASM curl (used by GUST)</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
             <tr><td><a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GUST</a></td><td>Service-worker-free proxy browser (libcurl.js + Wisp) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/anuraOS" target="_blank" rel="noopener">AnuraOS</a></td><td>Browser-based web OS with v86 x86 emulation, optional engine served on its own origin &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/RiptideMC/HORIZON" target="_blank" rel="noopener">HORIZON</a></td><td>Single-file proxy browser (a remodelled GUST) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
+            <tr><td><a href="https://github.com/UseInterstellar/Interstellar" target="_blank" rel="noopener">Interstellar</a></td><td>Multi-page proxy browser (Ultraviolet + Scramjet) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
           </tbody>
         </table>
       </div>
@@ -100,15 +101,17 @@
         the version pinned in the site's <code>package-lock.json</code>. To request the source for a specific
         deployed build, contact us at {{CONTACT}} or via the <strong>ZoFHub Discord</strong> linked in the
         footer below.</p>
-      <p><strong>Two of these are modified, as AGPL-3.0 &sect;5 requires us to state.</strong>
+      <p><strong>Three of these are modified, as AGPL-3.0 &sect;5 requires us to state.</strong>
         <strong>GUST</strong> (changed 2026-07-30) has its default Wisp server repointed to this site's own
         same-origin <code>/wisp/</code> endpoint instead of the upstream public one, so proxy traffic never
         leaves this domain, and carries ZoFHub's shared cloak system for parity with the rest of the site.
-        <strong>AnuraOS</strong> (changed 2026-09-20) is served with a <code>wisp-url</code> added to its
-        <code>config.json</code> defaults, pointing at this deployment's own tunnel &mdash; upstream ships
-        none, so the app would otherwise have no working tunnel; no other file is altered. The corresponding
-        source for both is linked from <a href="/licenses">/licenses</a>. Every other component above is
-        served unmodified.</p>
+        <strong>HORIZON</strong> (changed 2026-10-16) has every Wisp reference repointed to the same
+        <code>/wisp/</code> endpoint and its pool of third-party public relays removed, so its traffic is
+        governed by this deployment's tunnel rather than leaving to a stranger's relay.
+        <strong>Interstellar</strong> (changed 2026-10-16) is rewritten to run beneath <code>/interstellar</code>
+        rather than owning the origin, uses the same <code>/wisp/</code> tunnel, and has its upstream Google
+        Analytics tag removed. The corresponding source for all three is linked from
+        <a href="/licenses">/licenses</a>. Every other component above is served unmodified.</p>
       <p><strong>The live, machine-checked version of this offer is at
         <a href="/licenses">/licenses</a></strong> (JSON: <a href="/licenses.json">/licenses.json</a>).
         That page is generated from the packages this server is actually running, so the versions it
@@ -116,9 +119,9 @@
         every component.</p>
       <p>This offer covers <strong>Ultraviolet, Scramjet, GUST, Wisp, Epoxy transport</strong> and
         <strong>libcurl transport</strong>, and it extends to <a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a>
-        under LGPL-3.0. <strong>GUST is modified by ZoFHub</strong>; its changes, their date, and a link
-        to the running modified source are listed on <a href="/licenses">/licenses</a> as AGPL-3.0 §5
-        requires. <em>Note on Ultraviolet and Scramjet:</em> their npm packages declare
+        under LGPL-3.0. <strong>GUST, HORIZON and Interstellar are modified by ZoFHub</strong>; their
+        changes, their dates, and links to the running modified source are listed on
+        <a href="/licenses">/licenses</a> as AGPL-3.0 §5 requires. <em>Note on Ultraviolet and Scramjet:</em> their npm packages declare
         <code>"license": "MIT"</code> in <code>package.json</code>, but both ship a full
         <strong>GNU AGPL-3.0</strong> text in their <code>LICENSE</code> file, and GitHub reports
         Ultraviolet's repository as AGPL-3.0. Where those two disagree the LICENSE file is the operative
@@ -134,7 +137,6 @@
           <thead><tr><th>Project</th><th>Repository</th><th>License</th></tr></thead>
           <tbody>
             <tr><td>NautilusOS</td><td><a href="https://github.com/nautilus-os/NautilusOS" target="_blank" rel="noopener">nautilus-os/NautilusOS</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td>Interstellar</td><td><a href="https://github.com/UseInterstellar/Interstellar" target="_blank" rel="noopener">UseInterstellar/Interstellar</a></td><td class="lic lic-copyleft">GPL-3.0-or-later</td></tr>
             <tr><td>DayDream</td><td><a href="https://github.com/NightProxy/DayDream" target="_blank" rel="noopener">NightProxy/DayDream</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
             <tr><td>Nebula</td><td><a href="https://github.com/NebulaServices/Nebula" target="_blank" rel="noopener">NebulaServices/Nebula</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
             <tr><td>InvisiProxy LTS <span class="muted">(formerly Holy Unblocker LTS)</span></td><td><a href="https://github.com/QuiteAFancyEmerald/InvisiProxy" target="_blank" rel="noopener">QuiteAFancyEmerald/InvisiProxy</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>

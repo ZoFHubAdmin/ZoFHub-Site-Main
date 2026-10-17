@@ -1,6 +1,6 @@
 # Proxy governance: approved destinations only
 
-The proxy engines — Ultraviolet, Scramjet, GUST and AnuraOS — are kept and
+The proxy engines — Ultraviolet, Scramjet, GUST, HORIZON and Interstellar — are kept and
 served. What this layer adds is that the **platform decides where they may
 connect**, and an administrator decides what the platform is authorised to
 reach.
@@ -22,7 +22,7 @@ TCP connection to a host the visitor's browser names. That makes the tunnel the
 enforcement point for all of them at once:
 
 ```text
-browser ─▶ engine page (/uv, /scram, /gust, AnuraOS)
+browser ─▶ engine page (/uv, /scram, /gust, /horizon, /interstellar)
         ─▶ /wisp/ upgrade ── access mode · Origin · caps · session ──▶ refused, or:
         ─▶ stream request ── hostname hook (approved list) ──────────▶ HostBlocked, or:
         ─▶ socket connect ── re-check with port · DNS · private IPs ─▶ refused, or:
@@ -127,15 +127,12 @@ outside. Raising a limit needs a fresh password; lowering one never does.
 - **Origin.** A browser's WebSocket upgrade must come from this site's own
   origin (or one listed in `PROXY_ALLOWED_ORIGINS`), so another website cannot
   open tunnels through this server from its visitors' browsers.
-- **One handler for both listeners.** The AnuraOS listener used to route its
-  upgrades straight into the tunnel, skipping the global cap, the per-client cap
-  and the idle timeout. Both listeners now share one handler.
 - **Maintenance mode** closes the tunnel too.
 
 ## 8. Engines
 
 Each engine can be switched off (its pages and assets answer 404). **External
-companions** — Interstellar, DayDream, Nebula, NautilusOS, InvisiProxy, Kasm —
+companions** — DayDream, Nebula, NautilusOS, InvisiProxy, Kasm —
 run as separate servers, so their traffic never reaches this tunnel and the
 destination policy **cannot govern them**. They are one switch, **off by
 default**, labelled "not governed" in the console.

@@ -11,7 +11,7 @@
 //   2. On the first detection in a session, shows a polite, dismissible note
 //      explaining that the ads keep the proxy mirrors alive and free.
 //   3. After STRIKES_TO_GATE (3) page views or game plays with the blocker still
-//      on, locks the PREMIUM engines — AnuraOS and every standalone companion —
+//      on, locks the PREMIUM engines — every standalone companion —
 //      until the visitor pauses it and refreshes. The games hub, and the
 //      built-in engines (Scramjet, Ultraviolet, GUST), are never locked.
 //
@@ -385,8 +385,8 @@ function showSupportNote() {
   const p2 = document.createElement('p');
   p2.className = 'muted';
   p2.textContent = locked
-    ? 'The premium engines — AnuraOS and the standalone browsers — are paused while it stays on. The games stay free either way.'
-    : `If it stays on, the premium engines — AnuraOS and the standalone browsers — pause after ${STRIKES_TO_GATE} pages. The games stay free either way.`;
+    ? 'The premium engines — the standalone browsers — are paused while it stays on. The games stay free either way.'
+    : `If it stays on, the premium engines — the standalone browsers — pause after ${STRIKES_TO_GATE} pages. The games stay free either way.`;
   const steps = pauseSteps();
   const row = document.createElement('div');
   row.className = 'row';
@@ -448,7 +448,7 @@ export function showPremiumLock(container, { label = 'This engine', backLabel = 
   title.id = 'zsl-title';
   title.textContent = `🔒 ${label} is a premium engine`;
   const p1 = document.createElement('p');
-  p1.textContent = 'AnuraOS and the standalone browsers run on our heaviest servers, and ads are what pay for them. '
+  p1.textContent = 'The standalone browsers run on our heaviest servers, and ads are what pay for them. '
     + 'Your ad-blocker is on, so they are locked for now: whitelisting this site or pausing your blocker is '
     + 'required to unlock the premium high-speed proxy instances.';
   const p2 = document.createElement('p');

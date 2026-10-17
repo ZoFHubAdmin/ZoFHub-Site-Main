@@ -50,36 +50,21 @@ function systemPrompt() {
   return 'You are a helpful assistant. Be accurate and concise. Never invent facts.';
 }
 
-// ── Providers ──────────────────────────────────────────────────────────────
-async function askPollinations(messages) {
-  const r = await fetch('https://text.pollinations.ai/openai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'openai-fast', messages, reasoning_effort: 'low' }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json();
-  return j?.choices?.[0]?.message?.content || '';
-}
+// ── The request ────────────────────────────────────────────────────────────
+// This calls the SAME client the site does (public/js/pollinations.js), for the
+// same reason systemPrompt() above reads the real prompt file: an eval that
+// builds its own request measures something users never meet. The old version
+// POSTed to /openai with a model and a reasoning_effort the browser no longer
+// sends, so its score described a request that had stopped existing.
+//
+// The Hugging Face provider is gone with the rest of that integration — its
+// dependency is no longer installed, so the branch could only ever throw.
+const { askWithContext } = await import('../public/js/pollinations.js');
 
-async function askHuggingFace(messages, model) {
-  const token = (process.env.HF_TOKEN || '').trim();
-  if (!token) throw new Error('HF_TOKEN is not set in the environment');
-  const { chatCompletion } = await import('@huggingface/inference');
-  const r = await chatCompletion({
-    accessToken: token,
-    model,
-    messages,
-    max_tokens: 400,
-    temperature: 0.7,
-  }, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-  return r?.choices?.[0]?.message?.content || '';
-}
-
-const ask = (messages) => (PROVIDER === 'huggingface'
-  ? askHuggingFace(messages, MODEL)
-  : askPollinations(messages));
+const ask = async (messages) => {
+  const { text } = await askWithContext(messages, { timeoutMs: TIMEOUT_MS });
+  return text;
+};
 
 // ── Run ────────────────────────────────────────────────────────────────────
 const suite = JSON.parse(readFileSync(SET_PATH, 'utf8'));

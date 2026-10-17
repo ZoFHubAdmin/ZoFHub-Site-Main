@@ -545,7 +545,7 @@ exception when duplicate_object then null; end $$;
 
 
 -- ── 8. Proxy governance ───────────────────────────────────────────────────
--- Engines: Ultraviolet, Scramjet, GUST, AnuraOS. Whether each is served, and
+-- Engines: Ultraviolet, Scramjet, GUST, HORIZON, Interstellar. Whether each is
 -- operator notes. The engine CODE is not configurable from here — only whether
 -- it is offered.
 create table if not exists public.proxy_providers (

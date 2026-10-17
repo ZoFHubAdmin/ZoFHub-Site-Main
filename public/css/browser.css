@@ -6,7 +6,7 @@
    ============================================================ */
 
 .gust-shell {
-  height: calc(100vh - var(--header-h) - var(--legal-bar-h, 0px) - var(--inapp-bar-h, 0px));
+  height: calc(100vh - var(--header-h) - var(--inapp-bar-h, 0px));
   padding: 8px clamp(10px, 1.6vw, 20px) 12px;
   display: flex;
   flex-direction: column;
@@ -148,6 +148,21 @@
 .br-disclaimer[hidden] { display: none; }
 .br-disclaimer > svg { flex: 0 0 auto; color: #f8b34d; margin-top: 1px; }
 .br-disclaimer b { color: var(--text, #fff); font-weight: 700; }
+
+/* ── TLS-interception warning ────────────────────────────────────────────────
+   The same bar shape as the beta disclaimer above, in red rather than amber,
+   because this one reports something that BREAKS every https destination
+   instead of merely qualifying what the proxy can do. Shown only when the
+   server actually detected interception on its own network, which is a
+   local-development condition (see lib/tls-interception.mjs). */
+.br-disclaimer.br-tls-warn {
+  background: rgba(248,92,92,.1); border-color: rgba(248,92,92,.34);
+}
+.br-disclaimer.br-tls-warn > svg { color: #f85c5c; }
+.br-disclaimer.br-tls-warn code {
+  background: rgba(0,0,0,.28); padding: 1px 5px; border-radius: 5px;
+  font-size: 12px; color: var(--text, #fff);
+}
 .br-disclaimer-x {
   margin-left: auto; flex: 0 0 auto; cursor: pointer; background: transparent; border: 0;
   color: var(--text-mute, #9a8f7a); font-size: 20px; line-height: 1; padding: 0 2px;

@@ -1,374 +1,480 @@
 import { SYSTEM_PROMPT } from './ai-prompt.js';
-// ZoFHub · pollinations.js — THE ONE AI CLIENT. Text only, keyless, free tier.
+// ZoFHub · pollinations.js — THE ONE AI CLIENT.
 // ---------------------------------------------------------------------------
-// Every AI entry point on the site goes through this module: the /ai page
-// (public/js/ai.js) and the floating assistant (public/js/ai-helper.js). There
-// is deliberately no second implementation — the Hugging Face and Puter.js
-// providers, and AI image generation, were all removed.
+// ONE request, made by the visitor's browser, to ONE fixed URL:
 //
-// The prompt the user types is sent to a Pollinations WEB URL directly from the
-// visitor's browser, and the answer comes back on their end. NO API key, NO
-// login, NO pollen — using the endpoint that is still free & keyless:
-//   • Text:  GET/POST  https://text.pollinations.ai/…
+//     GET https://text.pollinations.ai/<url-encoded prompt>
 //
-// The CURRENT documented API (gen.pollinations.ai/v1/chat/completions) requires
-// `Authorization: Bearer sk_…`, and an sk_ key is a server secret that must
-// never reach a browser bundle — so it is deliberately not used. The full
-// evidence, including what was probed and when, is in the note by
-// freeTextModels() at the bottom of this file.
+// The body of that response IS the answer, as plain text. There is no API key,
+// no login, no model negotiation, no streaming protocol, no provider choice and
+// no server of ours anywhere in the path.
 //
-// One caveat we can't change: Pollinations' TEXT endpoint blocks BROWSER fetches
-// from http/localhost origins with a Cloudflare "Turnstile" 403 (it keys on the
-// Origin header). On a real https domain the keyless text URL works fine; on
-// localhost during development it doesn't, so there we fall back to this app's
-// own /api/ai/text (DEV ONLY — IS_LOCAL is false on https, and the server route
-// answers 403 in production, so a visitor's prompt is never relayed through us).
-// If every network route fails, ai.js finishes with an on-device model, so the
-// chat is never fully dead.
+// ── WHY IT LOOKS LIKE THIS NOW ─────────────────────────────────────────────
+// The previous version of this module tried THREE routes in sequence and made
+// TWO extra round-trips before the first one could even start:
+//
+//   1. `await getPublishableKey()`  → a same-origin GET of our own
+//      now-deleted AI key route                              ← OUR SERVER
+//   2. `await freeModelName()`      → fetch('…/models')
+//   3. attempt 1: POST /openai with `Content-Type: application/json`, which is
+//      not a CORS-safelisted content type, so the browser first had to send a
+//      preflight OPTIONS and wait for it.
+//   4. attempt 2: the GET URL route — the one that actually works.
+//   5. on localhost, attempt 0 was POST /api/ai/text — our own server relaying
+//      the prompt to Pollinations.
+//
+// Route 5 existed because of a stated premise: that Pollinations' text endpoint
+// fronts a Cloudflare Turnstile check keyed on Origin and rejects browser
+// fetches from http/localhost. THAT PREMISE IS CORRECT, and it turns on the
+// SPELLING of the host, which is easy to measure wrongly:
+//
+//     Origin: http://localhost:8080   -> 403 {"error":"Missing Turnstile token"}
+//     Origin: http://127.0.0.1:8080   -> 200
+//     Origin: https://<deployed site>  -> 200
+//     (no Origin header at all)       -> 200
+//
+// So `localhost` is refused and `127.0.0.1` — the same server — is not. A first
+// pass here claimed the premise "did not reproduce"; it had only been tested
+// from 127.0.0.1, which is one of the allowed spellings.
+//
+// It still does not justify route 5. A server relay is what this architecture
+// exists to remove, the condition is local-development-only (a deployed https
+// origin is fine), and the trace showed route 5 HANGING anyway: POST
+// /api/ai/text never answered inside 120s, and because it was attempt zero the
+// request that works in under a second was never reached. The 403 is instead
+// DETECTED and named — see the note in askAI() and describeFailure().
+// Full detail: docs/features/AI-ARCHITECTURE.md section 1.
+//
+// Every one of those is a way for the request to fail or stall before reaching
+// the endpoint, and the budgets made a stall expensive: CONNECT_MS 15s +
+// FIRST_BYTE_MS 45s on the POST, then a 45s GET, plus backoff between them. A
+// single message could therefore sit for well over a minute and still end up on
+// route 4 — which is what "the AI doesn't answer" looked like from a chair.
+//
+// So routes 1, 2, 3 and 5 are gone. What is left is route 4, alone, with no
+// preflight (a GET with no custom headers is a simple cross-origin request) and
+// no same-origin hop to go wrong.
+//
+// ── THE ONE THING THIS DEPENDS ON ──────────────────────────────────────────
+// A cross-origin `fetch` can only READ a response the other origin permits.
+// Verified against the live endpoint on 2026-10-15 with a browser-shaped
+// request carrying a production `Origin` header (an https site, not localhost):
+//
+//     HTTP/1.1 200 OK
+//     Content-Type: text/plain; charset=utf-8
+//     Access-Control-Allow-Origin: *          ← this is the part that matters
+//     Access-Control-Allow-Methods: GET, POST, OPTIONS
+//
+// `Access-Control-Allow-Origin: *` is what makes the body readable from a page.
+// Without it the browser would hand us an opaque response and no amount of
+// client code would help — `mode: 'no-cors'` is deliberately NOT used, because
+// an opaque response cannot be read and would only hide the failure.
 // ---------------------------------------------------------------------------
 
-const REFERRER = (typeof location !== 'undefined' && location.hostname) || 'zofhub';
+/**
+ * The fixed destination. A prompt is appended to this and nothing else is.
+ *
+ * Kept as a module constant and re-checked in buildPromptUrl() so that no
+ * prompt, however hostile, can move the request to another host: `new URL()`
+ * resolves the result and the origin is compared before the URL is returned.
+ */
+export const ENDPOINT = 'https://text.pollinations.ai/';
+const ENDPOINT_ORIGIN = 'https://text.pollinations.ai';
 
-// Turnstile blocks browser TEXT fetches from http/localhost — detect that so we
-// can use the dev server hop there. Real https prod → keyless browser-direct.
-// Exported so ai.js gates its image fallback on exactly the same condition —
-// two copies of this rule would eventually disagree, and the one that drifts
-// would silently start sending AI traffic through our server.
-export const IS_LOCAL = typeof location !== 'undefined' && (
-  location.protocol !== 'https:' ||
-  /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(location.hostname || '')
-);
-
-const TEXT_POST = 'https://text.pollinations.ai/openai'; // OpenAI-compatible, streams
-const TEXT_GET  = 'https://text.pollinations.ai/';       // simple URL API: /<prompt>
-
-// The default, and the fallback when model discovery is unavailable. Verified
-// `tier:"anonymous"` on the live /models endpoint — see the note by
-// freeTextModels() below for why that field is what the free-only policy rests on.
-const MODEL     = 'openai-fast'; // keyless text model (GPT-OSS 20B reasoning)
-const REASONING = 'low';         // reasoning_effort:'low' → fast first token
-// Shared with ai.js and server.js — see public/js/ai-prompt.js. The three copies
-// that used to live here each said only "friendly, concise assistant" and never
-// forbade inventing facts, which is what produced the fabricated game histories.
-const SYSTEM    = SYSTEM_PROMPT;
-
-// ── THESE NUMBERS WERE MEASURED, NOT CHOSEN ───────────────────────────────
-// FIRST_BYTE_MS was 25000, and that was the bug behind "sometimes the AI just
-// doesn't answer". Twelve sequential completions against the real endpoint from
-// a production origin produced a time-to-first-CONTENT-token of 16.0s, 26.3s,
-// 27.2s and 27.3s — a median of ~26.6s, sitting just ABOVE the old 25s budget.
-// The client was aborting working requests roughly a second before the model
-// spoke, then falling through to the slow GET route, so the user waited ~32s
-// for an answer the fast path already had.
+// How long one request may take before it is abandoned. A single bound, not a
+// chain of them: there is only one request now, so a failure is a failure in
+// ~60s instead of after a sequence of nested budgets.
 //
-// 45s is chosen to clear the observed p95 (27.3s) with real headroom for a
-// slower network, while staying under GET_MS so a hung stream still leaves time
-// for the fallback to run inside one send. Raising it does NOT make failures
-// slower in practice: a genuinely dead request fails on CONNECT or on the idle
-// timer, both of which are unchanged.
-const CONNECT_MS = 15000, FIRST_BYTE_MS = 45000, IDLE_MS = 20000, GET_MS = 45000;
+// 60s is a CEILING, not a measurement. Generation on the free tier is routinely
+// tens of seconds, and the GET route returns the whole answer at once rather
+// than streaming a first token, so a budget that merely covered a typical reply
+// would abort working requests — which is the specific bug this module used to
+// have.
+export const TIMEOUT_MS = 60000;
 
-const clean = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-function timed(ms) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  return { signal: ctrl.signal, clear: () => clearTimeout(id) };
+// The longest URL we will build, in characters. Browsers tolerate far more, but
+// intermediaries do not: 8KB is a common server and CDN limit for a whole
+// request line. 6000 leaves room for that limit and for the endpoint prefix.
+const MAX_URL_CHARS = 6000;
+
+// How much conversation to carry. The prompt travels in the URL, so context is
+// a budget rather than a free parameter — see composePrompt().
+const MAX_HISTORY_TURNS = 8;
+const MAX_MESSAGE_CHARS = 4000;
+
+/** Reasoning models occasionally leak a <think> block into the body — drop it. */
+const stripThinking = (s) =>
+  String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+/**
+ * Cut `text` down until its percent-encoded form fits the URL budget.
+ *
+ * Slicing is done over CODE POINTS, not UTF-16 units. `String.prototype.slice`
+ * can cut an emoji in half and leave a lone surrogate, and encodeURIComponent
+ * throws URIError on a lone surrogate — so a naive trim turns a long prompt
+ * containing an emoji into a crash instead of a short prompt.
+ */
+export function fitToUrlBudget(text, budget = MAX_URL_CHARS - ENDPOINT.length) {
+  const chars = Array.from(String(text ?? ''));
+  if (!chars.length) return '';
+  let lo = 0, hi = chars.length;
+  // The encoded length grows monotonically with the number of code points kept,
+  // so the largest prefix that fits is a binary search rather than a loop that
+  // shaves a percentage at a time.
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (encodeURIComponent(chars.slice(0, mid).join('')).length <= budget) lo = mid;
+    else hi = mid - 1;
+  }
+  return chars.slice(0, lo).join('');
 }
 
-// How many seconds to wait after a 429, from the upstream Retry-After header when
-// present (0 = not given, so the caller uses its own sensible default).
-function retryAfterOf(r) {
-  const ra = parseInt(r?.headers?.get?.('retry-after'), 10);
-  return Number.isFinite(ra) && ra > 0 ? ra : 0;
+/**
+ * The exact URL this module requests, for a given prompt.
+ *
+ * Exported because it is the one piece of this file worth asserting on in a
+ * test: that the prompt lands after the final slash, encoded exactly once, and
+ * that nothing a user can type changes the destination.
+ */
+export function buildPromptUrl(prompt) {
+  const text = fitToUrlBudget(String(prompt ?? '').trim());
+  if (!text) {
+    const e = new Error('empty-prompt');
+    e.code = 'empty-prompt';
+    throw e;
+  }
+  // encodeURIComponent, once. It escapes '/', '?', '#' and '&', so the prompt
+  // cannot add a path segment, a query string or a fragment; and it leaves the
+  // unreserved set (A-Z a-z 0-9 - _ . ! ~ * ' ( )) alone, which is legal in a
+  // path segment and keeps ordinary prose readable in a network log.
+  const url = ENDPOINT + encodeURIComponent(text);
+  // Belt and braces: resolve what we built and refuse it if the origin moved.
+  // encodeURIComponent already makes this unreachable; the check is here so it
+  // STAYS unreachable if someone later "simplifies" the encoding away.
+  if (new URL(url).origin !== ENDPOINT_ORIGIN) {
+    throw new Error('refusing to send a prompt to an unexpected origin');
+  }
+  return url;
 }
 
-// ── Optional publishable Pollinations key (pk_) ─────────────────────────────
-// Lifts the anonymous per-IP rate limit when POLLINATIONS_PUBLIC_KEY is set in
-// .env (served, tokenised, by /api/ai/key — a pk_ key is designed to be public).
-// Fetched ONCE, cached, bounded; stays '' (fully keyless) if unset/unreachable,
-// so the free path is never broken. Passed as `token` (body/query) — not an
-// Authorization header — to avoid a CORS preflight on the cross-origin call.
-let _keyPromise = null;
-function getPublishableKey() {
-  if (_keyPromise) return _keyPromise;
-  _keyPromise = (async () => {
+/**
+ * Flatten a chat into the single string that goes in the URL.
+ *
+ * The URL API takes one prompt, not a messages array, so the system prompt and
+ * the recent turns are folded into it. Roles are spelled out as "User:" /
+ * "Assistant:" because that is the only way a flat prompt can express them.
+ */
+export function composePrompt(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  const system = list.find((m) => m && m.role === 'system')?.content || SYSTEM_PROMPT;
+  const turns = list
+    .filter((m) => m && m.role !== 'system' && m.content)
+    .slice(-MAX_HISTORY_TURNS)
+    .map((m) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${String(m.content).slice(0, MAX_MESSAGE_CHARS)}`);
+  // Trailing "Assistant:" so the model continues the transcript rather than
+  // commenting on it.
+  return [system, '', ...turns, 'Assistant:'].join('\n');
+}
+
+/** Seconds the endpoint asked us to wait, or 0 when it did not say. */
+function retryAfterOf(response) {
+  const raw = parseInt(response?.headers?.get?.('retry-after'), 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+/**
+ * Read the answer out of a response.
+ *
+ * The documented behaviour of this endpoint is `text/plain`, and that is what
+ * it returned when probed, so `response.text()` is the primary path and plain
+ * text is NEVER run through JSON.parse. The JSON branch exists only because the
+ * same endpoint answers in OpenAI's envelope when it feels like it (a cached
+ * entry, an error object); it is entered on the content type, not on a guess.
+ */
+async function readAnswer(response) {
+  const body = await response.text();
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
     try {
-      const t = timed(2500);
-      const r = await fetch('/api/ai/key', { signal: t.signal }).finally(() => t.clear());
-      if (!r.ok) return '';
-      const d = await r.json();
-      return (d && typeof d.key === 'string' && d.key.startsWith('pk_')) ? d.key : '';
-    } catch { return ''; }
-  })();
-  return _keyPromise;
-}
-// Warm the cache at load so the first message never waits on this round-trip.
-getPublishableKey();
-
-function salvage(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  try { const j = JSON.parse(s); return clean(j?.choices?.[0]?.message?.content || j?.choices?.[0]?.text || ''); } catch {}
-  if (!s.startsWith('{') && !s.startsWith('data:')) return clean(s);
-  return '';
-}
-
-// Flatten messages[] into one prompt string for the GET URL route (prompt in path).
-function flatten(messages) {
-  const sys = messages.find(m => m.role === 'system')?.content || SYSTEM;
-  const convo = messages.filter(m => m.role !== 'system')
-    .map(m => (m.role === 'assistant' ? 'Assistant: ' : 'User: ') + String(m.content || ''))
-    .join('\n');
-  return (sys + '\n\n' + convo + '\nAssistant:').slice(-1500);
-}
-
-// Shared SSE reader for the streaming POST; arm(ms) re-arms idle-abort per chunk.
-async function consumeSSE(r, arm, { onToken, onStatus } = {}) {
-  if (!r.body || !r.body.getReader) throw new Error('no-stream');
-  arm(FIRST_BYTE_MS);
-  const reader = r.body.getReader();
-  const dec = new TextDecoder();
-  let full = '', raw = '', buf = '';
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    arm(IDLE_MS);
-    const chunk = dec.decode(value, { stream: true });
-    raw += chunk; buf += chunk;
-    const lines = buf.split('\n');
-    buf = lines.pop();
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t || t.startsWith(':') || !t.startsWith('data:')) continue;
-      const pl = t.slice(5).trim();
-      if (pl === '[DONE]') continue;
-      try {
-        const j = JSON.parse(pl);
-        const choice = j?.choices?.[0] || {};
-        const delta = choice.delta?.content ?? choice.text ?? '';
-        if (delta) { full += delta; onToken?.(clean(full)); }
-        else if (!full && choice.delta?.reasoning) onStatus?.('Thinking…');
-      } catch { /* JSON split across chunks — finishes next read */ }
+      const parsed = JSON.parse(body);
+      const fromEnvelope =
+        parsed?.choices?.[0]?.message?.content ??
+        parsed?.choices?.[0]?.text ??
+        null;
+      if (typeof fromEnvelope === 'string' && fromEnvelope.trim()) {
+        return stripThinking(fromEnvelope);
+      }
+      // JSON that is not a completion is an error object, not an answer. Saying
+      // so beats rendering "[object Object]" as the assistant's reply.
+      const message = parsed?.error?.message || parsed?.error || parsed?.message;
+      const e = new Error(typeof message === 'string' && message ? message : 'unexpected-response');
+      e.code = 'unexpected-response';
+      throw e;
+    } catch (err) {
+      if (err?.code === 'unexpected-response') throw err;
+      // Content-Type lied about being JSON — fall through and use the text.
     }
   }
-  full = clean(full);
-  if (full) return full;
-  const fromRaw = salvage(raw);
-  if (fromRaw) { onToken?.(fromRaw); return fromRaw; }
-  throw new Error('empty');
+  return stripThinking(body);
 }
 
-// Streaming: browser → text.pollinations.ai/openai (keyless), token by token.
-async function textDirectStream(messages, { onToken, onStatus } = {}) {
-  const key = await getPublishableKey();
-  const model = await freeModelName();          // free-only, discovered
-  const postUrl = TEXT_POST + (key ? `?token=${encodeURIComponent(key)}&referrer=${encodeURIComponent(REFERRER)}` : '');
-  const ctrl = new AbortController();
-  let timer = setTimeout(() => ctrl.abort(), CONNECT_MS);
-  const arm = (ms) => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), ms); };
-  try {
-    const r = await fetch(postUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, referrer: REFERRER, private: true, stream: true, reasoning_effort: REASONING, ...(key ? { token: key } : {}) }),
-      signal: ctrl.signal,
-    });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
-    return await consumeSSE(r, arm, { onToken, onStatus });
-  } finally { clearTimeout(timer); }
-}
-
-// The simple "web URL" method: GET text.pollinations.ai/<prompt> (keyless).
-async function textDirectGet(messages, { onToken, onStatus } = {}) {
+/**
+ * Ask Pollinations, directly from this browser, and return the text.
+ *
+ * @param {string} prompt            the text to put after the final slash
+ * @param {object} [opts]
+ * @param {AbortSignal} [opts.signal] caller's cancellation (navigating away, a
+ *                                    newer message superseding this one)
+ * @param {(s: string) => void} [opts.onStatus] progress for the UI
+ * @param {number} [opts.timeoutMs]  override the request budget. Exists so the
+ *                                   timeout path is testable in milliseconds
+ *                                   instead of by waiting a minute; no caller
+ *                                   in the app passes it.
+ * @returns {Promise<string>} the generated text
+ *
+ * Throws an Error carrying, where applicable:
+ *   .code        'empty-prompt' | 'empty-answer' | 'unexpected-response' |
+ *                'timeout' | 'cancelled' | 'offline' | 'http'
+ *   .status      the HTTP status, for an http failure
+ *   .rateLimited true on 429
+ *   .retryAfter  seconds to wait, when the endpoint said or 429 implies it
+ */
+export async function askAI(prompt, { signal, onStatus, timeoutMs = TIMEOUT_MS } = {}) {
+  const url = buildPromptUrl(prompt);
   onStatus?.('Thinking…');
-  const key = await getPublishableKey();
-  const model = await freeModelName();          // free-only, discovered
-  // encodeURIComponent on the prompt: the user's text is a PATH SEGMENT here, so
-  // spaces, punctuation, '#', '?' and non-ASCII must all be escaped or the URL
-  // silently means something else.
-  const url = TEXT_GET + encodeURIComponent(flatten(messages))
-    + `?model=${encodeURIComponent(model)}&reasoning_effort=${REASONING}&referrer=${encodeURIComponent(REFERRER)}&private=true`
-    + (key ? `&token=${encodeURIComponent(key)}` : '');
-  const t = timed(GET_MS);
-  try {
-    const r = await fetch(url, { signal: t.signal });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
-    const ct = r.headers.get('content-type') || '';
-    let txt = ct.includes('application/json') ? (await r.json())?.choices?.[0]?.message?.content || '' : await r.text();
-    txt = clean(salvage(txt) || txt);
-    if (!txt) throw new Error('empty');
-    onToken?.(txt);
-    return txt;
-  } finally { t.clear(); }
-}
 
-// LOCAL-DEV ONLY — our own server (no Origin, so no Turnstile). Never used in
-// production (IS_LOCAL is false on https), so no AI ever runs on the server there.
-async function textViaServer(messages, { onToken, onStatus } = {}) {
-  onStatus?.('Thinking… (local dev)');
-  const t = timed(GET_MS);
-  try {
-    const r = await fetch('/api/ai/text', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }), signal: t.signal,
-    });
-    if (!r.ok) { const e = new Error('http ' + r.status); e.status = r.status; if (r.status === 429) e.retryAfter = retryAfterOf(r); throw e; }
-    const data = await r.json().catch(() => ({}));
-    const txt = clean(data?.reply || '');
-    if (!txt) throw new Error(data?.error || 'empty');
-    onToken?.(txt);
-    return txt;
-  } finally { t.clear(); }
-}
-
-const backoff = (err) => sleep(err?.status === 429 ? 3500 : 1500);
-
-async function runAttempts(attempts, onStatus) {
-  let lastErr, sawRateLimit = false, retryAfter = 0;
-  for (let i = 0; i < attempts.length; i++) {
-    try {
-      onStatus?.(i === 0 ? 'Thinking…' : 'Still working…');
-      const text = await attempts[i].run();
-      if (text) return { text, route: attempts[i].route };
-    } catch (e) {
-      lastErr = e;
-      if (e?.status === 429) { sawRateLimit = true; retryAfter = Math.max(retryAfter, e.retryAfter || 0); }
-      console.warn(`[ai] attempt ${i + 1} (${attempts[i].route}) failed:`, e?.status || '', e?.message || e);
-      if (i < attempts.length - 1) await backoff(e);
-    }
+  // Our timeout and the caller's cancellation both have to be able to abort the
+  // same fetch, so they are combined into one controller. (AbortSignal.any()
+  // would do this natively but is too new to rely on in every browser we serve.)
+  const controller = new AbortController();
+  const onCallerAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) onCallerAbort();
+    else signal.addEventListener('abort', onCallerAbort, { once: true });
   }
-  // Surface a TYPED failure so callers can tell a genuine rate-limit (429) apart
-  // from offline / other breakage and react differently (styled limit notice vs.
-  // the on-device fallback). retryAfter falls back to ~15s (the documented keyless
-  // ~1 req/15s window) when the upstream didn't send a Retry-After header.
-  const err = new Error(sawRateLimit ? 'rate-limited' : ('all-ai-routes-failed: ' + (lastErr?.message || 'unknown')));
-  err.rateLimited = sawRateLimit;
-  err.retryAfter = retryAfter || (sawRateLimit ? 15 : 0);
-  err.status = lastErr?.status;
-  throw err;
-}
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
 
-// Keyless browser-direct to text.pollinations.ai. Streaming first (best for long
-// answers), then the simple GET URL. On localhost, Turnstile blocks those, so try
-// the dev server first. In production it's pure browser-direct — no server.
-function buildAttempts(messages, cbs) {
-  const attempts = [];
-  if (IS_LOCAL) attempts.push({ route: 'server-dev', run: () => textViaServer(messages, cbs) });
-  attempts.push(
-    { route: 'direct-stream', run: () => textDirectStream(messages, cbs) },
-    { route: 'direct-get',    run: () => textDirectGet(messages, cbs) },
-  );
-  return attempts;
-}
-
-export async function pollTextStream(messages, { onToken, onStatus } = {}) {
-  return runAttempts(buildAttempts(messages, { onToken, onStatus }), onStatus);
-}
-export async function pollText(messages, { onStatus } = {}) {
-  const { text } = await runAttempts(buildAttempts(messages, { onStatus }), onStatus);
-  return { text, route: 'direct' };
-}
-export async function pollTextPrompt(prompt, opts) {
-  return pollText([{ role: 'system', content: SYSTEM }, { role: 'user', content: String(prompt).slice(0, 4000) }], opts);
-}
-export async function pollTextPromptStream(prompt, opts) {
-  return pollTextStream([{ role: 'system', content: SYSTEM }, { role: 'user', content: String(prompt).slice(0, 4000) }], opts);
-}
-
-// ── AI IMAGE GENERATION WAS REMOVED ────────────────────────────────────────
-// pollImageUrl() and pollImageShieldUrl() used to build image.pollinations.ai
-// URLs for an <img src>. AI image generation is no longer a product feature, so
-// they are gone along with the /image command, the server's /api/ai/image route
-// and the image-model discovery. Ordinary site images are unaffected: they were
-// never generated.
-
-// ── FREE-ONLY MODEL DISCOVERY ──────────────────────────────────────────────
-// VERIFIED AGAINST THE LIVE API (2026-10-15), because the documentation and the
-// deployed service disagree and the difference decides whether this feature can
-// exist at all:
-//
-//   · The CURRENT documented API is POST https://gen.pollinations.ai/v1/chat/
-//     completions with `Authorization: Bearer <sk_…>`. Its own docs say "All
-//     generation requests require an API key". An sk_ key is a SERVER secret and
-//     may never be shipped in a browser bundle, so this endpoint is deliberately
-//     NOT used — there is no way to call it from a page without either leaking a
-//     secret or proxying every prompt through our server.
-//   · Legacy `pk_` publishable keys still exist but the docs say "Do not mint
-//     new ones", and they are capped at 1 pollen per IP per hour.
-//   · The ANONYMOUS tier on text.pollinations.ai is still live and keyless. All
-//     three of these returned 200 from a browser-like request with a production
-//     Origin header: GET /<prompt>, POST /openai, and GET /models.
-//
-// So: the anonymous tier is the only genuinely free, browser-direct, no-secret
-// option, and it is what this module uses.
-//
-// /models returns a `tier` field per model — currently a single entry,
-// `{"name":"openai-fast", "tier":"anonymous", …}`. That field is the evidence
-// the free-only policy needs, so eligibility is DISCOVERED rather than assumed:
-// a model counts as free only when its tier is explicitly one of FREE_TIERS and
-// it actually outputs text. An unknown tier stays DISABLED — "we could not
-// establish that this is free" must never render as "Free".
-const MODELS_URL = 'https://text.pollinations.ai/models';
-const FREE_TIERS = new Set(['anonymous']);
-const MODELS_TTL_MS = 30 * 60 * 1000;
-
-/** Is this /models entry a model we may use on the free tier? */
-export function isFreeTextModel(m) {
-  if (!m || typeof m !== 'object') return false;
-  if (typeof m.name !== 'string' || !m.name) return false;
-  // An explicitly known-free tier, and nothing else. A missing or unrecognised
-  // tier is "unknown cost", which is not the same as free.
-  if (!FREE_TIERS.has(String(m.tier || '').toLowerCase())) return false;
-  // Text in, text out. `output_modalities` is authoritative when present.
-  const out = Array.isArray(m.output_modalities) ? m.output_modalities.map(String) : null;
-  if (out && !out.includes('text')) return false;
-  const inp = Array.isArray(m.input_modalities) ? m.input_modalities.map(String) : null;
-  if (inp && !inp.includes('text')) return false;
-  return true;
-}
-
-let _modelsPromise = null;
-/**
- * The free text models the provider currently offers, newest answer cached.
- *
- * Never throws and never blocks a send: on any failure it resolves to [] and the
- * caller falls back to MODEL. Model discovery is a refinement, not a dependency
- * — an outage of /models must not take the chat down with it.
- */
-export function freeTextModels() {
-  if (_modelsPromise) return _modelsPromise;
-  _modelsPromise = (async () => {
+  try {
+    // Already cancelled before we started: there is nothing to ask for, and a
+    // real fetch would only reject on the same signal a moment later.
+    if (controller.signal.aborted) {
+      const e = new Error('cancelled');
+      e.code = 'cancelled';
+      throw e;
+    }
+    let response;
     try {
-      const t = timed(6000);
-      const r = await fetch(MODELS_URL, { signal: t.signal }).finally(() => t.clear());
-      if (!r.ok) return [];
-      const list = await r.json();
-      if (!Array.isArray(list)) return [];
-      return list.filter(isFreeTextModel).map((m) => ({
-        name: m.name,
-        description: typeof m.description === 'string' ? m.description : '',
-        tier: String(m.tier).toLowerCase(),
-        reasoning: m.reasoning === true,
-      }));
-    } catch { return []; }
-  })();
-  // Let a later send re-discover rather than trusting one answer forever.
-  setTimeout(() => { _modelsPromise = null; }, MODELS_TTL_MS);
-  return _modelsPromise;
+      // A plain GET with no custom headers: a "simple" cross-origin request, so
+      // the browser sends it straight out with no preflight to wait on.
+      response = await fetch(url, {
+        method: 'GET',
+        // 'cors' is explicit on purpose. It is the default, but the one thing
+        // that must never be set here is 'no-cors', which would make the body
+        // unreadable and turn a visible failure into a silent blank reply.
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (timedOut) {
+        const e = new Error(`the AI took longer than ${Math.round(timeoutMs / 1000)}s to answer`);
+        e.code = 'timeout';
+        throw e;
+      }
+      if (controller.signal.aborted) {
+        const e = new Error('cancelled');
+        e.code = 'cancelled';
+        throw e;
+      }
+      // fetch rejects on DNS failure, no route, TLS failure, a blocked request
+      // and anything else that stopped it leaving the machine. From here they
+      // are indistinguishable, and the honest message is the general one.
+      const e = new Error('could not reach the AI service');
+      e.code = 'offline';
+      e.cause = err;
+      throw e;
+    }
+
+    if (!response.ok) {
+      // Read the body on a failure: this endpoint explains itself there, and the
+      // explanation is the difference between an actionable message and "403".
+      const detail = await response.text().catch(() => '');
+      const e = new Error(`the AI service answered ${response.status}`);
+      e.code = 'http';
+      e.status = response.status;
+      e.detail = detail.slice(0, 200);
+      if (response.status === 429) {
+        e.rateLimited = true;
+        // The free tier documents roughly one request per 15s, so 15 is the
+        // honest default when no Retry-After header came back.
+        e.retryAfter = retryAfterOf(response) || 15;
+      }
+      // ORIGIN GATING. The endpoint fronts a Cloudflare Turnstile check keyed on
+      // the Origin header and refuses `http://localhost:*` with
+      // `403 {"error":"Missing Turnstile token"}`. MEASURED, same prompt, same
+      // second:
+      //
+      //     Origin: http://localhost:8080   -> 403 Missing Turnstile token
+      //     Origin: http://127.0.0.1:8080   -> 200
+      //     Origin: https://<deployed site>  -> 200
+      //     (no Origin header at all)       -> 200
+      //
+      // So this is a LOCAL-DEVELOPMENT condition only, and it turns on the
+      // spelling of the host rather than on anything about the request. There
+      // is no client-side workaround: a browser always sends Origin on a
+      // cross-origin request, and `no-cors` would make the answer unreadable.
+      // Proxying it through our server is what this architecture exists to
+      // avoid. So the honest fix is to NAME it, which describeFailure() does.
+      if (response.status === 403 && /turnstile/i.test(detail)) {
+        e.code = 'origin-blocked';
+      }
+      throw e;
+    }
+
+    // The body read can be interrupted too — the endpoint sends headers first
+    // and can then stall mid-answer. Without this, a timeout at that moment
+    // escaped as a bare AbortError with no `.code`, and the UI fell back to the
+    // generic "that didn't come through" instead of saying it timed out. Every
+    // failure out of this function carries a `.code`.
+    let text;
+    try {
+      text = await readAnswer(response);
+    } catch (err) {
+      // `typeof === 'string'`, not just truthy: a DOMException carries a
+      // NUMERIC .code (AbortError is 20), so a truthy test rethrew the raw
+      // abort as "already classified" and the timeout below never ran.
+      if (typeof err?.code === 'string') throw err;    // already classified
+      if (timedOut) {
+        const e = new Error(`the AI took longer than ${Math.round(timeoutMs / 1000)}s to answer`);
+        e.code = 'timeout';
+        throw e;
+      }
+      if (controller.signal.aborted) {
+        const e = new Error('cancelled');
+        e.code = 'cancelled';
+        throw e;
+      }
+      const e = new Error('the AI answer could not be read');
+      e.code = 'unexpected-response';
+      e.cause = err;
+      throw e;
+    }
+    if (!text) {
+      const e = new Error('the AI returned an empty answer');
+      e.code = 'empty-answer';
+      throw e;
+    }
+    return text;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onCallerAbort);
+  }
 }
 
 /**
- * The model to send, chosen from the discovered free set.
+ * What to tell a person, given a failure from askAI().
  *
- * MODEL ('openai-fast') is the default and is itself verified `tier:"anonymous"`.
- * It is used when discovery returns nothing (offline, /models down) OR when the
- * discovered set still contains it. If discovery succeeds and the default is NOT
- * in the free set any more, the first discovered free model is used instead —
- * which is how this survives the provider retiring a model without a deploy.
+ * Lives here, beside the code that assigns the `.code` values, because both
+ * entry points need it and two copies drifted immediately: the floating
+ * assistant used to answer a 503 with "ask once more and it will", which is
+ * advice, and wrong. Each message names what happened and implies whether
+ * retrying is worth it.
  */
-export async function freeModelName() {
-  const free = await freeTextModels();
-  if (!free.length) return MODEL;
-  if (free.some((m) => m.name === MODEL)) return MODEL;
-  return free[0].name;
+export function describeFailure(error) {
+  switch (error?.code) {
+    case 'origin-blocked': {
+      // Only reachable in local development (see the note in askAI). The message
+      // names the exact fix rather than describing the mechanism, because the
+      // one action that works is changing the address in the address bar.
+      const port = (typeof location !== 'undefined' && location.port) ? `:${location.port}` : '';
+      const onLocalhost = typeof location !== 'undefined'
+        && /^(localhost|\[::1\])$/i.test(location.hostname || '');
+      return onLocalhost
+        ? `The AI provider does not accept requests from "localhost". Open the site at `
+          + `http://127.0.0.1${port} instead — the same server, a spelling the provider allows. `
+          + `This affects local development only; a deployed https site works.`
+        : 'The AI provider refused the origin this page is served from. The AI works on '
+          + 'the deployed https site, or via http://127.0.0.1 in local development.';
+    }
+    case 'timeout':
+      return 'The AI did not answer in time. The free tier can be slow when it is busy — try again.';
+    case 'offline':
+      return 'Could not reach the AI service. Check your connection and try again.';
+    case 'empty-answer':
+      return 'The AI sent back an empty answer. Try rephrasing your message.';
+    case 'unexpected-response':
+      return 'The AI service returned something unexpected. Try again in a moment.';
+    case 'empty-prompt':
+      return 'Type a message first.';
+    case 'http':
+      if (error.status === 429) {
+        return 'The free AI is rate-limited right now. Wait a few seconds and try again.';
+      }
+      // 404 needs its own wording, from a MEASURED surprise: two requests sent
+      // back to back (the /ai page, then the floating assistant) got 200 and
+      // then 404 — and the identical second request returned 200 when spaced
+      // out. So this endpoint can express throttling as a 404, not only a 429.
+      //
+      // The message therefore advises waiting, which is what actually works,
+      // without ASSERTING a rate limit: a real 404 (the endpoint moving) is
+      // indistinguishable from here, and `rateLimited` is deliberately not set,
+      // so this never starts a countdown on a guess.
+      if (error.status === 404) {
+        return 'The AI service did not accept that request. This usually means too many '
+          + 'requests in a short time — wait a few seconds and try again.';
+      }
+      return error.status >= 500
+        ? `The AI service is having trouble (error ${error.status}). Try again in a moment.`
+        : `The AI service refused the request (error ${error.status}).`;
+    default:
+      return 'That reply did not come through. Try sending it again.';
+  }
 }
+
+/**
+ * Ask with conversation context — the entry point the chat UIs use.
+ *
+ * @returns {Promise<{ text: string }>}
+ */
+export async function askWithContext(messages, opts) {
+  const text = await askAI(composePrompt(messages), opts);
+  return { text };
+}
+
+/**
+ * Ask a single standalone question, with the site's system prompt applied.
+ *
+ * @returns {Promise<{ text: string }>}
+ */
+export async function askPrompt(prompt, opts) {
+  return askWithContext(
+    [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: String(prompt ?? '') }],
+    opts,
+  );
+}
+
+// ── WHAT IS DELIBERATELY NOT HERE ──────────────────────────────────────────
+// · No AI IMAGE GENERATION. It is not a feature of this site. There is no
+//   image.pollinations.ai URL builder, no /image command, no server route and
+//   no image model lookup. (Ordinary site images — thumbnails, the preroll,
+//   every other <img> — were never this and are untouched.)
+// · No API KEY of any kind. The anonymous tier needs none. The current
+//   documented API (gen.pollinations.ai) requires `Authorization: Bearer sk_…`,
+//   and an sk_ key is a SERVER secret that may never be shipped to a browser,
+//   so that endpoint cannot be used from a page at all without either leaking
+//   the secret or proxying every prompt through our server. Both are refused.
+//   The legacy publishable `pk_` key is also gone: it bought a higher rate limit
+//   at the cost of a same-origin round-trip to our own server on the AI path
+//   before any prompt could be sent, and the
+//   docs say not to mint new ones.
+// · No SERVER FALLBACK. /api/ai/text and /api/ai/echo have been removed from
+//   server.js. There is no same-origin route left that would take a prompt.
+// · No LOCAL INFERENCE ENGINE. The Transformers.js + SmolLM2 fallback is gone:
+//   it downloaded a few hundred megabytes to answer, in a visibly worse voice,
+//   a question the user had asked the real model. A clear error beats a bad
+//   answer presented as a good one.
+// · No OTHER PROVIDER. Hugging Face and Puter.js are gone, with their settings
+//   UI and their stored tokens.

@@ -55,11 +55,11 @@
       <div class="ai-side-foot">
         <div class="ai-engine-status" id="aiEngineStatus">Connecting to AI…</div>
 
-        <!-- The AI provider picker, the Puter model select and the Hugging Face
-             token field used to live here. The site now uses ONE provider
-             (Pollinations, anonymous free tier, text only), so there is nothing
-             left to configure — and a settings panel offering a choice nobody
-             had a basis for making was worse than no panel.
+        <!-- No settings panel. There is one provider (Pollinations, anonymous
+             free tier, text only), no API key and no model choice, so there is
+             nothing here to configure. The provider picker, the Puter model
+             select and the Hugging Face token field that used to live here are
+             gone with those providers.
 
              The honesty notice this warrants lives under the composer instead,
              where it is read at the moment of use. -->
@@ -67,10 +67,17 @@
     </aside>
 
     <section class="ai-main">
+      <!-- The page's own h1. It lives OUTSIDE #aiMessages on purpose: render()
+           in /js/ai.js rewrites that container, so a heading inside it
+           disappeared the moment the first message was sent, leaving the page
+           with no top-level heading. Visually hidden because the welcome card
+           below already presents the title; structurally it is what makes the
+           outline h1 - h2 - h3 (the shared footer's columns are h3). -->
+      <h1 class="sr-only">ZoFHub AI</h1>
       <div class="ai-messages" id="aiMessages">
         <div class="ai-welcome">
           <div class="ai-welcome-mark"></div>
-          <h1>ZoFHub AI</h1>
+          <h2>ZoFHub AI</h2>
           <p>Ask anything — homework help, brainstorming, writing, code. Free to use.</p>
           <div class="ai-suggest">
             <button class="ai-suggest-card" data-prompt="Explain photosynthesis like I'm 10."><b>Explain</b><span>Photosynthesis, but simple</span></button>
@@ -87,9 +94,9 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
         </button>
       </form>
-      <!-- No /image hint: AI image generation was removed. No "free &amp; unlimited"
-           either — the free tier is rate-limited, so claiming otherwise was simply
-           untrue. -->
+      <!-- No /image hint: there is no AI image generation anywhere on this site.
+           No "free &amp; unlimited" either — the free tier is rate-limited, so
+           claiming otherwise was simply untrue. -->
       <div class="ai-hint">Enter to send · Shift+Enter for newline</div>
       <!-- Sits directly under the composer, so it is read at the moment of use
            rather than buried in a footer nobody scrolls to. role="note" keeps it
@@ -105,10 +112,12 @@
     </section>
   </main>
 
-  <!-- Compact legal bar. This page is a fixed-height app shell, so it carries
-       the one-row variant of the shared footer rather than the six-column one
-       (see mountFooter() in /js/layout.js). The links are identical; only the
-       layout differs. --><footer class="site-footer site-footer-mini"></footer>
+  <!-- The same footer as every other page, built by mountFooter() in
+       /js/layout.js. The chat shell above is sized to the first screen, so
+       this sits below it and is reached by scrolling, exactly as on /, /community
+       and the legal pages. (It used to carry a cut-down one-row variant, which
+       meant /ai quietly lacked whatever the real footer gained.) -->
+  <footer class="site-footer"></footer>
 
   <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>

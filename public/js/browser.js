@@ -6,7 +6,7 @@
 //     auto-open a homepage so a real page renders ("the browser pops up"). Type
 //     any URL in the address bar to browse; it's encoded and loaded in-frame.
 //   • GUST — self-contained proxy app at /gust/ (its own address bar).
-//   • Companions (NautilusOS, Interstellar, DayDream, Nebula) — standalone apps
+//   • Companions (NautilusOS, DayDream, Nebula) — standalone apps
 //     on their own port. WHICH ones exist is decided entirely by the server:
 //     /api/proxies returns exactly those with a PROXY_<ID>_URL set, and this
 //     file lists whatever it's given. Only reachable ones are shown, so you can
@@ -47,9 +47,11 @@ const errOpen  = $('#brErrOpen');
 // The always-available in-app engines (companions come from /api/proxies).
 // Order matters: the first entry shows on top. Scramjet is the default.
 const IN_APP = [
-  { id: 'scramjet', label: 'Scramjet',    kind: 'sw' },
-  { id: 'uv',       label: 'Ultraviolet', kind: 'sw' },
-  { id: 'gust',     label: 'GUST',        kind: 'app', url: '/gust/' },
+  { id: 'scramjet',     label: 'Scramjet',     kind: 'sw' },
+  { id: 'uv',           label: 'Ultraviolet',  kind: 'sw' },
+  { id: 'gust',         label: 'GUST',         kind: 'app', url: '/gust/' },
+  { id: 'horizon',      label: 'HORIZON',      kind: 'app', url: '/horizon' },
+  { id: 'interstellar', label: 'Interstellar', kind: 'app', url: '/interstellar' },
 ];
 const DEFAULT_ENGINE = 'scramjet';
 // Homepage auto-loaded when you pick a service-worker engine. This MUST be a
@@ -65,8 +67,10 @@ const LAST_KEY = 'zofhub:browser:engine:v2';
 const engineById = (id) => IN_APP.find(e => e.id === id) || companions.find(c => c.id === id);
 
 // ── Premium engines and the ad-block gate ────────────────────────────────────
-// AnuraOS (a full x86 emulator) and every standalone companion are the premium
-// engines: each is a whole separate application on our heaviest servers. While
+// Every standalone companion is a premium engine: each is a whole separate
+// application on our heaviest servers. The built-in engines — Scramjet,
+// Ultraviolet, GUST, HORIZON and Interstellar — all run on THIS origin and are
+// never gated. While
 // support-gate.js reports the gate as locked — an ad-blocker still on after
 // three pages, on a deployment that runs ads — picking one shows the lock card
 // over the stage instead of launching it. The built-in engines are never locked.
@@ -266,7 +270,6 @@ function showStart(title, sub) {
 // install. DayDream and Nebula are pnpm projects (npm there produces a broken
 // tree) and both also need a config file copied from their .example.
 const SETUP_HINT = {
-  interstellar: 'cd Interstellar &amp;&amp; npm install',
   daydream:     'cd DayDream &amp;&amp; pnpm install &amp;&amp; pnpm run build',
   nebula:       'cd Nebula &amp;&amp; pnpm install &amp;&amp; pnpm run build',
 };
@@ -409,7 +412,7 @@ function selectEngine(id) {
 // and overwrites the frame with the old engine's page.
 //
 // That is not hypothetical: the default engine starts warming at page load, so
-// anyone who picked a standalone browser (AnuraOS, Nebula, …) in the first few
+// anyone who picked a standalone browser (Nebula, DayDream, …) in the first few
 // seconds was silently bounced back to the default engine's homepage — the new
 // engine's frame src was set, then clobbered by the in-flight navigation.
 let navSeq = 0;
@@ -433,6 +436,13 @@ function navigate(input) {
 // is opened, instead of surfacing as a blank frame that looks like a network
 // fault. `null` = not loaded yet, in which case the server decides alone.
 let APPROVED = null;
+// Set from the server's public proxy view when THIS HOST's outbound TLS is
+// being terminated by a local security product. The engines perform TLS end to
+// end with their own compiled-in CA roots, so an intercepted certificate cannot
+// validate and EVERY https destination fails in EVERY engine — while ordinary
+// browsing is fine, which is why it reads as "the proxy is broken".
+// Absent in production; see lib/tls-interception.mjs.
+let TLS_INTERCEPT = null;
 function hostApproved(host) {
   if (!APPROVED) return true;
   const h = String(host || '').toLowerCase().replace(/\.$/, '');
@@ -443,12 +453,67 @@ function loadApprovedDestinations() {
     const px = cfg && cfg.proxy;
     if (!px) return;
     APPROVED = (px.destinations || []).map((d) => String(d.pattern || '').toLowerCase()).filter(Boolean);
+    TLS_INTERCEPT = px.tlsIntercepted || null;
+    if (TLS_INTERCEPT) showTlsInterceptionWarning(TLS_INTERCEPT.product);
     if (!startPage.hidden) {
       showStart(null, APPROVED.length
         ? `This proxy opens approved destinations only: ${APPROVED.slice(0, 12).join(', ')}${APPROVED.length > 12 ? '…' : ''}`
         : 'No destinations have been approved yet — an administrator adds them in the console.');
     }
   }).catch(() => { /* the server still enforces the list */ });
+}
+
+// ── TLS interception: say it BEFORE the engine's generic error page ─────────
+// The engines perform TLS end to end from this browser using their own
+// compiled-in CA roots, so a local product terminating port 443 breaks every
+// https destination in every engine. The failure surfaces as the engine's own
+// "Uh oh! There was an error loading..." page INSIDE the frame, which this page
+// cannot read (cross-origin) and which blames nothing in particular — so the
+// warning is pre-emptive rather than a reaction to the failure.
+//
+// Built here rather than in browser.html because it must not occupy space on
+// the overwhelming majority of installs where it never applies.
+function showTlsInterceptionWarning(product) {
+  if (document.getElementById('brTlsWarn')) return;
+  const anchor = document.getElementById('brDisclaimer');
+  const host = anchor?.parentNode;
+  if (!host) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'brTlsWarn';
+  bar.className = 'br-disclaimer br-tls-warn';
+  bar.setAttribute('role', 'alert');
+  bar.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+    + '<path d="M12 9v4M12 17h.01"/></svg>';
+
+  // textContent for the product name: it comes from a certificate field.
+  const msg = document.createElement('span');
+  const lead = document.createElement('b');
+  lead.textContent = 'https sites will not load on this machine. ';
+  msg.appendChild(lead);
+  msg.appendChild(document.createTextNode(
+    'Outbound TLS is being intercepted by ' + String(product || 'a local security product')
+    + ', which re-signs certificates with its own root. The proxy engines carry their own '
+    + 'CA roots and cannot validate that, so every https address fails here. Turn off '
+    + 'HTTPS/SSL scanning in that product, or add an exclusion. Plain '));
+  const code = document.createElement('code');
+  code.textContent = 'http://';
+  msg.appendChild(code);
+  msg.appendChild(document.createTextNode(
+    ' addresses still work, and a deployed site is unaffected — this is your own network.'));
+  bar.appendChild(msg);
+
+  const x = document.createElement('button');
+  x.className = 'br-disclaimer-x';
+  x.type = 'button';
+  x.setAttribute('aria-label', 'Dismiss');
+  x.innerHTML = '&times;';
+  x.addEventListener('click', () => bar.remove());
+  bar.appendChild(x);
+
+  host.insertBefore(bar, anchor.nextSibling);
 }
 
 async function loadUrl(url) {

@@ -143,12 +143,9 @@ if (supaKeyInfo.present) {
 const { getSupabase, getSupabaseAdmin, isSupabaseConfigured, supabaseKeepAlive, supabaseHealth } = await import('./lib/supabase.mjs');
 const { startCronJobs, isTrademarkTitle, cronStatus } = await import('./lib/cron-jobs.mjs');
 const { getCache }                         = await import('./lib/cache.mjs');
-const { publicProviderList, MODEL_FALLBACKS }               = await import('./lib/ai-providers.mjs');
 const { applyCatalogOverrides }            = await import('./lib/catalog-overrides.mjs');
 const { getDonateConfig }                  = await import('./lib/donate.mjs');
 const { createInvoice, swapConfig, swapStatusLine, SwapError, DEPOSIT_COINS } = await import('./lib/swap.mjs');
-const { healthyModels, candidateModels, markFailure, markSuccess, withRetry,
-        healthSnapshot, modelPriority } = await import('./lib/ai-pipeline.mjs');
 const { checkUrlSafety, findDuplicates } = await import('./lib/game-discovery.mjs');
 // Per-game SEO content (unique description + title/meta/canonical/JSON-LD),
 // generated deterministically from verified catalog metadata — see lib/game-seo.mjs.
@@ -310,6 +307,14 @@ const { safeFetch, BlockedDestinationError } = await import('./lib/safe-fetch.mj
 const { isAiProviderHost, mentionsAiProvider } = await import('./lib/ai-hosts.mjs');
 const { aiServerAllowed: aiRouteAllowed, isAiFallbackPath } = await import('./lib/ai-guard.mjs');
 const { sanitizeCatalogEntry } = await import('./lib/catalog-sanitize.mjs');
+// Whether THIS machine's outbound TLS is being terminated by a local security
+// product. The proxy engines do TLS end to end from the browser with their own
+// CA roots, so interception breaks every https destination in every engine
+// while ordinary browsing is unaffected — see lib/tls-interception.mjs.
+const tlsInterception = await import('./lib/tls-interception.mjs');
+// null until the boot probe answers; the public proxy view reports it so the
+// /browser page can say WHY a site failed instead of showing a blank frame.
+let TLS_INTERCEPTION = null;
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -1302,12 +1307,12 @@ app.set('etag', 'weak');
 // ------------------------------------------------------------------------
 // Ultraviolet, Scramjet and GUST are embedded directly in this app and proxy
 // from this same origin.  The other open-source proxy browsers the project
-// ships (NautilusOS, Interstellar, DayDream, Nebula) are *whole* self-contained
+// ships (NautilusOS, DayDream, Nebula) are *whole* self-contained
 // apps that assume they own the site root (absolute /uv/, /style.css, /a, …),
 // so they can't be nested under a sub-path without service-worker scope and
 // path collisions.  Instead each runs as its own self-contained service on its
 // own origin; the browser page lists the ones that are reachable and loads them
-// Companion browsers (Interstellar, Nebula, NautilusOS, DayDream) are SEPARATE
+// Companion browsers (Nebula, NautilusOS, DayDream) are SEPARATE
 // third-party apps — NOT part of this server, NOT deployed with the site, and
 // redundant with the built-in Scramjet/Ultraviolet/GUST engines (which are
 // same-origin and always work). They are therefore fully OPT-IN: a companion
@@ -1340,7 +1345,6 @@ function publicEngineUrl(raw, varName) {
 
 const COMPANION_ENGINES = [
   { id: 'nautilus',     label: 'NautilusOS',   url: publicEngineUrl(process.env.PROXY_NAUTILUS_URL,     'PROXY_NAUTILUS_URL') },
-  { id: 'interstellar', label: 'Interstellar', url: publicEngineUrl(process.env.PROXY_INTERSTELLAR_URL, 'PROXY_INTERSTELLAR_URL') },
   { id: 'daydream',     label: 'DayDream',     url: publicEngineUrl(process.env.PROXY_DAYDREAM_URL,     'PROXY_DAYDREAM_URL') },
   { id: 'nebula',       label: 'Nebula',       url: publicEngineUrl(process.env.PROXY_NEBULA_URL,       'PROXY_NEBULA_URL') },
   // InvisiProxy LTS (AGPL-3.0, formerly Holy Unblocker LTS). It belongs in this
@@ -1361,52 +1365,12 @@ const COMPANION_ENGINES = [
   },
 ].filter(e => e.url);
 
-// ── AnuraOS ────────────────────────────────────────────────────────────────
-// Handled apart from the list above because, unlike the other four, THIS
-// process can serve it: `npm run fetch-anura` puts the pinned AGPL-3.0 release
-// in vendor/anura, and lib/anura-host.mjs serves it on an origin of its own
-// (a second port by default, or a hostname pointed here via ANURA_HOST).
-//
-// It needs a real origin rather than a subpath, and that is a measured fact
-// about the bundle, not a preference — see the header of lib/anura-host.mjs.
-// Its URL is resolved PER REQUEST so a mirror deployment offers its own
-// AnuraOS rather than sending visitors back to a blocked domain.
-const { anuraHandler, anuraExposure, anuraUrlFor, anuraBundlePresent } =
-  await import('./lib/anura-host.mjs');
-const ANURA = anuraExposure(process.env, { present: anuraBundlePresent() });
-
-/** AnuraOS obeys the same engine switch and access mode as the other engines. */
-async function anuraAllowed(headers, ip) {
-  if (CONTROL.proxy && !CONTROL.proxy.engineEnabled('anura')) return false;
-  if (PROXY_POLICY.accessMode === 'disabled') return false;
-  if (PROXY_POLICY.accessMode === 'staff') return staffProxyAllowed(headers, ip);
-  return true;
-}
-
-// Host-based origin: a subdomain pointed at this service. Registered FIRST so
-// it wins before any ZoFHub route can answer for that hostname — /browser and
-// /assets exist in both apps, and on the AnuraOS origin they must be AnuraOS's.
-if (ANURA.mode === 'host') {
-  // No port in the authority here: the hostname IS the origin, on the main
-  // listener, whose upgrade handler already routes /wisp/ into the tunnel.
-  const serveAnura = anuraHandler();
-  app.use(async (req, res, next) => {
-    const h = String(req.headers['x-forwarded-host'] || req.headers.host || '')
-      .split(',')[0].trim().toLowerCase().replace(/:\d+$/, '');
-    if (h === ANURA.host) {
-      if (!(await anuraAllowed(req.headers, req.ip))) return res.status(503).type('text').send('AnuraOS is turned off.');
-      return serveAnura(req, res);
-    }
-    return next();
-  });
-}
-
 // ── Kasm Workspaces ────────────────────────────────────────────────────────
 // A third kind of engine: not a rewriter (Scramjet/Ultraviolet) and not an
-// emulator (AnuraOS) but a REAL remote desktop, streamed by KasmVNC from a
-// container built out of github.com/kasmtech/workspaces-images.
+// emulator but a REAL remote desktop, streamed by KasmVNC from a container
+// built out of github.com/kasmtech/workspaces-images.
 //
-// Unlike AnuraOS this process cannot host it — upstream ships Dockerfiles, not
+// This process cannot host it — upstream ships Dockerfiles, not
 // a bundle, and there is no Docker daemon inside a Render web service. So it is
 // operator-hosted and pointed at by PROXY_KASM_URL, and the module's job is to
 // detect, BEFORE the frame is created, the two things that make a Kasm origin
@@ -1536,8 +1500,11 @@ const CSP_DIRECTIVES = {
     'https://*.supabase.co',
     ...AD_ORIGINS
   ],
-  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-  fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'data:'],
+  // cdnjs serves the Font-Awesome icon CSS that HORIZON and Interstellar use;
+  // a stylesheet cannot execute, so this is far below the script-src the repo
+  // already grants jsdelivr/unpkg.
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
+  fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com', 'data:'],
   imgSrc:   ["'self'", 'https:', 'data:', 'blob:'],
   // blob: + data: let GUST read its own embedded wasm/blob payloads via fetch/XHR;
   // wss:/ws: carry the Wisp tunnel (same-origin /wisp/ by default).
@@ -1800,8 +1767,19 @@ function prerollConfigured() {
 // Engines the page may offer: switched on in the console AND actually installed.
 function publicProxyView() {
   const v = CONTROL.proxy.publicView();
-  const installed = { ultraviolet: !!proxyStatus.ultraviolet, scramjet: !!proxyStatus.scramjet, gust: !!proxyStatus.gust, anura: !!ANURA.serves };
-  return { ...v, engines: v.engines.filter((e) => installed[e]) };
+  const installed = {
+    ultraviolet: !!proxyStatus.ultraviolet, scramjet: !!proxyStatus.scramjet,
+    gust: !!proxyStatus.gust, horizon: !!proxyStatus.horizon, interstellar: !!proxyStatus.interstellar,
+  };
+  const view = { ...v, engines: v.engines.filter((e) => installed[e]) };
+  // Published ONLY when interception is actually detected, and only the product
+  // name — enough for the page to explain a failure before the user concludes
+  // the engines are broken, without describing this host's security software to
+  // the internet at large. In production this field is absent.
+  if (TLS_INTERCEPTION?.intercepted) {
+    view.tlsIntercepted = { product: TLS_INTERCEPTION.product || 'a local security product' };
+  }
+  return view;
 }
 
 // Permissions-Policy: explicitly delegate every capability a game iframe
@@ -2528,7 +2506,7 @@ app.get('/livez', (req, res) => {
 });
 
 // Companion standalone-browser reachability.  The browser page calls this to
-// learn which of the external proxy browsers (NautilusOS, Interstellar, …) are
+// learn which of the external proxy browsers (NautilusOS, DayDream, …) are
 // online right now and should appear in the engine dropdown.  Results are
 // cached briefly so a page refresh doesn't re-probe every service.
 const companionCache = { at: 0, data: null };
@@ -2555,18 +2533,6 @@ async function probeCompanion(e) {
 app.get('/api/proxies', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
 
-  // AnuraOS is resolved per request, so it is NOT cacheable with the others:
-  // its URL carries the hostname the visitor is actually on, and a mirror must
-  // offer its own instance rather than one on a domain that may be blocked.
-  const anuraUrl = anuraUrlFor(req, ANURA);
-  const anuraEntry = anuraUrl ? {
-    id: 'anura', label: 'AnuraOS', url: anuraUrl, kind: 'companion',
-    // When WE serve it there is nothing to probe — the answer would be this
-    // same process asking itself. An external deployment is still probed.
-    up: ANURA.serves ? true : undefined,
-    selfHosted: ANURA.serves || undefined,
-  } : null;
-
   const now = Date.now();
   let engines = companionCache.data;
   if (!engines || now - companionCache.at >= 5000) {
@@ -2576,26 +2542,20 @@ app.get('/api/proxies', async (req, res) => {
   }
 
   const extra = [];
-  if (anuraEntry) {
-    extra.push(anuraEntry.up === undefined
-      ? await probeCompanion({ id: 'anura', label: 'AnuraOS', url: anuraUrl })
-      : anuraEntry);
-  }
-
   const kasm = await kasmStatus();
   if (kasm) extra.push(kasmEntry(req, KASM, kasm));
 
-  // Governance. The access mode applies to every engine; companions that are
-  // SEPARATE servers (everything here except a self-hosted AnuraOS) bypass this
-  // server's approved-destination policy entirely, so they are offered only
-  // when an administrator has switched `external` on, knowingly.
+  // Governance. The access mode applies to every engine. EVERYTHING in this
+  // list is a SEPARATE server the operator hosts, so this server's
+  // approved-destination policy cannot govern a byte of its traffic — which is
+  // why they are one switch, off by default, and labelled as ungoverned in the
+  // console. The engines that run INSIDE this site (Ultraviolet, Scramjet,
+  // GUST, HORIZON, Interstellar) are not here precisely because they do pass
+  // through the tunnel and are governed.
   let list = extra.length ? [...engines, ...extra] : engines;
   const mode = PROXY_POLICY.accessMode;
   if (mode === 'disabled' || (mode === 'staff' && !(await staffProxyAllowed(req.headers, req.ip)))) list = [];
-  const externalOn = !!CONTROL.proxy && CONTROL.proxy.engineEnabled('external');
-  list = list.filter((e) => (e.id === 'anura' && e.selfHosted
-    ? (!CONTROL.proxy || CONTROL.proxy.engineEnabled('anura'))
-    : externalOn));
+  if (!(!!CONTROL.proxy && CONTROL.proxy.engineEnabled('external'))) list = [];
   res.json({ engines: list });
 });
 
@@ -2623,382 +2583,40 @@ function kasmStatus() {
   return kasmCache.inflight;
 }
 
-// Public catalog of free AI providers (text + image).  Returns a list
-// stripped of any private keys.  The /ai page can `fetch('/api/ai/providers')`
-// to populate a remote-model selector.  Cached with no-store since the
-// data is tiny and we want updates to ship immediately.
-// GET /api/ai/health — provider observability.
-// Exposes WHICH models are currently in cooldown and why, so "the AI is broken"
-// is diagnosable from outside the process. Deliberately leaks nothing sensitive:
-// model ids and upstream status codes only, never keys, prompts, or stack traces.
-// These two describe the SERVER-SIDE AI pipeline — model priority, which
-// upstream endpoint it would call, whether it holds a key, the full provider
-// inventory with per-provider URLs and limits. In production that pipeline is
-// switched off, so publishing its shape to anonymous callers is pure metadata
-// leakage: it advertises capability this deployment deliberately does not offer,
-// and hands a prospective abuser a map of what to aim at. Neither endpoint is
-// called by ANY client code (verified with a repo-wide search of public/).
+// ── THE SERVER-SIDE AI DIAGNOSTICS AND THE KEY ENDPOINT ARE GONE ─────────
 //
-// So they now answer honestly and minimally in production, and stay fully
-// detailed for local development and for an authenticated admin, who is the
-// only party the diagnostics were ever for.
-app.get('/api/ai/health', (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  if (!aiServerAllowed(req) && !adminAuthorized(req)) {
-    return res.json({ ok: true, mode: 'client-side', serverInference: false });
-  }
-  const models = healthSnapshot();
-  res.json({
-    ok: true,
-    priority: modelPriority(),
-    // Which endpoint the pipeline will actually use, without revealing the key.
-    endpoint: (process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN)
-      ? 'gen.pollinations.ai/v1/chat/completions'
-      : 'text.pollinations.ai/openai',
-    keyed: !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN),
-    healthy: models.filter(m => m.healthy).length,
-    total: models.length,
-    models,
-  });
-});
-
-app.get('/api/ai/providers', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  // The `huggingface` catalogue used to be published here on both paths. Hugging
-  // Face is no longer a provider, so it is gone; the browser now discovers its
-  // (text-only, free-tier) models straight from the provider — see
-  // freeTextModels() in public/js/pollinations.js.
-  if (!aiServerAllowed(req) && !adminAuthorized(req)) {
-    return res.json({
-      mode: 'client-side', serverInference: false,
-      text: [], image: [], web_search: [],
-    });
-  }
-  res.json(publicProviderList());
-});
-
-// Hands the browser the PUBLISHABLE Pollinations key (pk_) so the AI runs
-// browser-direct (gen.pollinations.ai) on the visitor's own IP — no AI ever
-// processed here. A pk_ key is designed to be public (scoped budget), so serving
-// it is safe; only ever expose POLLINATIONS_PUBLIC_KEY (never a secret sk_ key).
-// Get a free key at https://enter.pollinations.ai and set POLLINATIONS_PUBLIC_KEY
-// in .env. Empty when unset → the client falls back to anonymous/dev routes.
-app.get('/api/ai/key', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const key = (process.env.POLLINATIONS_PUBLIC_KEY || '').trim();
-  res.json({ key: key.startsWith('pk_') ? key : '' });
-});
-
-// ========================================================================
-// AI proxies — free generation that works on ANY device with no 250MB
-// in-browser model download. Text + image use Pollinations.ai. It's FREE but
-// NOT unlimited: the keyless tier is ~1 request / 15s PER IP, and because these
-// requests are proxied server-side, every visitor shares this one server IP's
-// quota. We mitigate that three ways: (1) honor the upstream Retry-After and
-// retry with backoff, (2) fall back to AI Horde (a different network) on 429,
-// and (3) optionally authenticate with a free POLLINATIONS_TOKEN (Seed tier =
-// ~1 req/5s + no watermark; get one at auth.pollinations.ai) — set it in .env
-// to lift the shared limit. Web search uses whichever provider key is in .env.
-// Every handler returns a clean JSON error on a flaky upstream, never a crash.
-// ========================================================================
-const AI_TIMEOUT_MS = 30_000;
-function aiFetch(url, opts = {}) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || AI_TIMEOUT_MS);
-  // Chain any caller-supplied signal into ours. Without this the caller's signal
-  // was silently discarded (we always overwrote `signal`), so a caller-side
-  // timeout could never actually cancel the upstream request.
-  const outer = opts.signal;
-  const onOuterAbort = () => ctrl.abort();
-  if (outer) {
-    if (outer.aborted) ctrl.abort();
-    else outer.addEventListener('abort', onOuterAbort, { once: true });
-  }
-  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => {
-    clearTimeout(t);
-    if (outer) outer.removeEventListener('abort', onOuterAbort);
-  });
-}
-// Optional Pollinations auth (all FREE). A token (auth.pollinations.ai) lifts the
-// keyless ~1 req/15s limit to the Seed tier (~1 req/5s) and removes watermarks;
-// a referrer attributes requests to this app. Both are read from .env if present.
-const POLLINATIONS_TOKEN = (process.env.POLLINATIONS_TOKEN || '').trim();
-// Canonicalize to a BARE hostname: the code prepends "https://" itself (line
-// below) and passes it as a referrer query param elsewhere, so a value that
-// already includes a scheme (e.g. someone pastes "https://mydomain.com" from
-// .env.example) would otherwise produce a doubled "https://https://…/". Strip any
-// leading scheme and trailing slashes so it's correct regardless of input format.
-const POLLINATIONS_REFERRER = (process.env.POLLINATIONS_REFERRER || 'zofhub.app')
-  .trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-function pollinationsHeaders(extra = {}) {
-  const h = { Referer: `https://${POLLINATIONS_REFERRER}/`, ...extra };
-  if (POLLINATIONS_TOKEN) h.Authorization = `Bearer ${POLLINATIONS_TOKEN}`;
-  return h;
-}
-
-// Pollinations rate-limits anonymous bursts (429). Retry up to 3× — honoring the
-// upstream Retry-After header when present, otherwise exponential backoff.
-async function pollinationsText(promptUrl, timeoutMs = AI_TIMEOUT_MS) {
-  let last = 0;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const r = await aiFetch(promptUrl, { timeoutMs, headers: pollinationsHeaders({ Accept: 'text/plain' }) });
-    if (r.ok) return (await r.text()).trim();
-    last = r.status;
-    if (r.status === 429 || r.status >= 500) {
-      const ra = parseInt(r.headers.get('retry-after'), 10);
-      await new Promise(s => setTimeout(s, ra > 0 ? ra * 1000 : 1200 * (attempt + 1)));
-      continue;
-    }
-    break; // other statuses won't improve on retry
-  }
-  throw new Error('upstream ' + last);
-}
-
-// OpenAI-compatible POST endpoint. Cleaner structured output that respects the
-// prompt better than the GET path, and returns the reasoning trace separately so
-// `content` is already clean. Used as the primary on the server shield; the GET
-// endpoint above is the internal fallback. Same 429/5xx backoff.
-// `opts.model`  — resolved model id (from resolveModels()). Falls back to
-//   'openai-fast' only if the caller didn't resolve one. Previously this was
-//   HARDCODED, so if Pollinations retired that model the primary chat path burned
-//   its full 3-attempt retry/backoff before anything could fall back — defeating
-//   the point of the model registry the secondary path already consults.
-// `opts.signal` — caller's AbortSignal, so a caller-side timeout genuinely
-//   CANCELS the upstream request instead of abandoning it to run for ~90s.
-// ONE attempt against ONE model. Retry/failover live in pollinationsChat.
+// Removed with the server-side pipeline they described:
+//   · GET /api/ai/health    — model priority, cooldowns, which upstream endpoint
+//                             the pipeline would call, whether it held a key.
+//   · GET /api/ai/providers — the provider inventory for a model picker.
+//   · GET /api/ai/key       — handed the browser the PUBLISHABLE pk_ key.
 //
-// Endpoint choice is evidence-based. gen.pollinations.ai/v1/chat/completions is
-// the documented OpenAI-compatible endpoint and is preferred — but probing it
-// with this deployment's credentials returned 401 anonymously and 403 with our
-// pk_ key (recognised, tier too low), while text.pollinations.ai/openai — also
-// OpenAI-compatible — returns 200 in ~770ms. So `gen` is used only when a
-// higher-tier key is actually configured; otherwise we go straight to the
-// endpoint that works, instead of burning a round-trip on a known 401.
-async function pollinationsChatOnce(messages, model, timeoutMs, opts = {}) {
-  if (opts.signal?.aborted) throw new Error('aborted');
-  const apiKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN || '';
-  const url = apiKey
-    ? 'https://gen.pollinations.ai/v1/chat/completions'
-    : 'https://text.pollinations.ai/openai';
-  const headers = pollinationsHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' });
-  if (apiKey) headers.Authorization = 'Bearer ' + apiKey;
-
-  const r = await aiFetch(url, {
-    method: 'POST', timeoutMs, signal: opts.signal, headers,
-    // reasoning_effort:'low' cuts time-to-first-token on reasoning models
-    // (openai-fast = gpt-oss-20b) from ~20s to ~1.5s.
-    body: JSON.stringify({ model, messages, referrer: POLLINATIONS_REFERRER, private: true, reasoning_effort: 'low' }),
-  });
-
-  if (!r.ok) {
-    // Surface the status in the message so isTransient() can classify it: 4xx
-    // (bad model / no permission) must fail over to the next MODEL immediately,
-    // while 429/5xx should be retried against the SAME model.
-    const err = new Error('upstream ' + r.status);
-    const ra = parseInt(r.headers.get('retry-after'), 10);
-    if (ra > 0) err.retryAfterMs = ra * 1000;
-    throw err;
-  }
-  const j = await r.json().catch(() => null);
-  const txt = j?.choices?.[0]?.message?.content;
-  if (!txt) throw new Error('empty reply');
-  return String(txt).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-}
-
-// Model failover + exponential backoff.
+// There is no pipeline left to report on and no model to pick: the browser
+// makes one keyless GET to text.pollinations.ai and reads the text back. The
+// key endpoint went with it — it bought a higher rate limit at the price of a
+// same-origin fetch('/api/ai/key') sitting in front of every AI request, and
+// the provider's own docs say not to mint new pk_ keys.
 //
-// Before: one hardcoded model ('openai-fast'), 3 attempts, LINEAR backoff, and
-// no notion of a model being down — so an unavailable model was re-probed on
-// every single request forever.
+// No private key was ever served here (only a pk_, which is designed to be
+// public); a secret sk_ key must never reach a browser and no code path does.
+
+// ── THE SERVER-SIDE AI PROXY LAYER IS GONE ────────────────────────────────
 //
-// Now: walk the configurable priority list, skipping models in cooldown; retry
-// transient failures per model with exponential backoff + jitter; record health
-// so a dead model is skipped rather than hammered.
-async function pollinationsChat(messages, timeoutMs = AI_TIMEOUT_MS, opts = {}) {
-  // Endpoint-aware candidates: never offer a model the chosen endpoint cannot
-  // serve (see KEYLESS_MODELS in lib/ai-pipeline.mjs for what that cost us).
-  const keyed = !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN);
-  const models = opts.model ? [opts.model] : healthyModels(candidateModels(keyed));
-
-  // TOTAL TIME BUDGET — the whole failover chain, not per attempt.
-  //
-  // Testing caught this the hard way: with 6 models in the priority list and 3
-  // retries each, a full failover could run for minutes and the HTTP request
-  // simply hung. Model failover is only useful if it is bounded; past ~20s the
-  // user has already given up, and holding the connection open just occupies a
-  // slot in the concurrency gate that a request which COULD succeed needs.
-  //
-  // So: one shared deadline. Each model gets whatever time is left, retries are
-  // capped at 2 (model failover is the primary resilience mechanism here, not
-  // repeated attempts at the same failing model), and when the budget is gone
-  // we stop immediately and let the caller fall through to AI Horde.
-  const budgetMs = Number(process.env.AI_TOTAL_BUDGET_MS) || 20_000;
-  const deadline = Date.now() + budgetMs;
-
-  let lastErr = new Error('no models available');
-  for (const model of models) {
-    const remaining = deadline - Date.now();
-    if (remaining < 1500) {                       // too little left to be useful
-      lastErr = new Error('ai budget exhausted');
-      break;
-    }
-    try {
-      const txt = await withRetry(
-        () => pollinationsChatOnce(messages, model, Math.min(timeoutMs, remaining), opts),
-        {
-          attempts: 2,
-          onRetry: (n, e) => console.warn(`[ai] retry ${n} for "${model}": ${e.message}`),
-        }
-      );
-      markSuccess(model);
-      return txt;
-    } catch (e) {
-      lastErr = e;
-      markFailure(model, e);
-      if (opts.signal?.aborted) throw e;          // caller gave up; stop failing over
-      // fall through to the next model in priority order
-    }
-  }
-  throw lastErr;
-}
-
-// AI Horde — the second keyless text provider from ai_gaming_hub_final.json.
-// Async (submit job → poll), slower than Pollinations but a different network
-// so it covers Pollinations rate-limits. Anonymous key '0000000000'.
-// Last-resort fallback when Pollinations is unavailable.
+// This is where the server used to generate AI text itself: aiFetch(),
+// pollinationsText(), pollinationsChat()/pollinationsChatOnce() with model
+// health tracking and retry, aiHordeText() as a second network to fall back to,
+// and resolveModels() to discover model names.
 //
-// AI Horde is a volunteer compute pool: the anonymous key (0000000000) gets
-// whichever worker is free, and many run BASE completion models rather than
-// instruction-tuned chat models. Handed a bare prompt, those models continue
-// the text instead of answering it — in testing this returned things like
-// "We need to output only the text to insert, no markdown fences" and
-// "/ 2 / 3 / 4 / 5 / 6", presented to the user as the assistant's reply.
-//
-// Two defences: ask explicitly for instruct-capable models and format the
-// prompt with clear turn markers, then VALIDATE what comes back. Returning
-// obvious nonsense is worse than admitting the assistant is unavailable —
-// a wrong answer costs the user's trust, an honest error costs them a retry.
-const HORDE_INSTRUCT_MODELS = [
-  'koboldcpp/Hermes-3-Llama-3.1-8B', 'koboldcpp/L3-8B-Stheno-v3.2',
-  'koboldcpp/Mistral-Nemo-Instruct-2407', 'koboldcpp/gemma-2-9b-it',
-];
+// All of it served routes that no longer exist. The visitor's browser now makes
+// the request on its own connection, so none of this has a caller — and the
+// shared-quota problem the retry/fallback/caching machinery existed to manage
+// cannot arise, because requests are no longer funnelled through this one IP.
 
-/** Heuristic garbage filter for base-model continuations. */
-function hordeLooksLikeGarbage(text, prompt) {
-  const t = String(text || '').trim();
-  if (t.length < 2) return true;
-  // Echoing our own system prompt back at us.
-  if (/you are zofhub ai/i.test(t)) return true;
-  // Meta-instructions to itself — the classic base-model tell.
-  if (/^(we need to|the user wants|the prefix before|output only|no markdown fences)/i.test(t)) return true;
-  // Degenerate numeric or delimiter runs ("/ 2 / 3 / 4", "000,000,000").
-  if (/^[\s\d.,/|:-]+$/.test(t)) return true;
-  // A bare hex blob (a request id leaking through).
-  if (/^[0-9a-f]{16,}\.?$/i.test(t)) return true;
-  return false;
-}
-
-async function aiHordeText(prompt, timeoutMs = 45_000) {
-  // Turn markers give an instruction-tuned model the shape it expects and give
-  // a base model a much better chance of continuing usefully.
-  const framed = `### Instruction:
-${prompt}
-
-### Response:
-`;
-  const submit = await aiFetch('https://aihorde.net/api/v2/generate/text/async', {
-    method: 'POST', timeoutMs: 15_000,
-    headers: { 'Content-Type': 'application/json', apikey: '0000000000', 'Client-Agent': 'ZoFHub:1.0:zofhub.app' },
-    body: JSON.stringify({
-      prompt: framed,
-      models: HORDE_INSTRUCT_MODELS,
-      params: { max_length: 220, max_context_length: 1024, stop_sequence: ['###', '\n\n###'] },
-    })
-  });
-  const sj = await submit.json().catch(() => ({}));
-  if (!sj.id) throw new Error('horde submit failed');
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    await new Promise(s => setTimeout(s, 2500));
-    const st = await aiFetch(`https://aihorde.net/api/v2/generate/text/status/${sj.id}`, { timeoutMs: 10_000 });
-    const stj = await st.json().catch(() => ({}));
-    if (stj.faulted) throw new Error('horde faulted');
-    if (stj.done && Array.isArray(stj.generations) && stj.generations.length) {
-      const text = (stj.generations[0].text || '').replace(/###.*$/s, '').trim();
-      if (hordeLooksLikeGarbage(text, prompt)) throw new Error('horde returned unusable output');
-      return text;
-    }
-  }
-  throw new Error('horde timeout');
-}
-
-// POST /api/ai/text { prompt, messages? } → { reply }
-// Builds a short, bounded context string and asks Pollinations for a reply.
-// ── Dynamic model registry with hardcoded failsafes ───────────────────────
-// Query Pollinations' live model lists so we adapt if a model is renamed or
-// retired; if the call fails OR the JSON shape changes, fall back to the
-// hardcoded MODEL_FALLBACKS so generation (and the whole site) never breaks.
-// Cached for 30 min and only hit on AI requests, so page/game loads are never
-// blocked by it.
-let _modelCache = { text: MODEL_FALLBACKS.text, at: 0 };
-const MODEL_TTL_MS = 30 * 60 * 1000;
-function extractModelNames(data) {
-  const arr = Array.isArray(data) ? data : (Array.isArray(data?.models) ? data.models : []);
-  const out = [];
-  for (const m of arr) {
-    if (typeof m === 'string') out.push(m);
-    else if (m && typeof m === 'object') {
-      if (m.name) out.push(m.name);
-      if (m.id) out.push(m.id);
-      if (Array.isArray(m.aliases)) out.push(...m.aliases);
-    }
-  }
-  return out.map(s => String(s).toLowerCase());
-}
-function pickModel(names, preferred, fallback) {
-  for (const p of preferred) if (names.includes(p)) return p;
-  return names[0] || fallback;   // preferred gone → first live model → hardcoded fallback
-}
-async function resolveModels() {
-  if (Date.now() - _modelCache.at < MODEL_TTL_MS) return _modelCache;
-  const next = { text: MODEL_FALLBACKS.text, at: Date.now() };
-  try {
-    const r = await aiFetch('https://text.pollinations.ai/models', { timeoutMs: 6000, headers: pollinationsHeaders() });
-    if (r.ok) { const n = extractModelNames(await r.json()); if (n.length) next.text = pickModel(n, ['openai', 'openai-fast'], MODEL_FALLBACKS.text); }
-  } catch { /* keep fallback */ }
-  // The image-model lookup against image.pollinations.ai/models was removed with
-  // AI image generation. This whole function only ever serves the dev-only
-  // /api/ai/text route, which answers 403 in production.
-  _modelCache = next;
-  return next;
-}
-
-// POST /api/ai/text { prompt, messages? } → { reply }
-// Builds a short, bounded context string and asks Pollinations for a reply.
-// ── Scaling the (free, shared) AI to large traffic ────────────────────────
-// Pollinations' keyless quota is per-IP and we proxy, so EVERY visitor shares
-// this one server IP. Three layers keep the AI responsive under heavy load and
-// stop us from self-DDoSing the upstream:
-//   1) Response cache — identical prompts (the per-game "help" prompts repeat
-//      across huge numbers of visitors) collapse to ONE upstream call; the rest
-//      are served from cache in <1ms and bypass every limit below. This is what
-//      lets the common load scale to millions.
-//   2) Per-IP token bucket — one client can't drain the shared quota.
-//   3) Global concurrency cap — never more than N in-flight upstream calls; when
-//      saturated we shed load fast with 429 + Retry-After (no unbounded queue,
-//      no memory blow-up), and the client already retries with backoff.
-const AI_CACHE_TTL = 6 * 60 * 60;                     // 6h — replies are stable enough
-const AI_MAX_CONCURRENT = 8;                          // simultaneous upstream calls
-// Per-IP rate limits, with defaults chosen from what each endpoint actually
-// costs rather than one number for everything. The AI budget — ~15 req/min
-// (burst 5, one token per 4s), configurable via AI_RATE_CAPACITY /
-// AI_RATE_REFILL_MS — is the tightest, because an AI call fans out to a
-// third-party model and can occupy an upstream slot for seconds. Every budget
-// answers with a JSON 429, never an HTML error page a fetch() cannot parse.
-const AI_IP_BUCKET = {
-  capacity: Number(process.env.AI_RATE_CAPACITY) || 5,
-  refillMs: Number(process.env.AI_RATE_REFILL_MS) || 4000,
-};
+// The AI budgets that used to live here (a 6h response cache, a global
+// concurrency cap, and a per-IP token bucket) existed because every visitor's
+// prompt went out through this server's single IP and shared one upstream
+// quota. Requests are browser-direct now, so each visitor spends their own
+// quota on their own connection and there is nothing here to budget.
 
 // ── Presence traffic model ─────────────────────────────────────────────────
 // Declared here, beside the other budgets, because the limiter set below is
@@ -3032,7 +2650,6 @@ const PRESENCE_MAX_SESSIONS = 20_000;
 // classroom hits at once — opening a game (scoreSession) and presence — are
 // sized for a shared NAT instead.
 const LIMITS = createLimiterSet({
-  ai:              { capacity: AI_IP_BUCKET.capacity, refillMs: AI_IP_BUCKET.refillMs },
   donateInvoice:   { capacity: 3,   refillMs: 20_000 },
   // One global budget for the only public route that makes a third-party
   // account do work (a swap provider creates a real shift per call). Per-IP
@@ -3063,9 +2680,6 @@ const LIMITS = createLimiterSet({
   adminReauth:     { capacity: 5,   refillMs: 60_000 },
 });
 
-/** The AI budget, kept under its old name for the AI routes. */
-function ipAllow(ip) { return LIMITS.allow('ai', ip); }
-
 /**
  * Spend one token from `scope` for this client address. `scope` must be one
  * of the names above — an unknown scope throws, so a typo fails loudly in
@@ -3073,40 +2687,36 @@ function ipAllow(ip) { return LIMITS.allow('ai', ip); }
  */
 function writeAllow(scope, ip) { return LIMITS.allow(scope, ip); }
 
-// Global concurrency gate — immediate accept/reject, no queue.
-let _aiActive = 0;
-function aiGateEnter() { if (_aiActive >= AI_MAX_CONCURRENT) return false; _aiActive++; return true; }
-function aiGateLeave() { if (_aiActive > 0) _aiActive--; }
 
 // ── AI RUNS ON THE VISITOR'S DEVICE, NOT ON THIS SERVER ────────────────────
-// Every AI call the site makes in production goes browser-direct to Pollinations
-// from the visitor's own machine, on their own IP: public/js/pollinations.js for
-// text, an <img src> for images, and a plain URL the browser plays for audio.
-// Nothing about a prompt or a generated image passes through here.
+// Every AI call the site makes is ONE GET, made by the visitor's browser to
+// https://text.pollinations.ai/<prompt>, on their own connection and their own
+// IP (public/js/pollinations.js). No prompt and no reply passes through here.
 //
-// The routes below exist for ONE reason: Pollinations' text endpoint fronts a
-// Cloudflare Turnstile check keyed on the Origin header, and it rejects browser
-// fetches from http/localhost origins. So a developer running the site on
-// localhost cannot use the browser-direct path and would otherwise have no
-// working AI at all. `IS_LOCAL` in pollinations.js is the client half of this;
-// this is the server half, and it is deliberately stricter than the client:
+// THERE ARE NO SERVER-SIDE AI ROUTES LEFT. /api/ai/text, /api/ai/echo,
+// /api/ai/audio, /api/ai/video, /api/ai/image, /api/ai/key, /api/ai/providers
+// and /api/ai/health have all been removed, along with the generation pipeline
+// behind them and the Vibe Finder's outbound refinement call. The localhost dev
+// hop went with them: there is no `IS_LOCAL` branch in the client any more, so
+// there is no second code path for a prompt to travel down.
+//
+// WHY THIS CHECK STILL EXISTS. It is a regression guard, not a gate on live
+// functionality. `AI_FALLBACK_ROUTES` in lib/ai-guard.mjs still lists those
+// paths, and the middleware near the top of this file refuses them before
+// routing. So if any handler is ever re-added on one of them, it ships refused
+// in production by default rather than open by accident:
 //
 //   * NODE_ENV=production  → always refused, no exceptions (render.yaml sets it).
 //                            Checked first; nothing else is consulted.
-//   * otherwise            → only for a LOOPBACK client, i.e. a dev on the same
-//                            machine, and only when no forwarding header names
-//                            somebody else (a tunnel connecting from loopback on
-//                            an internet visitor's behalf). `trust proxy` decides
-//                            req.ip, so a remote client cannot claim 127.0.0.1.
+//   * otherwise            → only for a LOOPBACK client, and only when no
+//                            forwarding header names somebody else (a tunnel
+//                            connecting from loopback on an internet visitor's
+//                            behalf). `trust proxy` decides req.ip, so a remote
+//                            client cannot claim 127.0.0.1.
 //
 // There is no escape hatch. AI_SERVER_FALLBACK=1 used to be read BEFORE
-// NODE_ENV, which re-opened these routes on a live deployment; it is no longer
+// NODE_ENV, which re-opened those routes on a live deployment; it is no longer
 // honoured anywhere (lib/ai-guard.mjs).
-//
-// Enforcing it here rather than only in the client matters: the client gate is a
-// convention that a future edit could quietly drop, and these endpoints are
-// reachable by anyone who knows the URL. This makes "no AI on my server" a
-// property of the deployment instead of a promise in a comment.
 function aiServerAllowed(req) {
   return aiRouteAllowed({
     nodeEnv: process.env.NODE_ENV,
@@ -3123,141 +2733,6 @@ function refuseServerAi(res) {
   });
 }
 
-app.post('/api/ai/text', async (req, res) => {
-  if (!aiServerAllowed(req)) return refuseServerAi(res);
-  usage.noteAiRequest('text');
-  res.setHeader('Cache-Control', 'no-store');
-  const { prompt, messages } = req.body || {};
-  const history = Array.isArray(messages) ? messages.filter(m => m && m.content) : [];
-  const latest = (prompt || history.filter(m => m.role === 'user').slice(-1)[0]?.content || '').toString();
-  if (!latest.trim()) return res.json({ reply: '', error: 'empty prompt' });
-
-  // Bounded conversation context (last 6 turns, 700 chars each) to stay well
-  // under any URL-length limit on the Pollinations GET endpoint.
-  const ctx = (history.length
-    ? history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${String(m.content).slice(0, 700)}`).join('\n') + '\nAssistant:'
-    : latest
-  ).slice(0, 3500);
-  // RETRIEVAL BEFORE GENERATION.
-  // Asked who made a game, an ungrounded model invents authors, dates and a
-  // ZoFHub-flavoured backstory — it was told it IS ZoFHub, so it credited ZoFHub
-  // with third-party games. When the question names a game we hold, the real
-  // catalog fields go in the prompt and the model is told those are the only
-  // facts it has, including that authorship is genuinely not among them.
-  //
-  // The grounding text is part of the cache key (aiCacheKey hashes `system`), so
-  // a grounded answer and an ungrounded one never share a cache entry.
-  let grounding = '';
-  try {
-    if (looksLikeProvenanceQuestion(latest)) {
-      grounding = groundingBlock(findMentionedGames(latest, CATALOG.games));
-    }
-  } catch (e) {
-    // Grounding is an improvement, not a dependency. The accuracy rules in the
-    // base prompt still apply without it.
-    console.warn('[ai] grounding unavailable:', e.message);
-  }
-  let system = buildSystemPrompt(grounding);
-
-  const cache = getCache();
-  const key = aiCacheKey(system, ctx);
-
-  // 1) Cache hit → instant, unlimited, no upstream call.
-  try {
-    const hit = await cache.get(key);
-    if (hit && hit.reply) { res.setHeader('X-Cache', 'HIT'); return res.json({ ...hit, cached: true }); }
-  } catch { /* cache miss/err → fall through */ }
-
-  // 2) Per-IP limit (cache misses only).
-  if (!ipAllow(req.ip || 'unknown')) return res.status(429).json({ reply: '', error: 'rate_limited', retryAfter: 4 });
-  // 3) Global concurrency cap — shed load fast when saturated.
-  if (!aiGateEnter()) return res.status(429).json({ reply: '', error: 'busy', retryAfter: 5 });
-
-  // Primary: Pollinations (fast). Fallback: AI Horde (slower, different net).
-  res.setHeader('X-Cache', 'MISS');
-  try {
-    const { text: textModel } = await resolveModels();
-    // Prefer the OpenAI-compatible POST (cleaner, prompt-faithful); on any
-    // failure fall back to the GET endpoint. Build a proper messages array from
-    // the conversation (drop any client-sent system turn; we set our own).
-    const turns = history.filter(m => m.role === 'user' || m.role === 'assistant')
-      .slice(-6).map(m => ({ role: m.role, content: String(m.content).slice(0, 700) }));
-    if (!turns.length && latest) turns.push({ role: 'user', content: latest });
-    // ENDPOINT ORDER IS EVIDENCE-BASED, and it is the reverse of what the
-    // OpenAI-compatible spec would suggest. Measured repeatedly:
-    //
-    //   GET  text.pollinations.ai/<prompt>   200 in ~0.8-1.3s, every attempt
-    //   POST text.pollinations.ai/openai     402 on almost every attempt
-    //   POST gen.pollinations.ai/v1/...      401 anonymous, 403 with our pk_ key
-    //
-    // The 402 is not about our Referer (tested with a correct one, a malformed
-    // one, and none at all — all 402) and not about the key. The POST path is
-    // simply gated for unkeyed callers now.
-    //
-    // So when we have NO key we go to the endpoint that works first. Trying POST
-    // first cost ~36s per request and dumped every user onto the AI Horde
-    // fallback, which returned garbage. When a real key IS configured, the
-    // richer OpenAI-compatible path is tried first and this order flips.
-    const keyedAi = !!(process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_TOKEN);
-    // THE `system=` QUERY PARAM IS PAYWALLED. Isolated by testing each param
-    // against the live endpoint with an identical prompt:
-    //
-    //   bare                     200   434ms
-    //   ?model=openai-fast       200   790ms
-    //   ?system=...              402 24978ms   <-- 402 Payment Required
-    //   ?model=...&system=...    402 29589ms
-    //
-    // The server appended `&system=` on EVERY request, so every unkeyed AI call
-    // hit a paywall, waited ~25-30s for the 402, then fell through to the AI
-    // Horde fallback — which returned unrelated text like "/ 2 / 3 / 4 / 5".
-    // That is why the assistant looked broken rather than merely slow.
-    //
-    // Folding the system prompt into the prompt body costs nothing and keeps
-    // the same behaviour. The paid `system=` param is used only when a key is
-    // configured, where it is permitted.
-    const getUrl = keyedAi
-      ? `https://text.pollinations.ai/${encodeURIComponent(ctx)}?model=${encodeURIComponent(textModel)}&system=${encodeURIComponent(system)}`
-      : `https://text.pollinations.ai/${encodeURIComponent(system + '\n\n' + ctx)}?model=${encodeURIComponent(textModel)}`;
-    let text;
-    if (keyedAi) {
-      try { text = await pollinationsChat([{ role: 'system', content: system }, ...turns]); }
-      catch { text = await pollinationsText(getUrl); }
-    } else {
-      try { text = await pollinationsText(getUrl); }
-      catch { text = await pollinationsChat([{ role: 'system', content: system }, ...turns]); }
-    }
-    const payload = { reply: text || '(no response)', provider: 'pollinations' };
-    if (text) cache.set(key, payload, AI_CACHE_TTL).catch(() => {});
-    return res.json(payload);
-  } catch (e1) {
-    try {
-      const text = await aiHordeText(`${system}\n\n${ctx}`);
-      const payload = { reply: text || '(no response)', provider: 'ai-horde' };
-      if (text) cache.set(key, payload, AI_CACHE_TTL).catch(() => {});
-      return res.json(payload);
-    } catch (e2) {
-      // Surface rate-limiting (429) as a real status so the client can show a
-      // "cooling down" message and retry, instead of silently failing.
-      if (/\b429\b/.test(e1.message) || /\b429\b/.test(e2.message)) {
-        return res.status(429).json({ reply: '', error: 'rate_limited', retryAfter: 8 });
-      }
-      // Log the upstream detail for us; return a plain message to the client.
-      // The old response shipped `pollinations:<msg>; horde:<msg>` straight to
-      // the browser, which leaked upstream hostnames, status codes and internal
-      // wording to anyone who opened devtools — and told the user nothing they
-      // could act on.
-      console.warn('[ai] all providers failed —', 'pollinations:', e1.message, '| horde:', e2.message);
-      return res.status(503).json({
-        reply: '',
-        error: 'ai_unavailable',
-        message: 'The AI assistant is temporarily unavailable. Please try again in a moment.',
-      });
-    }
-  } finally {
-    aiGateLeave();
-  }
-});
-
 // AI IMAGE GENERATION: ROUTE REMOVED.
 //
 // GET /api/ai/image used to stream generated image bytes from
@@ -3269,81 +2744,22 @@ app.post('/api/ai/text', async (req, res) => {
 // Ordinary site imagery is unrelated and untouched: game thumbnails are served
 // by /thumb and the static mounts, and no other route generated an image.
 
-// GET /api/ai/audio?prompt=...&voice=nova → { url }. Text-to-speech via
-// Pollinations' openai-audio model (free, keyless — verified working). The
-// browser plays the URL directly (CSP media-src allows https:), so no audio
-// bytes pass through us and the keyless limit spreads across users' own IPs.
-const AUDIO_VOICES = new Set(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']);
-app.get('/api/ai/audio', (req, res) => {
-  // Gated even though it performs no inference — it only string-builds a URL the
-  // browser then plays, so no audio bytes ever pass through here.
-  //
-  // The reason to close it anyway: the prompt arrives in the QUERY STRING, and
-  // hosting platforms log request paths. Render's access log would therefore
-  // accumulate the text visitors asked to have spoken — prompts recorded in a
-  // log this code never writes and cannot clear. Nothing calls this route (no
-  // reference anywhere in public/), and the URL it returns is a pure template
-  // with no secret in it, so a client that ever needs it can build it itself.
-  if (!aiServerAllowed(req)) return refuseServerAi(res);
-  usage.noteAiRequest('audio');
-  res.setHeader('Cache-Control', 'no-store');
-  const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
-  if (!prompt) return res.json({ url: null, error: 'missing prompt' });
-  let voice = (req.query.voice || 'nova').toString().toLowerCase().replace(/[^a-z]/g, '');
-  if (!AUDIO_VOICES.has(voice)) voice = 'nova';
-  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai-audio&voice=${voice}&referrer=${encodeURIComponent(POLLINATIONS_REFERRER)}`;
-  res.json({ url, voice, provider: 'pollinations' });
-});
-
-// GET /api/ai/video?prompt=... → { url|null }. HONEST: the free keyless AI
-// (Pollinations) has NO video model, so this stays disabled unless you wire a
-// paid provider. Set VIDEO_API_KEY in .env and implement the provider call
-// below (e.g. Replicate / fal.ai / Luma / Runway) to enable it.
-app.get('/api/ai/video', (req, res) => {
-  // Same reasoning as /api/ai/audio: unreferenced, and it takes a prompt in the
-  // query string, which the hosting platform's access log would retain.
-  if (!aiServerAllowed(req)) return refuseServerAi(res);
-  usage.noteAiRequest('video');
-  res.setHeader('Cache-Control', 'no-store');
-  const prompt = (req.query.prompt || '').toString().slice(0, 800).trim();
-  if (!prompt) return res.json({ url: null, error: 'missing prompt' });
-  if (!process.env.VIDEO_API_KEY) {
-    return res.json({ url: null, error: 'unavailable',
-      note: 'Video generation isn’t available on the free AI — no free video model exists. To enable it, add a paid provider key (VIDEO_API_KEY) for Replicate / fal.ai / Luma / Runway in .env.' });
-  }
-  // Provider integration goes here once a key is configured (tell me which
-  // provider and I’ll wire the request + result polling).
-  return res.json({ url: null, error: 'not_implemented',
-    note: 'VIDEO_API_KEY is set but the provider call isn’t wired yet.' });
-});
+// AI AUDIO AND VIDEO: ROUTES REMOVED.
+//
+// /api/ai/audio string-built a text.pollinations.ai speech URL for the browser
+// to play, and /api/ai/video was a disabled stub for a paid provider that was
+// never wired. Neither performed inference, but both took a prompt in the QUERY
+// STRING, which a hosting platform's access log retains — prompts recorded in a
+// log this code never writes and cannot clear. Nothing referenced either route.
+// Text generation is the only AI feature, and it is browser-direct.
 
 // (Web search removed from the AI.)
 
-// POST /api/ai/echo — last-resort fallback ai.js calls if both the local
-// engine and the primary text path fail. Tries Pollinations once more.
-app.post('/api/ai/echo', async (req, res) => {
-  // Its comment claims ai.js calls this when the local engine and the primary
-  // text path both fail. Nothing does — a repo-wide search of public/ finds no
-  // caller. It was left behind by an earlier design in which the server owned
-  // the AI. Gated rather than deleted: it is still a usable local-dev probe, and
-  // gating removes the production exposure, which was the actual problem.
-  if (!aiServerAllowed(req)) return refuseServerAi(res);
-  usage.noteAiRequest('text');
-  res.setHeader('Cache-Control', 'no-store');
-  const prompt = (req.body?.prompt || '').toString().slice(0, 2000);
-  // Same shared-upstream protection as /api/ai/text so this fallback can't be
-  // used to bypass the limiter.
-  if (!ipAllow(req.ip || 'unknown')) return res.json({ reply: 'AI is busy right now — please try again in a moment.' });
-  if (!aiGateEnter()) return res.json({ reply: 'AI is busy right now — please try again in a moment.' });
-  try {
-    const text = await pollinationsText(`https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai`, 20_000);
-    return res.json({ reply: text || "I'm here, but couldn't generate a response just now." });
-  } catch {
-    return res.json({ reply: 'AI is temporarily unavailable. Please try again in a moment.' });
-  } finally {
-    aiGateLeave();
-  }
-});
+// POST /api/ai/echo: ROUTE REMOVED.
+//
+// A "last-resort fallback" from an earlier design in which the server owned the
+// AI. Nothing called it. Its path stays listed in AI_FALLBACK_ROUTES
+// (lib/ai-guard.mjs) so that re-adding any handler on it cannot ship ungated.
 
 // ========================================================================
 // Community: recommendations (Supabase: recommendations)
@@ -5855,12 +5271,12 @@ function devFallbackWarnings() {
     out.push('         The server-side AI routes stay loopback-only either way, but set');
     out.push('         NODE_ENV=production so they answer 403 unconditionally.');
   }
-  const pk = String(process.env.POLLINATIONS_PUBLIC_KEY || '').trim();
-  if (pk && !pk.startsWith('pk_')) {
-    out.push('WARNING: POLLINATIONS_PUBLIC_KEY is not a pk_ key. It is being withheld from');
-    out.push('         the browser (correctly — only publishable pk_ keys are served), so it');
-    out.push('         is doing nothing. If you pasted a secret key here, rotate it.');
-  }
+  // No AI key is read here, or anywhere. POLLINATIONS_PUBLIC_KEY used to be
+  // checked and warned about; reading it at all would force it back into
+  // render.yaml and .env.example (the deploy audit fails a credential that is
+  // read but undeclared, because its value would then come from the committed
+  // .env). .env.example says to delete the variable and rotate anything secret
+  // that was pasted into it.
   if (!isProd && publicDomain) {
     out.push(`WARNING: NODE_ENV is "${process.env.NODE_ENV || 'unset'}" but SITE_URL is a public https`);
     out.push('         domain. Production hardening keys off NODE_ENV — set it to "production".');
@@ -6611,7 +6027,6 @@ const VIBE_BUCKETS = [
   { t: ['nostalgic','nostalgia','retro','classic','old school','oldschool','throwback','childhood'],
     k: ['retro','classic','arcade','pixel','snake','tetris','block','brick','pinball','bubble','pac','8'] },
 ];
-const VIBE_ALLOWED = ['racing','car','drift','parking','bike','puzzle','word','sudoku','mahjong','chess','match','jigsaw','block','merge','2048','shooting','shooter','sniper','gun','zombie','war','soccer','football','basketball','sports','golf','pool','bubble','jelly','candy','color','coloring','dress','makeover','salon','baby','cooking','bake','adventure','rpg','dragon','ninja','tower','idle','clicker','run','jump','dash','flappy','helix','stack','ball','escape','horror','survival','draw','build','craft','city','fight','battle','arcade','smash','punch','boxing','ragdoll','stickman','tank','pet','dog','cat','dance','party','retro','pixel','snake','love','wedding','couple','garden','farm','fish','zen'];
 
 // Filler words to ignore when harvesting the user's own words as keywords.
 const VIBE_STOP = new Set(['want','something','really','feel','feeling','like','some','that','with','this','your','have','play','game','games','just','need','give','please','today','right','now','about','kind','type','mood','vibe','into','from','what','when','make','more','wanna','gonna','being']);
@@ -6695,53 +6110,20 @@ function rankCatalogByKeywords(keywords, limit = 18) {
   }));
 }
 
-// `ip` is used for the same rate/concurrency gates every other AI call goes
-// through — this was the one outbound AI path with NO throttling at all.
-async function vibeKeywordsFromAI(text, req) {
-  // PRODUCTION GUARD FIRST — this was the AI path that escaped the audit.
-  //
-  // /api/ai/* is refused in production, but this route is not under /api/ai, so
-  // it was never gated: a Vibe Finder search whose mood missed the curated map
-  // sent the visitor's TYPED TEXT to Pollinations FROM THIS SERVER, on the
-  // server's IP. Measured under NODE_ENV=production before this guard existed:
-  // "relaxing puzzle" — an entirely ordinary query — took 3.02s because it was
-  // waiting on that outbound call. It was not an edge case.
-  //
-  // The Vibe Finder does not degrade: vibeKeywords() is the curated source of
-  // truth and the AI was only ever an optional refinement, so the caller's
-  // catch already falls back to it. In production the fallback is now the ONLY
-  // path, which also makes every mood search instant instead of costing up to
-  // 2.5s of dead wait.
-  if (!aiServerAllowed(req)) throw new Error('client-side-only');
-  const ip = req?.ip || 'unknown';
-  // Gate next: unthrottled, this fired an outbound Pollinations request on every
-  // mood search that missed the local bucket map.
-  if (!ipAllow(ip)) throw new Error('rate-limited');
-  if (!aiGateEnter()) throw new Error('ai-busy');
-  try {
-    const messages = [
-      { role: 'system', content: 'You translate a player\'s mood into video-game genres. Reply with ONLY comma-separated keywords chosen from the allowed list — no sentences, no extra words.' },
-      { role: 'user', content: `Allowed keywords: ${VIBE_ALLOWED.join(', ')}\nMood: "${String(text).slice(0, 200)}"\nPick the 4-8 best-matching keywords from the allowed list:` },
-    ];
-    // Tight budget — the curated mood map is the source of truth, so the AI is a
-    // quick optional refinement, never something the user waits on. The abort
-    // controller makes the 2.5s budget REAL: the old Promise.race just stopped
-    // waiting and left the upstream call running (up to ~90s) with no throttle.
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2500);
-    const { text: model } = await resolveModels().catch(() => ({ text: undefined }));
-    let reply;
-    try {
-      reply = await pollinationsChat(messages, 2500, { model, signal: ctrl.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-    const allow = new Set(VIBE_ALLOWED);
-    return (reply || '').toLowerCase().replace(/[^a-z, ]/g, ' ').split(/[,\s]+/).map(s => s.trim()).filter(w => allow.has(w));
-  } finally {
-    aiGateLeave();
-  }
-}
+// THE VIBE FINDER'S OUTBOUND AI CALL IS GONE.
+//
+// vibeKeywordsFromAI() sent the visitor's TYPED MOOD TEXT to Pollinations FROM
+// THIS SERVER whenever the intent parser came back unsure. It was the one AI
+// path that was not under /api/ai, so the production guard that closed the rest
+// had to be added to it separately — and even gated, it was a server-side AI
+// request, which this architecture does not have any more.
+//
+// Nothing degrades. vibeKeywords() (the curated mood map) and parseVibe() (which
+// understands duration, negation and comparatives) were always the source of
+// truth, and both call sites already treated the AI as optional — each wrapped
+// it in a catch that fell back to exactly what now runs unconditionally. The
+// visible effect is that a low-confidence mood search is instant instead of
+// waiting up to 2.5s on a network call that was usually discarded.
 
 // Result cache for the ATTRIBUTE path. Scoring is a full pass over ~16.8k games
 // (~80ms), which is fine for one interactive search and not fine when a class of
@@ -6809,14 +6191,8 @@ async function handleVibe(req, res) {
   // the keyword map exactly as before — this is the only reason the old code
   // below still exists, and it is a real path on a fresh clone.
   if (GAME_ATTRS.size === 0) {
-    const { keywords: local, matched } = vibeKeywords(q);
-    let keywords = local, source = 'local-keywords';
-    if (!matched) {
-      try {
-        const ai = await vibeKeywordsFromAI(q, req);
-        if (ai.length) { keywords = [...new Set([...ai, ...local])]; source = 'ai'; }
-      } catch { /* AI slow/down → built-in mood map carries it */ }
-    }
+    const { keywords: local } = vibeKeywords(q);
+    const keywords = local, source = 'local-keywords';
     let games = rankCatalogByKeywords(keywords, 18);
     if (!games.length) games = rankCatalogByKeywords(['arcade', 'puzzle', 'run', 'race', 'ball', 'jump'], 18);
     const payload = vibeResponse({ games, keywords, source });
@@ -6828,16 +6204,11 @@ async function handleVibe(req, res) {
   // used to fire whenever no mood BUCKET matched, which was often; the parser
   // now understands duration, negation and comparatives, so the low-confidence
   // case is rare. Everything else answers with zero network calls.
+  // Starts as 'attributes': the parser's own result is the answer. The
+  // 'attributes+ai' source this could also report is gone with the outbound AI
+  // call (see the note above the vibe result cache). Still `let` — the ranker
+  // below downgrades it to 'fallback' when it finds nothing.
   let source = 'attributes';
-  if (intent.confidence < 0.25 && !intent.wantsReference) {
-    try {
-      const ai = await vibeKeywordsFromAI(q, req);
-      if (ai.length) {
-        intent.keywords = [...new Set([...ai, ...intent.keywords])].slice(0, 12);
-        source = 'attributes+ai';
-      }
-    } catch { /* parser result carries it */ }
-  }
 
   // "Something like the game I just played" — seed from the most recent play.
   // Only meaningful with history, so it degrades to a plain vibe search when a
@@ -8263,49 +7634,6 @@ app.get('/licenses.json', (req, res) => {
   res.json(getManifest(requestOrigin(req), contactEmail));
 });
 
-// Read ONCE at boot. The file cannot change while the process runs, and a
-// synchronous read inside a handler stalls the event loop for every concurrent
-// request, not only the one asking for the licence text.
-const ANURA_MODIFICATION_SOURCE = (() => {
-  try { return readFileSync(join(__dirname, 'lib', 'anura-host.mjs'), 'utf8'); }
-  catch (e) { return `(could not read lib/anura-host.mjs: ${e.message})`; }
-})();
-
-// ── AGPL §5 + §13 for AnuraOS ──────────────────────────────────────────────
-// GUST's change notice can point at /gust/index.html because the modification
-// lives in a file ZoFHub serves. AnuraOS's does not: its one change is applied
-// at serve time by lib/anura-host.mjs, to a file that lives on a DIFFERENT
-// origin. So the Corresponding Source for that change is published here,
-// literally — the function that makes it, not a description of it.
-//
-// Registered before /licenses/:id so the id route cannot swallow it.
-app.get('/licenses/anura-modifications', (req, res) => {
-  const source = ANURA_MODIFICATION_SOURCE;
-  res.type('text/plain; charset=utf-8');
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.send(
-    'AnuraOS — AGPL-3.0 change notice (GNU AGPL v3 section 5)\n'
-    + '=========================================================\n\n'
-    + 'Upstream:  https://github.com/MercuryWorkshop/anuraOS\n'
-    + 'Obtained:  the pinned release archive, by tools/fetch-anura.mjs.\n'
-    + '           Its sha256 is recorded in data/anura-release.json.\n\n'
-    + 'THE CHANGE\n'
-    + '----------\n'
-    + 'Exactly one file is not served as published: /config.json. A "wisp-url"\n'
-    + 'key is added to its defaultsettings object, naming this deployment\'s own\n'
-    + 'same-origin /wisp/ tunnel.\n\n'
-    + 'Upstream ships no wisp-url, so lib/Anura.js builds its Networking with an\n'
-    + 'undefined server and the browser has no working tunnel. Supplying it here\n'
-    + 'also keeps proxy traffic on this deployment rather than a third-party\n'
-    + 'relay, and it is derived from the incoming request so it stays correct if\n'
-    + 'this site is redeployed on another domain.\n\n'
-    + 'Every other file in the bundle is served byte-for-byte as published.\n\n'
-    + 'THE SOURCE THAT MAKES THE CHANGE (lib/anura-host.mjs)\n'
-    + '-----------------------------------------------------\n\n'
-    + source,
-  );
-});
-
 // Verbatim license text, e.g. /licenses/ultraviolet.
 // text/plain so browsers display it rather than download it, and so no markup
 // can alter a legal document.
@@ -8617,10 +7945,10 @@ function refuseUpgrade(socket, status, text) {
 }
 
 /**
- * Every /wisp/ upgrade, from the main listener AND the AnuraOS listener, passes
- * through here. The AnuraOS listener used to route straight into the tunnel,
- * skipping the global cap, the per-client cap and the idle timeout; one handler
- * for both is what makes "the same caps" true.
+ * Every /wisp/ upgrade passes through here — every engine, without exception.
+ * A second listener for one engine used to route straight into the tunnel,
+ * skipping the global cap, the per-client cap and the idle timeout. One handler
+ * for all of them is what makes "the same caps" true rather than aspirational.
  */
 async function handleProxyUpgrade(req, socket, head) {
   try {
@@ -8709,7 +8037,7 @@ function proxyControlOverview() {
   return {
     policy: { ...PROXY_POLICY },
     engines: CONTROL.proxy ? CONTROL.proxy.snapshot().engines : [],
-    installed: { ...proxyStatus, anura: !!ANURA.serves },
+    installed: { ...proxyStatus },
     status: CONTROL.proxy ? CONTROL.proxy.status() : null,
     decisions: PROXY_GOVERNOR.stats(),
     sessions: PROXY_SESSIONS.stats(),
@@ -8740,10 +8068,6 @@ for (const sig of ['SIGTERM', 'SIGINT']) {
     // Not awaited — the 5s backstop below bounds the whole shutdown, and the
     // supervisor escalates SIGTERM to SIGKILL on its own timer.
     stopSingbox({ graceMs: 3000 }).catch(() => {});
-    // The AnuraOS listener holds the event loop open on its own, so closing
-    // only httpServer would leave the process alive until the 5s backstop —
-    // turning every graceful stop into a five-second one.
-    try { anuraServer?.close(); } catch { /* not listening */ }
     httpServer.close(() => process.exit(0));
     // Backstop: if something still holds the loop open, leave anyway rather
     // than hang until the platform's SIGKILL.
@@ -8861,7 +8185,6 @@ function startListening(host, isFallback = false) {
     console.log('  ' + wispPolicyLine(WISP_POLICY));
     console.log('  ' + masqrStatusLine(MASQR));
     console.log('  ' + geoStatusLine(GEO));
-    console.log('  ' + anuraStatusLine());
     // Printed even when unconfigured, so "where did Kasm go?" is answerable
     // from the boot banner instead of by reading source.
     console.log('  ' + kasmStatusLine(KASM));
@@ -8878,83 +8201,23 @@ function startListening(host, isFallback = false) {
       }
     }
     console.log(`  → press Ctrl+C in this terminal to stop the server\n`);
-    openInBrowser(url);
-  });
-}
-
-// ── AnuraOS second listener ────────────────────────────────────────────────
-// A different PORT is already a different ORIGIN, so this gives AnuraOS the
-// site root it requires without DNS, a second deployment or any rewriting —
-// and keeps its root-scoped service worker away from Ultraviolet's and
-// Scramjet's. Started before the main listener so the engine is ready the
-// moment /browser can ask for it.
-//
-// FAILING TO BIND IS NOT FATAL. ZoFHub does not need this port; losing it costs
-// one optional engine, so it degrades to "no AnuraOS entry" and says why,
-// rather than taking the whole site down over a port conflict.
-let anuraServer = null;
-function anuraStatusLine() {
-  switch (ANURA.mode) {
-    case 'external': return `→ anura:   external (${ANURA.externalUrl})`;
-    case 'host':     return `→ anura:   served on host ${ANURA.host}`;
-    case 'port':     return anuraServer
-      ? `→ anura:   http://localhost:${ANURA.port} (own origin, same process)`
-      : `→ anura:   not listening${ANURA.reason ? ' — ' + ANURA.reason : ''}`;
-    case 'disabled': return '→ anura:   disabled';
-    default:         return '→ anura:   not installed (npm run fetch-anura)';
-  }
-}
-
-if (ANURA.mode === 'port') {
-  const serveAnura = anuraHandler(undefined, { port: ANURA.port });
-  anuraServer = createServer(async (req, res) => {
-    if (!(await anuraAllowed(req.headers, req.socket?.remoteAddress))) {
-      res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
-      return res.end('AnuraOS is turned off.');
+    // TLS interception check — after the banner, because it needs a network
+    // round trip and nothing may wait on it. The engines do TLS END TO END from
+    // the browser with their own compiled-in CA roots, so a local product that
+    // terminates 443 breaks EVERY https destination in EVERY engine while
+    // ordinary browsing stays fine. That reads exactly like a broken proxy, so
+    // it gets named here instead of being rediscovered from an engine's generic
+    // error page. See lib/tls-interception.mjs.
+    if (enabled.length) {
+      tlsInterception.detectInterception({ host: 'example.com' }).then((r) => {
+        TLS_INTERCEPTION = r;
+        if (!r.intercepted) return;
+        console.warn('  → WARNING: the proxy will fail on every https site —');
+        for (const line of tlsInterception.describeInterception(r)) console.warn(`             ${line}`);
+        console.warn('');
+      }).catch(() => { /* a detector must never be able to break a boot */ });
     }
-    serveAnura(req, res);
-  });
-
-  // AnuraOS's browser needs a Wisp tunnel, and its config is rewritten to point
-  // at /wisp/ on THIS origin (lib/anura-host.mjs). Route that upgrade into the
-  // same tunnel the rest of the site uses, so AnuraOS's traffic gets the same
-  // sing-box egress, the same SSRF filter and the same caps — rather than a
-  // second, unaudited path out of the process.
-  // The SAME handler as the main listener: caps, origin check, access mode,
-  // approved destinations and session tracking all apply to AnuraOS traffic.
-  anuraServer.on('upgrade', (req, socket, head) => { handleProxyUpgrade(req, socket, head); });
-  anuraServer.on('error', (e) => {
-    ANURA.reason = `${e.code || 'error'} on port ${ANURA.port}`;
-    console.warn(`[anura] not listening: ${ANURA.reason}. `
-      + 'AnuraOS will not appear in /browser. Set ANURA_PORT to a free port, '
-      + 'or ANURA_PORT=0 to stop trying.');
-    // Serving nothing must not leave an entry advertising this port.
-    ANURA.mode = 'disabled';
-    ANURA.serves = false;
-    anuraServer = null;
-  });
-  anuraServer.listen(ANURA.port, HOST === '::' ? '::' : HOST, () => {
-    // BINDING IS NOT THE SAME AS BEING REACHABLE. A wildcard bind succeeds even
-    // when another process already holds the SPECIFIC address on that port, and
-    // the more specific socket then wins — so we would advertise a URL that
-    // hangs on somebody else's service. Confirm the thing answering is ours
-    // before offering it to anyone.
-    const probe = `http://127.0.0.1:${ANURA.port}/`;
-    fetch(probe, { signal: AbortSignal.timeout(4000) })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        if (!/AnuraOS/i.test(await r.text())) throw new Error('another service holds this port');
-        ANURA.verified = true;
-      })
-      .catch((e) => {
-        ANURA.reason = `port ${ANURA.port} does not answer as AnuraOS (${e.message})`;
-        console.warn(`[anura] ${ANURA.reason}. Not offering it in /browser. `
-          + 'Set ANURA_PORT to a free port, or ANURA_PORT=0 to stop trying.');
-        ANURA.mode = 'disabled';
-        ANURA.serves = false;
-        try { anuraServer?.close(); } catch { /* already closing */ }
-        anuraServer = null;
-      });
+    openInBrowser(url);
   });
 }
 

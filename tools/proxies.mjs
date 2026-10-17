@@ -3,15 +3,14 @@
 //   npm run proxies
 //
 // ZoFHub embeds Ultraviolet, Scramjet and GUST directly (same origin).  The
-// other open-source proxy browsers the project ships — NautilusOS, Interstellar,
-// DayDream, Nebula — are whole self-contained apps that assume they own the site
+// other open-source proxy browsers the project ships — NautilusOS, DayDream,
+// Nebula — are whole self-contained apps that assume they own the site
 // root, so they can't be nested under a sub-path of ZoFHub without service-worker
 // and path collisions.  Instead each runs as its OWN service on its own port;
 // the ZoFHub browser page probes /api/proxies and lists whichever are online.
 //
 // This launcher starts the ones that are ready on this machine:
 //   • NautilusOS  — pure static, served here with a tiny built-in file server.
-//   • Interstellar — run only if its deps are installed (Interstellar/node_modules).
 //   • DayDream / Nebula — run only if they've been built (they need a build step).
 //
 // It NEVER installs or builds anything for you (those steps are heavy and can
@@ -29,7 +28,6 @@ const ROOT = join(__dirname, '..');
 
 const PORTS = {
   nautilus:     Number(process.env.PROXY_NAUTILUS_PORT     || 8091),
-  interstellar: Number(process.env.PROXY_INTERSTELLAR_PORT || 8092),
   daydream:     Number(process.env.PROXY_DAYDREAM_PORT     || 8093),
   nebula:       Number(process.env.PROXY_NEBULA_PORT       || 8094),
 };
@@ -47,7 +45,7 @@ const MIME = {
 const started = [];
 const skipped = [];
 // Everything we launch, tracked so a single Ctrl+C stops it all (no orphans).
-const children = [];   // spawned companion Node processes (Interstellar, …)
+const children = [];   // spawned companion Node processes (DayDream, …)
 const servers = [];    // static http servers we own (NautilusOS)
 
 // Free a port before we bind it. A companion child from a PREVIOUS run can
@@ -143,15 +141,9 @@ if (existsSync(join(nautilusDir, 'index.html'))) {
   skipped.push('NautilusOS   — folder/index.html missing (clone nautilus-os/NautilusOS).');
 }
 
-// ---- Interstellar — needs its deps installed ----------------------------
-const interDir = join(ROOT, 'Interstellar');
-if (existsSync(join(interDir, 'node_modules'))) {
-  runNode(interDir, 'index.js', PORTS.interstellar, 'Interstellar');
-} else if (existsSync(join(interDir, 'index.js'))) {
-  skipped.push(`Interstellar — deps not installed.  Run:  cd Interstellar && npm install   (then re-run npm run proxies)`);
-} else {
-  skipped.push('Interstellar — folder/index.js missing.');
-}
+// Interstellar is no longer a companion: it is a built-in, same-origin engine
+// (proxy-engine/assets/interstellar, mounted at /interstellar). Nothing to
+// launch here.
 
 // ---- DayDream — needs deps + a vite build + config.js --------------------
 // Each precondition is reported SEPARATELY. A single "not built" catch-all

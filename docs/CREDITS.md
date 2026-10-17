@@ -18,21 +18,19 @@ These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
 | **libcurl transport** | curl‑over‑Wisp transport | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0‑only** |
 | **libcurl.js** | WASM curl used by GUST | https://github.com/ading2210/libcurl.js | **LGPL‑3.0‑or‑later** |
 | **GUST** | Service‑worker‑free libcurl + Wisp browser | https://github.com/nautilus-os/GUST | **AGPL‑3.0** |
-| **AnuraOS** | Browser‑based web OS with v86 x86 emulation — optional engine, served on **its own origin** | https://github.com/MercuryWorkshop/anuraOS | **AGPL‑3.0** |
+| **HORIZON** | Single‑file proxy browser (a remodelled GUST) | https://github.com/RiptideMC/HORIZON | **AGPL‑3.0** |
+| **Interstellar** | Multi‑page proxy browser (Ultraviolet + Scramjet) | https://github.com/UseInterstellar/Interstellar | **AGPL‑3.0** |
 
-> **AnuraOS is served by this process, but not from this origin.** It assumes it
-> owns a site root, so [`lib/anura-host.mjs`](../lib/anura-host.mjs) gives it one — a
-> second port by default, or a hostname via `ANURA_HOST` — rather than a subpath.
-> It is vendored under [`vendor/anura/`](../vendor/anura/), pinned to upstream commit
-> [`08136cc`](https://github.com/MercuryWorkshop/anuraOS/commit/08136cc0f0e51fcb2a4ce18edc54bb180e61c915),
-> refreshed with `npm run fetch-anura`, documented in
-> [docs/proxy/ANURA.md](proxy/ANURA.md), and **modified** — see the §5 declaration below.
+> **HORIZON and Interstellar run from this origin, under this server's tunnel.**
+> Both are vendored under [`proxy-engine/assets/`](../proxy-engine/assets/) and
+> mounted at `/horizon` and `/interstellar`. Each is **modified** so its Wisp
+> transport uses this deployment's own same-origin `/wisp/` endpoint rather than a
+> third-party relay — see the §5 declarations below.
 
-Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST, AnuraOS**, and
-the **Wisp / Epoxy / libcurl transport stack** — is **AGPL‑3.0**, and **libcurl.js
-is LGPL‑3.0‑or‑later**. They are served to users **over a network by this
-deployment** (all from this origin except AnuraOS, which gets its own — the
-network‑use clause turns on serving, not on which hostname does it), so their
+Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST, HORIZON,
+Interstellar**, and the **Wisp / Epoxy / libcurl transport stack** — is
+**AGPL‑3.0**, and **libcurl.js is LGPL‑3.0‑or‑later**. They are served to users
+**over a network by this deployment**, all from this origin, so their
 license notices are preserved in the vendored/npm files and the AGPL network‑use
 source offer below applies to all of them. **bare‑mux** is MIT (its
 `package.json` declares no license, but the package ships an MIT `LICENSE` file).
@@ -49,8 +47,8 @@ None of these are covered by the ZoFHub License.
 
 ### AGPL‑3.0 §13 network‑use source offer (all served proxy engines)
 
-Covers **Ultraviolet, Scramjet, GUST, AnuraOS, Wisp, Epoxy transport** and
-**libcurl transport**, plus **libcurl.js** under LGPL‑3.0.
+Covers **Ultraviolet, Scramjet, GUST, HORIZON, Interstellar, Wisp, Epoxy
+transport** and **libcurl transport**, plus **libcurl.js** under LGPL‑3.0.
 
 Because ZoFHub serves the AGPL‑3.0 components above over a network, their users
 are offered the **corresponding source**: it is each project's upstream
@@ -60,10 +58,10 @@ and the vendored `proxy-engine/assets/gust/`). To request the source for a speci
 build, ask in the official **ZoFHub Discord server** — the invite is linked from
 the footer of the live site.
 
-#### Two of them are modified — §5 declarations
+#### Three of them are modified — §5 declarations
 
 > **Corrected 2026‑09‑21.** This paragraph previously read *"ZoFHub runs them
-> unmodified."* That was **wrong**: two served AGPL‑3.0 components carry declared
+> unmodified."* That was **wrong**: several served AGPL‑3.0 components carry declared
 > modifications, and AGPL §5 requires modified versions to carry prominent notices
 > stating that they were changed and when. The machine-readable record in
 > [`lib/licenses.mjs`](../lib/licenses.mjs) was correct throughout and is what the
@@ -72,7 +70,8 @@ the footer of the live site.
 | Component | Changed | What was changed | Corresponding source |
 |---|---|---|---|
 | **GUST** | 2026‑07‑30 | (1) Default Wisp server repointed to this site's **own same-origin `/wisp/`** instead of the upstream public `wisp.mercurywork.shop`, so proxy traffic never leaves this domain. (2) Added ZoFHub's shared cloak system (panic key, tab title/favicon cloaking) for parity with the rest of the site. | served at `/gust/index.html`, source at [`proxy-engine/assets/gust/index.html`](../proxy-engine/assets/gust/index.html) |
-| **AnuraOS** | 2026‑09‑20 | `config.json` is served with a `wisp-url` added to `defaultsettings`, pointing at this deployment's own `/wisp/` tunnel. Upstream ships **no** `wisp-url`, so AnuraOS's own `lib/Anura.js` (vendored at `vendor/anura/lib/Anura.js`) builds its `Networking` with an undefined server and the app has no working tunnel. Deriving it from the incoming request also keeps it correct on a mirror domain. **No other file is altered** — the rest of the bundle is served byte-for-byte as published. | `/licenses/anura-modifications` |
+| **HORIZON** | 2026‑10‑16 | Every Wisp reference is repointed to this site's own same-origin `/wisp/` endpoint, and the upstream pool of third-party public relays (and the built-in Discord client's own relay list) is removed, so proxied traffic is governed by this deployment's approved-destination policy instead of leaving to a stranger's relay. **No other file or feature is altered.** | served at `/horizon`, source at [`proxy-engine/assets/horizon/index.html`](../proxy-engine/assets/horizon/index.html) |
+| **Interstellar** | 2026‑10‑16 | (1) All asset, page and proxy-prefix paths are rewritten to live beneath `/interstellar`, so it runs as a same-origin sub-mount instead of owning the origin. (2) Its Wisp transport uses this deployment's own `/wisp/` tunnel. (3) The upstream Google Analytics tag (`GT-K46PHV4`) is removed so it does not beacon on page load. | served at `/interstellar`, source under [`proxy-engine/assets/interstellar/`](../proxy-engine/assets/interstellar/) |
 
 Every other component listed above **is** served unmodified.
 
@@ -85,7 +84,7 @@ depend on them and simply hides them from the engine list when they aren't
 running.
 
 **Where they live:** their full source trees are committed into this repository
-(`NautilusOS/`, `Interstellar/`, `DayDream/`, `Nebula/`) because it doubles as a
+(`NautilusOS/`, `DayDream/`, `Nebula/`) because it doubles as a
 private full-machine backup. That is fine while the repo stays **private** — the
 copyleft obligations below are triggered by *distribution* and by *offering the
 software over a network*, neither of which a private backup does. They are **not
@@ -102,7 +101,6 @@ network. They are currently local-dev only.
 | Project | Repository | License |
 |---|---|---|
 | **NautilusOS** | https://github.com/nautilus-os/NautilusOS | AGPL‑3.0 |
-| **Interstellar** | https://github.com/UseInterstellar/Interstellar | GPL‑3.0‑or‑later |
 | **DayDream** | https://github.com/NightProxy/DayDream | AGPL‑3.0 |
 | **Nebula** | https://github.com/NebulaServices/Nebula | AGPL‑3.0 |
 

@@ -21,8 +21,9 @@ on the proxy, never Google AdSense, and no separate "hub" mode.
 | `npm run dev` | Start with `--watch` (auto-restarts when you edit a file). Auto-fetches missing thumbnails on boot. |
 | `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
-| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · Interstellar · DayDream) on their own ports. Prints why it skipped any that aren't ready. Nebula was removed from the working tree — restore it with `git checkout 07a2a6f7 -- Nebula` if you want it back. |
+| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · DayDream) on their own ports. Prints why it skipped any that aren't ready. Nebula was removed from the working tree — restore it with `git checkout 07a2a6f7 -- Nebula` if you want it back. |
 | `npm run verify-proxy` | Load real pages through **all three built-in engines** (Scramjet, Ultraviolet, GUST) in a real browser and assert the document that rendered. Not an HTTP-200 check: a service worker does not intercept requests from a client it does not control, so fetching a proxy URL from Node tests the server's fallback, not the proxy. Takes `--engine uv` / `--target https://…`. Needs devDependencies (Playwright). |
+| `npm run verify-ai` | Open `/ai` in a real browser, send a real prompt, and assert what the page actually does on the network: ONE `GET https://text.pollinations.ai/<encoded prompt>`, the response **readable** cross-origin, **no** `/api/ai/` request reaching the server, no key round-trip, no model download, and the answer rendered in the message list. Makes a real free-tier request, so a 429 is an honest failure — read the printed request log. Needs devDependencies (Playwright). |
 | `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
 > **About the auto-thumbnails:** EVERY start command fetches missing Y8 thumbnails
@@ -154,7 +155,6 @@ believing any pass.
 | `npm run verify-thumbs` | Confirm thumbnail URLs still resolve. |
 | `npm run audit-served` | **What is actually served, and why the rest is not.** Applies `data/catalog-overrides.json` to the export exactly as the server does, and prints catalogued → served with the embed-strategy split. Runs offline — no database, no network. |
 | `npm run verify-catalog` | Per-row verification against the **live** database, paginated by keyset (`order by id` + `gt`), so rows cannot be skipped or repeated the way an unordered `range()` scan can. |
-| `npm run fetch-anura` | Fetch/refresh the bundled AnuraOS companion assets under `vendor/anura/`. |
 | `npm run admin-hash` | Generate the scrypt `ADMIN_PASSWORD_HASH` for `/admin`. Never store the plaintext password. |
 | `npm run css-tokens` | Check the CSS design tokens are consistent. |
 | `npm run og-sync` | Refresh Open Graph / social preview metadata. |
@@ -323,8 +323,8 @@ REALITY inbound.
 
 ### Companion engines — off by default
 
-`PROXY_ANURA_URL`, `PROXY_KASM_URL`, `PROXY_INVISI_URL`, `PROXY_NEBULA_URL`,
-`PROXY_INTERSTELLAR_URL`, `PROXY_DAYDREAM_URL`, `PROXY_NAUTILUS_URL` — each
+`PROXY_KASM_URL`, `PROXY_INVISI_URL`, `PROXY_NEBULA_URL`,
+`PROXY_DAYDREAM_URL`, `PROXY_NAUTILUS_URL` — each
 points at an engine **you host yourself**. See [docs/proxy/KASM.md](../proxy/KASM.md).
 
 > **Userinfo is stripped from all of these.** A URL like
@@ -376,9 +376,10 @@ fails is dropped rather than served.
   cron service.
 - **AI Vibe Finder** — the `/api/vibe` endpoint maps a mood to game genres with the
   curated mood index and ranks the catalog deterministically (`lib/vibe-engine.mjs`).
-  **In production it calls no AI at all**: the optional Pollinations refinement is
-  local-development only, because it would send the visitor's typed text from the
-  server's IP. The chat runs browser-direct and keyless.
+  **It calls no AI at all, anywhere**: the optional Pollinations refinement has been
+  deleted, not just gated, because it sent the visitor's typed text from the
+  server's IP. The chat is one keyless browser-direct GET and never touches this
+  server.
 
 ---
 
@@ -395,6 +396,7 @@ npm start                    :: → http://localhost:8080
 npm test
 npm run check
 npm run verify-proxy         :: real browser through every proxy engine
+npm run verify-ai            :: real browser, real prompt, real network check
 
 :: Everyday development (auto-grabs missing Y8 thumbnails first)
 npm run dev

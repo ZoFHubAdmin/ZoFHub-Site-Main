@@ -17,7 +17,7 @@
 A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
-2. **A free AI assistant** — chat + image generation that runs **entirely in the visitor's browser**, with a **user-chosen provider** (Pollinations by default, or opt-in Puter.js / Hugging Face — nothing forced). No prompt, reply or image ever touches this server, and that is **enforced by the server**.
+2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to `text.pollinations.ai`, made by their own browser on their own IP. No prompt or reply ever touches this server, and that is **enforced by the server** — there are no AI routes left to relay one. No image, audio or video generation, and no provider choice.
 3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **sing-box** daemon by default.
 
 Built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres). It runs as **one always-on site**, with optional advertising on the hub pages only — never on the proxy, and never Google AdSense.
@@ -27,7 +27,7 @@ Built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no bu
 ## ✨ Highlights
 
 - 🎮 **~12,300 served games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — every one via a distributor that licenses third-party embedding.
-- 🤖 **Browser-direct AI** — streamed chat + image generation with a **provider picker** (Pollinations · Puter.js · Hugging Face). The default stays free, paid models are labelled and never forced, and nothing is proxied through this server.
+- 🤖 **Browser-direct AI** — one keyless `GET https://text.pollinations.ai/<prompt>` from the visitor's own browser, read with `response.text()`. **Text only**: no image, audio or video generation. One provider, no API key, no model picker, no server hop and no local inference engine — so there is exactly one way a prompt can travel, and it does not come through here.
 - 🔎 **Per-game SEO** — every game page has a **unique, factual description** and full metadata (canonical, Open Graph, `schema.org` JSON-LD), generated from verified catalog metadata — no AI filler, no fabrication.
 - 🧩 **Six ad networks, one role each** — Ad-Maven interstitial, ExoClick banners, HilltopAds push, Clickadu pre-roll, Mondiad native, PopAds popunder — region-aware, structurally excluded from every proxy surface, never AdSense.
 - 🛠️ **Self-maintaining catalog** — a background **grow** job adds up to 30 **render-verified** games every ~36 hours (no black screens), plus hourly link-checks, weekly Y8 and GameDistribution imports.

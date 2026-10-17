@@ -83,12 +83,14 @@
     </section>
   </main>
 
+  <!-- Built by mountFooter() in /js/layout.js. The one thing this page adds is
+       the disclosure below: mountFooter() captures .footer-legal before it
+       rebuilds the footer and restores it into .footer-bottom, so the statement
+       of who actually serves the game survives the shared markup. -->
   <footer class="site-footer">
-    <div class="footer-inner">
-      <p class="footer-legal">
-        Games are served from GameFlare. ZoFHub does not host, mirror or modify them.
-      </p>
-    </div>
+    <p class="footer-legal">
+      Games are served from GameFlare. ZoFHub does not host, mirror or modify them.
+    </p>
   </footer>
 
   <script type="module" src="/js/layout.js?v=20260919"></script>

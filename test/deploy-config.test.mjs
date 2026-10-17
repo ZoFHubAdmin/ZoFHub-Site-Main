@@ -32,11 +32,10 @@ const SKIP_DIRS = new Set([
   'node_modules', '.git', '.cache', '.y8-cache', 'logs', 'data',
   // Companion apps that run as their OWN service on their own origin. Their
   // source is not ZoFHub's source and the variables inside it are not ZoFHub's
-  // to declare. `vendor` is where tools/fetch-anura.mjs unpacks AnuraOS —
-  // without it, a developer who runs `npm run fetch-anura` makes this test
-  // start demanding render.yaml declare PWD, TMP and minimatch's internal
-  // __MINIMATCH_TESTING_PLATFORM__.
-  'DayDream', 'Interstellar', 'NautilusOS', 'scramjet', 'vendor',
+  // to declare. Without skipping them, a developer who checks one out makes
+  // this test start demanding render.yaml declare PWD, TMP and minimatch's
+  // internal __MINIMATCH_TESTING_PLATFORM__.
+  'DayDream', 'NautilusOS', 'scramjet', 'vendor',
   'licenses', 'legal', 'public',
   '.venv', 'venv', 'site-packages', '.tox', '__pycache__',
 ]);

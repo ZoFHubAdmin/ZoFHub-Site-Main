@@ -203,15 +203,10 @@
     </aside>
   </main>
 
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <span>© ZoFHub · Free browser arcade</span>
-      <span class="footer-sep">·</span>
-      <a href="/">All games</a>
-      <span class="footer-sep">·</span>
-      <a href="/ai">AI</a>
-    </div>
-  </footer>
+  <!-- Built by mountFooter() in /js/layout.js, which every page shares. This
+       element is deliberately EMPTY: anything written here is overwritten, so
+       markup left inside it is a second footer that only looks authoritative. -->
+  <footer class="site-footer"></footer>
 
   <script>window.ZOFHUB_GAME = { slug: "{{SLUG}}", title: "{{TITLE}}", category: "{{CATEGORY}}", upstream: "{{UPSTREAM_URL}}", iframeSrc: "{{IFRAME_SRC}}", proxyUrl: "{{PROXY_URL}}", thumbnail: "{{THUMBNAIL}}", directOnly: {{DIRECT_ONLY}}, preroll: {{HAS_PREROLL}} };</script>
   <script type="module" src="/js/layout.js?v=20260801a"></script>

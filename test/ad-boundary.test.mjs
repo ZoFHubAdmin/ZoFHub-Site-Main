@@ -181,8 +181,8 @@ describe('the interstitial is throttled, and fails closed', () => {
 });
 
 describe('no ad may exist inside a proxy surface', () => {
-  test('every proxy surface is refused, including AnuraOS', () => {
-    for (const p of ['/browser', '/gust', '/proxy', '/uv', '/sj', '/scram', '/wisp', '/anura']) {
+  test('every proxy surface is refused, including the in-app engines', () => {
+    for (const p of ['/browser', '/gust', '/proxy', '/horizon', '/interstellar', '/uv', '/sj', '/scram', '/wisp']) {
       assert.equal(isAdSurface(p), false, `${p} is treated as an ad surface`);
       assert.equal(isAdSurface(`${p}/deeper/path`), false, `${p}/… is treated as an ad surface`);
     }

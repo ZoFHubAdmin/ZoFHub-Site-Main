@@ -52,8 +52,9 @@
   </header>
 
   <main class="gust-shell">
-    <!-- Toolbar: pick an engine, then (for Ultraviolet/Scramjet) type a URL. GUST /
-         Interstellar / Nebula have their OWN address bar, so ours hides for them. -->
+    <!-- Toolbar: pick an engine, then (for Ultraviolet/Scramjet) type a URL. GUST,
+         HORIZON, Interstellar and the companions have their OWN address bar, so
+         ours hides for them. -->
     <div class="br-toolbar">
       <label class="br-engine-wrap" title="Choose which proxy browser to use">
         <span class="br-engine-dot" id="engineDot" aria-hidden="true"></span>
@@ -138,10 +139,12 @@
     </div>
   </main>
 
-  <!-- Compact legal bar. This page is a fixed-height app shell, so it carries
-       the one-row variant of the shared footer rather than the six-column one
-       (see mountFooter() in /js/layout.js). The links are identical; only the
-       layout differs. --><footer class="site-footer site-footer-mini"></footer>
+  <!-- The same footer as every other page, built by mountFooter() in
+       /js/layout.js. The proxy shell above is sized to the first screen, so this
+       sits below it and is reached by scrolling. (It used to carry a cut-down
+       one-row variant, which meant this page quietly lacked whatever the real
+       footer gained.) -->
+  <footer class="site-footer"></footer>
 
   <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>

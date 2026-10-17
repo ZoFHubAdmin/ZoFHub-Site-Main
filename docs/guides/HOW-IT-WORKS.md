@@ -160,22 +160,35 @@ Full detail: [IFRAME-OPTIMIZATION-GUIDE.md](../features/IFRAME-OPTIMIZATION-GUID
 
 ## 7. The AI assistant — it runs on the visitor's device
 
-This is the part that surprises people most: **no prompt, reply or generated
-image passes through this server in production.**
+This is the part that surprises people most: **no prompt or reply passes
+through this server at all.** Not "is blocked from passing" — there is no route
+left that could carry one.
 
-- Chat, images and text-to-speech all go **browser-direct to Pollinations**, from
-  the visitor's own machine on their own IP.
-- The server hands the browser a **publishable** (`pk_`) key, which is designed
-  to be public. A secret key must never go there.
-- Server-side AI routes still exist, but only as a **local-development aid** —
-  Pollinations rejects browser calls from `http://localhost`. `aiServerAllowed()`
-  refuses them whenever `NODE_ENV=production` or the caller is not on loopback.
-- **The Vibe Finder uses no AI in production either.** It maps your mood with a
-  curated index and ranks games deterministically. Its optional AI refinement is
-  behind the same guard — it once sent visitors' typed text to Pollinations from
-  the server's IP, which is exactly what this design exists to prevent.
-- An **optional second provider** (Hugging Face) runs in the browser under the
-  visitor's own token, off by default.
+- Every answer is **one request, made by the visitor's browser**:
+  `GET https://text.pollinations.ai/<url-encoded prompt>`. The response body is
+  the answer. It goes out on their own connection and their own IP.
+- **No key.** The anonymous tier is keyless. Nothing is handed to the browser,
+  and no secret exists to leak.
+- **Text only.** There is no image, audio or video generation anywhere on the
+  site, at any layer.
+- **No server-side AI routes.** `/api/ai/text`, `/api/ai/echo`, `/api/ai/audio`,
+  `/api/ai/video`, `/api/ai/image`, `/api/ai/key`, `/api/ai/providers` and
+  `/api/ai/health` have been removed, with the pipeline behind them. The guard
+  (`aiServerAllowed()`) stays as a **regression guard**: those paths are still
+  refused before routing, so re-adding a handler cannot ship it open by accident.
+- **No local model.** The on-device Transformers.js fallback is gone — it
+  downloaded hundreds of megabytes to answer worse, which made an outage look
+  like the AI had quietly degraded. A clear, retryable error is honest instead.
+- **No second provider.** Hugging Face and Puter.js are gone, with their
+  settings panel and stored tokens.
+- **The Vibe Finder uses no AI at all.** It maps your mood with a curated index
+  and ranks games deterministically. Its optional refinement once sent visitors'
+  typed text to Pollinations from the server's IP; it was gated, and is now
+  deleted.
+
+One caveat stated plainly: a direct request keeps the prompt away from **us**,
+not from **them**. Pollinations receives it and handles it under their own
+policy. The privacy policy says exactly that.
 
 What that buys: no AI compute or bandwidth on your host, no shared rate limit,
 and prompts that are not observable server-side because they never arrive.
@@ -218,9 +231,8 @@ Three things guard that path:
   somewhere other than your web host. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
 - **Companion engines** — Kasm Workspaces and others can be pointed at as
   *external* deployments rather than bundled ([docs/proxy/KASM.md](../proxy/KASM.md)).
-  **AnuraOS** is different: a whole web OS with x86 emulation, served by *this*
-  process on its **own origin**, because it assumes it owns a site root
-  ([docs/proxy/ANURA.md](../proxy/ANURA.md)).
+  **HORIZON** and **Interstellar** are bundled same-origin engines instead,
+  mounted at `/horizon` and `/interstellar` and governed by this server's tunnel.
 
 **Verify it actually works** with `npm run verify-proxy`, which drives a real
 browser through every engine and checks that pages render. An HTTP 200 from the
@@ -256,7 +268,7 @@ Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md)
   independently with `<NETWORK>_ENABLED=1` plus its role variable. Enabled
   without configuration renders nothing; unset means genuinely nothing — no
   boxes, no reserved space, no requests. A visitor whose ad-blocker stays on for
-  three pages finds only the premium proxy engines (AnuraOS and the standalone
+  three pages finds only the premium proxy engines (the standalone companion
   browsers) locked; games and the built-in engines never are.
 - **Google AdSense is never used**, and is refused at three layers. Google bans
   proxy domains at the *account* level, so one stray tag could take down an

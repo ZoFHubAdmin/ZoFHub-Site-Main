@@ -70,7 +70,7 @@ describe('every control-plane route is gated by construction', () => {
 
 // ── Live server helpers ─────────────────────────────────────────────────────
 async function boot(port, extra = {}) {
-  const env = { ...process.env, PORT: String(port), NODE_ENV: 'test', NO_OPEN: '1', CRON_DISABLED: '1', ANURA_PORT: '0',
+  const env = { ...process.env, PORT: String(port), NODE_ENV: 'test', NO_OPEN: '1', CRON_DISABLED: '1',
     ADMIN_SECRET: TOKEN, ...extra };
   for (const k of BLANK_DB) env[k] = '';
   const child = spawn(process.execPath, ['server.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -173,7 +173,11 @@ describe('as a content manager', () => {
   });
 
   test('switched-off features are refused by the server, not just hidden', async () => {
-    const api = await s.call('GET', '/api/ai/health', undefined, { auth: false });
+    // Probed with /api/ai/feedback, the one /api/ai/* route that still exists.
+    // The old probe was /api/ai/health, which has since been deleted — so it
+    // would now 404 whether the feature gate worked or not, and the test would
+    // pass for the wrong reason.
+    const api = await s.call('GET', '/api/ai/feedback', undefined, { auth: false });
     assert.equal(api.status, 404);
     assert.match(api.json.error, /turned off/);
     assert.equal((await s.call('GET', '/ai', undefined, { auth: false })).status, 404);
@@ -312,7 +316,10 @@ describe('proxy governance through the running server', () => {
 
     test('external companions are not offered unless an administrator turns them on', async () => {
       const r = await s.call('GET', '/api/proxies', undefined, { auth: false });
-      assert.ok(r.json.engines.every((e) => e.id === 'anura' && e.selfHosted), JSON.stringify(r.json.engines));
+      // No companion URL is configured and `external` is off by default, so the
+      // list is empty. The built-in engines (Scramjet, Ultraviolet, GUST,
+      // HORIZON, Interstellar) are listed by the page itself, not by this route.
+      assert.deepEqual(r.json.engines, [], JSON.stringify(r.json.engines));
     });
   });
 });

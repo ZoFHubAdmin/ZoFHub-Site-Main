@@ -231,7 +231,7 @@ describe('where each placement may appear', () => {
   });
 
   test('a proxy page gets nothing at all', () => {
-    for (const surface of ['/browser', '/gust/x', '/anura', '/play']) {
+    for (const surface of ['/browser', '/gust/x', '/horizon', '/interstellar/home', '/play']) {
       const pub = publicAdConfig(cfg, { surface });
       assert.equal(pub.preroll, null, surface);
       assert.equal(pub.popunder, null, surface);

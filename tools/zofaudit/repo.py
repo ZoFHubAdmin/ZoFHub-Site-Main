@@ -46,12 +46,12 @@ EXCLUDED_DIRS = {
     'NautilusOS':    'vendored proxy app',
     'DayDream':      'vendored proxy app',
     'suroi':         'vendored GPL self-host kit',
-    # Where tools/fetch-anura.mjs unpacks AnuraOS: 526 files of somebody else's
+    # Where a fetched third-party bundle would be unpacked: somebody else's
     # web OS, which runs as its own service on its own origin. Without this,
-    # `npm run fetch-anura` turns a clean audit into a wall of ERRORs about
-    # AnuraOS's own internal imports (./adapters/memory.js and friends) — other
+    # A fetched third-party bundle would turn a clean audit into a wall of ERRORs
+    # about its own internal imports (./adapters/memory.js and friends) — other
     # people's code reported as this repository's defects.
-    'vendor':        'fetched companion apps (AnuraOS) — served from their own origin',
+    'vendor':        'fetched third-party bundles — served from their own origin',
     '.claude':       'agent scratch',
     '.vscode':       'editor config',
 }

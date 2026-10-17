@@ -69,10 +69,10 @@
     "gameflare:verify": "node tools/gameflare-verify.mjs",
     "verify-catalog": "node --use-system-ca tools/verify-catalog.mjs",
     "audit-served": "node tools/audit-served.mjs",
-    "fetch-anura": "node tools/fetch-anura.mjs",
     "eval-ai": "node --use-system-ca tools/eval-ai.mjs",
     "curate-ai": "node tools/run-python.mjs tools/curate-ai-dataset.py",
     "verify-proxy": "node --use-system-ca tools/verify-proxy.mjs",
+    "verify-ai": "node tools/verify-ai.mjs",
     "gd:import": "node --use-system-ca tools/gamedistribution-import.mjs"
   },
   "engines": {

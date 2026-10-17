@@ -46,10 +46,25 @@ or request that failed to load.
 
 ## Step 3b — `/browser` says "Uh oh! There was an error loading…"? Check your antivirus first
 
-If the proxy fails **locally** with a 500 and the error details say:
+**You no longer have to guess.** The server probes one outbound TLS connection
+at boot and, if a known interception root signed it, prints this and shows a red
+bar on `/browser` naming the product:
+
+```
+  -> WARNING: the proxy will fail on every https site -
+             outbound TLS on this machine is being intercepted by Avast
+             (the certificate for example.com is signed by "Avast Web/Mail Shield Root").
+```
+
+If you see that, skip to the fix at the end of this section. The rest explains
+why, and how to confirm it by hand.
+
+The failure arrives with **either** of these error texts, depending on engine
+and version — both mean the same thing:
 
 ```
 InvalidCertificate(UnknownIssuer)   ·   invalid peer certificate: UnknownIssuer
+Io(Custom { kind: UnexpectedEof, error: "tls handshake eof" })
 ```
 
 **this is almost certainly your antivirus, not the site.** Avast, AVG, Kaspersky,
@@ -76,8 +91,34 @@ only your machine is affected. This was measured here on 2026-08-07: the issuer
 came back `Avast Web/Mail Shield Root`, and it had already cost one full
 debugging session before anyone thought to look.
 
-To test the proxy properly, either use the live site, or turn off your
-antivirus' HTTPS/web-shield scanning for as long as the test takes.
+**The decisive test, if you want certainty.** The engines are identical for
+`http://` and `https://`; only the TLS layer differs. So proxy a plain HTTP site
+and compare. Measured here:
+
+| Through the same engine | Result |
+|---|---|
+| `http://example.com/` via Scramjet | **renders the real page** |
+| `http://example.com/` via Ultraviolet | **renders the real page** |
+| `https://example.com/` via Scramjet | engine error page |
+| `https://example.com/` via Ultraviolet | engine error page |
+| `npm run verify-proxy` (all https) | **0/6** |
+
+Two independent engines working over HTTP and failing over HTTPS is not an
+engine bug — it is the TLS layer, and nothing above it. If `http://` fails too,
+then something else is wrong and this section does not apply.
+
+**The fix.** Turn off HTTPS/SSL scanning in the product named:
+
+- **Avast / AVG** — Menu -> Settings -> Protection -> Core Shields ->
+  *Configure shield settings* -> Web Shield -> uncheck **Enable HTTPS scanning**
+- **Kaspersky** — Settings -> Network settings -> *Do not scan encrypted connections*
+- **ESET** — Advanced setup -> Web and email -> SSL/TLS -> disable protocol filtering
+- **Bitdefender** — Protection -> Online Threat Prevention -> **Encrypted Web Scan** off
+
+Or test against the live site instead: a deployed host has no interception, so
+**this never affects visitors**. The tunnel's outbound connection is opened by
+the SERVER, so it is the server's network that matters, not the visitor's — a
+visitor running antivirus is unaffected either way.
 
 ---
 
@@ -146,6 +187,47 @@ working that is worth making.
 > scoped to `/uv/service/`. Testing the proxy with `curl` or `fetch` measures
 > Express, not the proxy — it will happily return the server's own
 > `{"error":"not found"}` and look like a proxy failure.
+
+---
+
+## Step 3f — The AI says "does not accept requests from localhost"? Change the address, not the code
+
+**Symptom.** On your own machine, every AI message fails. Before this was
+detected properly it showed as a bare `The AI service refused the request
+(error 403)`, which told you nothing.
+
+**Cause.** The AI provider fronts its endpoint with a Cloudflare Turnstile check
+keyed on the browser's `Origin` header, and it refuses `http://localhost`.
+Measured with the same prompt in the same second, varying only the origin:
+
+| Address you opened the site at | Result |
+|---|---|
+| `http://localhost:8080` | **403** `{"error":"Missing Turnstile token"}` |
+| `http://127.0.0.1:8080` | **200** |
+| a deployed `https://` site | **200** |
+
+`localhost` and `127.0.0.1` are the **same server**. The provider only accepts
+one of the two spellings.
+
+**Fix.** Open the site at **`http://127.0.0.1:8080`** instead of
+`http://localhost:8080`. Nothing to install, nothing to configure, and the AI
+answers immediately. The in-page message now names this address for you,
+including the port you are actually using.
+
+**This does not affect your live site.** A deployed https origin is accepted, so
+visitors never see it. It is a local-development quirk only.
+
+**What is NOT the fix.** Routing the prompt through our own server to hide the
+403. That is the one thing the AI architecture exists to prevent — see
+[AI-ARCHITECTURE.md](../features/AI-ARCHITECTURE.md). There is also no
+client-side trick available: a browser always sends `Origin` on a cross-origin
+request, and `mode: 'no-cors'` would make the answer unreadable.
+
+Verify it yourself any time with:
+
+```bash
+npm run verify-ai
+```
 
 ---
 

@@ -110,6 +110,14 @@ logs/
 # of the coupling above.
 .env
 
+# Every OTHER .env spelling, because only `.env` was ignored and the near-misses
+# are the ones that leak. A backup or a per-environment copy holds exactly the
+# same secrets as .env, and a file named `.env.local` or `.env.backup-17921611`
+# reads as temporary while being just as committable. Tracked exceptions are
+# re-allowed below, so the documented template still ships.
+.env.*
+!.env.example
+
 # node_modules is committed deliberately (see the header), so this rule does not
 # untrack the ~2,500 files already following. It only stops NEW package
 # directories being added by accident.
@@ -118,11 +126,6 @@ node_modules
 # Browser-verification screenshots. Real evidence, but regenerated on every
 # run and not something the deploy needs. Retention is handled by the runner.
 verification-evidence/
-
-# AnuraOS self-host bundle (~51MB, 591 files) — fetched, never committed.
-# tools/fetch-anura.mjs puts it here; it runs on its own origin.
-vendor/anura/
-data/anura-download.zip
 
 # AI feedback exports and curated datasets. These contain material people
 # typed at the AI. Redacted, consented and reviewed — and still not something
