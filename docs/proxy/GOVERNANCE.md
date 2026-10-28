@@ -1,6 +1,6 @@
 # Proxy governance: approved destinations only
 
-The proxy engines — Ultraviolet, Scramjet, GUST, HORIZON and Interstellar — are kept and
+The proxy engines — Ultraviolet, Scramjet, GUST and HORIZON — are kept and
 served. What this layer adds is that the **platform decides where they may
 connect**, and an administrator decides what the platform is authorised to
 reach.
@@ -22,7 +22,7 @@ TCP connection to a host the visitor's browser names. That makes the tunnel the
 enforcement point for all of them at once:
 
 ```text
-browser ─▶ engine page (/uv, /scram, /gust, /horizon, /interstellar)
+browser ─▶ engine page (/uv, /horizon)
         ─▶ /wisp/ upgrade ── access mode · Origin · caps · session ──▶ refused, or:
         ─▶ stream request ── hostname hook (approved list) ──────────▶ HostBlocked, or:
         ─▶ socket connect ── re-check with port · DNS · private IPs ─▶ refused, or:

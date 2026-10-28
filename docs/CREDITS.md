@@ -6,7 +6,7 @@ below with its upstream repository and license.
 ## Embedded engines (served by this deployment)
 
 These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
-`@mercuryworkshop/*`) and are served directly by `server.js`.
+`@mercuryworkshop/*`) or are vendored directly in-repo, and are served by `server.js`.
 
 | Project | Role in ZoFHub | Repository | License |
 |---|---|---|---|
@@ -15,50 +15,52 @@ These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
 | **bare‑mux** | Transport multiplexer | https://github.com/MercuryWorkshop/bare-mux | MIT |
 | **Wisp (wisp‑js)** | Tunnel protocol client (the `/wisp/` tunnel) | https://github.com/MercuryWorkshop/wisp-client-js | **AGPL‑3.0** |
 | **Epoxy transport** | TLS‑over‑Wisp transport | https://github.com/MercuryWorkshop/EpoxyTransport | **AGPL‑3.0‑only** |
-| **libcurl transport** | curl‑over‑Wisp transport | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0‑only** |
-| **libcurl.js** | WASM curl used by GUST | https://github.com/ading2210/libcurl.js | **LGPL‑3.0‑or‑later** |
-| **GUST** | Service‑worker‑free libcurl + Wisp browser | https://github.com/nautilus-os/GUST | **AGPL‑3.0** |
-| **HORIZON** | Single‑file proxy browser (a remodelled GUST) | https://github.com/RiptideMC/HORIZON | **AGPL‑3.0** |
-| **Interstellar** | Multi‑page proxy browser (Ultraviolet + Scramjet) | https://github.com/UseInterstellar/Interstellar | **AGPL‑3.0** |
+| **libcurl transport** | curl‑over‑Wisp transport (GUST's alternative to Epoxy) | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0‑only** |
+| **libcurl.js** | WASM curl, used by GUST and bundled inside HORIZON | https://github.com/ading2210/libcurl.js | **LGPL‑3.0‑or‑later** |
+| **GUST** | Service‑worker‑free proxy browser (libcurl.js + Wisp) | https://github.com/nautilus-os/GUST | **AGPL‑3.0** |
+| **HORIZON** | Single‑file proxy browser (a remodelled GUST: libcurl.js + Wisp) | https://github.com/RiptideMC/HORIZON | **AGPL‑3.0** |
 
-> **HORIZON and Interstellar run from this origin, under this server's tunnel.**
-> Both are vendored under [`proxy-engine/assets/`](../proxy-engine/assets/) and
-> mounted at `/horizon` and `/interstellar`. Each is **modified** so its Wisp
-> transport uses this deployment's own same-origin `/wisp/` endpoint rather than a
-> third-party relay — see the §5 declarations below.
+> **GUST and HORIZON run from this origin, under this server's tunnel.** They
+> are vendored under [`proxy-engine/assets/gust/`](../proxy-engine/assets/gust/)
+> and [`proxy-engine/assets/horizon/`](../proxy-engine/assets/horizon/), mounted
+> at `/gust` and `/horizon`. Both are **modified** so their Wisp transport uses
+> this deployment's own same-origin `/wisp/` endpoint rather than a third-party
+> relay — see the §5 declaration below.
 
-Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST, HORIZON,
-Interstellar**, and the **Wisp / Epoxy / libcurl transport stack** — is
-**AGPL‑3.0**, and **libcurl.js is LGPL‑3.0‑or‑later**. They are served to users
-**over a network by this deployment**, all from this origin, so their
-license notices are preserved in the vendored/npm files and the AGPL network‑use
-source offer below applies to all of them. **bare‑mux** is MIT (its
-`package.json` declares no license, but the package ships an MIT `LICENSE` file).
-None of these are covered by the ZoFHub License.
+Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST and
+HORIZON**, and the **Wisp / Epoxy / libcurl transport stack** — is
+**AGPL‑3.0**, and the **libcurl.js** used by GUST and bundled inside HORIZON
+is **LGPL‑3.0‑or‑later**. They are served to users **over a network by this
+deployment**, all from this origin, so their license notices are preserved in
+the vendored/npm files and the AGPL network‑use source offer below applies to
+all of them. **bare‑mux** is MIT (its `package.json` declares no license, but
+the package ships an MIT `LICENSE` file). None of these are covered by the
+ZoFHub License.
 
-> **Corrected 2026‑07‑30 — Ultraviolet and Scramjet are AGPL‑3.0, not MIT.**
-> Both npm packages declare `"license": "MIT"` in `package.json`, but both ship a
-> full **GNU AGPL‑3.0** text as their `LICENSE` file (661 lines, verified), and
-> GitHub reports Ultraviolet's repository as AGPL‑3.0. Where the manifest and the
-> LICENSE file disagree, **the LICENSE file is the operative grant**. This file and
-> the public credits page previously listed both as MIT, which understated the
+> **Corrected 2026‑07‑30 — Ultraviolet is AGPL‑3.0, not MIT.**
+> Its npm package declares `"license": "MIT"` in `package.json`, but it ships a
+> full **GNU AGPL‑3.0** text as its `LICENSE` file (661 lines, verified), and
+> GitHub reports the repository as AGPL‑3.0. Where the manifest and the LICENSE
+> file disagree, **the LICENSE file is the operative grant**. This file and the
+> public credits page previously listed it as MIT, which understated the
 > obligation: AGPL‑3.0 §13 requires a network‑use source offer, and MIT does not.
-> The §13 offer below now covers them.
+> The §13 offer below now covers it.
 
 ### AGPL‑3.0 §13 network‑use source offer (all served proxy engines)
 
-Covers **Ultraviolet, Scramjet, GUST, HORIZON, Interstellar, Wisp, Epoxy
-transport** and **libcurl transport**, plus **libcurl.js** under LGPL‑3.0.
+Covers **Ultraviolet, Scramjet, GUST, HORIZON, Wisp, Epoxy transport** and
+**libcurl transport**, plus the **libcurl.js** used by GUST and bundled inside
+HORIZON under LGPL‑3.0.
 
 Because ZoFHub serves the AGPL‑3.0 components above over a network, their users
 are offered the **corresponding source**: it is each project's upstream
 repository (linked above) at the version pinned in `package-lock.json`
 (`node_modules/@mercuryworkshop/*`, `node_modules/@titaniumnetwork-dev/ultraviolet`,
-and the vendored `proxy-engine/assets/gust/`). To request the source for a specific deployed
-build, ask in the official **ZoFHub Discord server** — the invite is linked from
-the footer of the live site.
+and the vendored `proxy-engine/assets/gust/` and `proxy-engine/assets/horizon/`).
+To request the source for a specific deployed build, ask in the official
+**ZoFHub Discord server** — the invite is linked from the footer of the live site.
 
-#### Three of them are modified — §5 declarations
+#### Two of them are modified — §5 declaration
 
 > **Corrected 2026‑09‑21.** This paragraph previously read *"ZoFHub runs them
 > unmodified."* That was **wrong**: several served AGPL‑3.0 components carry declared
@@ -69,9 +71,8 @@ the footer of the live site.
 
 | Component | Changed | What was changed | Corresponding source |
 |---|---|---|---|
-| **GUST** | 2026‑07‑30 | (1) Default Wisp server repointed to this site's **own same-origin `/wisp/`** instead of the upstream public `wisp.mercurywork.shop`, so proxy traffic never leaves this domain. (2) Added ZoFHub's shared cloak system (panic key, tab title/favicon cloaking) for parity with the rest of the site. | served at `/gust/index.html`, source at [`proxy-engine/assets/gust/index.html`](../proxy-engine/assets/gust/index.html) |
+| **GUST** | 2026‑07‑30 | Default Wisp server changed to this site's own same-origin `/wisp/` endpoint instead of the upstream public `wisp.mercurywork.shop`, so proxy traffic never leaves this domain. ZoFHub's shared cloak system (Ctrl+\` panic key, tab title/favicon cloaking) was also added, for parity with the rest of the site. | served at `/gust`, source at [`proxy-engine/assets/gust/index.html`](../proxy-engine/assets/gust/index.html) |
 | **HORIZON** | 2026‑10‑16 | Every Wisp reference is repointed to this site's own same-origin `/wisp/` endpoint, and the upstream pool of third-party public relays (and the built-in Discord client's own relay list) is removed, so proxied traffic is governed by this deployment's approved-destination policy instead of leaving to a stranger's relay. **No other file or feature is altered.** | served at `/horizon`, source at [`proxy-engine/assets/horizon/index.html`](../proxy-engine/assets/horizon/index.html) |
-| **Interstellar** | 2026‑10‑16 | (1) All asset, page and proxy-prefix paths are rewritten to live beneath `/interstellar`, so it runs as a same-origin sub-mount instead of owning the origin. (2) Its Wisp transport uses this deployment's own `/wisp/` tunnel. (3) The upstream Google Analytics tag (`GT-K46PHV4`) is removed so it does not beacon on page load. | served at `/interstellar`, source under [`proxy-engine/assets/interstellar/`](../proxy-engine/assets/interstellar/) |
 
 Every other component listed above **is** served unmodified.
 
@@ -166,8 +167,8 @@ Copyright © TitaniumNetwork and the InvisiProxy contributors — led by
 others named in the upstream repository's contributor and release records.
 
 **Why it is not vendored.** It is a complete proxy *application* built on the
-same primitives ZoFHub already integrates directly (Ultraviolet, Scramjet, Wisp,
-bare‑mux, epoxy), on Fastify + pnpm rather than Express + npm — so importing it
+same primitives ZoFHub already integrates directly (Ultraviolet, Scramjet,
+GUST, HORIZON, Wisp, bare‑mux, epoxy), on Fastify + pnpm rather than Express + npm — so importing it
 would duplicate working architecture rather than add capability. Decisively, it
 is **AGPL‑3.0** and ZoFHub's own LICENSE is proprietary: because ZoFHub is
 offered over a network, copying its source into the served work would engage

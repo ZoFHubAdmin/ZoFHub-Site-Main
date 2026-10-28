@@ -146,8 +146,8 @@ describe('keys are signed, expiring, and unforgeable', () => {
 
 describe('what is gated, and what must never be', () => {
   test('proxy surfaces are gated', () => {
-    for (const p of ['/browser', '/browser/', '/gust', '/horizon', '/interstellar',
-      '/interstellar/home', '/uv/service/abc', '/scram/service/x',
+    for (const p of ['/browser', '/browser/', '/horizon', '/horizon/x',
+      '/uv/service/abc',
       '/wisp/', '/baremux/worker.js', '/kasm', '/invisi', '/api/proxies']) {
       assert.equal(isGatedPath(p), true, `${p} should be gated`);
     }

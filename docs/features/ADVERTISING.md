@@ -114,7 +114,7 @@ This is a compliance and security boundary, not a layout preference.
 | | What it is | Ads |
 |---|---|---|
 | **Native** | Pages ZoFHub authored — catalog, game pages, AI, community | Permitted |
-| **Proxy** | `/browser`, `/gust`, `/horizon`, `/interstellar`, the engine and transport paths, Wisp, service workers, and the companion engines (`/kasm`, `/invisi`) | **Never** |
+| **Proxy** | `/browser`, `/horizon`, the engine and transport paths, Wisp, service workers, and the companion engines (`/kasm`, `/invisi`) | **Never** |
 
 The authoritative list is **`PROXY_SURFACES`** in `lib/ad-providers.mjs`; the
 row above is a summary. `/donate` is deliberately ad-free as well.
@@ -221,9 +221,9 @@ mobile user agent, not an iPad reporting a desktop UA).
 console setting `ads.adblock_gate` is on), a visitor whose content blocker stays
 on for **3 page views or game plays** finds the **premium engines** — every
 standalone companion (NautilusOS, DayDream, Nebula, InvisiProxy, Kasm) — locked
-in `/browser` until they pause it and refresh. The built-in engines (Scramjet,
-Ultraviolet, GUST, HORIZON, Interstellar) are never locked. The
-games hub and the built-in engines (Scramjet, Ultraviolet, GUST) are **never**
+in `/browser` until they pause it and refresh. The built-in engines (Ultraviolet,
+HORIZON) are never locked. The
+games hub and the built-in engines (Ultraviolet, Scramjet, GUST, HORIZON) are **never**
 locked.
 
 - **Detection**, from three independent signals: a bait element carrying the

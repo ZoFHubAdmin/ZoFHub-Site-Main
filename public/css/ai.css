@@ -13,6 +13,27 @@
   height: calc(100dvh - var(--header-h) - 16px - var(--inapp-bar-h, 0px));
   min-height: 480px;
 }
+/* PolliChat top bar: a mobile history toggle + title + status, sitting above
+   the message feed inside .ai-main. New chat / History / provider switch all
+   live in the sidebar now (.ai-side); kept slim so the chat still owns the
+   screen. */
+.ai-topbar { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--line); }
+.ai-topbar-title { font-weight: 800; font-size: 14px; letter-spacing: -.2px; color: var(--text); }
+.ai-topbar .ai-engine-status { margin-left: 4px; flex: 1 1 auto; }
+.ai-new-btn { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 12px; font-size: 12.5px; font-weight: 700; color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: background .12s, border-color .12s; }
+.ai-new-btn:hover { background: rgba(255,212,38,.14); border-color: #8b7cff55; }
+/* Hamburger that opens the sidebar as a drawer below 840px (hidden above it —
+   the sidebar is already visible there). See the drawer rules at the bottom
+   of this file. */
+.ai-side-toggle {
+  display: none; flex: 0 0 auto;
+  width: 32px; height: 32px;
+  align-items: center; justify-content: center;
+  color: var(--text-dim); background: transparent;
+  border: 1px solid var(--line); border-radius: 9px;
+  cursor: pointer; transition: background .12s, color .12s;
+}
+.ai-side-toggle:hover { color: var(--text); background: rgba(255,255,255,.06); }
 .ai-side {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -64,6 +85,19 @@
 }
 .ai-history-item:hover .ai-history-del, .ai-history-item.active .ai-history-del { opacity: .85; }
 .ai-history-del:hover { opacity: 1; color: #fff; background: rgba(255,80,80,.55); }
+.ai-history-empty { padding: 10px 4px; font-size: 12.5px; color: var(--text-mute); }
+/* ── Provider switch (sidebar foot): PolliChat vs Puter.js ── */
+.ai-provider-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute); padding: 0 4px 6px; }
+.ai-provider { display: flex; gap: 4px; padding: 3px; background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 10px; }
+.ai-provider-btn {
+  flex: 1 1 50%; padding: 7px 6px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; text-align: center;
+  color: var(--text-mute); background: transparent; border: 0; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.ai-provider-btn:hover { color: var(--text); }
+.ai-provider-btn.active { background: var(--brand); color: var(--brand-ink); }
+.ai-provider-note { margin: 7px 2px 0; font-size: 10.8px; line-height: 1.4; color: var(--text-mute); }
 /* AI media (audio / video) */
 .ai-media-wrap { display: flex; flex-direction: column; gap: 6px; }
 .ai-audio { width: 100%; min-width: 240px; }
@@ -330,7 +364,27 @@
 
 @media (max-width: 840px) {
   .ai-shell { grid-template-columns: 1fr; height: auto; min-height: 0; }
-  .ai-side { display: none; }
+  .ai-side-toggle { display: flex; }
+  /* Below 840px the sidebar stops taking grid space and becomes a drawer,
+     opened by .ai-side-toggle in the topbar (/js/pollichat.js's
+     bindSideToggle). Hidden off-screen by default, not display:none — it must
+     stay in the layout so the slide transition has something to animate. */
+  .ai-side {
+    position: fixed; top: var(--header-h); left: 0; bottom: 0;
+    width: min(300px, 86vw);
+    border-radius: 0; margin: 0;
+    z-index: 125;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    box-shadow: 12px 0 32px rgba(0,0,0,.4);
+  }
+  .ai-side.is-open { transform: translateX(0); }
+  .ai-side-backdrop {
+    position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0;
+    z-index: 124; background: rgba(4,8,20,.55);
+    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+  }
+  .ai-side-backdrop.is-open { opacity: 1; pointer-events: auto; }
   .ai-image { width: 100%; }
 }
 

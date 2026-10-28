@@ -81,7 +81,13 @@
         <li><code>zofhub:ai:cache:v1</code> (local storage) &mdash; keeps answers the AI has already
           given you on this device, so asking the same question again is instant. It holds your own
           questions and their answers, never leaves your browser, and is cleared when you clear your
-          browser storage. Deleting your chats on the AI page also clears your saved conversations.</li>
+          browser storage.</li>
+        <li><code>zofhub:v2:chats</code> (local storage) &mdash; your saved AI conversations, from the
+          AI page and the floating assistant alike, so your History list is the same wherever you
+          started a chat. Deleting a chat, or using Clear all, removes it from here; it never leaves
+          your browser.</li>
+        <li><code>pollichat:provider:v1</code> (local storage) &mdash; remembers which AI you last
+          picked on the AI page, PolliChat or Puter.js, so it is already selected next time.</li>
       </ul>
 
       <h2>3. Third-party cookies</h2>
@@ -106,6 +112,12 @@
           we use no other advertising network, and never Google AdSense.</li>
         <li><strong>Not on the proxy.</strong> No advertising cookie or script of ours is loaded on
           <code>/browser</code> or any other proxy page. Advertising runs only on ZoFHub's own pages.</li>
+        <li><strong>Puter.js (optional, on the AI page).</strong> PolliChat is the AI page's default and
+          needs no account. If you choose "Puter.js" instead, your message goes directly from your
+          browser to Puter's own service, under your own Puter account &mdash; we are not in that path
+          and have no account with Puter on your behalf. Puter may set its own cookies or local storage
+          to keep you signed in; see
+          <a href="https://puter.com/privacy" target="_blank" rel="noopener">Puter's privacy policy</a>.</li>
       </ul>
 
       <h2>4. Your choices</h2>

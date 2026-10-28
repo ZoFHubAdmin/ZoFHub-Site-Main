@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#1a0b3d" />
+  <title>AI · ZoFHub</title>
+  <!-- Open Graph / social share -->
+  <meta property="og:site_name" content="ZoFHub" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta property="og:description" content="ZoFHub is a cloud-based web-security sandboxing tool and browser diagnostic hub — open sites inside an isolated, sandboxed session and inspect how they load, render and behave." />
+  <meta property="og:image" content="/assets/favicon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
+  <meta name="twitter:description" content="Cloud-based web-security sandbox and browser diagnostics — isolated sessions, safe inspection." />
+  <meta name="twitter:image" content="/assets/favicon.png" />
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" /></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=20260801a" />
+  <link rel="stylesheet" href="/css/ai.css?v=20261025" />
+</head>
+<body class="page-ai">
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span class="brand-wordmark">ZoFHub</span>
+      </a>
+      <div class="header-spacer"></div>
+      <nav class="top-nav">
+        <a href="/">Games</a>
+        <a href="/ai" class="active">AI</a>
+        <a href="/community">Community</a>
+        <a href="/browser">Browser</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- PolliChat: a provider switcher picks which AI answers —
+       · PolliChat (default): a browser-direct GET to
+         https://text.pollinations.ai/<your message>, read with response.text().
+         See /js/pollinations.js and /js/pollichat.js.
+       · Puter.js: puter.ai.chat(), run under the visitor's OWN Puter account.
+         See /js/puter.js.
+       Either way the request leaves THIS browser directly — no server hop.
+       Every saved chat (from this page or the floating orb) lives in
+       store.chats (/js/storage.js) and shows up in the History list here. -->
+  <main class="ai-shell">
+    <aside class="ai-side" id="aiSide">
+      <button class="ai-new" id="aiNew" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New chat
+      </button>
+      <div class="ai-side-label">
+        <span>History</span>
+        <button class="ai-clear-all" id="aiClearAll" type="button">Clear all</button>
+      </div>
+      <div class="ai-history" id="aiHistoryList"></div>
+      <div class="ai-side-foot">
+        <div class="ai-provider-label">AI provider</div>
+        <div class="ai-provider" id="aiProvider" role="group" aria-label="Choose which AI answers">
+          <button type="button" class="ai-provider-btn active" data-provider="pollichat">PolliChat</button>
+          <button type="button" class="ai-provider-btn" data-provider="puter">Puter.js</button>
+        </div>
+        <p class="ai-provider-note">Puter.js uses your own free Puter account — a sign-in window may open the first time.</p>
+      </div>
+    </aside>
+    <section class="ai-main">
+      <!-- The page's own h1. It lives OUTSIDE #aiMessages on purpose: render()
+           in /js/pollichat.js rewrites that container, so a heading inside it
+           would disappear the moment the first message was sent. Visually hidden
+           because the welcome card below already presents the title; structurally
+           it is what makes the outline h1 - h2 - h3 (the shared footer's columns
+           are h3). -->
+      <h1 class="sr-only">ZoFHub AI</h1>
+      <!-- Slim top bar. The history/new-chat controls live in the sidebar; on a
+           narrow screen that sidebar becomes a drawer, opened from the button
+           below (/js/pollichat.js's bindSideToggle). -->
+      <div class="ai-topbar">
+        <button class="ai-side-toggle" id="aiSideToggle" type="button" aria-label="Chat history" aria-expanded="false" aria-controls="aiSide">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <span class="ai-topbar-title" aria-hidden="true">PolliChat</span>
+        <span class="ai-engine-status" id="aiEngineStatus">AI ready · free tier</span>
+      </div>
+      <div class="ai-messages" id="aiMessages">
+        <div class="ai-welcome">
+          <div class="ai-welcome-mark"></div>
+          <h2>What can I help you figure out today?</h2>
+          <p>Ask a question, explore an idea, or get help with something you're building. Free to use.</p>
+          <div class="ai-suggest">
+            <button class="ai-suggest-card" data-prompt="Explain how artificial intelligence works in simple terms."><b>🧠 Understand AI</b><span>Explain a complex topic simply</span></button>
+            <button class="ai-suggest-card" data-prompt="Give me three practical website ideas I could build as a beginner, with a small first version for each."><b>💡 Brainstorm ideas</b><span>Find something worth building</span></button>
+            <button class="ai-suggest-card" data-prompt="Help me debug a coding problem. Start by asking me for the code and the error message."><b>💻 Coding help</b><span>Work through a technical problem</span></button>
+            <button class="ai-suggest-card" data-prompt="Teach me one surprising science fact and explain why it is true."><b>🔭 Learn something</b><span>Explore a new subject</span></button>
+          </div>
+        </div>
+      </div>
+
+      <form class="ai-composer" id="aiForm">
+        <label class="sr-only" for="aiInput">Your message to ZoFHub AI</label>
+        <textarea id="aiInput" rows="1" placeholder="Ask ZoFHub AI…" required></textarea>
+        <button type="submit" class="ai-send" id="aiSend" aria-label="Send">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+        </button>
+      </form>
+      <!-- No /image hint: there is no AI image generation anywhere on this site.
+           No "free &amp; unlimited" either — PolliChat's free tier is rate-limited
+           and Puter.js runs on the visitor's own account, so claiming either is
+           unlimited would simply be untrue. -->
+      <div class="ai-hint">Enter to send · Shift+Enter for newline</div>
+      <!-- Sits directly under the composer, so it is read at the moment of use
+           rather than buried in a footer nobody scrolls to. role="note" keeps it
+           out of the live-region chatter as replies arrive. -->
+      <p class="ai-disclaimer" role="note">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        AI responses may be inaccurate, incomplete, unavailable, or limited by the
+        provider's free tier. Verify important information. Avoid entering
+        passwords, private personal information, or other sensitive data. If this
+        AI doesn't answer, try switching to <b>Puter.js</b> in the sidebar, or open
+        the <a href="/browser">Browser</a> and use ChatGPT, Claude, or any other AI
+        directly.
+      </p>
+    </section>
+  </main>
+
+  <!-- The same footer as every other page, built by mountFooter() in
+       /js/layout.js. The chat shell above is sized to the first screen, so this
+       sits below it and is reached by scrolling, exactly as on /, /community and
+       the legal pages. -->
+  <footer class="site-footer"></footer>
+
+  <script type="module" src="/js/layout.js?v=20260919"></script>
+  <script type="module" src="/js/panic.js?v=20260729b"></script>
+  <script type="module" src="/js/pollichat.js?v=20261025"></script>
+</body>
+</html>

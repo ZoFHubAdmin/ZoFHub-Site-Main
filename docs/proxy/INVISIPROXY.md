@@ -71,7 +71,7 @@ This repository already reasons this way about GPL code; see the header of
 it, for the same argument applied to GPL-3.0.
 
 > **ZoFHub's own AGPL obligations are unchanged by this document.** The site
-> already serves Ultraviolet, Scramjet, Wisp, epoxy and libcurl.js to visitors,
+> already serves Ultraviolet, Scramjet, GUST, HORIZON, Wisp, epoxy and libcurl.js to visitors,
 > and `lib/licenses.mjs` carries the §5 change notices and §13 source offer for
 > those. Nothing here weakens that.
 
@@ -305,7 +305,7 @@ URL, and keeping it that way is what keeps §1 true.
 | Check | Result |
 |---|---|
 | `npm test` | see the report — includes 27 policy + 12 live egress-security tests |
-| `npm run verify-proxy` | 6/6 pages rendered through Scramjet, Ultraviolet **and GUST** |
+| `npm run verify-proxy` | pages rendered through all four built-in engines: **Ultraviolet, Scramjet, GUST, HORIZON** |
 | SSRF against a live tunnel | 5/5 internal destinations refused; control case reached |
 | Upstream licence | AGPL-3.0 confirmed via GitHub API at commit `243206fc` |
 

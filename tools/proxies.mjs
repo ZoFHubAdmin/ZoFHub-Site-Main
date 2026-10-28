@@ -2,7 +2,7 @@
 //
 //   npm run proxies
 //
-// ZoFHub embeds Ultraviolet, Scramjet and GUST directly (same origin).  The
+// ZoFHub embeds Ultraviolet and HORIZON directly (same origin).  The
 // other open-source proxy browsers the project ships — NautilusOS, DayDream,
 // Nebula — are whole self-contained apps that assume they own the site
 // root, so they can't be nested under a sub-path of ZoFHub without service-worker
@@ -207,7 +207,7 @@ setTimeout(() => {
     for (const s of skipped) console.log('  • ' + s);
   }
   console.log('\nThese are LOCAL-ONLY extras. Your real site (and every deploy) uses the');
-  console.log('built-in Scramjet · Ultraviolet · GUST engines, which always work.');
+  console.log('built-in Ultraviolet · HORIZON engines, which always work.');
   console.log('Open /browser and any RUNNING companion above will appear in the dropdown.');
   console.log('Press Ctrl+C to stop all companion services.\n');
 }, 600);

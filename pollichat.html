@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>PolliChat — AI Chat</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: rgba(18, 25, 47, .88);
+      --panel-2: #151d35;
+      --line: rgba(255,255,255,.09);
+      --text: #edf2ff;
+      --muted: #9ba8c7;
+      --accent: #8b7cff;
+      --accent-2: #54d6c8;
+      --user: #6256d9;
+      --assistant: #18223c;
+      --danger: #ff8c9a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background:
+        radial-gradient(ellipse at 15% 0%, rgba(92,75,210,.22), transparent 42%),
+        radial-gradient(ellipse at 100% 100%, rgba(42,188,174,.10), transparent 38%), var(--bg);
+      color: var(--text); font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex; justify-content: center;
+    }
+    .app { width: min(100%, 1000px); min-height: 100vh; display: flex; flex-direction: column; padding: 0 22px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .logo { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; font-size: 21px; background: linear-gradient(135deg, var(--accent), #4bcdbf); box-shadow: 0 8px 28px #6457d944; }
+    h1 { font-size: 17px; margin: 0; letter-spacing: -.3px; }
+    .subtitle { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    button { font: inherit; cursor: pointer; }
+    .clear { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 11px; padding: 9px 12px; }
+    .clear:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    main { flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 780px; margin: 0 auto; }
+    .welcome { margin: auto 0; text-align: center; padding: 58px 10px 42px; }
+    .orb { width: 72px; height: 72px; margin: 0 auto 22px; border-radius: 24px; display: grid; place-items: center; font-size: 32px; background: linear-gradient(135deg, #7769ff33, #42d7c533); border: 1px solid #a49bff30; }
+    .welcome h2 { font-size: clamp(25px, 5vw, 38px); letter-spacing: -1.2px; line-height: 1.15; margin: 0 0 12px; }
+    .welcome p { max-width: 470px; margin: 0 auto; color: var(--muted); }
+    .suggestions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; max-width: 600px; margin: 26px auto 0; }
+    .suggestion { text-align: left; border: 1px solid var(--line); background: rgba(255,255,255,.025); color: var(--text); border-radius: 14px; padding: 13px 14px; transition: .18s; }
+    .suggestion:hover { border-color: #8b7cff80; background: #8b7cff12; transform: translateY(-1px); }
+    .suggestion span { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+    #messages { display: flex; flex-direction: column; gap: 20px; padding: 28px 0 18px; }
+    .message { display: flex; gap: 11px; align-items: flex-start; animation: appear .18s ease-out; }
+    .message.user { flex-direction: row-reverse; }
+    .avatar { flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 11px; font-size: 14px; background: #242d4a; }
+    .message.user .avatar { background: #6256d9; }
+    .bubble { max-width: min(85%, 650px); padding: 12px 15px; border: 1px solid var(--line); border-radius: 4px 16px 16px 16px; background: var(--assistant); overflow-wrap: anywhere; white-space: pre-wrap; }
+    .message.user .bubble { background: linear-gradient(135deg, #6558df, #5147bb); border-color: transparent; border-radius: 16px 4px 16px 16px; }
+    .bubble.error { color: var(--danger); }
+    .typing { color: var(--muted); display: inline-flex; gap: 5px; align-items: center; }
+    .dot { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: pulse 1s infinite ease-in-out; }
+    .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
+    .composer-wrap { position: sticky; bottom: 0; padding: 16px 0 12px; background: linear-gradient(180deg, transparent, var(--bg) 22%); }
+    .composer { display: flex; align-items: flex-end; gap: 10px; padding: 10px; border-radius: 18px; border: 1px solid #8b7cff50; background: var(--panel); box-shadow: 0 15px 55px #0003; backdrop-filter: blur(16px); }
+    textarea { flex: 1; resize: none; min-height: 42px; max-height: 160px; padding: 10px 8px; color: var(--text); border: 0; outline: 0; background: transparent; font: inherit; }
+    textarea::placeholder { color: #7f8bab; }
+    .send { flex: 0 0 43px; height: 43px; border: 0; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--accent), #6a5ae0); font-size: 20px; box-shadow: 0 5px 18px #7666ff35; }
+    .send:disabled { opacity: .45; cursor: not-allowed; }
+    .hint { text-align: center; color: #7884a3; font-size: 11px; padding: 8px 0 12px; }
+    .status { min-height: 18px; color: var(--muted); font-size: 12px; margin: 0 4px 6px; }
+    footer { border-top: 1px solid var(--line); padding: 14px 0 18px; color: #7783a0; font-size: 11px; text-align: center; }
+    @keyframes pulse { 0%,80%,100% { opacity: .35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+    @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 520px) {
+      .app { padding: 0 14px; } header { padding: 16px 0; } .suggestions { grid-template-columns: 1fr; }
+      .welcome { padding-top: 38px; } .bubble { max-width: 90%; } .clear { padding: 8px 9px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">✦</div>
+        <div><h1>PolliChat</h1><div class="subtitle">A simple AI chat powered by Pollinations</div></div>
+      </div>
+      <button class="clear" id="clearBtn" type="button">＋ New chat</button>
+    </header>
+
+    <main>
+      <section class="welcome" id="welcome">
+        <div class="orb" aria-hidden="true">✧</div>
+        <h2>What can I help you<br>figure out today?</h2>
+        <p>Ask a question, explore an idea, or get help with something you're building.</p>
+        <div class="suggestions">
+          <button class="suggestion" type="button" data-prompt="Explain how artificial intelligence works in simple terms.">🧠 Understand AI<span>Explain a complex topic simply</span></button>
+          <button class="suggestion" type="button" data-prompt="Give me three practical website ideas I could build as a beginner, with a small first version for each.">💡 Brainstorm ideas<span>Find something worth building</span></button>
+          <button class="suggestion" type="button" data-prompt="Help me debug a coding problem. Start by asking me for the code and the error message.">💻 Coding help<span>Work through a technical problem</span></button>
+          <button class="suggestion" type="button" data-prompt="Teach me one surprising science fact and explain why it is true.">🔭 Learn something<span>Explore a new subject</span></button>
+        </div>
+      </section>
+      <section id="messages" aria-live="polite" aria-label="Chat messages"></section>
+      <div class="composer-wrap">
+        <div class="status" id="status" role="status"></div>
+        <form class="composer" id="chatForm">
+          <textarea id="promptInput" rows="1" maxlength="4000" placeholder="Message PolliChat..." aria-label="Your message"></textarea>
+          <button class="send" id="sendBtn" type="submit" aria-label="Send message">↑</button>
+        </form>
+        <div class="hint">Enter to send · Shift + Enter for a new line</div>
+      </div>
+    </main>
+    <footer>AI can make mistakes. Verify important information. Messages are sent to Pollinations to generate replies.</footer>
+  </div>
+
+  <script>
+    // This is a lightweight frontend demo. It calls the text endpoint directly;
+    // it does not scrape a webpage or require a separate backend.
+    const API_BASE = "https://text.pollinations.ai/";
+    const SYSTEM_PROMPT = "You are PolliChat, a helpful, accurate, friendly AI assistant. Answer clearly and directly. If you are uncertain, say so.";
+    const STORAGE_KEY = "pollichat.messages.v1";
+    const MAX_CONTEXT_MESSAGES = 10;
+
+    const form = document.getElementById("chatForm");
+    const input = document.getElementById("promptInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const messagesEl = document.getElementById("messages");
+    const welcome = document.getElementById("welcome");
+    const statusEl = document.getElementById("status");
+    const clearBtn = document.getElementById("clearBtn");
+
+    let history = [];
+    let busy = false;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (Array.isArray(saved)) history = saved.filter(m =>
+        m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"
+      ).slice(-40);
+    } catch (_) { history = []; }
+
+    function saveHistory() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-40))); } catch (_) {}
+    }
+    function scrollBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }
+    function makeMessage(role, content, extraClass = "") {
+      const row = document.createElement("div");
+      row.className = "message " + (role === "user" ? "user" : "assistant");
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = role === "user" ? "You" : "✦";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble" + (extraClass ? " " + extraClass : "");
+      // textContent is intentional: model output is shown as text, not executable HTML.
+      bubble.textContent = content;
+      row.append(avatar, bubble);
+      messagesEl.appendChild(row);
+      return { row, bubble };
+    }
+    function renderHistory() {
+      messagesEl.replaceChildren();
+      welcome.hidden = history.length > 0;
+      history.forEach(m => makeMessage(m.role, m.content));
+      scrollBottom();
+    }
+    function setBusy(value) {
+      busy = value;
+      sendBtn.disabled = value;
+      input.disabled = value;
+      sendBtn.textContent = value ? "…" : "↑";
+    }
+    function fitInput() {
+      input.style.height = "auto";
+      input.style.height = Math.min(input.scrollHeight, 160) + "px";
+    }
+    input.addEventListener("input", fitInput);
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    async function sendMessage(rawText) {
+      const userText = rawText.trim();
+      if (!userText || busy) return;
+      welcome.hidden = true;
+      history.push({ role: "user", content: userText });
+      makeMessage("user", userText);
+      saveHistory();
+      input.value = "";
+      fitInput();
+      setBusy(true);
+      statusEl.textContent = "Connecting to Pollinations…";
+      const loading = makeMessage("assistant", "");
+      loading.bubble.innerHTML = '<span class="typing">Thinking <span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+      scrollBottom();
+
+      try {
+        // Keep recent turns in the prompt so the model has basic conversational context.
+        const recent = history.slice(-MAX_CONTEXT_MESSAGES);
+        const transcript = recent.map(m =>
+          (m.role === "user" ? "User: " : "Assistant: ") + m.content
+        ).join("\n\n");
+        const fullPrompt = SYSTEM_PROMPT + "\n\nConversation so far:\n" + transcript +
+          "\n\nAssistant: Reply to the latest user message. Do not repeat the transcript.";
+        // The prompt belongs in the URL path. encodeURIComponent makes spaces safe
+        // (for example, "Explain AI" becomes "Explain%20AI").
+        const url = API_BASE + encodeURIComponent(fullPrompt);
+        let answer = "";
+        let lastError = null;
+
+        // Retry only transient network/server errors. Do not retry a provider quota
+        // or free-limit message, because repeating it will not legitimately bypass a limit.
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const response = await fetch(url, {
+              method: "GET",
+              headers: { "Accept": "text/plain" },
+              cache: "no-store"
+            });
+
+            const body = (await response.text()).trim();
+            if (response.status === 429 || /free limit reached|rate limit|quota exceeded/i.test(body)) {
+              throw new Error("Pollinations reports that its free limit or rate limit has been reached. Please wait and try again later.");
+            }
+            if (!response.ok) {
+              if (response.status >= 500 && attempt < 2) {
+                await new Promise(resolve => setTimeout(resolve, 900));
+                continue;
+              }
+              throw new Error("Pollinations returned HTTP " + response.status + ".");
+            }
+
+            // Usually the endpoint returns plain text. If an HTML page is returned,
+            // extract its visible text instead of displaying markup.
+            if (/<html[\s>]/i.test(body) || /<!doctype html/i.test(body)) {
+              const doc = new DOMParser().parseFromString(body, "text/html");
+              answer = (doc.body ? doc.body.innerText : doc.documentElement.innerText).trim();
+            } else {
+              answer = body;
+            }
+            if (!answer) throw new Error("The AI returned an empty response. Please try again.");
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+            const message = error && error.message ? error.message : "";
+            if (/free limit|rate limit|quota exceeded|HTTP 4\d\d/i.test(message) || attempt >= 2) break;
+            await new Promise(resolve => setTimeout(resolve, 700));
+          }
+        }
+        if (lastError) throw lastError;
+        loading.row.remove();
+        history.push({ role: "assistant", content: answer });
+        saveHistory();
+        makeMessage("assistant", answer);
+        statusEl.textContent = "";
+      } catch (error) {
+        loading.row.remove();
+        const reason = error && error.message ? error.message : "Unknown network error.";
+        makeMessage("assistant", "Sorry, I couldn't get a response. " + reason +
+          " Check your connection and try again. If this keeps happening, the API may be unavailable or blocking browser requests.", "error");
+        statusEl.textContent = "Request failed";
+      } finally {
+        setBusy(false);
+        input.focus();
+        scrollBottom();
+      }
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      sendMessage(input.value);
+    });
+    document.querySelectorAll("[data-prompt]").forEach(button => {
+      button.addEventListener("click", () => sendMessage(button.dataset.prompt));
+    });
+    clearBtn.addEventListener("click", () => {
+      if (busy) return;
+      history = [];
+      saveHistory();
+      messagesEl.replaceChildren();
+      welcome.hidden = false;
+      statusEl.textContent = "";
+      input.value = "";
+      fitInput();
+      input.focus();
+    });
+
+    renderHistory();
+  </script>
+</body>
+</html>

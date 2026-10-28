@@ -56,17 +56,18 @@ const TARGETS = [
   { url: 'https://example.com/', marker: 'Example Domain' },
   { url: 'https://www.wikipedia.org/', marker: 'Wikipedia' },
 ];
-// GUST is checked differently from the other two and it is worth saying why.
-// Scramjet and Ultraviolet are SERVICE-WORKER engines: the page's own address
-// bar drives them and the proxied document lands in #gustFrame, whose src
-// encodes the target. GUST is an 'app' engine — it owns a whole browser UI, so
-// /gust/ loads into #gustFrame and GUST renders the page into an iframe of its
-// OWN (#frame), from a blob: URL. So it needs its own address bar (#url, one
-// level down) and there is no encoded src to check; the rendered text is the
-// evidence. Leaving it out meant a third of the built-in engines had no check
-// at all.
-const ENGINES = ['scramjet', 'uv', 'gust'];
-const APP_ENGINES = new Set(['gust']);
+// GUST and HORIZON are checked differently from the other two, and it is worth
+// saying why. Scramjet and Ultraviolet are SERVICE-WORKER engines: the page's
+// own address bar drives them and the proxied document lands in #gustFrame,
+// whose src encodes the target. GUST and HORIZON are 'app' engines — each
+// owns a whole browser UI, so /gust or /horizon loads into #gustFrame and the
+// app renders the page into an iframe of its OWN (#frame, from a blob: URL;
+// HORIZON is a remodelled GUST and shares that exact shape). So each needs its
+// own address bar (#url, one level down) and there is no encoded src to check;
+// the rendered text is the evidence. Leaving either out would mean half the
+// built-in engines had no check at all.
+const ENGINES = ['scramjet', 'uv', 'gust', 'horizon'];
+const APP_ENGINES = new Set(['gust', 'horizon']);
 
 const only = flag('engine');
 const customTarget = flag('target');

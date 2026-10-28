@@ -26,7 +26,8 @@ import { detectInAppBrowser, externalBrowserLink, INAPP_MESSAGE } from './inapp.
 (function killStaleServiceWorker() {
   try {
     if (!('serviceWorker' in navigator)) return;
-    if (/^\/(uv|scram|gust|epoxy|baremux)\//.test(location.pathname)) return; // proxy areas: leave alone
+    if (/^\/(uv|scram|epoxy|baremux|libcurl)\//.test(location.pathname)
+      || location.pathname === '/horizon' || location.pathname === '/gust' || location.pathname === '/proxy') return; // proxy areas: leave alone
     navigator.serviceWorker.getRegistrations().then(regs => {
       for (const r of regs) {
         if (r.scope === location.origin + '/') {        // only a ROOT-scoped worker
@@ -44,7 +45,7 @@ import { detectInAppBrowser, externalBrowserLink, INAPP_MESSAGE } from './inapp.
 //
 // TikTok, Instagram, Facebook and friends open links in their own web view,
 // where the proxy engines cannot work: on iOS that view has no Service
-// Workers, so Ultraviolet and Scramjet never start and GUST renders blank.
+// Workers, so Ultraviolet never starts and HORIZON renders blank.
 // The only fix is the visitor's — open the page in Safari or Chrome — so the
 // page says so, at the top, on every page.
 //
@@ -539,7 +540,7 @@ const NAV_LINKS = [
  */
 function pruneGatedLinks() {
   if (proxyBrowserVisible()) return;
-  for (const a of document.querySelectorAll('a[href^="/browser"], a[href^="/gust"]')) {
+  for (const a of document.querySelectorAll('a[href^="/browser"], a[href^="/horizon"], a[href^="/gust"], a[href^="/proxy"]')) {
     // Drop the whole list item where there is one, so the nav does not keep a
     // stray separator or an empty bullet where the link used to be.
     (a.closest('li') || a).remove();
@@ -710,7 +711,7 @@ mountAIStub();
 // browser.html imports this module for the site chrome (header, nav, theme), so
 // without this check configuring any network would have started serving ads on
 // the proxy page. That is what this exists to prevent.
-const PROXY_SURFACE_RE = /^\/(browser|gust|proxy|uv|sj|scram|epoxy|libcurl|baremux|wisp|bare|service)(\/|$)/i;
+const PROXY_SURFACE_RE = /^\/(browser|horizon|gust|proxy|uv|scram|epoxy|baremux|libcurl|wisp|bare|service)(\/|$)/i;
 const ADS_ALLOWED_HERE = !PROXY_SURFACE_RE.test(location.pathname);
 
 // Start watching for blocked ad scripts BEFORE any can be injected: load and

@@ -5,8 +5,8 @@
 # WebSocket tunnel for the proxy. Vercel's serverless functions can't do any of
 # those. Use a persistent host: Render (this file), Railway, Fly.io, or a VPS.
 #
-# ZoFHub is ALWAYS a proxy site — the web proxy (GUST / Ultraviolet / Scramjet /
-# Wisp) is always on. There is NO separate hub / Google-AdSense mode: Google bans
+# ZoFHub is ALWAYS a proxy site — the web proxy (Ultraviolet / HORIZON / Wisp)
+# is always on. There is NO separate hub / Google-AdSense mode: Google bans
 # proxy / anonymizer domains at the account level, so monetization is solely via
 # six proxy-friendly ad networks, one role each (lib/ad-providers.mjs). This is
 # ONE service, deployed once.

@@ -33,7 +33,7 @@ function codeOnly(p) {
   return s;
 }
 
-const CLIENT_FILES = ['public/js/pollinations.js', 'public/js/ai.js', 'public/js/ai-helper.js'];
+const CLIENT_FILES = ['public/js/pollinations.js', 'public/js/pollichat.js', 'public/js/ai-helper.js', 'public/js/puter.js'];
 
 // ───────────────────────────────────────────────────────────────────────────
 describe('the URL: the prompt goes after the final slash', () => {
@@ -418,7 +418,7 @@ describe('the browser talks to Pollinations, and nothing else does', () => {
 
   test('only the shared client names the endpoint', () => {
     // Two places building this URL is how one of them drifts.
-    for (const f of ['public/js/ai.js', 'public/js/ai-helper.js']) {
+    for (const f of ['public/js/pollichat.js', 'public/js/ai-helper.js']) {
       assert.doesNotMatch(codeOnly(f), /text\.pollinations\.ai/,
         `${f} builds its own request instead of using the shared client`);
     }
@@ -429,7 +429,7 @@ describe('the browser talks to Pollinations, and nothing else does', () => {
     // A module specifier is cache-keyed by its full URL, so two different ?v=
     // values load pollinations.js twice as two independent instances.
     const versionOf = (f) => codeOnly(f).match(/\.\/pollinations\.js(\?v=[\w.-]+)?/)?.[1] ?? null;
-    const a = versionOf('public/js/ai.js');
+    const a = versionOf('public/js/pollichat.js');
     const b = versionOf('public/js/ai-helper.js');
     assert.ok(a !== null && b !== null, 'an AI entry point does not import the shared client');
     assert.equal(a, b, 'the two entry points import pollinations.js at different ?v= versions');
@@ -487,25 +487,30 @@ describe('no local inference engine', () => {
   });
 
   test('the AI page loads no inference library', () => {
-    assert.doesNotMatch(codeOnly('public/ai.html'), /transformers|onnxruntime|webllm/i);
+    assert.doesNotMatch(codeOnly('public/pollichat.html'), /transformers|onnxruntime|webllm/i);
   });
 
-  test('no second AI provider is imported anywhere', () => {
-    for (const f of [...CLIENT_FILES, 'public/ai.html']) {
+  test('Hugging Face stays gone — it is not the second provider', () => {
+    for (const f of [...CLIENT_FILES, 'public/pollichat.html']) {
       const code = codeOnly(f);
-      assert.doesNotMatch(code, /puter/i, `${f} references Puter.js`);
       assert.doesNotMatch(code, /huggingface|hf-inference|hf-models/i, `${f} references Hugging Face`);
     }
   });
 
   test('the removed provider modules are really gone', () => {
+    // puter.js is a NEW, deliberately different file (see the describe block
+    // below) — these are the OLD shapes (a settings panel with a stored token,
+    // a per-provider picker, the Hugging Face inference client) that must stay
+    // gone regardless of which providers are active.
     for (const f of ['public/js/puter-ai.js', 'public/js/ai-provider.js', 'public/js/ai-settings.js',
                      'public/js/hf-inference.js', 'public/js/hf-models.js']) {
       assert.equal(existsSync(join(ROOT, f)), false, `${f} still exists`);
     }
   });
 
-  test('the provider dependencies went with them', () => {
+  test('neither provider is an npm dependency', () => {
+    // Puter.js is loaded from js.puter.com at runtime (see puter.js), only once
+    // a visitor picks it — never installed as a package.
     const pkg = JSON.parse(read('package.json'));
     const deps = JSON.stringify({ ...pkg.dependencies, ...pkg.devDependencies });
     assert.doesNotMatch(deps, /@heyputer\/puter/);
@@ -519,6 +524,65 @@ describe('no local inference engine', () => {
     const { isAiProviderHost } = await import('../lib/ai-hosts.mjs');
     assert.equal(isAiProviderHost('api-inference.huggingface.co'), true);
     assert.equal(isAiProviderHost('text.pollinations.ai'), true);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Puter.js: the SECOND AI provider, listed in the /ai page's switcher. Unlike
+// PolliChat, it runs against the VISITOR'S OWN Puter account — their sign-in,
+// their usage allowance — via the official SDK (js.puter.com), loaded only
+// once they actually pick it. These tests pin the same shape pollinations.js
+// already has to hold to: one client module that names the provider, no
+// secret of ours, no server hop, and a failure that is shown as a failure.
+describe('Puter.js: a second provider, run on the visitor\'s own account', () => {
+  test('Puter is named only where the provider switcher lives', () => {
+    for (const f of ['public/js/pollinations.js', 'public/js/ai-helper.js']) {
+      assert.doesNotMatch(codeOnly(f), /puter/i,
+        `${f} should not reference Puter.js — it belongs only in puter.js and the pollichat.js/pollichat.html switcher`);
+    }
+    assert.match(codeOnly('public/js/puter.js'), /js\.puter\.com/, 'puter.js does not name the official SDK');
+  });
+
+  test('the SDK is injected lazily — a visitor who never picks Puter never loads it', () => {
+    const code = codeOnly('public/js/puter.js');
+    const marker = 'export function ensurePuter';
+    assert.match(code, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    const idx = code.indexOf(marker);
+    // The script tag is built and appended INSIDE ensurePuter(), not at module
+    // load, and nothing calls ensurePuter() before that function is declared.
+    assert.match(code.slice(idx), /createElement\('script'\)/, 'ensurePuter never injects the SDK tag');
+    assert.doesNotMatch(code.slice(0, idx), /ensurePuter\(\)/, 'something calls ensurePuter at module load');
+  });
+
+  test('no server secret for this provider either', () => {
+    const code = codeOnly('public/js/puter.js');
+    assert.doesNotMatch(code, /['"`]sk_/, 'puter.js mentions a secret key prefix');
+    assert.doesNotMatch(code, /['"`]pk_/, 'puter.js mentions a publishable key prefix');
+    assert.doesNotMatch(code, /Authorization/i, 'puter.js sends an Authorization header');
+  });
+
+  test('Puter answers text only — no image, speech or video call', () => {
+    assert.doesNotMatch(codeOnly('public/js/puter.js'),
+      /puter\.ai\.(txt2img|img2txt|txt2speech|video)/i,
+      'puter.js calls a Puter AI endpoint other than chat');
+  });
+
+  test('the switcher actually routes to Puter — not just referenced, but called', () => {
+    const code = codeOnly('public/js/pollichat.js');
+    assert.match(code, /askPuterWithContext/, 'pollichat.js never calls the Puter client');
+    assert.match(code, /PROVIDERS/, 'pollichat.js has no notion of which provider is active');
+    assert.match(code, /dataset\.provider/, 'pollichat.js does not read which provider button was clicked');
+    assert.match(codeOnly('public/pollichat.html'), /data-provider="puter"/, 'the page has no Puter.js button to click');
+  });
+
+  test('the CSP allows the SDK origin only as a script, never a frame', () => {
+    const server = codeOnly('server.js');
+    assert.match(server, /js\.puter\.com/, 'the CSP does not allow the Puter SDK to load');
+    // frameSrc must not separately be widened to js.puter.com — the SDK's
+    // sign-in is a popup window, not a frame, so no frame-src entry is needed
+    // and adding one would only be unused attack surface.
+    const frameSrcLine = server.match(/frameSrc:\s*\[[^\]]*\]/)?.[0] || '';
+    assert.doesNotMatch(frameSrcLine, /js\.puter\.com/);
   });
 });
 
@@ -558,7 +622,7 @@ describe('AI image, audio and video generation are gone end to end', () => {
   });
 
   test('the AI page offers no image affordance', () => {
-    const html = codeOnly('public/ai.html');
+    const html = codeOnly('public/pollichat.html');
     assert.doesNotMatch(html, /\/image\b/, 'the /image command is still advertised');
     assert.doesNotMatch(html, /\bdraw\b/i);
     assert.doesNotMatch(html, /generate an image/i);
@@ -606,21 +670,31 @@ describe('AI image, audio and video generation are gone end to end', () => {
 
 describe('the UI tells the truth about the free tier', () => {
   test('nothing claims the AI is unlimited', () => {
-    for (const f of ['public/ai.html', 'public/js/ai.js', 'README.md', 'docs/README.md']) {
+    for (const f of ['public/pollichat.html', 'public/js/pollichat.js', 'README.md', 'docs/README.md']) {
       assert.doesNotMatch(codeOnly(f), /free\s*(&amp;|&|and)\s*unlimited/i,
         `${f} claims the AI is unlimited — the anonymous tier is rate-limited`);
     }
   });
 
   test('the required disclaimer is present, in full', () => {
-    const html = read('public/ai.html');
+    const html = read('public/pollichat.html');
     assert.match(html, /may be inaccurate, incomplete, unavailable, or limited by/);
     assert.match(html, /free tier/);
     assert.match(html, /Avoid entering\s+passwords, private personal information, or other sensitive data/);
   });
 
+  test('the disclaimer tells visitors where to go if this AI does not answer', () => {
+    // Explicit requirement: when one AI is slow/down, say so and name the
+    // actual alternatives — the other listed provider, and the Browser itself.
+    const html = read('public/pollichat.html');
+    assert.match(html, /Puter\.js/, 'the disclaimer does not point to the other listed provider');
+    assert.match(html, /ChatGPT/i, 'the disclaimer does not mention using the browser for ChatGPT');
+    assert.match(html, /Claude/i, 'the disclaimer does not mention using the browser for Claude');
+    assert.match(html, /href="\/browser"/, 'the disclaimer does not link to the Browser');
+  });
+
   test('a failure is shown as a failure, never as an answer', () => {
-    const ai = codeOnly('public/js/ai.js');
+    const ai = codeOnly('public/js/pollichat.js');
     assert.match(ai, /describeFailure/, 'there is no typed error path to the UI');
     assert.match(ai, /showError/);
     // The reply bubble must be dropped before the notice is rendered, so a
@@ -629,7 +703,7 @@ describe('the UI tells the truth about the free tier', () => {
   });
 
   test('model output is never inserted as raw HTML', () => {
-    const ai = codeOnly('public/js/ai.js');
+    const ai = codeOnly('public/js/pollichat.js');
     assert.match(ai, /renderMarkdownLite\(m\.content\)/, 'assistant text must go through the sanitising renderer');
     assert.match(ai, /escapeHtml\(m\.content\)/, 'user text must be escaped');
   });
@@ -637,7 +711,7 @@ describe('the UI tells the truth about the free tier', () => {
 
 describe('every page carries the same footer', () => {
   const PAGES = [
-    'public/index.html', 'public/ai.html', 'public/browser.html', 'public/community.html',
+    'public/index.html', 'public/pollichat.html', 'public/browser.html', 'public/community.html',
     'public/leaderboard.html', 'public/donate.html', 'public/category.html', 'public/game.html',
     'public/404.html', 'public/gameflare.html', 'public/gameflare-play.html',
     'legal/privacy.html', 'legal/terms.html', 'legal/cookies.html', 'legal/dmca.html',
@@ -813,14 +887,14 @@ describe('one failure, one wording, both entry points', () => {
     // Cancellation means a newer message superseded this one. Both callers
     // return before reaching describeFailure; this pins that it is not treated
     // as a reportable failure anywhere.
-    for (const f of ['public/js/ai.js', 'public/js/ai-helper.js']) {
+    for (const f of ['public/js/pollichat.js', 'public/js/ai-helper.js']) {
       const code = codeOnly(f);
       assert.match(code, /code === 'cancelled'/, `${f} does not special-case cancellation`);
     }
   });
 
   test('neither entry point carries its own copy of the prose', () => {
-    for (const f of ['public/js/ai.js', 'public/js/ai-helper.js']) {
+    for (const f of ['public/js/pollichat.js', 'public/js/ai-helper.js']) {
       const code = codeOnly(f);
       assert.match(code, /describeFailure/, `${f} does not use the shared wording`);
       assert.doesNotMatch(code, /ask once more and it will/,

@@ -73,7 +73,7 @@ every secure connection and re-signing it with their own root certificate.
 
 That root is installed in **Windows'** trust store, so `curl`, Chrome and
 `npm start` (which runs `node --use-system-ca`) all accept it happily. The proxy
-engines cannot: Ultraviolet and Scramjet terminate TLS inside a **WebAssembly**
+engines cannot: Ultraviolet, Scramjet, GUST and HORIZON terminate TLS inside a **WebAssembly**
 client that ships its **own** list of trusted authorities and cannot see
 Windows' store at all. It meets a certificate signed by an issuer it has never
 heard of and refuses it, exactly as it should.
@@ -97,9 +97,9 @@ and compare. Measured here:
 
 | Through the same engine | Result |
 |---|---|
-| `http://example.com/` via Scramjet | **renders the real page** |
+| `http://example.com/` via HORIZON | **renders the real page** |
 | `http://example.com/` via Ultraviolet | **renders the real page** |
-| `https://example.com/` via Scramjet | engine error page |
+| `https://example.com/` via HORIZON | engine error page |
 | `https://example.com/` via Ultraviolet | engine error page |
 | `npm run verify-proxy` (all https) | **0/6** |
 
@@ -124,7 +124,7 @@ visitor running antivirus is unaffected either way.
 
 ## Step 3c — `/browser` returns **404**? That may be the MASQR gate, not a bug
 
-If `/browser`, `/gust`, `/uv/service/…` or `/api/proxies` return **404** while the
+If `/browser`, `/horizon`, `/uv/service/…` or `/api/proxies` return **404** while the
 games hub loads perfectly, check whether the mirror gate is switched on. The
 boot banner says so in one line:
 
@@ -179,7 +179,7 @@ page renders blank, and that has caused a wrong diagnosis here before.
 npm run verify-proxy
 ```
 
-This drives a **real browser** through every engine (Scramjet, Ultraviolet, GUST)
+This drives a **real browser** through the Ultraviolet engine
 and checks that pages actually render. It is the only claim about the proxy
 working that is worth making.
 
@@ -325,7 +325,7 @@ Check this list before debugging any of them.
 | `/leaderboard` says **"not installed"**, and game pages have no submit button | the `scores` table migration is pending on the live project | [LEADERBOARD.md](../features/LEADERBOARD.md) |
 | No donate button at all | no `DONATE_*_ADDRESS` is set, or every address failed validation — the boot log says which | [DONATIONS.md](../features/DONATIONS.md) |
 | No "pay with another coin" option on `/donate` | the swap path is a server API with **no page yet** | [DONATIONS.md §5](../features/DONATIONS.md#5-swap-donations--pay-any-coin-settle-in-monero-api-only) |
-| No ads anywhere | every network is off until you enable one — and `/browser`, `/gust`, `/gameflare` and `/donate` never carry ads | [ADVERTISING.md](../features/ADVERTISING.md) |
+| No ads anywhere | every network is off until you enable one — and `/browser`, `/horizon`, `/gameflare` and `/donate` never carry ads | [ADVERTISING.md](../features/ADVERTISING.md) |
 | `/browser` returns 404 | the MASQR gate is on (Step 3c) | [MASQR.md](../proxy/MASQR.md) |
 | Only ~784 games | Supabase is unreachable, so the bundled fallback catalog is serving | [GAMES-SETUP.md](../database/GAMES-SETUP.md#7-step-4--restart-and-confirm) |
 | `npm run audit:repo` reports 6 errors about `scores`, `subscriber_emails`, `ai_feedback` | three forward migrations have not reached the live database | [RUN-IN-ORDER.md §1b](../database/RUN-IN-ORDER.md#1b-if-the-audit-reports-missing-tables) |

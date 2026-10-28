@@ -100,42 +100,18 @@ describe('copyleft compliance survives a dependency change', () => {
     if (!haveModules) return t.skip('node_modules not installed');
     const { getComponents } = await import('../lib/licenses.mjs');
     const components = getComponents();
-    assert.ok(components.length >= 8, 'component list shrank unexpectedly');
+    assert.ok(components.length >= 6, 'component list shrank unexpectedly');
 
     const noText = components.filter(c => !c.licenseAvailable).map(c => c.id);
     assert.deepEqual(noText, [], `served with NO license text: ${noText.join(', ')}`);
 
-    // `pkg: null` means vendored in-repo (GUST) and legitimately has no npm
-    // version. Everything else must report one, or the source offer names a
-    // version that is not what is deployed.
+    // `pkg: null` means vendored in-repo (HORIZON, and the libcurl.js it bundles)
+    // and legitimately has no npm version. Everything else must report one, or
+    // the source offer names a version that is not what is deployed.
     const noVersion = components.filter(c => c.pkg && !c.version).map(c => c.id);
     assert.deepEqual(noVersion, [], `no resolvable version for: ${noVersion.join(', ')}`);
   });
 
-  test('the libcurl.js bundle served to browsers is the version we claim', (t) => {
-    // REGRESSION GUARD: proxy-engine/assets/gust/vendor/libcurl_full.js is what visitors
-    // execute, but /licenses.json reports the version of the libcurl.js NPM
-    // package and asserts `modified: false`. Nothing linked those two facts, so
-    // a routine bump of libcurl.js would have kept the vendored bytes at the old
-    // build while the manifest started advertising the new version — an
-    // inaccurate LGPL-3.0 §4 notice produced by an ordinary dependency update.
-    // This is also why package.json pins libcurl.js exactly instead of ^-ranging
-    // it: the pin and this test are the same decision.
-    if (!haveModules) return t.skip('node_modules not installed');
-    const vendored = join(root, 'proxy-engine', 'assets', 'gust', 'vendor', 'libcurl_full.js');
-    const packaged = join(dirname(require.resolve('libcurl.js')), 'libcurl_full.js');
-    if (!existsSync(vendored)) return t.skip('GUST vendor bundle not present');
-    assert.ok(existsSync(packaged), 'libcurl.js package no longer ships libcurl_full.js');
-
-    // Newline-normalised: the working copy is CRLF on Windows checkouts, and
-    // that difference is not a difference in the code being served.
-    const norm = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
-    assert.equal(
-      norm(vendored), norm(packaged),
-      'the vendored GUST bundle no longer matches the pinned libcurl.js package — '
-      + 're-vendor it, or /licenses.json is advertising a version that is not being served',
-    );
-  });
 });
 
 describe('dependency install scripts stay under review', () => {

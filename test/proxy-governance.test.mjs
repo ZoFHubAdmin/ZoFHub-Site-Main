@@ -220,7 +220,7 @@ describe('the proxy service', () => {
     await svc.listTargets(ANALYST);
     await status(() => svc.createTarget(ANALYST, { pattern: 'example.org', purpose: 'xyz' }), 403);
     await status(() => svc.setPolicy(ANALYST, { maxTunnels: 10 }), 403);
-    await status(() => svc.setEngine(ANALYST, 'scramjet', { enabled: false }), 403);
+    await status(() => svc.setEngine(ANALYST, 'horizon', { enabled: false }), 403);
   });
 
   test('a stored row the console would refuse is ignored, not applied', async () => {
@@ -237,7 +237,7 @@ describe('the proxy service', () => {
     const { svc } = await make({ PROXY_ACCESS_MODE: 'staff' });
     assert.equal(svc.policy.accessMode, 'staff');
     assert.equal(svc.engineEnabled('external'), false);
-    assert.equal(svc.engineEnabled('scramjet'), true);
+    assert.equal(svc.engineEnabled('horizon'), true);
   });
 });
 

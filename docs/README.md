@@ -12,7 +12,7 @@ A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
 2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai), made by their own browser on their own IP. **No prompt or reply ever touches this server** — not by convention, but because there is no AI route left that could relay one. No image, audio or video generation, and no provider choice. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
-3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
+3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
 
 > **Public metadata is framed as a security tool.** The served `<title>`, Open
 > Graph and description tags present the site as a *"cloud-based web-security
@@ -36,7 +36,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for and no email required — the only addresses ever stored are ones a visitor volunteers, for the mirror-update list or a feedback reply. See [what the site remembers](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
 - 🤖 **Built-in AI** — **text only**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message, with no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
 - 🔎 **Per-game SEO** — every game page carries a **unique, factual description** and full metadata (canonical URL, Open Graph, `schema.org` JSON-LD), generated deterministically from verified catalog metadata — no AI filler, no fabrication, no per-request cost. See [GAME-SEO.md](features/GAME-SEO.md).
-- 🌐 **Proxy browser (optional)** — five bundled same-origin engines — GUST (libcurl.js + Wisp), Ultraviolet, Scramjet, [HORIZON](https://github.com/RiptideMC/HORIZON) and [Interstellar](https://github.com/UseInterstellar/Interstellar) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through each one and fails if any stops working.
+- 🌐 **Proxy browser (optional)** — four bundled same-origin engines — [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) and [Scramjet](https://github.com/MercuryWorkshop/scramjet) (service workers), [GUST](https://github.com/nautilus-os/GUST) and [HORIZON](https://github.com/RiptideMC/HORIZON) (single-file libcurl.js + Wisp apps, HORIZON a remodelled GUST) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through all four and fails if any stop working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
 - 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon **degrades to a direct connection and reports it**, so the proxy never goes down over it. GPL-3.0, run as a separate program, not vendored.
@@ -56,7 +56,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework, no bundler) |
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations, text only |
-| Proxy | GUST · Ultraviolet · Scramjet · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
+| Proxy | Ultraviolet · Scramjet · GUST · HORIZON · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
 | Tests | `node:test` (built in — zero test dependencies), 1379 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
@@ -226,7 +226,7 @@ Two further routes (`/api/ai/audio`, `/api/ai/video`) are closed in production e
 
 No third-party analytics, no tracking cookies, no source maps, no accounts. Prompts and AI responses are never logged or stored server-side. The one visitor count that exists — the admin console's "visitors today" — is an **in-memory** set of keyed IP hashes for the current UTC day, dropped at midnight and on every restart, and never written anywhere. Everything the site keeps, and for how long, is in one table: [VISITOR-FEATURES.md §8](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
 
-**Known and accepted:** the web proxy (GUST / Ultraviolet / Scramjet / Wisp) relays whatever a user browses to, including AI sites. That is the proxy's purpose, and it is user-initiated rather than something the site's own AI features do.
+**Known and accepted:** the web proxy (Ultraviolet / Scramjet / GUST / HORIZON / Wisp) relays whatever a user browses to, including AI sites. That is the proxy's purpose, and it is user-initiated rather than something the site's own AI features do.
 
 ---
 
@@ -361,7 +361,7 @@ space, no requests. That is the default and it is fully supported.
 
 ### Ads never touch the proxy
 
-`/browser`, `/gust`, the engine and transport paths, Wisp, the service workers
+`/browser`, `/horizon`, the engine and transport paths, Wisp, the service worker
 and the companion engines **cannot** carry advertising — the authoritative list is
 `PROXY_SURFACES` in [`lib/ad-providers.mjs`](../lib/ad-providers.mjs), which the
 [MASQR gate](proxy/MASQR.md) also reads, so one list answers "is this proxy
@@ -648,7 +648,7 @@ ZoFHub/
 │                          #   singbox-* (optional tunnel), kasm-host, gameflare-*
 ├── proxy-engine/          # every AGPL proxy engine behind one mount function
 │   ├── mount.mjs          #   routing, static mounts, tunnel wiring
-│   └── assets/            #   gust/ (libcurl.js + Wisp) · uv/ (Ultraviolet) · scram/ (Scramjet)
+│   └── assets/            #   horizon/ (libcurl.js + Wisp) · uv/ (Ultraviolet)
 ├── public/                # what the visitor downloads
 │   ├── *.html             #   pages (home, game, category, ai, community, leaderboard,
 │   │                      #   donate, browser, gameflare…)
@@ -903,7 +903,7 @@ Join the **[ZoFHub Official Discord](https://discord.gg/SeMuMRG9gG)** — announ
 
 ## 📜 License & credits
 
-ZoFHub's own code is under the terms in [`LICENSE`](../LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, GUST, Wisp, Epoxy, libcurl transport) are **AGPL-3.0**, and **libcurl.js is LGPL-3.0-or-later** — they keep their **own** upstream licenses, which always take precedence for those components. Because they are served over a network, the **AGPL-3.0 §13 source offer** applies; see **[CREDITS.md](CREDITS.md)** for the full attribution and that offer. Standalone copyleft companion browsers are **not** included in this repository.
+ZoFHub's own code is under the terms in [`LICENSE`](../LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, GUST, HORIZON, Wisp, Epoxy transport, libcurl transport) are **AGPL-3.0**, and the **libcurl.js** used by GUST and bundled inside HORIZON is **LGPL-3.0-or-later** — they keep their **own** upstream licenses, which always take precedence for those components. Because they are served over a network, the **AGPL-3.0 §13 source offer** applies; see **[CREDITS.md](CREDITS.md)** for the full attribution and that offer. Standalone copyleft companion browsers are **not** included in this repository.
 
 Games are served through their publishers' **official embed URLs**; ZoFHub hosts no pirated game assets.
 

@@ -1,11 +1,13 @@
 // ============================================================================
-// proxy-engine/mount.mjs — every AGPL proxy engine, behind one function.
+// proxy-engine/mount.mjs — every proxy engine, behind one function.
 // ----------------------------------------------------------------------------
-// WHAT THIS IS. All routing, static mounting and tunnel wiring for GUST
-// (libcurl.js + Wisp), Ultraviolet and Scramjet. Nothing else in the repository
-// references these packages, and nothing in here touches Supabase, the catalog,
-// the admin console, donations, feedback or any other ZoFHub feature. The only
-// thing that crosses the boundary is an Express app and a Wisp handle.
+// WHAT THIS IS. All routing, static mounting and tunnel wiring for the four
+// proxy engines ZoFHub serves: Ultraviolet and Scramjet (service-worker
+// rewriters) and GUST and HORIZON (self-contained libcurl.js + Wisp browsers,
+// HORIZON being a remodelled GUST). Nothing else in the repository references
+// these packages, and nothing in here touches Supabase, the catalog, the admin
+// console, donations, feedback or any other ZoFHub feature. The only thing
+// that crosses the boundary is an Express app and a Wisp handle.
 //
 // WHAT THIS IS NOT — READ THIS BEFORE RELYING ON IT.
 //
@@ -19,12 +21,18 @@
 // still exactly true now.
 //
 // What IS true, and is what actually keeps this project compliant:
-//   · These engines are UNMODIFIED upstream releases. AGPL-3.0 §5's obligation
-//     to carry prominent change notices applies to MODIFIED versions; there are
-//     none here. (Verified: zero changed files under every vendored copy and
-//     every @mercuryworkshop / @titaniumnetwork-dev package.)
-//   · They are served to users over a network, so AGPL-3.0 §13's source offer
-//     applies, and docs/CREDITS.md carries it.
+//   · Ultraviolet and Scramjet are UNMODIFIED upstream releases (served
+//     straight from their packages), so AGPL-3.0 §5's change-notice obligation
+//     does not apply to either.
+//   · GUST and HORIZON are each MODIFIED: their Wisp target is repointed to
+//     this origin's own /wisp/, and each one's third-party relay/analytics
+//     surface is removed (GUST's upstream relay default; HORIZON's relay pool
+//     and Discord client relay list). Each change is declared under AGPL-3.0
+//     §5 in lib/licenses.mjs and on the /licenses page — and in GUST's case,
+//     in a §5(a) notice inside the served file itself — and the running
+//     modified source is the vendored file this module serves.
+//   · All four are served to users over a network, so AGPL-3.0 §13's source
+//     offer applies, and docs/CREDITS.md carries it.
 //
 // If real separation is ever the goal — a different program, not a different
 // folder — it needs a genuinely separate service: its own repository, its own
@@ -34,10 +42,12 @@
 // does not achieve it, and nobody should plan around the idea that it does.
 //
 // SAME-ORIGIN IS DELIBERATE. The tunnel endpoint stays on this domain on
-// purpose: GUST's Wisp target is rewritten to our own /wisp/ so that when the
-// proxy is reachable, every byte of proxy traffic stays on this origin. Moving
-// these engines to a foreign origin would break that property, defeat the cloak
-// and require opening CORS and CSP to a third party. It is not done here.
+// purpose: GUST's and HORIZON's Wisp targets are rewritten to our own /wisp/,
+// and Ultraviolet/Scramjet's shared transport is configured the same way by
+// browser.js, so that when the proxy is reachable, every byte of proxy
+// traffic stays on this origin. Moving these engines to a foreign origin would
+// break that property, defeat the cloak and require opening CORS and CSP to a
+// third party. It is not done here.
 // ============================================================================
 
 import { createRequire } from 'node:module';
@@ -61,27 +71,27 @@ function findNodeModulesDir(pkg, repoRoot) {
 }
 
 /**
- * Mount every proxy engine onto an Express app.
+ * Mount the proxy engines onto an Express app.
  *
- * URL paths are IDENTICAL to the pre-extraction layout (/uv/, /scram/,
- * /baremux/, /epoxy/, /gust, /proxy). The service workers and the GUST bundle
- * are origin-sensitive — a service worker's scope is its own URL path — so the
- * files moved but the addresses did not, and no client needed changing.
+ * URL paths (/uv/, /baremux/, /epoxy/, /horizon) are origin-sensitive — a
+ * service worker's scope is its own URL path — so they are fixed addresses and
+ * no client needs changing.
  *
  * @returns {{ proxyStatus: object, wisp: object|null }}
  */
 export function mountProxyEngines(app, express, { repoRoot } = {}) {
   const proxyStatus = {
-    gust: false, horizon: false, interstellar: false,
-    ultraviolet: false, scramjet: false,
+    gust: false, horizon: false, ultraviolet: false, scramjet: false,
     bare: false, wisp: false, epoxy: false, libcurl: false,
   };
   const root = repoRoot || join(ENGINE_DIR, '..');
   let wisp = null;
 
-  // ── GUST — libcurl.js + Wisp, no service worker ──────────────────────────
+  // ── GUST ───────────────────────────────────────────────────────────────
   // A single vendored HTML bundle plus its own assets (libcurl, font-awesome,
-  // pdf.js, iso-639-1), all served from this origin.
+  // pdf.js, iso-639-1), all served from this origin. Vendored with its Wisp
+  // target repointed to this origin's /wisp/ (see the §5(a) notice at the top
+  // of the served file, and the declaration in lib/licenses.mjs).
   const gustIndex = join(ASSETS, 'gust', 'index.html');
   if (existsSync(gustIndex)) {
     proxyStatus.gust = true;
@@ -90,8 +100,7 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
     app.get(['/gust', '/proxy'], (req, res) => res.sendFile(gustIndex));
     // GUST vendors pdf.js as ES modules (.mjs). Some Express/send builds do not
     // map that extension, and a wrong MIME makes the browser refuse the module
-    // import outright. This used to be handled by the public/ static mount;
-    // when the bundle moved out of public/ the fix had to come with it.
+    // import outright.
     app.use('/gust', express.static(join(ASSETS, 'gust'), {
       setHeaders(res, filePath) {
         if (filePath.endsWith('.mjs')) {
@@ -103,68 +112,21 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
     console.warn('[zofhub] GUST: proxy-engine/assets/gust/index.html missing — engine unavailable.');
   }
 
-  // ── HORIZON ──────────────────────────────────────────────────────────────────────────────
-  // A single self-contained HTML file (a remodelled GUST): libcurl + Wisp, no
-  // service worker, no assets of its own. Served at /horizon exactly as GUST is
-  // served at /gust. Vendored with its Wisp target repointed to this origin's
-  // /wisp/ and its third-party relay pool removed, so its egress is governed by
-  // the same tunnel as every other engine (see the file header and
-  // /licenses/horizon-modifications).
+  // ── HORIZON ──────────────────────────────────────────────────────────────
+  // A single self-contained HTML file (a remodelled GUST): libcurl.js + Wisp,
+  // no service worker, no assets of its own. Vendored with its Wisp target
+  // repointed to this origin's /wisp/ and its third-party relay pool removed, so
+  // its egress is governed by the same tunnel as every other engine (see the
+  // file header and the §5 declaration in lib/licenses.mjs).
   const horizonIndex = join(ASSETS, 'horizon', 'index.html');
   if (existsSync(horizonIndex)) {
     proxyStatus.horizon = true;
     app.get('/horizon', (req, res) => res.sendFile(horizonIndex));
   } else {
-    console.warn('[zofhub] HORIZON: proxy-engine/assets/horizon/index.html missing ─ engine unavailable.');
+    console.warn('[zofhub] HORIZON: proxy-engine/assets/horizon/index.html missing — engine unavailable.');
   }
 
-  // ── Interstellar ─────────────────────────────────────────────────────────────────────────
-  // A multi-page proxy UI that drives Ultraviolet + Scramjet through ITS OWN
-  // service worker, scoped to /interstellar/uv/. Unlike GUST and HORIZON it has
-  // a tree of pages and assets, all vendored under assets/interstellar and
-  // rewritten at vendor time to live beneath /interstellar. The UV and Scramjet
-  // ENGINE files are NOT vendored (they would drift from the package); they are
-  // served from the installed packages below, while the CONFIG files that name
-  // this mount's prefixes come from the vendored tree.
-  const interDir = join(ASSETS, 'interstellar');
-  const interIndex = join(interDir, 'index.html');
-  if (existsSync(interIndex)) {
-    proxyStatus.interstellar = true;
-    const page = (file) => (req, res) => res.sendFile(join(interDir, file));
-    app.get('/interstellar', page('index.html'));
-    app.get('/interstellar/home', page('home.html'));
-    app.get('/interstellar/games', page('games.html'));
-    app.get(['/interstellar/apps', '/interstellar/play.html'], page('apps.html'));
-    app.get('/interstellar/settings', page('settings.html'));
-    app.get('/interstellar/tabs', page('tabs.html'));
-    // The content-filter endpoint the search box calls on every navigation.
-    // Interstellar ships filtering OFF; a stub keeps that a clean 200 rather
-    // than a 404 on every keystroke. ZoFHub's approved-destination policy is
-    // what actually governs where the tunnel may connect, not this.
-    app.post('/interstellar/filter/verdict', (req, res) => res.json({ blocked: false }));
-    // Our rewritten engine CONFIGS win over the package files of the same name.
-    app.get('/interstellar/assets/ultraviolet/uv.config.js',
-      (req, res) => res.sendFile(join(interDir, 'assets', 'ultraviolet', 'uv.config.js')));
-    app.get('/interstellar/assets/scramjet/scramjet.config.js',
-      (req, res) => res.sendFile(join(interDir, 'assets', 'scramjet', 'scramjet.config.js')));
-    try {
-      const { uvPath } = require('@titaniumnetwork-dev/ultraviolet');
-      if (uvPath && existsSync(uvPath)) app.use('/interstellar/assets/ultraviolet/', express.static(uvPath));
-    } catch (e) { console.warn('[zofhub] Interstellar/UV:', e.message); }
-    const sjRoot = findNodeModulesDir('@mercuryworkshop/scramjet', root);
-    if (sjRoot && existsSync(join(sjRoot, 'dist'))) app.use('/interstellar/assets/scramjet/', express.static(join(sjRoot, 'dist')));
-    // Everything else Interstellar ships (page assets, SW, media, block pages).
-    app.use('/interstellar', express.static(interDir, {
-      setHeaders(res, filePath) {
-        if (filePath.endsWith('sw.js')) res.setHeader('Service-Worker-Allowed', '/interstellar/');
-        if (filePath.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
-      },
-    }));
-  } else {
-    console.warn('[zofhub] Interstellar: proxy-engine/assets/interstellar/index.html missing ─ engine unavailable.');
-  }
-
-  // ── Ultraviolet ──────────────────────────────────────────────────────────
+  // ── Ultraviolet ────────────────────────────────────────────────────────────
   // Our own uv.config.js must win over the package default, so it is registered
   // ahead of the package static mount.
   app.get('/uv/uv.config.js', (req, res) => res.sendFile(join(ASSETS, 'uv', 'uv.config.js')));
@@ -177,6 +139,8 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
   } catch (e) { console.warn('[zofhub] Ultraviolet:', e.message); }
 
   // ── Shared transport: bare-mux → epoxy → /wisp/ ──────────────────────────
+  // Ultraviolet's and Scramjet's service workers both tunnel through this;
+  // GUST and HORIZON carry their own libcurl.js and only need /wisp/.
   const bareRoot = findNodeModulesDir('@mercuryworkshop/bare-mux', root);
   const epoxyRoot = findNodeModulesDir('@mercuryworkshop/epoxy-transport', root);
   if (bareRoot && existsSync(join(bareRoot, 'dist'))) {
@@ -187,9 +151,9 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
     app.use('/epoxy/', express.static(join(epoxyRoot, 'dist')));
     proxyStatus.epoxy = true;
   }
-  // libcurl.js transport ─ the alternative Interstellar offers in Settings. Only
-  // reached when a visitor switches off epoxy, but a 404 there would strand them
-  // with a dead tunnel and no hint why, so it is mounted whenever installed.
+  // libcurl.js transport — the alternative GUST offers in Settings. Only
+  // reached when a visitor switches off epoxy, but a 404 there would strand
+  // them with a dead tunnel and no hint why, so it is mounted whenever installed.
   const libcurlRoot = findNodeModulesDir('@mercuryworkshop/libcurl-transport', root);
   if (libcurlRoot && existsSync(join(libcurlRoot, 'dist'))) {
     app.use('/libcurl/', express.static(join(libcurlRoot, 'dist')));
@@ -228,9 +192,8 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
  * routeRequest threads it into `new ServerConnection(ws, path, conn_options)`,
  * which reads `{TCPSocket}` out of it (server/connection.mjs). ZoFHub passes a
  * socket class that dials through sing-box, which is how the proxy's egress is
- * redirected WITHOUT modifying a byte of the AGPL engine — the difference
- * between using a package and forking one, and the reason docs/CREDITS.md can still
- * say these engines run unmodified.
+ * redirected WITHOUT modifying the engine's transport — the reason the §13 offer
+ * can describe Ultraviolet as unmodified.
  *
  * Passed per-upgrade rather than captured once at mount time so the egress
  * decision is re-read per connection: a supervised sing-box that died and came
@@ -249,11 +212,13 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
  * server's own IP is never the one that shows up at the origin. A prefix match
  * here would leave that opt-out reachable by anyone who can type a URL.
  *
- * Every ZoFHub client asks for exactly `/wisp/` — GUST's GUST_DEFAULT_WISP and
- * browser.js's `setTransport` both build that string and nothing else — so an
- * exact match costs us nothing and closes the bypass. A query string is
- * rejected too, deliberately: wisp-js tests the RAW url, so `/wisp/?x=1` does
- * not end in `/` and would fall through to wsproxy as surely as a host:port.
+ * Every ZoFHub client asks for exactly `/wisp/` — GUST's and HORIZON's
+ * same-origin Wisp defaults and browser.js's `setTransport` (used by
+ * Ultraviolet and Scramjet) all build that string and nothing else — so an
+ * exact match costs us nothing and closes the bypass. A query
+ * string is rejected too, deliberately: wisp-js tests the RAW url, so
+ * `/wisp/?x=1` does not end in `/` and would fall through to wsproxy as surely
+ * as a host:port.
  *
  * (This is not an SSRF hole in either branch — wsproxy does run the same
  * `filter.is_stream_allowed` check, so loopback and private ranges stay

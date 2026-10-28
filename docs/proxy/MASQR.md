@@ -63,7 +63,7 @@ inventing one would be the dishonest part.
         ┌──────────────────────────── unauthenticated ────────────────────────────┐
 crawler │  GET /            → 200  the real games hub (16,900 games)              │
 or       │  GET /browser     → 404  "not found"                                    │
-visitor │  GET /gust,/uv/…  → 404                                                  │
+visitor │  GET /horizon,/uv/…  → 404                                                  │
         │  GET /healthz     → 200  never gated — see below                        │
         └─────────────────────────────────────────────────────────────────────────┘
 
@@ -191,7 +191,7 @@ Tested against a real server, with a crawler's actual header shape (no
 
 | Check | Result |
 |---|---|
-| `/browser`, `/gust`, `/uv/service/…`, `/api/proxies` for a crawler | 404 |
+| `/browser`, `/horizon`, `/uv/service/…`, `/api/proxies` for a crawler | 404 |
 | 404 body names no engine, and does not name the gate either | pass |
 | Games hub open, and really is the games page | 200 |
 | `/healthz`, `/api/health`, `/privacy`, `/dmca`, `/terms`, `/licenses`, `/robots.txt` | all reachable |

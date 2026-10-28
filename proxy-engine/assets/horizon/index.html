@@ -11119,7 +11119,7 @@ window._libcurlReady = true;
             // static-only, dead-backend, or file://-rejecting). Ordered
             // fastest-first by measured median latency, though rankPoolCandidates
             // re-sorts on live health data at runtime.
-            const WISP_POOL_DEFAULTS = [ZOF_DEFAULT_WISP]];
+            const WISP_POOL_DEFAULTS = [ZOF_DEFAULT_WISP];
             let wispHealth = (function () { try { return JSON.parse(ls.getItem('gust:wisp:health:v1') || '{}'); } catch { return {}; } })();
             function saveWispHealth() { try { ls.setItem('gust:wisp:health:v1', JSON.stringify(wispHealth)); } catch {} }
             // Per-(server,host) cooldown after a failure — session-only, not persisted.

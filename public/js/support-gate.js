@@ -13,7 +13,7 @@
 //   3. After STRIKES_TO_GATE (3) page views or game plays with the blocker still
 //      on, locks the PREMIUM engines — every standalone companion —
 //      until the visitor pauses it and refreshes. The games hub, and the
-//      built-in engines (Scramjet, Ultraviolet, GUST), are never locked.
+//      built-in engines (Ultraviolet, HORIZON), are never locked.
 //
 // WHAT IT IS CAREFUL NOT TO DO
 //   • Lock anybody on a deployment that serves no ads. The server says whether
@@ -453,7 +453,7 @@ export function showPremiumLock(container, { label = 'This engine', backLabel = 
     + 'required to unlock the premium high-speed proxy instances.';
   const p2 = document.createElement('p');
   p2.className = 'muted';
-  p2.textContent = 'The games hub and the built-in engines — Scramjet, Ultraviolet and GUST — keep working either way.';
+  p2.textContent = 'The games hub and the built-in engines — Ultraviolet and HORIZON — keep working either way.';
   const steps = pauseSteps();
   const row = document.createElement('div');
   row.className = 'row';

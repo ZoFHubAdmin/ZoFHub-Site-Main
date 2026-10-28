@@ -20,7 +20,7 @@
 // ---------------------------------------------------------------------------
 
 const KEY = 'zofhub:consent:v1';
-const isProxyArea = /^\/(uv|scram|gust|epoxy|baremux)\//.test(location.pathname);
+const isProxyArea = /^\/(uv|epoxy|baremux)\//.test(location.pathname) || location.pathname === '/horizon';
 
 let stored = null;
 try { stored = localStorage.getItem(KEY); } catch {}

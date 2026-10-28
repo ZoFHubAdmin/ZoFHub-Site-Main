@@ -1,7 +1,7 @@
 # ZoFHub — Go-Live Checklist
 
 The strategy: **one always-on proxy site, deployed once.** ZoFHub always runs the
-web proxy (GUST/Ultraviolet/Scramjet/Wisp), so it is both the games hub and the
+web proxy (Ultraviolet/Scramjet/GUST/HORIZON/Wisp), so it is both the games hub and the
 "unblocked at school" site on the **same** domain.
 
 Because the proxy is always on, **Google AdSense/Ezoic can't be used** — they ban

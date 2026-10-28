@@ -8,8 +8,8 @@ a fourth copy of the same idea:
 
 | Engine | What it actually is | Where the work happens |
 |---|---|---|
-| Scramjet, Ultraviolet | rewrite HTML/JS in a service worker | the visitor's tab |
-| GUST | libcurl.js + Wisp, no service worker | the visitor's tab |
+| Ultraviolet | rewrites HTML/JS in a service worker | the visitor's tab |
+| HORIZON | libcurl.js + Wisp, no service worker | the visitor's tab |
 | **Kasm** | **a real Linux desktop in a container** | **somebody's server** |
 
 A site that refuses every rewriting proxy cannot tell a Kasm session apart from
@@ -122,7 +122,7 @@ carries their session, so this cannot weaken anything the visitor does.
   stripped before the value is stored and a warning is logged at boot — but that
   is a backstop, not a feature. Sign in at Kasm.
   *(The same stripping now applies to `PROXY_NAUTILUS_URL`,
-  `PROXY_INTERSTELLAR_URL`, `PROXY_DAYDREAM_URL` and `PROXY_NEBULA_URL`.)*
+  `PROXY_DAYDREAM_URL` and `PROXY_NEBULA_URL`.)*
 - **`KASM_LABEL` is rendered as text, never as markup** — stripped server-side
   and inserted as a text node client-side.
 - **The probe is cached for 10 seconds and de-duplicated in flight.** Without

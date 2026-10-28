@@ -215,18 +215,56 @@ both deliberate:
 
 ---
 
-## 3. One client, every entry point
+## 3. One client per provider, every entry point
 
-| Entry point | File |
-|---|---|
-| The `/ai` page | `public/js/ai.js` |
-| The floating bottom-right assistant | `public/js/ai-helper.js` |
+| Entry point | File | Provider(s) |
+|---|---|---|
+| The `/ai` page (PolliChat) | `public/pollichat.html` + `public/js/pollichat.js` | PolliChat (default) **or** Puter.js, picked in the sidebar switcher |
+| The floating bottom-right assistant | `public/js/ai-helper.js` | PolliChat only |
 
-Both import **`public/js/pollinations.js`** and nothing else. There is no second
-endpoint construction, URL encoding, timeout policy or error-normalisation path
+The `/ai` page and the orb both import **`public/js/pollinations.js`** and
+nothing else for PolliChat — there is no second endpoint construction, URL
+encoding, timeout policy or error-normalisation path for that provider
 anywhere in the frontend. Both import it at the **same `?v=`** — a module
 specifier is cache-keyed by its full URL, so two different versions would load
 the module twice as two independent instances.
+
+### The second provider: Puter.js
+
+`/ai` lists a second option, **Puter.js**, in **`public/js/puter.js`** — a
+sibling module to `pollinations.js`, not a branch inside it. Picking it in the
+sidebar is the only thing that loads it: `ensurePuter()` injects
+`<script src="https://js.puter.com/v2/">` on first use, so a visitor who never
+touches the switcher never fetches a byte of it (the CSP allows the origin as
+a script source only — see `server.js`'s `scriptSrc`).
+
+The key difference from PolliChat: Puter is **the visitor's own account**.
+`puter.ai.chat([...messages], false, { normalize: true, signal })` runs
+entirely in that visitor's browser against **their** sign-in and **their**
+usage allowance — our server is nowhere in the path, same as PolliChat, but
+there is no shared anonymous tier here to rate-limit; a cold session simply
+opens Puter's own sign-in popup. `askPuterWithContext()` maps every failure
+(no sign-in, usage exhausted, a network fault, a timeout) onto the **same**
+typed-`.code` vocabulary `askAI()` uses, so `describePuterFailure()` can reuse
+`describeFailure()` for every code the two share and add its own wording only
+for the two that are Puter-specific (`auth`, `usage`).
+
+`pollichat.js` keeps a small `PROVIDERS` map — `{ pollichat, puter }`, each
+with its own `ask()` and `describe()` — and `respond()` looks up the active
+one by `current.provider`. Switching providers never rewrites history or
+resends anything; it only decides which client the *next* message uses, and
+that choice is remembered per visitor (`localStorage['pollichat:provider:v1']`)
+and per saved chat (continuing an old chat continues it on the provider it was
+using).
+
+### History is shared, not per-page
+
+Every saved conversation — started on `/ai` or via the floating orb — is one
+list: `store.chats` in `public/js/storage.js` (`localStorage['zofhub:v2:chats']`),
+bounded to 40 chats of up to 80 messages each. `/ai`'s sidebar reads and writes
+that same list, so a chat started from the orb on a game page shows up, and is
+deletable, from `/ai`'s History panel, and vice versa. Nothing in it ever
+leaves the browser it was written in.
 
 ```
 askAI(prompt)              one GET, one bounded timeout, typed errors
@@ -260,7 +298,7 @@ supersedes (otherwise two overlapping sends resolve in arrival order and the
 | **Any API key** | The anonymous tier needs none, and an `sk_` secret may never reach a browser |
 | **A server fallback** | `/api/ai/text` and `/api/ai/echo` are removed. No same-origin route accepts a prompt |
 | **A local inference engine** | The Transformers.js + SmolLM2-360M fallback is gone. It downloaded hundreds of megabytes to answer, in a markedly worse voice, the question the user had just asked the real model — and it ran whenever the network call failed for **any** reason, so an outage looked like the AI had quietly got much worse. A clear, retryable error is the honest outcome |
-| **Another provider** | Hugging Face and Puter.js are gone, with their settings UI and stored tokens |
+| **A THIRD provider, or Hugging Face specifically** | Puter.js is the one deliberate second option (§3); Hugging Face is still gone, with the old settings UI and stored token |
 | **Model discovery** | `freeTextModels()` / `/models` is gone with the model parameter. The URL API needs no model named, so there is no "is this model free?" question to answer |
 | **Fake streaming** | The GET returns the whole answer at once. Splitting finished text into fake chunks would be theatre, so the UI shows typing dots and then the reply |
 
@@ -425,6 +463,10 @@ still not something to commit to a repository with a remote.
   which is unambiguous but shallow.
 - **The eval set is small (10 cases).** It is a regression gate, not a benchmark.
   Feedback-derived eval rows extend it through curation.
+- **The feedback/eval pipeline (§4–5) covers PolliChat only.** A Puter.js answer
+  is generated entirely on the visitor's own account and device; this repo has
+  no visibility into it to redact, curate or evaluate, by the same logic that
+  makes it browser-direct in the first place.
 
 ---
 

@@ -25,9 +25,10 @@
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
   <link rel="stylesheet" href="/css/main.css?v=20260801a" />
   <link rel="stylesheet" href="/css/browser.css?v=20260727" />
-  <!-- Engine bundles for the in-app service-worker proxies (Ultraviolet + Scramjet).
-       Loaded defer; browser.js waits for them and warms the shared Wisp transport.
-       GUST and the standalone companions are self-driving apps and need none of these. -->
+  <!-- Engine bundles for the in-app Ultraviolet + Scramjet service-worker
+       proxies. Loaded defer; browser.js waits for them and warms the shared
+       Wisp transport. GUST, HORIZON and the standalone companions are
+       self-driving apps and need none of these. -->
   <script src="/baremux/index.js" defer></script>
   <script src="/uv/uv.bundle.js" defer></script>
   <script src="/uv/uv.config.js" defer></script>
@@ -52,9 +53,8 @@
   </header>
 
   <main class="gust-shell">
-    <!-- Toolbar: pick an engine, then (for Ultraviolet/Scramjet) type a URL. GUST,
-         HORIZON, Interstellar and the companions have their OWN address bar, so
-         ours hides for them. -->
+    <!-- Toolbar: pick an engine, then (for Ultraviolet) type a URL. HORIZON and
+         the companions have their OWN address bar, so ours hides for them. -->
     <div class="br-toolbar">
       <label class="br-engine-wrap" title="Choose which proxy browser to use">
         <span class="br-engine-dot" id="engineDot" aria-hidden="true"></span>
@@ -91,7 +91,7 @@
     </div>
 
     <div class="gust-wrap" id="gustWrap">
-      <!-- Start screen for the address-bar engines (UV/Scramjet): pick a site or type one. -->
+      <!-- Start screen for the address-bar engine (Ultraviolet): pick a site or type one. -->
       <div class="br-start" id="startPage">
         <div class="br-start-inner">
           <h1 id="startTitle">Browse the web</h1>

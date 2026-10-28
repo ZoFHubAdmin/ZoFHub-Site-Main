@@ -76,7 +76,7 @@ describe('a failed delivery is routing evidence, never model evidence', () => {
   });
 
   test("the UI's own failure text is recognised", () => {
-    // This is the literal string public/js/ai.js shows when every provider
+    // This is the literal string public/js/pollichat.js shows when every provider
     // fails. Users thumbs-down it, and it is about our plumbing.
     assert.equal(isDeliveryProblem({
       type: SIGNALS.RATING, rating: -1,
@@ -185,7 +185,7 @@ describe('the stored record carries what a curator needs', () => {
       type: SIGNALS.CORRECTION,
       input: 'Which engine does the browser use?',
       output: 'It uses Chrome.',
-      correction: 'It offers Scramjet, Ultraviolet, GUST, HORIZON and Interstellar.',
+      correction: 'It offers Ultraviolet and HORIZON.',
       provider: 'huggingface', model: 'meta-llama/Llama-3.1-8B-Instruct',
       promptVersion: '2026-09', consentTraining: true,
     });

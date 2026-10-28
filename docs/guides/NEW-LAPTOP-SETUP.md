@@ -38,8 +38,8 @@ folder, so nothing at all is left out. After cloning you already have all the
 downloaded packages.
 
 **One exception — Nebula is no longer in the tree.** It was 520 MB across 33,360
-files for a companion that only ever ran locally (the deployed site serves GUST,
-Ultraviolet and Scramjet, and never offers a companion because `render.yaml` sets
+files for a companion that only ever ran locally (the deployed site serves
+Ultraviolet, Scramjet, GUST and HORIZON, and never offers a companion because `render.yaml` sets
 no `PROXY_*_URL`). Its pnpm `node_modules` was a symlink store that restored as
 broken stubs on a fresh Windows clone anyway. A clone will **not** bring it down.
 
@@ -121,7 +121,7 @@ repairs anything that didn't copy cleanly.)
 
 7. **(Only if you want the companion browsers locally)** each has its own deps.
    The main site does **not** need any of these — it uses the built-in
-   Scramjet/UV/GUST engines. Per companion:
+   Ultraviolet/Scramjet/GUST/HORIZON engines. Per companion:
 
    | Companion | Setup | Port |
    |---|---|---|
@@ -133,8 +133,8 @@ repairs anything that didn't copy cleanly.)
    and points the server at each so they show up in the `/browser` dropdown.
    This is a **local-only** convenience: the deployed site never offers a
    companion, because `render.yaml` sets no `PROXY_*_URL` and `COMPANION_ENGINES`
-   filters out any entry without one. Live, you always get exactly the three
-   same-origin engines — GUST, Ultraviolet and Scramjet.
+   filters out any entry without one. Live, you always get exactly the four
+   same-origin engines — Ultraviolet, Scramjet, GUST and HORIZON.
    `npm run proxies` prints exactly what it started and, for anything it
    skipped, the precise reason and the command that fixes it.
 

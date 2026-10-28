@@ -3,7 +3,7 @@
 //
 // MEASURED on the machine this was written for:
 //   · the certificate for example.com was issued by "Avast Web/Mail Shield Root"
-//   · plain http:// through Scramjet and Ultraviolet: 2/2 rendered real content
+//   · plain http:// through Ultraviolet and HORIZON: rendered real content
 //   · https:// through the same two engines:          0/2, engine error page
 //   · npm run verify-proxy:                           0/6, every https target
 //

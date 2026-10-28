@@ -4,9 +4,9 @@
 //
 // Starts, in this single terminal, everything the /browser page can use:
 //   • ZoFHub server        → http://localhost:8080
-//       (built-in engines: Scramjet [default], Ultraviolet, GUST — always work)
+//       (built-in engines: Ultraviolet [default], HORIZON — always work)
 //   • Companion launcher   → tools/proxies.mjs
-//       (NautilusOS :8091, Interstellar :8092, DayDream :8093, Nebula :8094 —
+//       (NautilusOS :8091, DayDream :8093, Nebula :8094 —
 //        each started only if it's actually set up on this machine)
 //
 // It frees the ports first (so a stale run can't block it), streams every
@@ -74,18 +74,17 @@ for (const p of PORTS) await freePort(p);
 // Ports MUST match the PORTS map in tools/proxies.mjs.
 const COMPANION_ENV = {
   PROXY_NAUTILUS_URL:     `http://localhost:${8091}/`,
-  PROXY_INTERSTELLAR_URL: `http://localhost:${8092}/`,
   PROXY_DAYDREAM_URL:     `http://localhost:${8093}/`,
   PROXY_NEBULA_URL:       `http://localhost:${8094}/`,
 };
 
-// Main site first (built-in Scramjet/UV/GUST live here — these ALWAYS work), then
+// Main site first (built-in UV/HORIZON live here — these ALWAYS work), then
 // the optional companion launcher.
 launch('server',  ['--use-system-ca', 'server.js'], COMPANION_ENV);
 launch('proxies', ['tools/proxies.mjs']);
 
 console.log('\n[dev:all] ▶ Open http://localhost:8080/browser once it says the server is running.');
-console.log('[dev:all]   Always available: Scramjet · Ultraviolet · GUST (built-in, same-origin).');
-console.log('[dev:all]   Also shown IF running locally: NautilusOS · Interstellar · DayDream · Nebula.');
+console.log('[dev:all]   Always available: Ultraviolet · HORIZON (built-in, same-origin).');
+console.log('[dev:all]   Also shown IF running locally: NautilusOS · DayDream · Nebula.');
 console.log('[dev:all]   The companion launcher prints exactly which ones started and why any were skipped.');
 console.log('[dev:all]   NOTE: companions are LOCAL-ONLY — your deployed site uses the 3 built-ins.\n');

@@ -1305,8 +1305,8 @@ app.set('etag', 'weak');
 // ------------------------------------------------------------------------
 // Companion "standalone browser" engines.
 // ------------------------------------------------------------------------
-// Ultraviolet, Scramjet and GUST are embedded directly in this app and proxy
-// from this same origin.  The other open-source proxy browsers the project
+// Ultraviolet, Scramjet, GUST and HORIZON are embedded directly in this app
+// and proxy from this same origin.  The other open-source proxy browsers the project
 // ships (NautilusOS, DayDream, Nebula) are *whole* self-contained
 // apps that assume they own the site root (absolute /uv/, /style.css, /a, …),
 // so they can't be nested under a sub-path without service-worker scope and
@@ -1314,11 +1314,11 @@ app.set('etag', 'weak');
 // own origin; the browser page lists the ones that are reachable and loads them
 // Companion browsers (Nebula, NautilusOS, DayDream) are SEPARATE
 // third-party apps — NOT part of this server, NOT deployed with the site, and
-// redundant with the built-in Scramjet/Ultraviolet/GUST engines (which are
-// same-origin and always work). They are therefore fully OPT-IN: a companion
+// redundant with the built-in Ultraviolet/Scramjet/GUST/HORIZON engines (which
+// are same-origin and always work). They are therefore fully OPT-IN: a companion
 // appears in the /browser dropdown ONLY when its PROXY_*_URL is explicitly set
 // to a reachable instance. With none set (the default — normal `npm start` and
-// every deploy), the dropdown shows just the three built-in engines: clean, no
+// every deploy), the dropdown shows just the four built-in engines: clean, no
 // "offline" clutter, no errors. `npm run dev:all` sets these locally so a
 // developer who wants to tinker still sees whichever companions are running.
 //
@@ -1350,7 +1350,7 @@ const COMPANION_ENGINES = [
   // InvisiProxy LTS (AGPL-3.0, formerly Holy Unblocker LTS). It belongs in this
   // list and NOT in the tree: it is a complete proxy application built on the
   // same primitives ZoFHub already integrates directly (Ultraviolet, Scramjet,
-  // Wisp, bare-mux, epoxy), on Fastify under pnpm, and vendoring it would
+  // GUST, HORIZON, Wisp, bare-mux, epoxy), on Fastify under pnpm, and vendoring it would
   // duplicate working architecture while pulling AGPL source into a proprietary
   // work that is served over a network — engaging §13 for the combination.
   // Deployed separately it stays a peer, and its obligations stay with its
@@ -1366,7 +1366,7 @@ const COMPANION_ENGINES = [
 ].filter(e => e.url);
 
 // ── Kasm Workspaces ────────────────────────────────────────────────────────
-// A third kind of engine: not a rewriter (Scramjet/Ultraviolet) and not an
+// A third kind of engine: not a rewriter (Ultraviolet) and not an
 // emulator but a REAL remote desktop, streamed by KasmVNC from a container
 // built out of github.com/kasmtech/workspaces-images.
 //
@@ -1468,13 +1468,19 @@ if (AD_ORIGINS.length) console.log(`[ads] CSP allows ${AD_ORIGINS.length} ad ori
 const CSP_DIRECTIVES = {
   defaultSrc: ["'self'"],
   scriptSrc: [
-    // 'wasm-unsafe-eval' lets GUST's libcurl.js compile its embedded WebAssembly
-    // even on browsers that no longer accept plain 'unsafe-eval' for wasm.
+    // 'wasm-unsafe-eval' lets GUST's and HORIZON's libcurl.js, and Scramjet's
+    // own wasm, compile their embedded WebAssembly even on browsers that no
+    // longer accept plain 'unsafe-eval' for wasm.
     "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
-    // https://js.puter.com was allowed here for the Puter.js AI provider. That
-    // provider was removed, so the origin is removed with it — a CSP allowance
-    // for a script nobody loads is pure attack surface.
+    // https://js.puter.com serves the Puter.js SDK, the SECOND AI provider on
+    // /ai. It is loaded ONLY when a visitor chooses "Puter.js" in the provider
+    // switcher (public/js/puter.js injects the tag on demand), runs entirely in
+    // that visitor's browser against their OWN Puter account, and never touches
+    // our server or any key of ours. connect-src already permits https: for the
+    // SDK's own api.puter.com calls; its sign-in popup is a window.open, not a
+    // frame, so frame-src does not apply.
+    'https://js.puter.com',
     // ── NO GOOGLE AD STACK HERE. THIS IS THE LAST LAYER. ────────────────────
     // googlesyndication / googletagmanager / googleadservices / doubleclick are
     // deliberately ABSENT. Every other layer already refuses to emit Google ad
@@ -1483,7 +1489,7 @@ const CSP_DIRECTIVES = {
     // again at injection time; tools/check-ads.mjs fails the build on it). A CSP
     // that still NAMED those origins meant the one layer that could have stopped
     // an accidental or injected tag from executing was the one layer holding the
-    // door open — on every page of the site, including /browser and /gust.
+    // door open — on every page of the site, including /browser, /gust and /horizon.
     //
     // This does NOT cost the in-game revenue share. Games are not served under
     // this policy: /embed/:slug sets its own deliberately permissive CSP for the
@@ -1500,14 +1506,15 @@ const CSP_DIRECTIVES = {
     'https://*.supabase.co',
     ...AD_ORIGINS
   ],
-  // cdnjs serves the Font-Awesome icon CSS that HORIZON and Interstellar use;
+  // cdnjs serves the Font-Awesome icon CSS that HORIZON uses;
   // a stylesheet cannot execute, so this is far below the script-src the repo
   // already grants jsdelivr/unpkg.
   styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
   fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com', 'data:'],
   imgSrc:   ["'self'", 'https:', 'data:', 'blob:'],
-  // blob: + data: let GUST read its own embedded wasm/blob payloads via fetch/XHR;
-  // wss:/ws: carry the Wisp tunnel (same-origin /wisp/ by default).
+  // blob: + data: let GUST and HORIZON read their own embedded wasm/blob
+  // payloads via fetch/XHR; wss:/ws: carry the Wisp tunnel (same-origin
+  // /wisp/ by default).
   connectSrc: ["'self'", 'https:', 'wss:', 'ws:', 'blob:', 'data:'],
   // Permissive frame-src — the user controls which URLs end up in the catalog,
   // so any HTTPS game host should be loadable.  This also covers ad networks,
@@ -1653,7 +1660,7 @@ const CONTROL = {
 // answers 404 on its API and its page, so turning it off in the console actually
 // stops it rather than hiding a link to something still running.
 const FEATURE_ROUTES = [
-  ['features.ai',          ['/api/ai/'],           ['/ai', '/ai.html']],
+  ['features.ai',          ['/api/ai/'],           ['/ai', '/ai.html', '/pollichat', '/pollichat.html']],
   ['features.community',   ['/api/recommendations'], ['/community', '/community.html']],
   ['features.leaderboard', ['/api/scores'],        ['/leaderboard', '/leaderboard.html']],
   ['features.donate',      ['/api/donate'],        ['/donate', '/donate.html']],
@@ -1769,7 +1776,7 @@ function publicProxyView() {
   const v = CONTROL.proxy.publicView();
   const installed = {
     ultraviolet: !!proxyStatus.ultraviolet, scramjet: !!proxyStatus.scramjet,
-    gust: !!proxyStatus.gust, horizon: !!proxyStatus.horizon, interstellar: !!proxyStatus.interstellar,
+    gust: !!proxyStatus.gust, horizon: !!proxyStatus.horizon,
   };
   const view = { ...v, engines: v.engines.filter((e) => installed[e]) };
   // Published ONLY when interception is actually detected, and only the product
@@ -1847,14 +1854,14 @@ app.use((req, res, next) => {
 // ZoFHub is ALWAYS a proxy site. There is NO hub / Google-AdSense mode: Google
 // bans proxy / anonymizer domains at the ACCOUNT level, so the site earns solely
 // via the six proxy-friendly networks in lib/ad-providers.mjs, each on its own
-// role. The web proxy stack (GUST /
-// Ultraviolet / Scramjet / Wisp) is always enabled. PROXY_ENABLED is kept as a
+// role. The web proxy stack (Ultraviolet / Scramjet / GUST / HORIZON / Wisp)
+// is always enabled. PROXY_ENABLED is kept as a
 // named constant (always true) so the code that reads it stays readable.
 const PROXY_ENABLED = true;
 
 // ── The AGPL engines, behind one call ───────────────────────────────────────
-// GUST, Ultraviolet, Scramjet, their service workers and the Wisp tunnel now
-// live entirely in proxy-engine/. This file keeps the proprietary half: the
+// Ultraviolet, Scramjet, GUST, HORIZON, their service workers and the Wisp
+// tunnel now live entirely in proxy-engine/. This file keeps the proprietary half: the
 // Supabase models, the catalog, identity, ads, feedback, donations and the
 // admin console. The only things crossing the boundary are an Express app in
 // and a { proxyStatus, wisp } out — no shared state, no shared imports.
@@ -1866,7 +1873,7 @@ const PROXY_ENABLED = true;
 // that actually keeps this compliant.
 // ── Proxy discovery gate (MASQR) ───────────────────────────────────────────
 // Registered BEFORE the engines and before express.static, because the whole
-// point is to answer for /browser, /uv/, /gust/ … before anything can serve
+// point is to answer for /browser, /uv/, /horizon … before anything can serve
 // them. OFF unless MASQR_ENABLED is set, in which case this is a pass-through.
 //
 // What it buys: a mirror domain usually dies because somebody shares the link,
@@ -1937,8 +1944,11 @@ PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
 // the governor itself, by reason code.
 const PROXY_REFUSALS = { maintenance: 0, disabled: 0, origin: 0, staffOnly: 0 };
 
-const PROXY_ENGINE_PATHS = [['/uv/', 'ultraviolet'], ['/scram/', 'scramjet'], ['/gust', 'gust'], ['/proxy', 'gust']];
-const PROXY_TRANSPORT_PATHS = ['/baremux/', '/epoxy/'];
+const PROXY_ENGINE_PATHS = [
+  ['/uv/', 'ultraviolet'], ['/scram/', 'scramjet'],
+  ['/gust', 'gust'], ['/proxy', 'gust'], ['/horizon', 'horizon'],
+];
+const PROXY_TRANSPORT_PATHS = ['/baremux/', '/epoxy/', '/libcurl/'];
 
 // Staff-only access mode: the same session validation the console uses, cached
 // for a minute per session token so a proxied page's hundreds of asset requests
@@ -1989,6 +1999,27 @@ app.use(async (req, res, next) => {
     return page
       ? res.status(403).type('html').send(plainPage('Staff only', 'The proxy browser is currently limited to signed-in staff.'))
       : res.status(403).type('text').send('Staff only.');
+  }
+  next();
+});
+
+// GUST's and HORIZON's own chrome each attach inline on* handlers — GUST's
+// whole button-driven UI runs on ~30 onclick handlers plus favicon error-
+// fallbacks; HORIZON (a remodelled GUST) kept a handful (image error-fallbacks,
+// one hover tooltip). The site-wide helmet policy sets `script-src-attr 'none'`,
+// which blocks EVERY inline handler — on GUST that meant most of its buttons
+// silently did nothing when clicked, which is indistinguishable from "the proxy
+// is broken" to anyone using it. Relax that ONE directive, for ONLY these two
+// first-party vendored documents — every other directive, and every other
+// route, is left exactly as helmet set it. This does not widen what scripts may
+// run: `script-src` already allows 'unsafe-inline' site-wide, so inline
+// <script> executes everywhere regardless; this only lets a handler be attached
+// inline on these two pages. It touches no third party's headers and does not
+// affect egress.
+app.use(['/gust', '/proxy', '/horizon'], (req, res, next) => {
+  const csp = res.getHeader('Content-Security-Policy');
+  if (typeof csp === 'string' && csp.includes("script-src-attr 'none'")) {
+    res.setHeader('Content-Security-Policy', csp.replace("script-src-attr 'none'", "script-src-attr 'unsafe-inline'"));
   }
   next();
 });
@@ -2118,7 +2149,7 @@ function egressReport() {
 // ========================================================================
 // Static + APIs
 // ========================================================================
-// The proxy front-end assets (gust, uv, scram, …) are ALWAYS served — this is a
+// The proxy front-end assets (horizon, uv, …) are ALWAYS served — this is a
 // proxy site with no hub mode that would ever hide them.
 
 // ---- Canonical redirects for the `.html` twins of the legal pages ----------
@@ -2162,11 +2193,10 @@ for (const [alias, target] of Object.entries(LEGAL_ALIASES)) {
 // the Hugging Face provider kept working on networks that filter cdn.jsdelivr.net.
 // That provider is gone, and the dependency with it, so the mount is removed.
 //
-// NOTE, because the two are easy to confuse: this was @huggingface/INFERENCE (a
-// network API client). The OFFLINE fallback in public/js/ai.js uses
-// @huggingface/TRANSFORMERS from cdn.jsdelivr.net and is untouched — it is what
-// answers when the device has no working network at all, and it runs entirely
-// on-device.
+// NOTE: this was @huggingface/INFERENCE (a network API client). The on-device
+// @huggingface/TRANSFORMERS fallback that once lived in the AI page was removed
+// in the browser-direct rewrite, so nothing here loads Hugging Face any more —
+// the AI page (public/js/pollichat.js) only ever calls text.pollinations.ai.
 
 app.use(express.static(PUBLIC_DIR, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
@@ -2185,9 +2215,8 @@ app.use(express.static(PUBLIC_DIR, {
     const isThumb = /[\\/]thumbs[\\/]/.test(path);
     if (!isThumb && /\.(html|css|js|mjs|svg)$/.test(path)) res.setHeader('Cache-Control', 'no-cache');
     // .mjs is not mapped by every Express/send build, and a wrong MIME makes the
-    // browser refuse a module import. (GUST was the original reason; it now
-    // carries its own copy of this in proxy-engine/mount.mjs. Kept here for any
-    // ES module served out of public/.)
+    // browser refuse a module import. (Kept for any ES module served out of
+    // public/ — the proxy transports under /epoxy/ and /baremux/ are .mjs.)
     if (path.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
   }
 }));
@@ -2550,7 +2579,7 @@ app.get('/api/proxies', async (req, res) => {
   // approved-destination policy cannot govern a byte of its traffic — which is
   // why they are one switch, off by default, and labelled as ungoverned in the
   // console. The engines that run INSIDE this site (Ultraviolet, Scramjet,
-  // GUST, HORIZON, Interstellar) are not here precisely because they do pass
+  // GUST, HORIZON) are not here precisely because they do pass
   // through the tunnel and are governed.
   let list = extra.length ? [...engines, ...extra] : engines;
   const mode = PROXY_POLICY.accessMode;
@@ -2738,7 +2767,8 @@ function refuseServerAi(res) {
 // GET /api/ai/image used to stream generated image bytes from
 // image.pollinations.ai through this server. AI image generation is no longer a
 // product feature, so the route is gone rather than left gated — the client that
-// called it (public/js/ai.js handleImage) is gone too, and so is the image-model
+// called it (the old public/js/ai.js handleImage — the AI page is now the
+// text-only public/js/pollichat.js) is gone too, and so is the image-model
 // lookup in resolveModels().
 //
 // Ordinary site imagery is unrelated and untouched: game thumbnails are served
@@ -3341,8 +3371,8 @@ async function forwardToMailProvider(email) {
 // ========================================================================
 // POST /api/ai/feedback — feedback on ONE AI answer.
 // ------------------------------------------------------------------------
-// The AI itself never touches this server: public/js/ai.js talks to providers
-// from the visitor's own browser. This endpoint exists so a person can tell us
+// The AI itself never touches this server: public/js/pollichat.js calls
+// text.pollinations.ai from the visitor's own browser. This endpoint exists so a person can tell us
 // an answer was wrong — and it is deliberately the ONLY path by which anything
 // a visitor typed at the AI reaches our database.
 //
@@ -4430,8 +4460,8 @@ app.get('/api/admin/quality', (req, res) => {
 
 // ── GET /api/admin/proxy ───────────────────────────────────────────────────
 // Telemetry for the proxy layer THIS SERVER ACTUALLY RUNS: the Wisp tunnel and
-// the engines mounted by proxy-engine/mount.mjs (GUST, Ultraviolet, Scramjet,
-// bare-mux, epoxy).
+// the engines mounted by proxy-engine/mount.mjs (Ultraviolet, Scramjet, GUST,
+// HORIZON, bare-mux, epoxy, libcurl).
 //
 // Everything reported here is measured in-process. There is no external proxy
 // daemon to scrape and no second service to be out of sync with, so the numbers
@@ -5469,7 +5499,7 @@ async function initControlPlane() {
   // A reachable proxy with an EMPTY allowlist refuses every destination — the
   // client shows "Not an approved destination" with NO console error, which
   // reads to an operator as "the proxy browser is broken / loads nothing". It
-  // isn't: the engines (UV/Scramjet/Wisp) are fine and the allowlist is doing
+  // isn't: the engines (UV/Scramjet/GUST/HORIZON/Wisp) are fine and the allowlist is doing
   // its job. Say so once, plainly, so the fix is understood as "approve
   // destinations", not "debug the service worker". Fires only when the count is
   // genuinely zero, read AFTER load(), so it can't false-warn a configured box.
@@ -7298,10 +7328,12 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /browser',
     'Disallow: /gust',
     'Disallow: /proxy',
+    'Disallow: /horizon',
     'Disallow: /uv/',
     'Disallow: /scram/',
     'Disallow: /epoxy/',
     'Disallow: /baremux/',
+    'Disallow: /libcurl/',
     'Disallow: /wisp/',
     // /licenses, /licenses/* and /licenses.json are DELIBERATELY crawlable.
     // They carry the AGPL-3.0 §13 source offer and the §5 modification notice.
@@ -7364,11 +7396,10 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));
-app.get('/ai',       (req, res) => res.sendFile(join(PUBLIC_DIR, 'ai.html')));
+app.get(['/ai', '/pollichat'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'pollichat.html')));
 app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')));
-// GUST's `/gust` and `/proxy` routes moved to proxy-engine/mount.mjs along with
-// the bundle itself. They are registered there, at the same URLs, so no client
-// changed — this file simply no longer serves any AGPL asset.
+// The proxy engine routes (/horizon, /uv/, and the shared transport) are
+// registered by proxy-engine/mount.mjs, so this file serves no AGPL asset.
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
 
 // Donations. The dialog (donate.js) is the fast path from any page; this is the
@@ -7603,21 +7634,21 @@ for (const [route, file] of Object.entries(LEGAL_PAGES)) {
 // ========================================================================
 // COPYLEFT COMPLIANCE — /licenses, /licenses/:id, /licenses.json
 // ------------------------------------------------------------------------
-// ZoFHub serves six AGPL-3.0 proxy engines and one LGPL-3.0 library to every
-// visitor who opens /browser or /gust. Naming them on /credits is attribution,
+// ZoFHub serves two AGPL-3.0 proxy engines and one LGPL-3.0 library to every
+// visitor who opens /browser or /horizon. Naming them on /credits is attribution,
 // not compliance. These routes discharge the actual obligations:
 //
 //   AGPL §4  — the license text must accompany the work. Before this, every
-//              /uv/LICENSE, /scram/LICENSE, … returned 404: the site served the
+//              /uv/LICENSE, … returned 404: the site served the
 //              code and withheld the license.
 //   AGPL §13 — a user interacting over a network must be offered the
 //              Corresponding Source of the version they are running. That is
 //              what /licenses.json is: a machine-readable written offer,
 //              pinned to the versions actually installed.
 //   AGPL §5  — a MODIFIED work must carry prominent notices of the change and
-//              its date. GUST is modified (its Wisp target was repointed at our
-//              own /wisp/, and the ZoFHub cloak system was added), so its entry
-//              states that, dates it, and links the running modified file
+//              its date. HORIZON is modified (its Wisp target was repointed at
+//              our own /wisp/ and its third-party relay pool removed), so its
+//              entry states that, dates it, and links the running modified file
 //              rather than only upstream.
 //   LGPL §4  — same notice/text requirement for libcurl.js.
 //
@@ -7664,7 +7695,7 @@ app.get('/licenses/:id', (req, res) => {
 // disagree about versions or modification status.
 const LICENSES_PAGE = (() => {
   const rows = getComponents().map(c => {
-    // Vendored components (GUST) have no npm version — label them as such
+    // Vendored components (HORIZON) have no npm version — label them as such
     // rather than printing an empty or bogus "v".
     const ver = c.version
       ? ` <span class="lic-ver">v${htmlEscape(c.version)}</span>`

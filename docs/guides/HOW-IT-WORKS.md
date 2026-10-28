@@ -124,11 +124,11 @@ explains why thousands of catalogued games are deliberately never served.
 | `index.html` | homepage grid (built by `js/catalog.js`) |
 | `game.html` | the template behind every `/play/<slug>` — the player + game iframe |
 | `category.html` | one category's grid |
-| `ai.html` | the AI assistant (`js/ai.js`) |
+| `pollichat.html` | the AI assistant / PolliChat (`js/pollichat.js`), served at `/ai` |
 | `community.html` | community submissions |
 | `leaderboard.html` | scores |
 | `donate.html` | donation addresses |
-| `browser.html`, `gust/` | the proxy browser |
+| `browser.html`, `horizon` | the proxy browser |
 | `404.html` | not found |
 
 `css/` holds styles, `js/` holds behaviour, and **`js/layout.js` runs on every
@@ -201,7 +201,7 @@ proxy traffic**. That boundary is structural, not a promise — see
 
 ## 8. The proxy browser
 
-`browser.html` plus `gust/`, `/uv/`, `/scram/` and `/wisp/` let a visitor browse
+`browser.html` plus `/horizon`, `/uv/` and `/wisp/` let a visitor browse
 other sites through your server. This is the "unblocked at school" feature, and
 it is the reason several other decisions on this page exist.
 
@@ -209,9 +209,8 @@ it is the reason several other decisions on this page exist.
 
 | Engine | How it works |
 |---|---|
-| **Scramjet** | service worker, newer rewriter |
 | **Ultraviolet** | service worker, the long-standing one |
-| **GUST** | runs libcurl.js in the page |
+| **HORIZON** | single-file browser, runs libcurl.js in the page |
 
 **How a request actually leaves the building:**
 
@@ -231,8 +230,8 @@ Three things guard that path:
   somewhere other than your web host. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
 - **Companion engines** — Kasm Workspaces and others can be pointed at as
   *external* deployments rather than bundled ([docs/proxy/KASM.md](../proxy/KASM.md)).
-  **HORIZON** and **Interstellar** are bundled same-origin engines instead,
-  mounted at `/horizon` and `/interstellar` and governed by this server's tunnel.
+  **HORIZON** is a bundled same-origin engine instead, mounted at `/horizon` and
+  governed by this server's tunnel.
 
 **Verify it actually works** with `npm run verify-proxy`, which drives a real
 browser through every engine and checks that pages render. An HTTP 200 from the
@@ -273,7 +272,7 @@ Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md)
 - **Google AdSense is never used**, and is refused at three layers. Google bans
   proxy domains at the *account* level, so one stray tag could take down an
   unrelated account.
-- **Ads never run on the proxy.** `/browser`, `/gust` and every proxy asset route
+- **Ads never run on the proxy.** `/browser`, `/horizon` and every proxy asset route
   are excluded structurally — in the registry, in the API and in the client. What
   renders there is somebody else's website, and monetising it would mean
   injecting script into third-party content in transit.
@@ -388,7 +387,7 @@ See `render.yaml` and [GO-LIVE.md](GO-LIVE.md).
 |---|---|
 | `server.js` | the program |
 | `public/` | everything the visitor downloads |
-| `proxy-engine/` | every AGPL proxy engine (GUST, Ultraviolet, Scramjet) behind one mount function |
+| `proxy-engine/` | the proxy engines (Ultraviolet, Scramjet, GUST, HORIZON) behind one mount function |
 | `lib/` | server helper modules (Supabase, cron, proxy policy, ads, AI, scores, donations) |
 | `admin-ui/` | the admin console — deliberately outside `public/` |
 | `db/` | authored SQL — the source of truth for the schema |

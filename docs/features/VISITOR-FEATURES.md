@@ -160,8 +160,8 @@ Three modes:
 | **overlay** | drops an iframe of the safe page on top of ZoFHub; the URL does not change |
 
 Settings — mode, destination, hotkey — are saved in `localStorage`. The same
-cloak system is built into the GUST proxy browser, which is one of GUST's two
-declared modifications ([CREDITS.md](../CREDITS.md)).
+cloak system (`/js/panic.js`) runs site-wide on every page, including the
+proxy browser.
 
 ---
 

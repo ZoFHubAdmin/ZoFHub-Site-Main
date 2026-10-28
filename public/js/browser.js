@@ -1,11 +1,12 @@
 // ZoFHub · browser.js — multi-engine proxy browser (dropdown-driven).
 // -----------------------------------------------------------------------------
 // Pick an engine from the dropdown and it LAUNCHES immediately:
-//   • Scramjet / Ultraviolet — IN-APP service-worker proxies (same origin). On
+//   • Ultraviolet / Scramjet — IN-APP service-worker proxies (same origin). On
 //     select we wait for the SW to actually be ACTIVE + the tunnel warm, then
-//     auto-open a homepage so a real page renders ("the browser pops up"). Type
-//     any URL in the address bar to browse; it's encoded and loaded in-frame.
-//   • GUST — self-contained proxy app at /gust/ (its own address bar).
+//     auto-open a homepage so a real page renders ("the browser pops up").
+//     Type any URL in the address bar to browse; it's encoded and loaded in-frame.
+//   • GUST / HORIZON — self-contained proxy apps at /gust and /horizon (each
+//     has its own address bar; HORIZON is a remodelled GUST).
 //   • Companions (NautilusOS, DayDream, Nebula) — standalone apps
 //     on their own port. WHICH ones exist is decided entirely by the server:
 //     /api/proxies returns exactly those with a PROXY_<ID>_URL set, and this
@@ -45,15 +46,14 @@ const errReload= $('#brErrReload');
 const errOpen  = $('#brErrOpen');
 
 // The always-available in-app engines (companions come from /api/proxies).
-// Order matters: the first entry shows on top. Scramjet is the default.
+// Order matters: the first entry shows on top. Ultraviolet is the default.
 const IN_APP = [
-  { id: 'scramjet',     label: 'Scramjet',     kind: 'sw' },
-  { id: 'uv',           label: 'Ultraviolet',  kind: 'sw' },
-  { id: 'gust',         label: 'GUST',         kind: 'app', url: '/gust/' },
-  { id: 'horizon',      label: 'HORIZON',      kind: 'app', url: '/horizon' },
-  { id: 'interstellar', label: 'Interstellar', kind: 'app', url: '/interstellar' },
+  { id: 'uv',       label: 'Ultraviolet', kind: 'sw' },
+  { id: 'scramjet', label: 'Scramjet',    kind: 'sw' },
+  { id: 'gust',     label: 'GUST',        kind: 'app', url: '/gust' },
+  { id: 'horizon',  label: 'HORIZON',     kind: 'app', url: '/horizon' },
 ];
-const DEFAULT_ENGINE = 'scramjet';
+const DEFAULT_ENGINE = 'uv';
 // Homepage auto-loaded when you pick a service-worker engine. This MUST be a
 // proxy-tolerant site: it's the very first page a new visitor sees, so if it
 // blocks proxied/embedded access the engine looks broken when it isn't.
@@ -68,8 +68,8 @@ const engineById = (id) => IN_APP.find(e => e.id === id) || companions.find(c =>
 
 // ── Premium engines and the ad-block gate ────────────────────────────────────
 // Every standalone companion is a premium engine: each is a whole separate
-// application on our heaviest servers. The built-in engines — Scramjet,
-// Ultraviolet, GUST, HORIZON and Interstellar — all run on THIS origin and are
+// application on our heaviest servers. The built-in engines — Ultraviolet,
+// Scramjet, GUST and HORIZON — all run on THIS origin and are
 // never gated. While
 // support-gate.js reports the gate as locked — an ad-blocker still on after
 // three pages, on a deployment that runs ads — picking one shows the lock card
@@ -88,7 +88,7 @@ function showLockFor(e) {
 }
 const originOf = (u) => { try { return new URL(u, location.href).origin; } catch { return null; } };
 
-// ── Shared transport + service workers (Ultraviolet + Scramjet) ──────────────
+// ── Shared transport + service workers (Ultraviolet + Scramjet) ─────────────
 // Warmed in the background at load; NEVER awaited unbounded. A navigation waits
 // a BOUNDED time for BOTH the tunnel and the engine's SW to be active.
 let bareConn = null, transportReady = null, sjController = null;
@@ -97,7 +97,7 @@ const TRANSPORT_SETUP_MS = 20000, READY_WAIT_MS = 15000;
 
 function initBareMux() {
   if (!window.BareMux || !window.BareMux.BareMuxConnection) {
-    console.warn('[browser] BareMux global missing — UV/Scramjet unavailable.');
+    console.warn('[browser] BareMux global missing — Ultraviolet/Scramjet unavailable.');
     return;
   }
   try { bareConn = new window.BareMux.BareMuxConnection('/baremux/worker.js'); }
@@ -160,7 +160,7 @@ async function initScramjet() {
     return await awaitActive(reg);
   } catch (e) { console.warn('[browser] Scramjet init failed:', e); sjController = null; return false; }
 }
-const swReadyFor = (id) => (id === 'scramjet' ? scramReady : id === 'uv' ? uvReady : Promise.resolve(true));
+const swReadyFor = (id) => (id === 'uv' ? uvReady : id === 'scramjet' ? scramReady : Promise.resolve(true));
 
 // Encode a target URL for the chosen SW engine. null → engine not ready.
 function buildProxyUrl(url, engine) {
@@ -383,7 +383,7 @@ function selectEngine(id) {
     navigate(HOME);                          // pop the browser up on a real homepage
   } else if (e.kind === 'app') {
     note.textContent = `${e.label} — use its own address bar inside the page.`;
-    loadApp(e.url, e.label);                 // same-origin (/gust/), no new-tab fallback needed
+    loadApp(e.url, e.label);                 // same-origin (/gust or /horizon), no new-tab fallback needed
   } else if (e.kind === 'companion') {
     // companion (separate server, cross-origin). Embedding can be silently
     // refused (X-Frame-Options), so ALWAYS offer a new-tab escape hatch.
@@ -405,7 +405,7 @@ function selectEngine(id) {
   }
 }
 
-// ── Address-bar navigation (Scramjet / Ultraviolet) ──────────────────────────
+// ── Address-bar navigation (Ultraviolet / Scramjet) ─────────────────────────
 // Bumped by EVERY engine selection and every navigation. loadUrl() waits up to
 // READY_WAIT_MS for the tunnel and the service worker, so without this a slow
 // engine's continuation lands after the user has already picked a different one

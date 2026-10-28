@@ -4,8 +4,8 @@
 // bare WKWebView on iOS, an Android System WebView on Android. Those are not
 // the browsers ZoFHub's proxy engines are built for. On iOS a WKWebView has no
 // Service Workers unless the host app opts in (none of these do), so
-// Ultraviolet and Scramjet — which ARE service workers — cannot start at all,
-// and GUST's frames render blank. The fix is not in this codebase; it is for
+// Ultraviolet — which IS a service worker — cannot start at all, and HORIZON's
+// frame renders blank. The fix is not in this codebase; it is for
 // the visitor to open the page in Safari or Chrome. layout.js shows the banner
 // that says so; this file only answers the question.
 //

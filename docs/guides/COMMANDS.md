@@ -22,7 +22,7 @@ on the proxy, never Google AdSense, and no separate "hub" mode.
 | `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
 | `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · DayDream) on their own ports. Prints why it skipped any that aren't ready. Nebula was removed from the working tree — restore it with `git checkout 07a2a6f7 -- Nebula` if you want it back. |
-| `npm run verify-proxy` | Load real pages through **all three built-in engines** (Scramjet, Ultraviolet, GUST) in a real browser and assert the document that rendered. Not an HTTP-200 check: a service worker does not intercept requests from a client it does not control, so fetching a proxy URL from Node tests the server's fallback, not the proxy. Takes `--engine uv` / `--target https://…`. Needs devDependencies (Playwright). |
+| `npm run verify-proxy` | Load real pages through all four built-in engines — **Ultraviolet** and **Scramjet** via the page's own address bar, **GUST** and **HORIZON** via their own in-app address bar — in a real browser, and assert the document that rendered. Not an HTTP-200 check: a service worker does not intercept requests from a client it does not control, so fetching a proxy URL from Node tests the server's fallback, not the proxy. Takes `--engine uv` / `--target https://…`. Needs devDependencies (Playwright). |
 | `npm run verify-ai` | Open `/ai` in a real browser, send a real prompt, and assert what the page actually does on the network: ONE `GET https://text.pollinations.ai/<encoded prompt>`, the response **readable** cross-origin, **no** `/api/ai/` request reaching the server, no key round-trip, no model download, and the answer rendered in the message list. Makes a real free-tier request, so a 429 is an honest failure — read the printed request log. Needs devDependencies (Playwright). |
 | `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
@@ -357,7 +357,7 @@ fails is dropped rather than served.
   *served*: GameMonetize, Y8, OnlineGames.io and GameDistribution — the
   distributors that license third-party embedding. `npm run audit-served` shows
   the split. Supabase is the source of truth; a bundled JSON is the offline fallback.
-- **Always-on proxy** — GUST (libcurl.js + Wisp), Ultraviolet, and Scramjet let
+- **Always-on proxy** — Ultraviolet, Scramjet, GUST and HORIZON (libcurl.js + Wisp) let
   visitors open the web on filtered networks. The `/wisp` WebSocket tunnel carries
   the traffic. This is why ZoFHub needs a **persistent host** (not serverless).
 - **Ads** — six supported networks, one role each, each enabled independently

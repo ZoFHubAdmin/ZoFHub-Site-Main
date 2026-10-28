@@ -18,7 +18,7 @@ A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
 2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to `text.pollinations.ai`, made by their own browser on their own IP. No prompt or reply ever touches this server, and that is **enforced by the server** — there are no AI routes left to relay one. No image, audio or video generation, and no provider choice.
-3. **A proxy web browser** — an optional "open the web" mode (GUST + Ultraviolet/Scramjet/Wisp) for filtered networks, whose egress runs through a managed **sing-box** daemon by default.
+3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose egress runs through a managed **sing-box** daemon by default.
 
 Built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres). It runs as **one always-on site**, with optional advertising on the hub pages only — never on the proxy, and never Google AdSense.
 
@@ -82,6 +82,6 @@ Everything lives in **[`docs/`](docs/README.md)**:
 
 ## 📜 License
 
-ZoFHub's own code is under the terms in [`LICENSE`](LICENSE) — source-available, personal & non-commercial (not open source). Bundled proxy engines (Ultraviolet, Scramjet, GUST, Wisp, Epoxy, libcurl transport) and the sing-box egress backend keep their own upstream licences (AGPL-3.0 / LGPL-3.0 / GPL-3.0), which always take precedence for those components; because they are served over a network, the AGPL-3.0 §13 source offer applies — see [docs/CREDITS.md](docs/CREDITS.md). Games are served through their publishers' official embed URLs; ZoFHub hosts no pirated game assets.
+ZoFHub's own code is under the terms in [`LICENSE`](LICENSE) — source-available, personal & non-commercial (not open source). Bundled proxy engines (Ultraviolet, Scramjet, GUST, HORIZON, Wisp, Epoxy transport, libcurl transport) and the sing-box egress backend keep their own upstream licences (AGPL-3.0 / LGPL-3.0), which always take precedence for those components; because they are served over a network, the AGPL-3.0 §13 source offer applies — see [docs/CREDITS.md](docs/CREDITS.md). Games are served through their publishers' official embed URLs; ZoFHub hosts no pirated game assets.
 
 **Author:** ZSM1010 — maintained pseudonymously. Reach the project via the [ZoFHub Discord](https://discord.gg/SeMuMRG9gG).

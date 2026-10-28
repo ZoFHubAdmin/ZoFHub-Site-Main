@@ -160,6 +160,23 @@ describe('security headers and error hygiene', () => {
     assert.ok(!/ at .*\.mjs:\d+|at Module\._compile|node:internal/.test(body),
       '404 leaked a stack trace');
   });
+
+  // REGRESSION: GUST's whole button-driven UI runs on inline onclick handlers
+  // (~30 of them), and HORIZON (a remodelled GUST) kept a handful more. The
+  // site-wide CSP's `script-src-attr 'none'` silently refused every one of
+  // them — on GUST that meant most buttons did nothing when clicked, which
+  // reads as "the proxy is broken" with no console error a user would notice.
+  // Scoped to exactly these two routes; every other page keeps the default.
+  test('GUST and HORIZON get script-src-attr relaxed; every other page keeps it refused', async () => {
+    for (const p of ['/gust', '/proxy', '/horizon']) {
+      const csp = (await get(p)).headers.get('content-security-policy') || '';
+      assert.match(csp, /script-src-attr[^;]*'unsafe-inline'/, `${p} still refuses inline handlers`);
+    }
+    for (const p of ['/', '/browser', '/ai']) {
+      const csp = (await get(p)).headers.get('content-security-policy') || '';
+      assert.match(csp, /script-src-attr\s+'none'/, `${p} should not have this directive relaxed`);
+    }
+  });
 });
 
 describe('/api/games — pagination', () => {
@@ -469,7 +486,7 @@ describe('AI runs on the visitor device, never on this server', () => {
   test('no response anywhere carries a Pollinations key', async () => {
     // The strong form of the above: not "the key route is gone" but "no key
     // reaches a browser from here", whatever route it asks for.
-    for (const p of ['/', '/ai', '/js/pollinations.js', '/js/ai.js', '/js/ai-helper.js']) {
+    for (const p of ['/', '/ai', '/js/pollinations.js', '/js/pollichat.js', '/js/ai-helper.js']) {
       const body = await (await asInternetVisitor(p)).text();
       assert.doesNotMatch(body, /\bsk_[A-Za-z0-9]/, `${p} contains a secret key`);
       assert.doesNotMatch(body, /\bpk_[A-Za-z0-9]/, `${p} contains a publishable key`);
@@ -729,7 +746,7 @@ describe('/api/site-config is one route that answers everything', () => {
   });
 
   test('a proxy surface gets every ad field, empty', async () => {
-    for (const surface of ['/browser', '/gust/', '/uv/x']) {
+    for (const surface of ['/browser', '/horizon', '/uv/x']) {
       const j = await (await get('/api/site-config?surface=' + encodeURIComponent(surface))).json();
       assert.equal(j.adsAllowed, false, surface);
       assert.deepEqual(j.adScripts, []);

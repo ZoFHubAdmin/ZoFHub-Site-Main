@@ -231,7 +231,7 @@ describe('where each placement may appear', () => {
   });
 
   test('a proxy page gets nothing at all', () => {
-    for (const surface of ['/browser', '/gust/x', '/horizon', '/interstellar/home', '/play']) {
+    for (const surface of ['/browser', '/horizon', '/horizon/x', '/uv/x', '/play']) {
       const pub = publicAdConfig(cfg, { surface });
       assert.equal(pub.preroll, null, surface);
       assert.equal(pub.popunder, null, surface);
@@ -344,9 +344,9 @@ describe('Google ad code is refused everywhere', () => {
 describe('the proxy / advertising boundary', () => {
   const NATIVE = ['/', '/category/racing', '/play/moto-x3m', '/ai', '/community', '/credits', '/privacy'];
   const PROXY = [
-    '/browser', '/browser/', '/gust', '/gust/index.html', '/proxy',
-    '/uv/uv.bundle.js', '/sj/scramjet.js', '/scram/scramjet.sw.js',
-    '/epoxy/index.mjs', '/libcurl/x.js', '/baremux/y.js', '/wisp', '/bare/v3',
+    '/browser', '/browser/', '/horizon', '/horizon/x', '/gust', '/gust/x', '/proxy',
+    '/uv/uv.bundle.js', '/scram/scramjet.all.js', '/epoxy/index.mjs', '/baremux/y.js',
+    '/libcurl/index.mjs', '/wisp', '/bare/v3',
     '/service/abc', '/sw.js',
   ];
 
@@ -381,13 +381,13 @@ describe('the proxy / advertising boundary', () => {
     // browsers long after a server-side fix ships.
     const src = readFileSync(join(ROOT, 'public', 'js', 'layout.js'), 'utf8');
     assert.match(src, /ADS_ALLOWED_HERE/, 'layout.js has no client-side surface guard');
-    assert.match(src, /browser\|gust\|proxy/,
+    assert.match(src, /browser\|horizon\|gust\|proxy\|uv\|scram/,
       'the client guard does not name the proxy surfaces');
   });
 
   test('no ad module is imported by a proxy page', () => {
     // The vendored proxy UIs must not reference the ad stack at all.
-    const proxyPages = ['proxy-engine/assets/gust/index.html'];
+    const proxyPages = ['proxy-engine/assets/horizon/index.html', 'proxy-engine/assets/gust/index.html'];
     for (const rel of proxyPages) {
       let src;
       try { src = readFileSync(join(ROOT, rel), 'utf8'); } catch { continue; }
