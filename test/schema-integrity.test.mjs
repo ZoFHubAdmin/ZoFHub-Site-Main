@@ -167,7 +167,8 @@ describe('the schema the migrations actually produce', () => {
   test('no SECURITY DEFINER function is left without a caller', () => {
     // Elevated-privilege code that nothing invokes can only ever run by accident.
     const callers = readFileSync(join(ROOT, 'lib', 'cron-jobs.mjs'), 'utf8')
-      + readFileSync(join(ROOT, 'server.js'), 'utf8');
+      + readFileSync(join(ROOT, 'server.js'), 'utf8')
+      + readFileSync(join(ROOT, 'lib', 'reward-sessions.mjs'), 'utf8');
     const orphans = [];
     for (const [sig, fn] of DB.functions) {
       if (!fn.definer) continue;

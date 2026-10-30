@@ -1944,6 +1944,19 @@ PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
 // the governor itself, by reason code.
 const PROXY_REFUSALS = { maintenance: 0, disabled: 0, origin: 0, staffOnly: 0 };
 
+// Rewarded proxy access ("Boost", lib/reward-*.mjs). OFF by default
+// (REWARDS_ENABLED) — see lib/reward-policy.mjs for why this does not
+// contradict docs/README.md's "no offer-to-unlock gates" line: the only
+// thing a grant ever changes is the free/boost stream-cap split just added
+// above, never access to the games hub, the catalog, or any built-in engine.
+// Created unconditionally (cheap — an empty Map until the feature is used) so
+// guardedSocketClass() below can read it even if REWARDS_ENABLED is unset:
+// tierFor() on an unconfigured cache always resolves to 'free'.
+const { createEntitlementCache } = await import('./lib/reward-entitlement.mjs');
+const { rewardsEnabled: REWARDS_ENABLED_FN } = await import('./lib/reward-policy.mjs');
+const REWARD_ENTITLEMENT_CACHE = createEntitlementCache({ getSupabaseAdmin });
+const REWARDS_ENABLED_ENV = REWARDS_ENABLED_FN(process.env);
+
 const PROXY_ENGINE_PATHS = [
   ['/uv/', 'ultraviolet'], ['/scram/', 'scramjet'],
   ['/gust', 'gust'], ['/proxy', 'gust'], ['/horizon', 'horizon'],
@@ -2106,9 +2119,18 @@ function noteProxyPrivateRefusal(host) {
  * validated — which is what closes the rebinding window between wisp-js's own
  * lookup and the connection. It also feeds the session record its counts.
  */
-function guardedSocketClass(sessionId) {
+function guardedSocketClass(sessionId, tier = 'free') {
   return class GuardedTCPSocket extends SingboxTCPSocket {
     async connect() {
+      // The free-tier additional cap (lib/proxy-control.mjs's
+      // freeStreamsPerTunnel). wisp-js's own stream_limit_total stays set to
+      // the generous ceiling (policy.streamsPerTunnel) for everyone, as
+      // before this feature existed — a 'boost' tier sees no change from
+      // today's behavior; only 'free' is additionally capped, here.
+      if (tier !== 'boost' && PROXY_SESSIONS.activeStreams(sessionId) >= PROXY_POLICY.freeStreamsPerTunnel) {
+        PROXY_SESSIONS.denied(sessionId);
+        throw new DestinationRefused('free_tier_stream_cap');
+      }
       const d = PROXY_GOVERNOR.evaluate({ host: this.hostname, port: this.port, staff: true });
       if (d.decision !== 'ALLOW') { PROXY_SESSIONS.denied(sessionId); throw new DestinationRefused(d.reason); }
       let address;
@@ -2693,6 +2715,12 @@ const LIMITS = createLimiterSet({
   recSeen:         { capacity: 40,  refillMs: 1_000 },
   forYou:          { capacity: 30,  refillMs: 2_000 },
   proxyDiag:       { capacity: 10,  refillMs: 3_000 },
+  // Rewarded proxy access ("Boost", lib/reward-routes.mjs). Sessions are rare,
+  // human-paced claims; callbacks are a provider's own postback rate, which a
+  // real integration may burst more than the mock ever will.
+  rewardSession:     { capacity: 6,  refillMs: 15_000 },
+  rewardCallback:    { capacity: 30, refillMs: 2_000 },
+  rewardEntitlement: { capacity: 20, refillMs: 3_000 },
   // Telemetry is fire-and-forget and bursty by nature: one page load can emit
   // several vitals at once (LCP, CLS, INP, FCP, TTFB). Generous burst, slow
   // refill — enough for honest reporting, not enough to spin a counter.
@@ -5535,6 +5563,28 @@ const ADMIN_API = mountAdminApi(app, {
   log: (...a) => console.warn(...a),
 });
 
+// Rewarded proxy access ("Boost"). Mounted only when REWARDS_ENABLED is set —
+// a deployment that never opts in has none of these routes registered at
+// all, the same posture lib/ai-guard.mjs's production check and the ad
+// providers' *_ENABLED flags both use. The admin console's live kill-switch
+// (rewards.enabled, lib/settings-registry.mjs) is checked on every request
+// inside mountRewardApi(), so turning it off there takes effect immediately
+// without a restart; this env flag only controls whether the routes exist.
+let REWARD_API = null;
+if (REWARDS_ENABLED_ENV) {
+  const { mountRewardApi, rewardApiEnabled } = await import('./lib/reward-routes.mjs');
+  REWARD_API = mountRewardApi(app, {
+    enabled: () => rewardApiEnabled(process.env, (k) => CONTROL.settings?.get(k)),
+    getSupabaseAdmin,
+    limits: { allow: (scope, ip) => LIMITS.allow(scope, ip) },
+    clientIp: (req) => resolveClientIp(req, req.socket, TRUST_PROXY_FN),
+    clientTag: (req) => (adminAuth.hashIp(resolveClientIp(req, req.socket, TRUST_PROXY_FN)) || '').slice(0, 8) || null,
+    securityEvent: (fields) => adminAuth.securityEvent(getSupabaseAdmin(), fields),
+    entitlementCache: REWARD_ENTITLEMENT_CACHE,
+  });
+  console.log(`[rewards] mounted (${REWARD_API.routes.length} routes${REWARD_API.mockMounted ? ', mock provider active — dev/test only' : ''})`);
+}
+
 const ADMIN_ASSETS = {
   'admin.css':         { file: 'admin.css',         type: 'text/css; charset=utf-8',        public: true },
   'admin-login.js':    { file: 'admin-login.js',    type: 'text/javascript; charset=utf-8', public: true },
@@ -8004,12 +8054,26 @@ async function handleProxyUpgrade(req, socket, head) {
     // client tag is a short HMAC so the console can see "one client, many
     // tunnels" without holding an address.
     const clientTag = (adminAuth.hashIp(ipKey) || '').slice(0, 8) || null;
-    const sid = PROXY_SESSIONS.open({ clientTag, staff, kill: (reason) => { socket._zhCloseReason = reason; try { socket.destroy(); } catch { /* gone */ } } });
+
+    // "Boost" tier lookup. REWARDS_ENABLED_ENV is checked first so a
+    // deployment that never turned this on pays no cookie parse and no cache
+    // lookup — tier is always 'free' there, identical to today's behavior.
+    // The id is identity.js's existing persistent player id, carried by the
+    // zh_player_id cookie lib/reward-routes.mjs sets the first time a visitor
+    // claims a Boost session; a visitor who never uses the feature never has
+    // the cookie, so this resolves to 'free' for them too.
+    let tier = 'free';
+    if (REWARDS_ENABLED_ENV) {
+      const playerId = adminAuth.parseCookies(req.headers?.cookie)['zh_player_id'];
+      if (playerId) tier = await REWARD_ENTITLEMENT_CACHE.tierFor(playerId);
+    }
+
+    const sid = PROXY_SESSIONS.open({ clientTag, staff, tier, kill: (reason) => { socket._zhCloseReason = reason; try { socket.destroy(); } catch { /* gone */ } } });
 
     // Anything that is not exactly `/wisp/` is refused — including the
     // `/wisp/host:port` wsproxy shape, which wisp-js would otherwise serve with
     // a socket class of its own choosing, bypassing every check above.
-    if (!routeProxyUpgrade(wisp, req, socket, head, { TCPSocket: guardedSocketClass(sid) })) {
+    if (!routeProxyUpgrade(wisp, req, socket, head, { TCPSocket: guardedSocketClass(sid, tier) })) {
       PROXY_SESSIONS.close(sid, 'bad_request');
       return refuseUpgrade(socket, 400, 'Bad Request');
     }

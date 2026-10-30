@@ -65,7 +65,7 @@ describe('the provenance record is accurate and complete', () => {
   test('it records the licence and the copyright holder', () => {
     assert.equal(provenance.license, 'AGPL-3.0-only');
     assert.match(provenance.copyright, /TitaniumNetwork/);
-    assert.equal(provenance.upstream, 'https://github.com/QuiteAFancyEmerald/InvisiProxy');
+    assert.equal(provenance.upstream, 'https://github.com/InvisiProxy/InvisiProxyLTS');
   });
 
   test('it states that nothing was incorporated, and stays consistent with that', () => {

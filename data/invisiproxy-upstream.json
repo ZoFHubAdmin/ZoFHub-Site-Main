@@ -11,7 +11,8 @@
   ],
   "project": "InvisiProxy LTS",
   "formerlyKnownAs": "Holy Unblocker LTS",
-  "upstream": "https://github.com/QuiteAFancyEmerald/InvisiProxy",
+  "upstream": "https://github.com/InvisiProxy/InvisiProxyLTS",
+  "upstreamMovedFrom": "https://github.com/QuiteAFancyEmerald/InvisiProxy (verified 2026-10-29: now redirects to the archived QuiteAFancyEmerald/InvisiProxy-Legacy; same project continues at the URL above — same license, same lead maintainer, reviewedCommit below still resolves there)",
   "homepage": "https://invisiproxy.com",
   "license": "AGPL-3.0-only",
   "copyright": "TitaniumNetwork and the InvisiProxy contributors",
@@ -60,7 +61,7 @@
   "deployment": {
     "envVar": "PROXY_INVISI_URL",
     "runsIn": "its own deployment, on the operator's infrastructure",
-    "upstreamDeployDocs": "https://github.com/QuiteAFancyEmerald/InvisiProxy#readme",
+    "upstreamDeployDocs": "https://github.com/InvisiProxy/InvisiProxyLTS#readme",
     "runtime": { "node": ">=22", "packageManager": "pnpm" }
   }
 }

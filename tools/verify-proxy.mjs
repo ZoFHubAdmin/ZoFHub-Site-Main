@@ -13,7 +13,7 @@
 // loads the page and reads what rendered would not have made that mistake.
 //
 // ── WHY NOT UPSTREAM'S VALIDATOR ──────────────────────────────────────────
-// InvisiProxy (AGPL-3.0, QuiteAFancyEmerald/InvisiProxy v7.0.2.1) ships
+// InvisiProxy (AGPL-3.0, InvisiProxy/InvisiProxyLTS v7.0.2.1) ships
 // proxyServiceValidator.js, which is the reason this file exists at all — the
 // idea of a CI-runnable proxy check is theirs. Its method was NOT adopted, and
 // the reason is worth writing down. It generates a proxy URL in a browser and

@@ -12,8 +12,8 @@ These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
 |---|---|---|---|
 | **Ultraviolet** | In‑page proxy engine (service worker) | https://github.com/titaniumnetwork-dev/Ultraviolet | **AGPL‑3.0** |
 | **Scramjet** | In‑page proxy engine (service worker) | https://github.com/MercuryWorkshop/scramjet | **AGPL‑3.0** |
-| **bare‑mux** | Transport multiplexer | https://github.com/MercuryWorkshop/bare-mux | MIT |
-| **Wisp (wisp‑js)** | Tunnel protocol client (the `/wisp/` tunnel) | https://github.com/MercuryWorkshop/wisp-client-js | **AGPL‑3.0** |
+| **bare‑mux** | Transport multiplexer <small>(archived upstream 2026; served version unaffected)</small> | https://github.com/MercuryWorkshop/bare-mux | MIT |
+| **Wisp (wisp‑js)** | Tunnel protocol client (the `/wisp/` tunnel) | https://github.com/MercuryWorkshop/wisp-js | **LGPL‑3.0‑or‑later** |
 | **Epoxy transport** | TLS‑over‑Wisp transport | https://github.com/MercuryWorkshop/EpoxyTransport | **AGPL‑3.0‑only** |
 | **libcurl transport** | curl‑over‑Wisp transport (GUST's alternative to Epoxy) | https://github.com/MercuryWorkshop/libcurl-transport | **AGPL‑3.0‑only** |
 | **libcurl.js** | WASM curl, used by GUST and bundled inside HORIZON | https://github.com/ading2210/libcurl.js | **LGPL‑3.0‑or‑later** |
@@ -28,14 +28,17 @@ These ship via npm packages (`@titaniumnetwork-dev/ultraviolet`,
 > relay — see the §5 declaration below.
 
 Every proxy engine ZoFHub serves — **Ultraviolet, Scramjet, GUST and
-HORIZON**, and the **Wisp / Epoxy / libcurl transport stack** — is
-**AGPL‑3.0**, and the **libcurl.js** used by GUST and bundled inside HORIZON
-is **LGPL‑3.0‑or‑later**. They are served to users **over a network by this
-deployment**, all from this origin, so their license notices are preserved in
-the vendored/npm files and the AGPL network‑use source offer below applies to
-all of them. **bare‑mux** is MIT (its `package.json` declares no license, but
-the package ships an MIT `LICENSE` file). None of these are covered by the
-ZoFHub License.
+HORIZON**, and the **Epoxy / libcurl transport stack** — is **AGPL‑3.0**.
+**Wisp (wisp‑js)** and the **libcurl.js** used by GUST and bundled inside
+HORIZON are **LGPL‑3.0‑or‑later**. They are served to users **over a network
+by this deployment**, all from this origin, so their license notices are
+preserved in the vendored/npm files; the AGPL network‑use source offer below
+applies to the AGPL‑3.0 components, and the LGPL‑3.0 §4 notice/license
+obligation applies to Wisp and libcurl.js. **bare‑mux** is MIT (its
+`package.json` declares no license, but the package ships an MIT `LICENSE`
+file; the repository itself was archived by its maintainers at some point
+before 2026‑10‑29, which does not change its license). None of these are
+covered by the ZoFHub License.
 
 > **Corrected 2026‑07‑30 — Ultraviolet is AGPL‑3.0, not MIT.**
 > Its npm package declares `"license": "MIT"` in `package.json`, but it ships a
@@ -46,11 +49,31 @@ ZoFHub License.
 > obligation: AGPL‑3.0 §13 requires a network‑use source offer, and MIT does not.
 > The §13 offer below now covers it.
 
+> **Corrected 2026‑10‑29 — two more findings from re-verifying every row above
+> against the live upstream repositories and the installed packages:**
+> 1. **Wisp (wisp‑js) is LGPL‑3.0‑or‑later, not AGPL‑3.0.** This file previously
+>    bundled it into the AGPL §13 offer below; that overstated the obligation —
+>    LGPL carries no network‑use clause. Checked against the installed
+>    `node_modules/@mercuryworkshop/wisp-js` package's `package.json`
+>    (`"license": "LGPL-3.0-or-later"`), its vendored `LICENSE` file's own text
+>    (GNU **Lesser** GPL v3, not Affero), and the upstream repository. Its old
+>    repo name, `wisp-client-js`, now just redirects to the current `wisp-js`.
+> 2. **Scramjet has the same MIT/AGPL npm‑metadata discrepancy as Ultraviolet.**
+>    `node_modules/@mercuryworkshop/scramjet/package.json` declares
+>    `"license": "MIT"`, but the package ships the full **GNU AGPL‑3.0** text as
+>    its `LICENSE` file, and the upstream monorepo's own root `package.json`
+>    declares `"AGPL-3.0-only"` — the published npm metadata looks like a
+>    packaging mistake, not a relicense. The LICENSE file is the operative
+>    grant; this was already correctly resolved by `lib/credits.mjs`'s
+>    automatic LICENSE‑file detection (see `/credits`), just never called out
+>    in prose here the way Ultraviolet's was.
+
 ### AGPL‑3.0 §13 network‑use source offer (all served proxy engines)
 
-Covers **Ultraviolet, Scramjet, GUST, HORIZON, Wisp, Epoxy transport** and
-**libcurl transport**, plus the **libcurl.js** used by GUST and bundled inside
-HORIZON under LGPL‑3.0.
+Covers **Ultraviolet, Scramjet, GUST, HORIZON** and **Epoxy transport /
+libcurl transport**. **Wisp (wisp‑js)** and **libcurl.js** (used by GUST and
+bundled inside HORIZON) are **LGPL‑3.0‑or‑later** — their license and notice
+are provided under LGPL‑3.0 §4, but they are not part of this AGPL §13 offer.
 
 Because ZoFHub serves the AGPL‑3.0 components above over a network, their users
 are offered the **corresponding source**: it is each project's upstream
@@ -102,7 +125,7 @@ network. They are currently local-dev only.
 | Project | Repository | License |
 |---|---|---|
 | **NautilusOS** | https://github.com/nautilus-os/NautilusOS | AGPL‑3.0 |
-| **DayDream** | https://github.com/NightProxy/DayDream | AGPL‑3.0 |
+| **DayDream** | https://github.com/Night-N3twork/DayDream <small>(org renamed from NightProxy)</small> | AGPL‑3.0 |
 | **Nebula** | https://github.com/NebulaServices/Nebula | AGPL‑3.0 |
 
 ### License obligations (read before deploying any of these publicly)
@@ -159,7 +182,19 @@ reimplemented here from scratch against different libraries.
 
 | Project | Repository | License |
 |---|---|---|
-| **InvisiProxy LTS** (formerly Holy Unblocker LTS) | https://github.com/QuiteAFancyEmerald/InvisiProxy | **AGPL‑3.0‑only** |
+| **InvisiProxy LTS** (formerly Holy Unblocker LTS) | https://github.com/InvisiProxy/InvisiProxyLTS | **AGPL‑3.0‑only** |
+
+> **Corrected 2026‑10‑29 — repository moved.** The project moved from
+> `QuiteAFancyEmerald/InvisiProxy` to its own organization at
+> `InvisiProxy/InvisiProxyLTS`; the old URL now redirects to an **archived**
+> repo (`QuiteAFancyEmerald/InvisiProxy-Legacy`). Same project, same license,
+> same lead maintainer — confirmed via the new repo's README (still titled
+> "InvisiProxy LTS … Formerly Holy Unblocker LTS") and contributor list
+> (QuiteAFancyEmerald is both a top contributor and an org member). The
+> previously reviewed commit (`243206fc…`, §7 below) still resolves under the
+> new location, so `reviewedCommit` / `reviewedVersion` / `reviewedOn` in
+> `data/invisiproxy-upstream.json` are untouched — only the `upstream` URL
+> changed.
 
 Copyright © TitaniumNetwork and the InvisiProxy contributors — led by
 [QuiteAFancyEmerald](https://github.com/QuiteAFancyEmerald), with
@@ -230,7 +265,12 @@ ZoFHub is not affiliated with or endorsed by Kasm Technologies Inc.
 
 | Project | Repository | License |
 |---|---|---|
-| **sing-box** | https://github.com/SagerNet/sing-box | **GPL‑3.0** (+ a name/association clause) |
+| **sing-box** | https://github.com/SagerNet/sing-box | **GPL‑3.0-or-later** (+ a name/association clause) |
+
+Copyright © 2022 **nekohasekai** (`contact-sagernet@sekai.icu`) — the individual maintainer named in
+sing-box's own `LICENSE` file, not the `SagerNet` organization name. Verified 2026‑10‑29 directly
+against that file, which also confirms the name/association clause's exact wording: *"no derivative
+work may use the name or imply association with this application without prior consent."*
 
 sing-box is handled differently from everything above, and the difference is
 deliberate. Its source is **not** in this repository. The `Dockerfile` builds a

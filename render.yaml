@@ -91,6 +91,14 @@ services:
       # rather than an omission — leave it blank.
       - key: GAMEFLARE_VERIFY_TOKEN
         sync: false
+      # Rewarded proxy access ("Boost") mock provider. UNSET IN PRODUCTION ON
+      # PURPOSE — lib/reward-mock-provider.mjs's mockAllowed() refuses it
+      # unconditionally whenever NODE_ENV=production, checked first, the same
+      # rule lib/ai-guard.mjs uses for the server-side AI fallback. Declared
+      # here anyway, so a value never comes from the committed .env even if
+      # that check were ever bypassed — defense in depth, not the only gate.
+      - key: REWARD_MOCK_SECRET
+        sync: false
       # ── the administrator console (username + password login) ───────────────
       # Declared here for the reason spelled out above: anything NOT listed is
       # silently sourced from the committed .env, and a login credential read

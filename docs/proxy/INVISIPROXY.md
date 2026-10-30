@@ -11,7 +11,7 @@ Machine-readable companion: [`data/invisiproxy-upstream.json`](../../data/invisi
 | | |
 |---|---|
 | Project | **InvisiProxy LTS** (formerly Holy Unblocker LTS) |
-| Upstream | <https://github.com/QuiteAFancyEmerald/InvisiProxy> |
+| Upstream | <https://github.com/InvisiProxy/InvisiProxyLTS> — moved from `QuiteAFancyEmerald/InvisiProxy` (verified 2026-10-29; old URL now redirects to the archived `QuiteAFancyEmerald/InvisiProxy-Legacy`) |
 | Reviewed at | **v7.0.2.1**, commit `243206fc698349403ea61015dfb384737921ebcb` |
 | Reviewed on | 2026-09-21 |
 | Licence | **AGPL-3.0-only** |
@@ -284,7 +284,7 @@ changes; the URL is the whole interface.
 
 **The provenance record.** When re-reviewing a newer upstream release:
 
-1. `gh api repos/QuiteAFancyEmerald/InvisiProxy/releases --jq '.[0].tag_name'`
+1. `gh api repos/InvisiProxy/InvisiProxyLTS/releases --jq '.[0].tag_name'`
 2. Compare `package.json` between the recorded commit and the new tag — the
    dependency table in §1 is what goes stale first.
 3. Re-read `src/server.mjs` for Wisp configuration changes. That is the file

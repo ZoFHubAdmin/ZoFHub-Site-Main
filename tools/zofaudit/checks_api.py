@@ -24,7 +24,7 @@ _ROUTE = re.compile(r"\bapp\.(get|post|put|patch|delete|all)\(\s*'([^']+)'")
 # routes with no literal app.get() to find. Their paths come from the array.
 # The control-plane API registers every route through one gating helper,
 # add('<method>', '/api/admin/...', '<permission>', ...), in lib/admin-api.mjs.
-_ADD_ROUTE = re.compile(r"\badd\(\s*'(get|post|put|patch|delete)'\s*,\s*'(/api/admin/[^']+)'")
+_ADD_ROUTE = re.compile(r"\badd\(\s*'(get|post|put|patch|delete)'\s*,\s*'(/api/(?:admin|rewards)/[^']+)'")
 _TABLE_ROUTE = re.compile(r"for\s*\(\s*const\s+\[?\s*\w+.*?of\s+(\w+)\s*\)", re.S)
 
 # `api(…)` as well as `fetch(…)`: admin-ui/assets/admin.js wraps every call in a
@@ -71,10 +71,12 @@ def collect_routes() -> list[tuple[str, str, int]]:
         for slug in re.findall(r"'([a-z0-9-]+)'", decl.group(1)):
             out.append(('get', '/' + slug, line_of(src, decl.start())))
 
-    api = ROOT / 'lib' / 'admin-api.mjs'
-    if api.exists():
-        asrc = strip_js_comments(read(api))
-        out += [(m.group(1), m.group(2), line_of(asrc, m.start())) for m in _ADD_ROUTE.finditer(asrc)]
+    # Rewarded proxy access ("Boost") registers its routes the same way,
+    # through one add('<method>', '/api/rewards/...', ...) helper.
+    for extra in (ROOT / 'lib' / 'admin-api.mjs', ROOT / 'lib' / 'reward-routes.mjs'):
+        if extra.exists():
+            asrc = strip_js_comments(read(extra))
+            out += [(m.group(1), m.group(2), line_of(asrc, m.start())) for m in _ADD_ROUTE.finditer(asrc)]
     return out
 
 

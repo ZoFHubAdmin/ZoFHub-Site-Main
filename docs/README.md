@@ -392,6 +392,13 @@ there to inject into.
 > views — so real income needs real, steady traffic first. Keep it clean: no fake
 > loading timers, no "complete an offer to unlock" gates, no forced surveys. Clean
 > placement is what keeps accounts alive.
+>
+> **One deliberate, narrow exception: rewarded proxy access ("Boost"),
+> off by default (`REWARDS_ENABLED`).** A visitor who completes a reward
+> campaign gets a temporarily *higher* per-tunnel stream cap — never a gate on
+> the games hub, the catalog, or any built-in engine, which stay at full,
+> unblocked access for everyone regardless. See `db/rewards.sql` and
+> `lib/reward-*.mjs`.
 
 ---
 
@@ -853,7 +860,7 @@ what was taken, what was rejected, and why.
 
 | Provenance record | Upstream | Licence |
 |---|---|---|
-| [`data/invisiproxy-upstream.json`](../data/invisiproxy-upstream.json) | QuiteAFancyEmerald/InvisiProxy | AGPL-3.0 |
+| [`data/invisiproxy-upstream.json`](../data/invisiproxy-upstream.json) | InvisiProxy/InvisiProxyLTS | AGPL-3.0 |
 | [`data/masqr-upstream.json`](../data/masqr-upstream.json) | titaniumnetwork-dev/MasqrProject | AntiSkip (MIT text + a condition) — **not MIT** |
 
 ### Documents this project does not own

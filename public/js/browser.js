@@ -22,6 +22,7 @@ import { siteConfig } from './site-config.js';
 // The ad-block gate on the premium engines. Same specifier as layout.js, which
 // takes the verdict; this module is where the engines it may lock live.
 import { premiumLocked, onGateChange, showPremiumLock, hidePremiumLock, guardPremiumLinks } from './support-gate.js';
+import { mountRewardBadge } from './reward-claim.js';
 
 const frame   = $('#gustFrame');
 const wrap    = $('#gustWrap');
@@ -616,6 +617,7 @@ function toggleFullscreen() {
 
   loadCompanions();   // fill in companion online-state (background)
   loadApprovedDestinations();
+  mountRewardBadge($('#rewardSlot'));   // no-op slot on a deployment without the feature
 
   // The gate can change after load (the verdict lands a second or two in):
   // relabel the dropdown, and drop the lock card the moment it opens.

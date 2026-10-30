@@ -143,6 +143,25 @@ describe('policy bounds', () => {
     assert.equal(validatePolicy({ maxTunnels: 10, maxPerClient: 20 }).ok, false);
     assert.deepEqual(validatePolicy({ extra: 'ignored' }).value, { ...DEFAULT_POLICY });
   });
+
+  // Rewarded proxy access ("Boost"): the free tier's additional cap can never
+  // be set wider than the overall per-tunnel ceiling — a "free" cap above
+  // streamsPerTunnel would be no cap at all, and would make the tier split
+  // meaningless.
+  test('freeStreamsPerTunnel has its own bounds and cannot exceed streamsPerTunnel', () => {
+    assert.equal(validatePolicy({ freeStreamsPerTunnel: 0 }).ok, false);
+    assert.equal(validatePolicy({ freeStreamsPerTunnel: 100000 }).ok, false);
+    assert.equal(validatePolicy({ freeStreamsPerTunnel: 300, streamsPerTunnel: 256 }).ok, false);
+    const ok = validatePolicy({ freeStreamsPerTunnel: 64, streamsPerTunnel: 128 });
+    assert.equal(ok.ok, true);
+    assert.equal(ok.value.freeStreamsPerTunnel, 64);
+  });
+
+  test('the default policy already has a free cap strictly below the full cap', () => {
+    assert.ok(DEFAULT_POLICY.freeStreamsPerTunnel > 0);
+    assert.ok(DEFAULT_POLICY.freeStreamsPerTunnel < DEFAULT_POLICY.streamsPerTunnel,
+      'a free tier with no headroom below the full cap defeats the point of having one');
+  });
 });
 
 describe('sessions: counts and timestamps, never destinations', () => {
@@ -162,6 +181,35 @@ describe('sessions: counts and timestamps, never destinations', () => {
     assert.equal(killed, 'terminated_by_admin');
     s.close(s.open(), 'x'); s.close(s.open(), 'y');
     assert.equal(s.history().length, 2);
+  });
+
+  // Rewarded proxy access ("Boost"): server.js's guardedSocketClass() reads
+  // activeStreams(sessionId) at connect() time to enforce the free tier's
+  // additional cap. A session defaults to 'free' when the caller does not
+  // name a tier — the same as every visitor before this feature existed.
+  test('a session defaults to the free tier, and activeStreams() tracks live streams', () => {
+    const s = createSessionTracker({ now: () => 0 });
+    const id = s.open({ clientTag: 'abcd' });
+    assert.equal(s.list()[0].tier, 'free');
+    assert.equal(s.activeStreams(id), 0);
+    s.streamOpened(id); s.streamOpened(id);
+    assert.equal(s.activeStreams(id), 2);
+    s.streamClosed(id);
+    assert.equal(s.activeStreams(id), 1);
+  });
+
+  test('a boost-tier session is recorded as such', () => {
+    const s = createSessionTracker({ now: () => 0 });
+    const id = s.open({ clientTag: 'abcd', tier: 'boost' });
+    assert.equal(s.list()[0].tier, 'boost');
+  });
+
+  test('activeStreams() on an unknown or closed session is 0, never throws', () => {
+    const s = createSessionTracker({ now: () => 0 });
+    assert.equal(s.activeStreams('does-not-exist'), 0);
+    const id = s.open({});
+    s.close(id);
+    assert.equal(s.activeStreams(id), 0);
   });
 });
 

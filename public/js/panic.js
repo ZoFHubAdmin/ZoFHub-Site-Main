@@ -436,6 +436,16 @@ export function openAboutBlank() {
   try { location.replace(safe); } catch { location.href = safe; }
 }
 
+// Is the user typing somewhere? The hotkey must never fire mid-keystroke in a
+// text field — a custom combo that happens to be a plain letter must not
+// interrupt a reward-claim form, a chat box, or any other input. Exported and
+// pure (no DOM event needed, just the target) so it is testable without a
+// browser — see test/panic-guard.test.mjs.
+export function isEditableTarget(t) {
+  if (!t) return false;
+  return Boolean(t.isContentEditable) || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT';
+}
+
 // ── Global wire-up ──────────────────────────────────────────────────────────
 function onKey(e) {
   // Recording a new hotkey?
@@ -450,8 +460,12 @@ function onKey(e) {
     return;
   }
   // Escape leaves the cover screen. Checked before the hotkey so the way out
-  // works even if someone has bound their hotkey to something unreachable.
+  // works even if someone has bound their hotkey to something unreachable, and
+  // before the editable-target guard: Escape must always work, even from a
+  // text field, because it never types a character.
   if (e.key === 'Escape' && isPanicked()) { e.preventDefault(); unpanic(); return; }
+
+  if (isEditableTarget(e.target)) return;
 
   // Trigger the configured action on the user's hotkey.
   if (eventMatchesCombo(e, store.panic.get().key)) {
