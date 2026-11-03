@@ -180,6 +180,10 @@ describe('the integration can actually find and order these files', () => {
     const url = process.env.SUPABASE_URL;
     if (!url) return;              // no credentials in CI; the rest still ran
     const host = url.match(/https?:\/\/([^.]+)\./)?.[1];
+    // lib/load-env.mjs falls back to .env.example when there is no .env (CI). That is a
+    // placeholder, not a project: there is nothing real to compare, and failing here
+    // would say nothing about whether migrations land in the right database.
+    if (host === 'your-project-ref') return;
     assert.equal(id, host,
       `config.toml project_id "${id}" is not the project SUPABASE_URL points at ("${host}")`);
   });

@@ -104,6 +104,13 @@ describe('real header strings seen in the wild', () => {
     ['google.com', { 'x-frame-options': 'SAMEORIGIN' }, true],
     ['developer.mozilla.org', { 'x-frame-options': 'DENY' }, true],
     ['wikipedia.org', {}, false],
+    // A Cloudflare bot-challenge page answers 403 WITH X-Frame-Options: SAMEORIGIN, and counts as a
+    // block ON PURPOSE. Measured 2026-11-03: a real Chromium framing distribution.gameflare.com from a
+    // third-party page is served the same challenge and refuses to display it. Treating `cf-mitigated:
+    // challenge` as "no verdict" would leave embeds that render nothing visible to every visitor, and
+    // this module's rule is that a wrongly-hidden game is a support ticket while a wrongly-shown one
+    // is a black screen. Do not "fix" this without re-measuring in a real browser.
+    ['distribution.gameflare.com (Cloudflare challenge)', { server: 'cloudflare', 'cf-mitigated': 'challenge', 'x-frame-options': 'SAMEORIGIN' }, true],
   ];
   for (const [name, headers, blocked] of WILD) {
     test(`${name} → ${blocked ? 'blocked' : 'alive'}`, () => {
