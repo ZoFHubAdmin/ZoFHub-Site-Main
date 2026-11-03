@@ -13,10 +13,14 @@
 //   2. the prompt never appears in a request to our own origin, and no
 //      /api/ai/ request reaches the server at all
 //   3. no key round-trip, no model discovery, no local inference download,
-//      no image generation
+//      and a TEXT message makes no image request
 //   4. the returned text is rendered into the existing message list
-//   5. a prompt containing HTML is escaped, and a resend inside the send
-//      cooldown is suppressed
+//   5. a prompt containing HTML is escaped, and a resend inside the 10 s wait
+//      that follows every answer is refused (and the wait really lasts ~10 s)
+//   6. /image <description> asks https://image.pollinations.ai/<description>
+//      from the browser — ONE GET, issued by an <img>, no query string, no
+//      server hop — shows the picture, and a second /image inside the 45 s wait
+//      is refused
 //
 // It makes a real request to the free tier, so it can fail for an honest
 // external reason (a 429, or the tier being withdrawn). Read the printed
@@ -110,6 +114,7 @@ try {
     }, { timeout: 75000 });
     answered = true;
   } catch { /* recorded below */ }
+  const answeredAt = Date.now();
 
   const sent = requests.slice(before);
   const encoded = encodeURIComponent(PROMPT);
@@ -160,7 +165,7 @@ try {
   check(!sent.some((r) => /text\.pollinations\.ai\/models/.test(r.url)), 'no model-discovery round-trip');
   check(!sent.some((r) => /transformers|onnx|huggingface|\.wasm$/i.test(r.url)),
     'no local inference engine was downloaded');
-  check(!sent.some((r) => /image\.pollinations\.ai/.test(r.url)), 'no image-generation request');
+  check(!sent.some((r) => /image\.pollinations\.ai/.test(r.url)), 'a text message makes no image request');
 
   // 4. Was the answer rendered?
   const rendered = await page.evaluate(() => {
@@ -177,33 +182,40 @@ try {
     'the returned text rendered in the existing message list',
     JSON.stringify(rendered));
 
-  // ── Rapid submissions are throttled ──────────────────────────────────────
-  // Send is locked for 2.5s after each prompt, so an immediate second message
-  // must NOT produce a second upstream request.
+  // ── Every answer is followed by a 10 s wait ──────────────────────────────
+  // The wait starts when the answer lands, so a message sent straight after it
+  // must be refused: no upstream request, no new user bubble, and the typed text
+  // kept. Then the wait must really END about 10 s after the answer — a lock that
+  // never lifted would pass the first half and leave a dead page.
   const countUserTurns = () => page.evaluate(() =>
     document.querySelectorAll('#aiMessages .msg.user').length);
-  // Two submits BACK TO BACK. (An earlier version of this check waited for the
-  // first answer before resending, by which point the 2.5s window had long
-  // expired — so it was asserting a guarantee that had already lapsed.)
+  const waitState = await page.evaluate(() => ({
+    disabled: document.querySelector('#aiSend').disabled,
+    hint: document.querySelector('#aiHint').textContent,
+  }));
+  check(waitState.disabled && /Next message in \d+s/.test(waitState.hint),
+    'Send is locked once the answer lands, with a visible countdown', JSON.stringify(waitState));
   const turnsBefore = await countUserTurns();
   const reqBefore = requests.length;
-  await page.fill('#aiInput', 'first of two rapid sends');
-  await page.press('#aiInput', 'Enter');
-  await page.fill('#aiInput', 'second of two rapid sends');
+  await page.fill('#aiInput', 'sent inside the wait');
   await page.press('#aiInput', 'Enter');
   await page.waitForTimeout(1200);
   const burst = requests.slice(reqBefore).filter((r) => r.url.startsWith('https://text.pollinations.ai/'));
   const newTurns = (await countUserTurns()) - turnsBefore;
-  // At most one of the two is accepted. It can legitimately be ZERO: the send
-  // cooldown is 2.5s from the PREVIOUS submit, and the answer above can arrive
-  // well inside that, so the lock may still be held when this burst starts.
-  // What must never happen is two upstream requests from two fast keystrokes.
-  check(burst.length <= 1 && newTurns <= 1,
-    'two rapid submissions never produce two upstream requests',
+  check(burst.length === 0 && newTurns === 0,
+    'a message sent inside the 10s wait is refused',
     `${burst.length} request(s), ${newTurns} new user turn(s) accepted`);
+  check((await page.inputValue('#aiInput')) === 'sent inside the wait',
+    'and what was typed is kept');
+  let waitEnded = true;
+  try {
+    await page.waitForFunction(() => !document.querySelector('#aiSend').disabled, null, { timeout: 15000 });
+  } catch { waitEnded = false; }
+  const waitedSec = (Date.now() - answeredAt) / 1000;
+  check(waitEnded && waitedSec >= 8.5 && waitedSec <= 12.5,
+    'the wait ends about 10s after the answer', `${waitedSec.toFixed(1)}s`);
 
   // ── A prompt containing HTML is escaped, not interpreted ─────────────────
-  await page.waitForTimeout(2600);                       // let the cooldown clear
   await page.fill('#aiInput', '<img src=x onerror=alert(1)>');
   await page.press('#aiInput', 'Enter');
   await page.waitForFunction((n) =>
@@ -214,6 +226,71 @@ try {
   });
   check(xss.imgs === 0 && xss.html.includes('&lt;img'),
     'a prompt containing HTML is escaped, not injected', JSON.stringify(xss));
+
+  // ── /image: a picture, requested by THIS browser ─────────────────────────
+  // Not blocked by the text wait that the message above just started: they are
+  // different endpoints with different limits. Real request to the free tier, so
+  // it can fail for an honest external reason — a 402 FREE_LIMIT (one picture per
+  // 45 s per IP, which a shared network can have used up) is reported, not hidden.
+  {
+    const IMG_PROMPT = 'a small red apple on a wooden table';
+    const imgBefore = requests.length;
+    await page.fill('#aiInput', '/image ' + IMG_PROMPT);
+    const modeHint = await page.textContent('#aiHint');
+    check(/Picture mode/.test(modeHint) && !(await page.$eval('#aiSend', (b) => b.disabled)),
+      'typing /image switches to picture mode and is not blocked by the text wait', modeHint);
+    const t0 = Date.now();
+    await page.press('#aiInput', 'Enter');
+    let result = 'timeout';
+    try {
+      const handle = await page.waitForFunction(() => {
+        const img = document.querySelector('#aiMessages img.ai-image');
+        if (img && img.complete && img.naturalWidth > 0) return 'picture';
+        if (document.querySelector('#aiMessages .ai-image-err')) return 'error';
+        return false;
+      }, null, { timeout: 110000 });
+      result = await handle.jsonValue();
+    } catch { /* reported below */ }
+    const took = ((Date.now() - t0) / 1000).toFixed(1);
+    const picSent = requests.slice(imgBefore);
+    const imgReqs = picSent.filter((r) => r.url.startsWith('https://image.pollinations.ai/'));
+    check(imgReqs.length >= 1, 'the browser requested image.pollinations.ai directly',
+      imgReqs.length ? `${imgReqs.length} request(s)` : 'no such request');
+    if (imgReqs.length) {
+      const u = imgReqs[0];
+      check(u.url === 'https://image.pollinations.ai/' + encodeURIComponent(IMG_PROMPT),
+        'the URL is image.pollinations.ai/<prompt>, encoded once', u.url);
+      check(u.method === 'GET' && u.type === 'image', 'it is a GET issued by an <img>', `${u.method} ${u.type}`);
+      check(!u.url.includes('?') && !u.url.includes('/prompt/'), 'no query string and no /prompt/ segment');
+    }
+    check(!picSent.filter((r) => r.url.startsWith(BASE))
+      .some((r) => /apple|wooden/i.test(decodeURIComponent(r.url)) || /\/api\/ai\//.test(r.url)),
+      'the picture request never went through our server');
+    const imgStatus = imgReqs.length ? (responses.find((r) => r.url === imgReqs[0].url)?.status ?? 'no response') : 'no request';
+    if (result === 'picture') {
+      const dims = await page.$eval('#aiMessages img.ai-image', (i) => `${i.naturalWidth}x${i.naturalHeight}`);
+      check(true, 'a real picture arrived and decoded', `${dims} in ${took}s (upstream HTTP ${imgStatus})`);
+    } else {
+      const tile = await page.evaluate(() => (document.querySelector('#aiMessages .ai-image-err')?.textContent || '').replace(/\s+/g, ' ').trim());
+      const throttled = /one picture every 45 seconds/.test(tile);
+      check(throttled || /Could not reach|trouble|refused|usable picture|too long/.test(tile),
+        `no picture (${result}), but the failure was explained rather than generic`, tile.slice(0, 140));
+      if (throttled) {
+        console.log('  note: the free image tier allows one picture per 45 s per IP and this IP had used it. '
+          + 'That is the documented limit, not a defect — re-run spaced out.');
+      }
+    }
+    // A second picture straight away must be refused, with the reason on screen.
+    await page.fill('#aiInput', '/image a second apple');
+    const hint2 = await page.textContent('#aiHint');
+    check(await page.$eval('#aiSend', (b) => b.disabled) && /Next picture in \d+s/.test(hint2),
+      'a second /image inside the 45s wait is refused, with a countdown', hint2);
+    const before2 = requests.length;
+    await page.press('#aiInput', 'Enter');
+    await page.waitForTimeout(800);
+    check(!requests.slice(before2).some((r) => /image\.pollinations\.ai/.test(r.url)),
+      'and it makes no request');
+  }
 
   // ── The SECOND entry point: the floating assistant on every other page ──
   // The orb is a different file (public/js/ai-helper.js) on a different page,
@@ -276,6 +353,12 @@ try {
       : 'no request';
     check(orbAnswered && orbText.length > 0, 'its answer rendered in the panel',
       `upstream HTTP ${orbStatus} :: ${JSON.stringify(orbText)}`);
+    const orbWait = await orbPage.evaluate(() => ({
+      disabled: document.querySelector('.ai-orb-send').disabled,
+      note: document.querySelector('.ai-orb-note').textContent,
+    }));
+    check(orbWait.disabled && /You can ask again in \d+s/.test(orbWait.note),
+      'the floating assistant also waits 10s after an answer', JSON.stringify(orbWait));
     // A 429 is the documented free-tier limit and is not a defect. A 404 is the
     // UNDOCUMENTED way this endpoint sometimes expresses the same throttle
     // (measured: back-to-back requests gave 200 then 404, and the identical

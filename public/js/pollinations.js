@@ -457,10 +457,12 @@ export async function askPrompt(prompt, opts) {
 }
 
 // ── WHAT IS DELIBERATELY NOT HERE ──────────────────────────────────────────
-// · No AI IMAGE GENERATION. It is not a feature of this site. There is no
-//   image.pollinations.ai URL builder, no /image command, no server route and
-//   no image model lookup. (Ordinary site images — thumbnails, the preroll,
-//   every other <img> — were never this and are untouched.)
+// · No AI IMAGE GENERATION HERE. Pictures are the opt-in /image command and live in
+//   public/js/pollinations-image.js — a separate module on purpose, so this text
+//   client never learns the image host and the one place that does stays small
+//   enough to audit. There is still no server route and no image model lookup.
+//   (Ordinary site images — thumbnails, the preroll, every other <img> — are
+//   unrelated and untouched.)
 // · No API KEY of any kind. The anonymous tier needs none. The current
 //   documented API (gen.pollinations.ai) requires `Authorization: Bearer sk_…`,
 //   and an sk_ key is a SERVER secret that may never be shipped to a browser,

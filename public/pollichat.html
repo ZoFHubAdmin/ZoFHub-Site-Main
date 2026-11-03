@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lilita+One&display=swap" /></noscript>
   <link rel="stylesheet" href="/css/main.css?v=20260801a" />
-  <link rel="stylesheet" href="/css/ai.css?v=20261025" />
+  <link rel="stylesheet" href="/css/ai.css?v=20261102" />
 </head>
 <body class="page-ai">
 
@@ -48,6 +48,10 @@
          See /js/pollinations.js and /js/pollichat.js.
        · Puter.js: puter.ai.chat(), run under the visitor's OWN Puter account.
          See /js/puter.js.
+       · /image <description> (either provider selected): a picture from Pollinations,
+         an <img> loaded straight from https://image.pollinations.ai/<description>.
+         See /js/pollinations-image.js. A 10 s wait follows every message and a 45 s
+         wait every picture (/js/ai-cooldown.js).
        Either way the request leaves THIS browser directly — no server hop.
        Every saved chat (from this page or the floating orb) lives in
        store.chats (/js/storage.js) and shows up in the History list here. -->
@@ -99,6 +103,7 @@
             <button class="ai-suggest-card" data-prompt="Give me three practical website ideas I could build as a beginner, with a small first version for each."><b>💡 Brainstorm ideas</b><span>Find something worth building</span></button>
             <button class="ai-suggest-card" data-prompt="Help me debug a coding problem. Start by asking me for the code and the error message."><b>💻 Coding help</b><span>Work through a technical problem</span></button>
             <button class="ai-suggest-card" data-prompt="Teach me one surprising science fact and explain why it is true."><b>🔭 Learn something</b><span>Explore a new subject</span></button>
+            <button class="ai-suggest-card ai-suggest-card--wide" data-prompt="/image a neon fox running through a snowy forest at night"><b>🎨 Make a picture</b><span>Type /image and describe what you want to see</span></button>
           </div>
         </div>
       </div>
@@ -110,11 +115,16 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
         </button>
       </form>
-      <!-- No /image hint: there is no AI image generation anywhere on this site.
-           No "free &amp; unlimited" either — PolliChat's free tier is rate-limited
+      <!-- The hint line is driven by /js/pollichat.js: it shows the usual keys, flips
+           to "Picture mode" while the message starts with /image, and counts down
+           the wait after a message (10 s) or a picture (45 s). #aiLive is the
+           screen-reader twin of that countdown — it only speaks when a wait ends
+           or a send is refused, never once a second.
+           No "free &amp; unlimited" anywhere: PolliChat's free tier is rate-limited
            and Puter.js runs on the visitor's own account, so claiming either is
            unlimited would simply be untrue. -->
-      <div class="ai-hint">Enter to send · Shift+Enter for newline</div>
+      <div class="ai-hint" id="aiHint">Enter to send · Shift+Enter for newline · /image and a description makes a picture</div>
+      <div class="sr-only" id="aiLive" role="status" aria-live="polite"></div>
       <!-- Sits directly under the composer, so it is read at the moment of use
            rather than buried in a footer nobody scrolls to. role="note" keeps it
            out of the live-region chatter as replies arrive. -->
@@ -122,12 +132,16 @@
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
              stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-        AI responses may be inaccurate, incomplete, unavailable, or limited by the
+        <!-- One <span>, not loose text: .ai-disclaimer is a flex row, and every
+             inline tag inside it (<b>, <a>) would otherwise become its own column. -->
+        <span>AI responses may be inaccurate, incomplete, unavailable, or limited by the
         provider's free tier. Verify important information. Avoid entering
-        passwords, private personal information, or other sensitive data. If this
+        passwords, private personal information, or other sensitive data. Your
+        messages and picture descriptions go from your browser straight to the AI
+        provider, not through ZoFHub, but the provider still receives them. If this
         AI doesn't answer, try switching to <b>Puter.js</b> in the sidebar, or open
         the <a href="/browser">Browser</a> and use ChatGPT, Claude, or any other AI
-        directly.
+        directly.</span>
       </p>
     </section>
   </main>
@@ -140,6 +154,6 @@
 
   <script type="module" src="/js/layout.js?v=20260919"></script>
   <script type="module" src="/js/panic.js?v=20260729b"></script>
-  <script type="module" src="/js/pollichat.js?v=20261025"></script>
+  <script type="module" src="/js/pollichat.js?v=20261102"></script>
 </body>
 </html>

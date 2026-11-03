@@ -11,6 +11,10 @@ import { store } from './storage.js';
 // cache-keyed by its full URL, so two different ?v= values make the browser load
 // pollinations.js TWICE as two independent module instances.
 import { askPrompt, describeFailure } from './pollinations.js?v=20261016';
+// The wait between questions is shared with the /ai page — one clock, because the
+// provider counts per IP and both of these are text clients on the same IP. The
+// specifier must match pollichat.js's exactly so there is one module instance.
+import { cooldowns, formatWait, TEXT_COOLDOWN_MS } from './ai-cooldown.js?v=20261102';
 
 // Called by layout.js's placeholder orb on FIRST interaction — this module and
 // pollinations.js are ~25KB together and most visitors never open the helper,
@@ -90,20 +94,27 @@ export function mountAIHelper(openNow = false) {
     } catch {}
   }
 
-  // ── Throttle: lock the send/quick buttons for 4s after every prompt so a
-  // user can't rapid-fire requests at the shared (keyless) AI endpoint. ──────
-  let cooling = false;
-  let cooldownTimer = null;
-  function lockButtons(on) {
-    [sendBtn, panel.querySelector('#aiOrbQuick')].filter(Boolean).forEach(el => {
-      el.disabled = on; el.classList.toggle('is-cooldown', on);
-    });
+  // ── Throttle: after EVERY answer (or failure) the buttons stay locked for 10s,
+  // so nobody can rapid-fire requests at the shared (keyless) AI endpoint. The
+  // wait starts when the answer ends and survives a reload — see ai-cooldown.js.
+  // While it runs, the footnote under the box says how long is left. ──────────
+  const note = panel.querySelector('.ai-orb-note');
+  const NOTE_TEXT = note ? note.textContent : '';
+  let waitTimer = null;
+  function syncWait() {
+    const s = cooldowns.remainingSec('text');
+    const locked = s > 0 || busy;
+    const controls = [sendBtn, panel.querySelector('#aiOrbQuick'), ...panel.querySelectorAll('.ai-orb-chip')];
+    for (const c of controls) {
+      if (!c) continue;
+      c.disabled = locked;
+      c.classList.toggle('is-cooldown', s > 0);
+    }
+    if (note) note.textContent = s > 0 ? `You can ask again in ${formatWait(s)}.` : NOTE_TEXT;
+    if (s > 0 && !waitTimer) waitTimer = setInterval(syncWait, 1000);
+    if (s === 0 && waitTimer) { clearInterval(waitTimer); waitTimer = null; }
   }
-  function startCooldown() {
-    cooling = true; lockButtons(true);
-    clearTimeout(cooldownTimer);
-    cooldownTimer = setTimeout(() => { cooling = false; lockButtons(false); }, 4000);
-  }
+  const blocked = () => busy || cooldowns.remainingSec('text') > 0;
 
   const open  = () => { panel.hidden = false; orb.classList.add('active'); orb.classList.remove('nudge'); setTimeout(() => input?.focus(), 60); };
   const close = () => { panel.hidden = true; orb.classList.remove('active'); };
@@ -221,6 +232,7 @@ export function mountAIHelper(openNow = false) {
   async function ask(prompt, displayText) {
     if (busy) return;
     busy = true;
+    syncWait();
     addMsg('user', escapeHtml(displayText || prompt));
     const thinking = addMsg('ai', '<span class="ai-orb-dots"><span></span><span></span><span></span></span>');
     const controller = new AbortController();
@@ -233,6 +245,8 @@ export function mountAIHelper(openNow = false) {
       if (e?.code === 'cancelled') { thinking.remove(); return; }
       console.warn('[ai-orb] failed:', e?.code || '', e?.message || e);
       if (e?.rateLimited) {
+        // The provider asked for this long; the wait covers it (it only lengthens).
+        cooldowns.start('text', Math.max(5, Math.min(120, Math.round(e.retryAfter) || 15)) * 1000);
         renderRateLimit(thinking, e.retryAfter || 15);
       } else {
         // textContent, inside an <em> we build — an error string is never markup.
@@ -248,23 +262,30 @@ export function mountAIHelper(openNow = false) {
     } finally {
       if (inFlight === controller) inFlight = null;
       busy = false;
+      // The answer is in, or the attempt failed or was cancelled: the 10s wait
+      // for the next question starts now.
+      cooldowns.start('text', TEXT_COOLDOWN_MS);
+      syncWait();
       body.scrollTop = body.scrollHeight;
     }
   }
-  window.addEventListener('pagehide', () => inFlight?.abort());
+  window.addEventListener('pagehide', () => {
+    // The request already left this machine, so leaving the page does not clear
+    // the wait — it is recorded before the abort.
+    if (busy) cooldowns.start('text', TEXT_COOLDOWN_MS);
+    inFlight?.abort();
+  });
 
   panel.querySelector('#aiOrbQuick')?.addEventListener('click', () => {
-    if (cooling || busy) return;
-    startCooldown();
+    if (blocked()) return;
     ask(gamePrompt(), 'Help me with this game');
   });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (cooling || busy) return;
+    if (blocked()) return;
     const q = input.value.trim();
     if (!q) return;
     input.value = '';
-    startCooldown();
     ask(onGamePage ? gamePrompt(q) : q, q);
   });
 
@@ -279,9 +300,8 @@ export function mountAIHelper(openNow = false) {
     body.appendChild(sug);
     sug.querySelectorAll('.ai-orb-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (cooling || busy) return;
+        if (blocked()) return;
         const q = btn.textContent;
-        startCooldown();
         ask(gamePrompt(q), q);
       });
     });
@@ -294,6 +314,9 @@ export function mountAIHelper(openNow = false) {
   // Gentle one-time nudge so users notice the orb (only on game pages).
   // Skipped when we were opened by a click — the user has already found it.
   if (onGamePage && !openNow) setTimeout(() => orb.classList.add('nudge'), 2500);
+
+  // A wait still running from the previous page (or tab) applies here too.
+  syncWait();
 
   // Arriving here from the placeholder means a real click. showAssistant(true)
   // covers both cases: a first-time visitor (orb visible, panel opens) and one

@@ -88,6 +88,11 @@
           your browser.</li>
         <li><code>pollichat:provider:v1</code> (local storage) &mdash; remembers which AI you last
           picked on the AI page, PolliChat or Puter.js, so it is already selected next time.</li>
+        <li><code>zofhub:ai:cooldown:v1</code> (local storage) &mdash; two timestamps: when you may
+          next send an AI message (10 seconds after each one) and when you may next ask for a picture
+          with <code>/image</code> (45 seconds after each request). They are kept here so reloading the
+          page does not skip the wait, hold nothing about what you asked, never leave your browser,
+          and are cleared when you clear your browser storage.</li>
       </ul>
 
       <h2>3. Third-party cookies</h2>

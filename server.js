@@ -2793,11 +2793,15 @@ function refuseServerAi(res) {
 // AI IMAGE GENERATION: ROUTE REMOVED.
 //
 // GET /api/ai/image used to stream generated image bytes from
-// image.pollinations.ai through this server. AI image generation is no longer a
-// product feature, so the route is gone rather than left gated — the client that
-// called it (the old public/js/ai.js handleImage — the AI page is now the
-// text-only public/js/pollichat.js) is gone too, and so is the image-model
-// lookup in resolveModels().
+// image.pollinations.ai through this server. The route is gone rather than left
+// gated — the client that called it (the old public/js/ai.js handleImage) is gone
+// too, and so is the image-model lookup in resolveModels().
+//
+// Pictures are back as the /image command on the AI page, but ONLY as a
+// browser-side <img> pointed at the provider (public/js/pollinations-image.js):
+// the bytes go from the provider to the visitor and never through here. This
+// route stays removed, its path stays refused (lib/ai-guard.mjs), and no CODE in
+// this file may reference the image host — test/ai-image.test.mjs pins all three.
 //
 // Ordinary site imagery is unrelated and untouched: game thumbnails are served
 // by /thumb and the static mounts, and no other route generated an image.

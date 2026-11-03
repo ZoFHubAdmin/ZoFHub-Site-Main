@@ -604,11 +604,17 @@ describe('a server secret can never reach the browser', () => {
   });
 });
 
-describe('AI image, audio and video generation are gone end to end', () => {
-  test('no client module generates media', () => {
+// AUDIO and VIDEO generation are gone end to end. PICTURES are back, but as one
+// opt-in browser-only command (/image), built in exactly one module —
+// public/js/pollinations-image.js — and covered by test/ai-image.test.mjs. So the
+// guards here are narrowed rather than dropped: nothing OTHER than that module may
+// know the image host, and the server must still have no part in it.
+describe('audio and video generation are gone; pictures are one browser-only module', () => {
+  test('no other client module builds a media URL', () => {
     for (const f of [...CLIENT_FILES, 'public/js/layout.js', 'public/js/utils.js']) {
       const code = codeOnly(f);
-      assert.doesNotMatch(code, /image\.pollinations\.ai/, `${f} builds an image-generation URL`);
+      assert.doesNotMatch(code, /image\.pollinations\.ai/,
+        `${f} builds an image URL — that belongs in public/js/pollinations-image.js alone`);
       assert.doesNotMatch(code, /pollImage/, `${f} still has an image helper`);
       assert.doesNotMatch(code, /openai-audio/, `${f} builds a speech URL`);
     }
@@ -621,11 +627,10 @@ describe('AI image, audio and video generation are gone end to end', () => {
     assert.doesNotMatch(server, /VIDEO_API_KEY/);
   });
 
-  test('the AI page offers no image affordance', () => {
+  test('the AI page advertises /image but offers no audio, video or model picker', () => {
     const html = codeOnly('public/pollichat.html');
-    assert.doesNotMatch(html, /\/image\b/, 'the /image command is still advertised');
-    assert.doesNotMatch(html, /\bdraw\b/i);
-    assert.doesNotMatch(html, /generate an image/i);
+    assert.match(html, /\/image\b/, 'the /image command is not advertised');
+    assert.doesNotMatch(html, /text-to-speech|\bvideo\b.*\bgenerat|model picker/i);
   });
 
   test('the committed data files advertise no AI provider catalogue', () => {
@@ -643,22 +648,26 @@ describe('AI image, audio and video generation are gone end to end', () => {
     assert.doesNotMatch(blob, /Unlimited/, 'an "Unlimited" AI claim is back');
   });
 
-  test('the legal pages do not promise image generation', () => {
+  test('the legal pages do not market image generation as a headline feature', () => {
     for (const f of ['legal/privacy.html', 'legal/terms.html', 'legal/credits.html', 'legal/cookies.html']) {
       const text = codeOnly(f);
-      assert.doesNotMatch(text, /generated image/i, `${f} still mentions generated images`);
-      assert.doesNotMatch(text, /chat &amp; images|chat & images/i, `${f} still advertises images`);
+      assert.doesNotMatch(text, /generated image/i, `${f} advertises generated images`);
+      assert.doesNotMatch(text, /chat &amp; images|chat & images/i, `${f} advertises chat & images`);
     }
   });
 
-  test('privacy and terms describe a text-only assistant honestly', () => {
+  test('privacy and terms describe the assistant honestly', () => {
     const privacy = read('legal/privacy.html');
     // The honest claim: direct requests keep prompts away from US, not from THEM.
     assert.match(privacy, /Pollinations itself receives your prompt/,
       'privacy must not imply a direct request makes the prompt private from the provider');
+    assert.match(privacy, /Pollinations itself receives your picture\s+description/,
+      'the same honesty applies to picture descriptions');
     assert.match(privacy, /text\.pollinations\.ai/);
+    assert.match(privacy, /image\.pollinations\.ai/);
     const terms = read('legal/terms.html');
-    assert.match(terms, /generates <strong>text only<\/strong>/);
+    assert.match(terms, /does not generate audio or\s+video/);
+    assert.doesNotMatch(terms, /generates <strong>text only<\/strong>/, 'terms still call the assistant text-only');
   });
 
   test('the stale provider-preference storage keys are gone from the cookie policy', () => {
@@ -698,8 +707,16 @@ describe('the UI tells the truth about the free tier', () => {
     assert.match(ai, /describeFailure/, 'there is no typed error path to the UI');
     assert.match(ai, /showError/);
     // The reply bubble must be dropped before the notice is rendered, so a
-    // failed turn never leaves an empty assistant message behind.
-    assert.match(ai, /current\.messages\.pop\(\)/);
+    // failed turn never leaves an empty assistant message behind. It is dropped by
+    // IDENTITY, not by popping the last message: a /image request can be appended
+    // after a text reply that is still being written, and a bubble left behind
+    // would show typing dots for good.
+    assert.match(ai, /function dropReply\(reply\)[\s\S]*?indexOf\(reply\)[\s\S]*?splice/,
+      'the placeholder must be removed wherever it sits, not only when it is last');
+    const failurePath = ai.slice(ai.indexOf("console.warn('[ai]', provider.id"));
+    const dropAt = failurePath.indexOf('dropReply(reply)');
+    assert.ok(dropAt > -1 && dropAt < failurePath.indexOf('showError('),
+      'the bubble must be dropped before the notice is rendered');
   });
 
   test('model output is never inserted as raw HTML', () => {

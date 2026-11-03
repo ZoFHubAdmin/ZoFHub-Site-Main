@@ -257,7 +257,20 @@
   font-size: 11.5px; color: var(--text-mute);
   text-align: right;
   background: rgba(0,0,0,.18);
+  font-variant-numeric: tabular-nums;
 }
+/* While a wait is running the hint carries the countdown, so it must be readable
+   rather than ghosted — amber like the rate-limit card, same family of meaning. */
+.ai-hint.is-wait { color: #ffc400; }
+.ai-hint.is-nudge { animation: ai-hint-nudge .5s ease; }
+@keyframes ai-hint-nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) { .ai-hint.is-nudge { animation: none; } }
+/* The picture suggestion is the odd card out of five; let it span the row. */
+.ai-suggest-card--wide { grid-column: 1 / -1; }
 
 /* ---- Generated images (/image) ---- */
 .ai-image-wrap { margin-top: 4px; }
@@ -340,6 +353,7 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   color: var(--text-mute, #9b93c4); font-size: 12.5px; letter-spacing: .02em;
 }
+.ai-image-loadtxt { text-align: center; padding: 0 18px; line-height: 1.45; }
 .ai-spin {
   width: 30px; height: 30px; border-radius: 50%;
   border: 3px solid rgba(255,255,255,.14); border-top-color: var(--accent, #8b5cf6);

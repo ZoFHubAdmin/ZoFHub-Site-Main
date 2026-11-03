@@ -169,8 +169,12 @@ left that could carry one.
   the answer. It goes out on their own connection and their own IP.
 - **No key.** The anonymous tier is keyless. Nothing is handed to the browser,
   and no secret exists to leak.
-- **Text only.** There is no image, audio or video generation anywhere on the
-  site, at any layer.
+- **Text, plus one opt-in picture command.** `/image <description>` on the `/ai`
+  page makes the browser load `https://image.pollinations.ai/<description>` in an
+  `<img>`; the picture never passes through this server either. There is no
+  audio or video generation anywhere on the site, at any layer. A 10-second wait
+  follows every message and a 45-second wait every picture, and both survive a
+  reload.
 - **No server-side AI routes.** `/api/ai/text`, `/api/ai/echo`, `/api/ai/audio`,
   `/api/ai/video`, `/api/ai/image`, `/api/ai/key`, `/api/ai/providers` and
   `/api/ai/health` have been removed, with the pipeline behind them. The guard

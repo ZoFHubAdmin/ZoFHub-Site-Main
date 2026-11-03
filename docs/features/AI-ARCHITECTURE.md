@@ -1,10 +1,14 @@
-# The AI system: one request, text only
+# The AI system: browser-direct text, and one opt-in picture command
 
 > **Where the AI runs: in the visitor's browser.** ZoFHub's server performs no
 > model inference and has **no AI route at all** — there is nothing left that
 > could receive a prompt. Every answer comes from one `GET` the visitor's own
 > browser makes to `text.pollinations.ai`, on their own connection and quota
-> rather than through one shared server IP.
+> rather than through one shared server IP. **Pictures follow the same rule**:
+> `/image <description>` is one `<img>` pointed at
+> `https://image.pollinations.ai/<description>` ([§2a](#2a-pictures-image-and-the-waits)).
+> Neither the prompt, the answer, the description nor the picture's bytes pass
+> through our server.
 
 ---
 
@@ -215,6 +219,109 @@ both deliberate:
 
 ---
 
+## 2a. Pictures (`/image`) and the waits
+
+### The request
+
+```
+   "/image a red fox"          the visitor's browser
+   typed on /ai       ──────▶  <img src="https://image.pollinations.ai/a%20red%20fox">
+                                        │   200 image/jpeg · Access-Control-Allow-Origin: *
+                                        ▼
+   the message list  ◀───────  the picture, decoded by the browser itself
+```
+
+`public/js/pollinations-image.js` is the only file that knows the host. The
+description goes **after the final slash, encoded once, with nothing appended** —
+exactly the shape of the text request: no query string, no `/prompt/` segment, no
+key, no model parameter. Pictures are Pollinations-only whichever text provider
+is selected, and `/image` exists on the `/ai` page only; the floating assistant is
+text-only.
+
+**Verified against the live service on 2026-11-02, not assumed.** Both
+`GET image.pollinations.ai/a%20red%20apple` and
+`GET image.pollinations.ai/prompt/a%20red%20apple` returned `200 image/jpeg`, so
+the documented `/prompt/` segment is optional and the bare form is correct.
+
+Everything is checked before a request can leave: `parseImageCommand()` accepts
+only `/image` followed by whitespace (so `/imagine` and `/images` are ordinary
+text), the description is whitespace-collapsed and clipped to 600 code points
+(never splitting an emoji), `buildImageUrl()` re-checks origin, query, fragment and
+path on the URL it built, and a description made only of dots is refused because
+`..` would resolve to the provider's landing page rather than a picture.
+
+### The free tier's limit is real, and an `<img>` cannot report it
+
+```
+HTTP 402  {"error":{"code":"FREE_LIMIT","message":"Free limit reached:
+          1 image every 45 seconds per IP. Retry after 41s, ..."}}
+Retry-After: 41      Cache-Control: no-store      Access-Control-Allow-Origin: *
+```
+
+That limit is **per IP**, so on a shared school network another student's picture
+can use this visitor's allowance. A failed `<img>` fires one `error` event with no
+status, no headers and no body, so a rate limit, an outage and a blocked network
+look identical. `diagnoseImageFailure()` therefore makes **one** extra `GET` to
+the same URL after a failure and reads what the `<img>` could not: `402`/`429`
+becomes "one picture every 45 seconds for each network" with the seconds the
+service asked for; no answer at all becomes "could not reach the image service";
+a `5xx` names its status. If that request happens to **succeed**, its bytes are
+shown instead of discarded — a generation already spent part of the allowance.
+The provider's `Retry-After` **lengthens** the visitor's wait; it never shortens it.
+
+### The waits
+
+| | Length | Starts | Why that moment |
+|---|---|---|---|
+| **Text message** | **10 s** | when the answer has finished, failed or been cancelled | "after every message"; also keeps the gap between request *starts* above the free tier's ~15 s |
+| **Picture request** | **45 s** | when the request is sent | the provider's own 45 s window starts when its request arrives |
+
+They are **independent** — a picture does not make a question wait, and a message
+does not make a picture wait — because they are different endpoints with
+different limits. They are kept in one `localStorage` key, `zofhub:ai:cooldown:v1`
+(two timestamps, documented in the cookie policy), by `public/js/ai-cooldown.js`:
+
+- so **reloading does not hand back a free request**, and a second tab sees the wait;
+- shared by the `/ai` page **and the floating assistant** (one module instance — both
+  import the same `?v=` specifier), because both are text clients on one IP;
+- a wait **only ever lengthens**, a stored value is clamped to two minutes (a wrong
+  clock or a hand-edited value cannot lock anyone out), and a storage failure falls
+  back to memory;
+- a refused send keeps what was typed, shows the countdown in the hint line, and
+  announces it for screen readers once (not every second);
+- a retry button (`Try again`, `Retry now`) counts down on the same clock.
+
+It is a courtesy to the visitor's own per-IP allowance, **not a security control**:
+clearing site data skips it, and all that buys is the provider's own 402/429.
+
+### What is stored, and what never reaches the model
+
+A finished picture is saved in the chat history as its **prompt only**
+(`{kind:'image', content:<prompt>}`) — never a URL. On restore the URL is rebuilt from
+the prompt through `buildImageUrl()`, so a hand-edited history entry cannot point an
+`<img>` anywhere else. Picture requests and results are filtered out of the context
+sent to the text model, so an image prompt is never sent to it as conversation.
+
+### What pins this
+
+`test/ai-image.test.mjs` (URL shape, parser, loader, diagnosis, and the static
+guarantees below), `test/ai-cooldown.test.mjs` (the clock and its wiring),
+`test/ai-browser-direct.test.mjs`, and `npm run verify-ai` — which drives a real
+Chromium against the real endpoints and checks that the picture request is one GET
+issued by an `<img>`, that nothing carrying the description reaches our origin, and
+that a second `/image` inside the wait is refused.
+
+- `image.pollinations.ai` appears in **exactly one** client module.
+- That module never touches our origin, a key, `Authorization`, `XMLHttpRequest`,
+  `sendBeacon`, `WebSocket` or `no-cors`, and every request it makes is
+  credential-free.
+- `server.js` has no copy of the host and no `/api/ai/image` handler; the route
+  is still refused before routing (`lib/ai-guard.mjs`), and `/thumb`, `/asset`
+  and `/api/proxy/diag` still refuse the host (`lib/ai-hosts.mjs`).
+- The CSP is **not** widened: `img-src` already allows `https:`.
+
+---
+
 ## 3. One client per provider, every entry point
 
 | Entry point | File | Provider(s) |
@@ -294,7 +401,8 @@ supersedes (otherwise two overlapping sends resolve in arrival order and the
 
 | Not present | Why |
 |---|---|
-| **AI image / audio / video generation** | Not a feature of this site, at any layer. No `image.pollinations.ai` URL builder, no `/image` command, no `/api/ai/image`, `/api/ai/audio` or `/api/ai/video`, no image models. Ordinary site imagery — thumbnails, the preroll, every other `<img>` — was never this and is untouched |
+| **AI audio / video generation** | Not a feature of this site, at any layer: no speech URL builder, no `/api/ai/audio` or `/api/ai/video`, no voice list |
+| **Server involvement in pictures** | Pictures exist (§2a) but only as a browser-direct `<img>`. No `/api/ai/image` handler — the path is refused before routing — no server-side fetch or proxy of image bytes, no image model list, no image URL anywhere in `server.js` |
 | **Any API key** | The anonymous tier needs none, and an `sk_` secret may never reach a browser |
 | **A server fallback** | `/api/ai/text` and `/api/ai/echo` are removed. No same-origin route accepts a prompt |
 | **A local inference engine** | The Transformers.js + SmolLM2-360M fallback is gone. It downloaded hundreds of megabytes to answer, in a markedly worse voice, the question the user had just asked the real model — and it ran whenever the network call failed for **any** reason, so an outage looked like the AI had quietly got much worse. A clear, retryable error is the honest outcome |

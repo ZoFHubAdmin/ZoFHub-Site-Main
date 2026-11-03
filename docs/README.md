@@ -11,7 +11,7 @@
 A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
-2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai), made by their own browser on their own IP. **No prompt or reply ever touches this server** — not by convention, but because there is no AI route left that could relay one. No image, audio or video generation, and no provider choice. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
+2. **A free AI assistant** — a **text** chat, plus an opt-in `/image` command for pictures, that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai) per message (and one `<img>` per picture), made by their own browser on their own IP. **No prompt, reply, picture description or picture ever touches this server** — not by convention, but because there is no AI route left that could relay one. No audio or video generation. A 10-second wait follows every message and a 45-second wait every picture. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
 
 > **Public metadata is framed as a security tool.** The served `<title>`, Open
@@ -34,7 +34,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
 - 🙏 **Donations** — an optional "Support ZoFHub" dialog offering six **crypto-only** methods: **Solana**, **USDC**, **Bitcoin**, **Litecoin**, **Ethereum** and **Monero**. There is no card option, so a visitor without a wallet cannot donate — deliberate, not an oversight. SOL and USDC share **one address and one wallet**, listed separately so a donor holding dollars need not know USDC is an SPL token. Addresses live in the **environment, never in git**, are **checksum-verified at boot**, and a method that fails is dropped rather than served — a typo becomes a missing button, not lost donations. BTC, LTC and ETH get **full checksum** verification (ETH via a dependency-free **Keccak-256** + EIP-55 implementation, since `node:crypto` ships SHA-3, which is a different function); SOL, USDC and XMR are shape-checked only and say so. A **swap path** (pay BTC, LTC, SOL, ETH or DOGE; a non-custodial provider settles to Monero; nothing stored) exists as a server API but **no page offers it yet**. Full detail, including which party can and cannot see what: [DONATIONS.md](features/DONATIONS.md).
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for and no email required — the only addresses ever stored are ones a visitor volunteers, for the mirror-update list or a feedback reply. See [what the site remembers](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
-- 🤖 **Built-in AI** — **text only**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message, with no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
+- 🤖 **Built-in AI** — **text, plus opt-in `/image` pictures**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message and, on request, one `<img>` for `https://image.pollinations.ai/<description>`, with a 10-second wait after every message, a 45-second wait after every picture, no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
 - 🔎 **Per-game SEO** — every game page carries a **unique, factual description** and full metadata (canonical URL, Open Graph, `schema.org` JSON-LD), generated deterministically from verified catalog metadata — no AI filler, no fabrication, no per-request cost. See [GAME-SEO.md](features/GAME-SEO.md).
 - 🌐 **Proxy browser (optional)** — four bundled same-origin engines — [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) and [Scramjet](https://github.com/MercuryWorkshop/scramjet) (service workers), [GUST](https://github.com/nautilus-os/GUST) and [HORIZON](https://github.com/RiptideMC/HORIZON) (single-file libcurl.js + Wisp apps, HORIZON a remodelled GUST) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through all four and fails if any stop working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
@@ -55,7 +55,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Server | Node.js (≥22) + Express, ES modules, **no build step** |
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework, no bundler) |
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
-| AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations, text only |
+| AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations for text, and an `<img>` for opt-in `/image` pictures |
 | Proxy | Ultraviolet · Scramjet · GUST · HORIZON · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
 | Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
 | Tests | `node:test` (built in — zero test dependencies), 1379 tests |
@@ -195,12 +195,15 @@ The client half matches: `IS_LOCAL` in `pollinations.js` gates the text fallback
 
 **What this buys you:** no AI compute or bandwidth on your host, no shared rate-limit pool (each visitor uses their own IP), and prompts that are never observable server-side.
 
-### One provider — browser-direct, text only
+### One provider — browser-direct, text plus opt-in pictures
 
 The AI is **Pollinations' anonymous free tier**, called straight from the
 visitor's browser, and nothing else. There is no provider picker: the Puter.js
-and Hugging Face adapters and the AI-settings panel were removed, along with AI
-image generation.
+and Hugging Face adapters and the AI-settings panel were removed. AI image
+generation was removed with them and has since come back in one deliberately
+narrow form — the `/image` command, which is a browser-side `<img>` and nothing
+more: no server route, no relay, no key (see
+[AI-ARCHITECTURE.md §2a](features/AI-ARCHITECTURE.md#2a-pictures-image-and-the-waits)).
 
 Why this endpoint and not the current documented one: `gen.pollinations.ai`
 requires `Authorization: Bearer sk_…`, and an `sk_` key is a server secret that
