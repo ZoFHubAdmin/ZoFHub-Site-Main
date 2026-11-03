@@ -53,6 +53,15 @@ for (const f of ['.env', '.env.example']) {
 // the names — reading only the legacy name meant it worked when spawned but failed
 // when run directly via `npm run fix-thumbnails`. Same script, opposite result.
 const { adminKey } = await import('../lib/supabase-keys.mjs');
+// This script runs in its OWN process (server.js spawns it at boot), so the
+// server's egress guard does not cover it: it installs its own, after the
+// environment is loaded so the database host is on its allowlist. Its downloads
+// go through safeFetch, i.e. through sing-box — the same path as every other
+// server-side fetch. Run by hand without a daemon it refuses rather than
+// connecting directly; a developer sets SINGBOX_ALLOW_DIRECT=1 for that.
+const { installEgressGuard } = await import('../lib/egress-guard.mjs');
+const { safeFetch } = await import('../lib/safe-fetch.mjs');
+installEgressGuard();
 const SB_URL = process.env.SUPABASE_URL, SB_KEY = adminKey();
 if (!SB_URL || !SB_KEY) { console.warn('⚠ Skipping thumbnails — SUPABASE_URL / SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) not set in .env (server still starts).'); process.exit(0); }
 
@@ -84,7 +93,7 @@ function extractThumb(html) {
 }
 async function fetchThumbUrl(url) {
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' });
+    const r = await safeFetch(url, { headers: { 'User-Agent': UA }, allowHttp: true });
     if (!r.ok) return null;
     return extractThumb(await r.text());
   } catch { return null; }
@@ -98,7 +107,7 @@ function extOf(url, contentType) {
 }
 async function downloadTo(url, slug) {
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' });
+    const r = await safeFetch(url, { headers: { 'User-Agent': UA }, allowHttp: true });
     if (!r.ok) return null;
     const buf = Buffer.from(await r.arrayBuffer());
     if (!buf.length) return null;

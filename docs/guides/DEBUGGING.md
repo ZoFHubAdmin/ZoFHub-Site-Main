@@ -381,8 +381,9 @@ A screenshot of the screen with the Console open is the gold standard.
 |---|---|
 | `[cron:…]` | a scheduled job — the name after the colon is the job |
 | `[masqr]` | the mirror gate — a warning here means it is **not** enabled (§3c) |
-| `[egress]` | proxy egress policy. `WARNING:` on this prefix means a restriction was **widened** (§3d) |
-| `[singbox]` | the optional outbound tunnel |
+| `[egress]` | proxy egress policy. `WARNING:` on this prefix means a restriction was **widened** (§3d); `DEVELOPMENT: direct egress is PERMITTED` means the fail-closed rule was opted out of (never honoured in production) |
+| `[egress-guard]` | the process-level backstop. `BLOCKED direct tcp connection to host:port (from file:line)` means something tried to connect out without crossing sing-box — a finding, not noise (docs/proxy/SINGBOX.md §0e) |
+| `[singbox]` | the outbound tunnel every proxied connection crosses |
 | `[kasm]` | an external companion desktop |
 | `catalog refreshed from Supabase: N games` | the 30-minute catalog reload — a healthy heartbeat |
 

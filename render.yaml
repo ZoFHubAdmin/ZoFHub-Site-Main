@@ -33,7 +33,12 @@ services:
     # Do not rely on NODE_ENV=production to imply this. That was npm 6
     # behaviour; on npm 7+ the reliable switch is the explicit flag, and the
     # Dockerfile already uses its equivalent (`npm install --omit=dev`).
-    buildCommand: npm ci --omit=dev
+    #
+    # The second half downloads the pinned, SHA-256-verified sing-box release into
+    # .singbox/ (see the sing-box block below). It exits non-zero on ANY problem, so
+    # a build that cannot get the daemon FAILS and Render keeps serving the previous
+    # deploy — instead of promoting a site that refuses every proxied connection.
+    buildCommand: npm ci --omit=dev && npm run singbox:install
     # `npm start` on purpose, so there is ONE definition of how this server
     # starts. This used to be a literal `node server.js` while package.json's
     # start script was `node --use-system-ca server.js` — meaning the process
@@ -217,17 +222,28 @@ services:
       # or viewer. Never owner — see lib/admin-rbac.mjs.
       - key: ADMIN_SERVICE_ROLE
         sync: false
-      # sing-box (docs/proxy/SINGBOX.md). ON BY DEFAULT in the Docker image, where it
-      # is the proxy browser's egress. NOTE: Render's native Node runtime does
-      # not build the binary, so on that runtime the supervisor reports it
-      # missing once and every proxied stream falls back to a direct connection
-      # — the site works, it is just not tunnelled. Deploy the Dockerfile to get
-      # the real thing. All of these are optional overrides.
-      - key: SINGBOX_EGRESS
+      # sing-box (docs/proxy/SINGBOX.md) carries EVERY connection this server makes
+      # on a visitor's behalf — the Wisp tunnel's streams and every server-side fetch
+      # of a URL we did not write (embeds, thumbnails, assets, link checks). There is
+      # NO direct fallback: a connection the daemon cannot carry is refused, and in
+      # production nothing can switch that off (SINGBOX_ALLOW_DIRECT, SINGBOX_REQUIRE=0
+      # and SINGBOX_EGRESS=0 are IGNORED when NODE_ENV=production, so none is declared
+      # here — lib/egress-policy.mjs).
+      #
+      # So the daemon has to exist. Render's native Node runtime has no Go toolchain,
+      # so the BUILD downloads the pinned, SHA-256-verified release
+      # (`npm run singbox:install`, data/singbox-release.json). If that fails the
+      # BUILD fails — and Render keeps serving the previous deploy — rather than
+      # promoting a site that refuses everything. (The Dockerfile builds the same
+      # pinned version from source, for hosts that deploy it instead.)
+      #
+      # Hosts this server may connect to DIRECTLY, beyond the ones derived from your
+      # other settings (the database, the cache, the mail provider): comma separated,
+      # `host` exact or `*.suffix`. Everything else is refused (lib/egress-guard.mjs).
+      - key: EGRESS_DIRECT_ALLOW
         sync: false
+      # The remaining variables are optional overrides.
       - key: SINGBOX_SOCKS
-        sync: false
-      - key: SINGBOX_REQUIRE
         sync: false
       - key: SINGBOX_DIAL_TIMEOUT_MS
         sync: false
@@ -237,9 +253,9 @@ services:
         sync: false
       - key: SINGBOX_API_TIMEOUT_MS
         sync: false
-      # Managed mode is ON unless set to 0. Needs the binary in the image
-      # (Dockerfile build arg SINGBOX_VERSION, default v1.14.1), which Render's
-      # native Node runtime does not build — this is for a Docker deploy.
+      # Managed mode is ON unless set to 0: ZoFHub renders the config, starts the
+      # daemon and restarts it if it dies. The binary comes from the build step
+      # above (.singbox/bin/) or, for a Docker deploy, from the image.
       - key: SINGBOX_MANAGED
         sync: false
       - key: SINGBOX_BIN

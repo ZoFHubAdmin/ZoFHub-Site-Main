@@ -135,3 +135,6 @@ data/ai-datasets/
 
 # Per-deployment active-games roster (runtime state, grows via the cron).
 data/active-roster.json
+
+# sing-box binary fetched at build time by `npm run singbox:install` (GPL-3.0; never committed)
+.singbox/

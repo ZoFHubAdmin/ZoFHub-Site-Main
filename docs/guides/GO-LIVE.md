@@ -72,7 +72,7 @@ or a VPS.
 | `HEALTH_MEM_MAX_PCT` | — | `/healthz` returns 503 above this memory % (default 85) for zero-downtime recycles |
 | `WISP_MAX_PER_IP` | — | max concurrent proxy tunnels per client IP (default 32); stops one client starving the pool |
 | `WISP_ALLOWED_PORTS` | — | ports the tunnel may dial (default `80,443,8080,8443`). Deliberately excludes 25/22/3306 — see [docs/proxy/INVISIPROXY.md](../proxy/INVISIPROXY.md) |
-| `WISP_ALLOW_UDP` | — | default off. UDP **bypasses sing-box**, so `SINGBOX_REQUIRE` does not cover it |
+| `WISP_ALLOW_UDP` | — | default off, and **ignored in production**. UDP cannot cross sing-box (it carries TCP only), so it is honoured only where a developer has permitted direct egress |
 | `WISP_ALLOW_PRIVATE_IPS` | — | default off. Leave it off: on means the public tunnel can reach your private network and `169.254.169.254` |
 | `WISP_MAX_STREAMS` | — | concurrent streams **one tunnel** may hold (default 256) |
 | `WISP_ALLOW_LOOPBACK_IPS` | — | default off. Leave it off: on means the tunnel can reach services bound to localhost on the host itself |
@@ -83,7 +83,8 @@ or a VPS.
 | `MASQR_DENY` | — | `404` (default) or `redirect` |
 | `PROXY_INVISI_URL` | — | optional [InvisiProxy](../proxy/INVISIPROXY.md) instance you host yourself; unset = engine not offered |
 | `PROXY_KASM_URL` | — | optional [Kasm](../proxy/KASM.md) desktop you host yourself. **Userinfo is stripped** — a `user:pass@` URL would otherwise leak the password through `/api/proxies` |
-| `SINGBOX_*` | — | **on by default** in the Docker image: sing-box carries the proxy's egress and ZoFHub supervises it. `SINGBOX_MANAGED=0` stops supervising, `SINGBOX_EGRESS=0` stops tunnelling, `SINGBOX_REQUIRE=1` fails a stream rather than falling back to direct. Without the binary (Render's native Node runtime, for one) every stream takes the direct fallback and `/api/admin/proxy` says so. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
+| `SINGBOX_*` | — | **enforced.** sing-box carries every connection the server makes for a visitor — proxy streams and server-side fetches — or the connection is **refused**; there is no direct fallback, and the development-only opt-outs (`SINGBOX_ALLOW_DIRECT`, `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0`) are **ignored in production**. ZoFHub supervises the daemon (`SINGBOX_MANAGED=0` stops that). **The daemon has to exist:** Render's build runs `npm run singbox:install` (pinned and SHA-256-verified; any failure fails the build, so the previous deploy keeps serving) and the Docker image builds it. After a deploy `/api/admin/proxy` should show `singboxProcess.running: true` and `singboxEgress.policy.mode: "enforced"`. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
+| `EGRESS_DIRECT_ALLOW` | — | hosts the server may connect to **directly**, comma separated (`host` or `*.suffix`). Infrastructure only — the database, cache and mail hosts are already derived from your other settings. Anything else that is not loopback is refused by `lib/egress-guard.mjs` |
 | `DONATE_*_ADDRESS` | — | donation addresses, **environment only, never committed**. Checksum-verified at boot; a method that fails is dropped rather than served |
 | `NODE_ENV` | `production` | |
 

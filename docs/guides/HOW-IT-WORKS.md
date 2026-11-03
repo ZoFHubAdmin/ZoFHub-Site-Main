@@ -220,7 +220,7 @@ it is the reason several other decisions on this page exist.
 
 ```
 page → service worker → bare-mux → epoxy-transport → same-origin /wisp/
-     → Wisp server → (optional) sing-box SOCKS5 → the internet
+     → Wisp server → sing-box SOCKS5 → the internet
 ```
 
 Three things guard that path:
@@ -230,8 +230,11 @@ Three things guard that path:
   allowed, and how many streams one client may open. It **fails safe** (a missing
   setting gives the restrictive default) and warns at boot on every widening.
   See [docs/proxy/INVISIPROXY.md](../proxy/INVISIPROXY.md).
-- **sing-box** — an optional outbound tunnel so proxy traffic leaves from
-  somewhere other than your web host. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
+- **sing-box** — the outbound tunnel. Every connection the server makes for a
+  visitor (proxy streams and server-side fetches alike) crosses it or is
+  *refused*, so traffic leaves from somewhere other than your web host and never
+  directly from it. `lib/egress-guard.mjs` refuses anything else that tries to
+  connect out. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
 - **Companion engines** — Kasm Workspaces and others can be pointed at as
   *external* deployments rather than bundled ([docs/proxy/KASM.md](../proxy/KASM.md)).
   **HORIZON** is a bundled same-origin engine instead, mounted at `/horizon` and

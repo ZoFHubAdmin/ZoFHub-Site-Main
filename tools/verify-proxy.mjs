@@ -71,6 +71,11 @@ const APP_ENGINES = new Set(['gust', 'horizon']);
 
 const only = flag('engine');
 const customTarget = flag('target');
+// A string only the real page can contain. Required for gust/horizon (they render into
+// a frame, so there is nothing else to assert on); optional for scramjet/uv. Lets a
+// plain-http target be checked on a machine where TLS is intercepted:
+//   npm run verify-proxy -- --engine gust --target http://example.com/ --marker "Example Domain"
+const customMarker = flag('marker');
 const HEADFUL = args.includes('--headed');
 const BASE = flag('base');
 const PORT = Number(flag('port', '8741'));
@@ -105,7 +110,7 @@ if (!base) {
   if (!up) { srv.kill('SIGKILL'); process.exit(2); }
 }
 
-const targets = customTarget ? [{ url: customTarget, marker: null }] : TARGETS;
+const targets = customTarget ? [{ url: customTarget, marker: customMarker }] : TARGETS;
 const engines = only ? [only] : ENGINES;
 const rows = [];
 

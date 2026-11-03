@@ -7,24 +7,33 @@
 > rendered by the admin console's **Proxy** view. With `SINGBOX_API_URL` unset —
 > the default — the panel shows *"Not connected"*. It never shows zeroes.
 >
-> **2. Egress (ON BY DEFAULT).**
-> [`lib/singbox-socket.mjs`](../../lib/singbox-socket.mjs) routes **every TCP stream
-> the proxy opens on a visitor's behalf** through sing-box's local SOCKS5
-> inbound. This is not a dashboard: it changes where the site's traffic leaves
-> from. It is enabled unless `SINGBOX_EGRESS=0`, and when no daemon answers it
-> **falls back to a direct connection and counts it** — degraded and visible
-> beats broken and mysterious. Operators who would rather fail than expose the
-> server's own address set `SINGBOX_REQUIRE=1`. See
-> [§0c](#0c-egress--the-half-that-actually-carries-traffic).
+> **2. Egress (ENFORCED — fail-closed).**
+> Every connection this server makes **on a visitor's behalf** crosses sing-box,
+> or is **refused**: the Wisp tunnel's TCP streams
+> ([`lib/singbox-socket.mjs`](../../lib/singbox-socket.mjs)) and every server-side
+> fetch of a URL we did not write — embeds, thumbnails, assets, link checks,
+> importers ([`lib/egress.mjs`](../../lib/egress.mjs)). This is not a dashboard: it
+> changes where the site's traffic leaves from. There is **no direct fallback** — a
+> fallback fires exactly when the daemon is down, which is exactly when it would
+> expose this server's address — and in production nothing can switch it off:
+> `SINGBOX_ALLOW_DIRECT`, `SINGBOX_REQUIRE=0` and `SINGBOX_EGRESS=0` are
+> **ignored** when `NODE_ENV=production`. Underneath both paths sits a
+> process-level guard ([`lib/egress-guard.mjs`](../../lib/egress-guard.mjs)) that
+> refuses any other outbound connection that is not loopback or a named
+> infrastructure host. See
+> [§0c](#0c-egress--the-half-that-actually-carries-traffic),
+> [§0d](#0d-server-side-fetches), [§0e](#0e-the-backstop-guard) and
+> [§0g](#0g-deploying-it-what-has-to-be-true).
 >
 > **Two supervision modes.** *Managed* (the default): ZoFHub renders the config,
 > validates it with `sing-box check`, spawns the daemon, restarts it with backoff
 > if it dies, and kills it on shutdown. *Read-only* (`SINGBOX_MANAGED=0`): you
 > run the daemon yourself, or not at all, and ZoFHub only reads it.
 >
-> What is **not** automated in either mode: sing-box's source is not vendored
-> here. The Dockerfile builds a **pinned** upstream release — on by default, and
-> skipped with `--build-arg SINGBOX_VERSION=none`.
+> What is **not** vendored: sing-box's source. The binary arrives at build time,
+> **pinned** to one upstream release — built by the Dockerfile, or downloaded and
+> SHA-256-verified by `npm run singbox:install` on a native Node runtime such as
+> Render's ([§0](#0-getting-the-binary)).
 >
 > The configs in [`deploy/singbox/`](../../deploy/singbox/) are **starting
 > templates** written against the sing-box 1.11+ schema. They parse as valid JSON
@@ -39,11 +48,14 @@ may use the name or imply association with this application without prior
 consent."*
 
 ZoFHub complies by not being a derivative work of it. The integration talks to
-sing-box's **HTTP management API over the network**, between two separate
-processes — the same relationship ZoFHub already has with the AGPL-3.0 proxy
-engines it runs beside. No sing-box source or binary is vendored, linked or
-compiled in; `docker-compose.yml` pulls the unmodified upstream image. So
-ZoFHub's own license is unaffected, and the GPL's copyleft does not reach it.
+sing-box's **SOCKS5 inbound and HTTP management API over the network**, between
+two separate processes — the same relationship ZoFHub already has with the
+AGPL-3.0 proxy engines it runs beside. No sing-box source or binary is vendored,
+linked or compiled in: `docker-compose.yml` pulls the unmodified upstream image,
+the Dockerfile builds an unmodified pinned release, and the build-time installer
+downloads the unmodified official release asset into `.singbox/`, which is
+git-ignored. So ZoFHub's own license is unaffected, and the GPL's copyleft does
+not reach it.
 
 On the name clause: this documentation and the admin panel refer to sing-box
 **factually** — "an instance you run" — and the console labels the card
@@ -75,7 +87,32 @@ asserted by test, for all seven failure modes.
 
 sing-box is Go; ZoFHub is Node. There is no way to link one into the other —
 even fully vendored it compiles to a standalone binary that runs as its own
-process. So the binary is built, not imported:
+process. So the binary is built or downloaded, not imported. There are two
+routes, and they install **the same pinned release**.
+
+**A native Node runtime (Render, as `render.yaml` is written).** The build runs
+`npm run singbox:install` after `npm ci`
+([`tools/install-singbox.mjs`](../../tools/install-singbox.mjs)):
+
+1. it reads [`data/singbox-release.json`](../../data/singbox-release.json) — a
+   version and, per platform, the **SHA-256** of the official release asset,
+   committed to this repository;
+2. it downloads that asset from `github.com/SagerNet/sing-box/releases` over TLS;
+3. it **refuses the file unless its SHA-256 equals the committed digest**, so what
+   runs is the exact file that was reviewed when it was pinned, whatever a release
+   page happens to serve on the day of a build;
+4. it extracts the one binary into `.singbox/bin/` (git-ignored — never
+   committed), marks it executable and runs `sing-box version` to prove it is the
+   one asked for.
+
+The supervisor looks in `.singbox/bin/` before it falls back to a bare `sing-box`
+on `PATH`: the pinned one is the verified one, and the native runtime has nothing
+on `PATH` at all. The installer is idempotent, and **it fails the build on any
+problem** — a failed build leaves the previous deploy running, whereas a build
+that "succeeds" without the daemon would replace a working site with one that
+refuses every proxied connection.
+
+**Docker.**
 
 ```bash
 # Pinned, reproducible, verified against Go's checksum database.
@@ -83,15 +120,22 @@ docker build -t zofhub .                       # builds the pinned default
 ```
 
 The version is pinned in the Dockerfile (`ARG SINGBOX_VERSION`, currently
-`v1.14.1`) and the build is ON by default, because sing-box carries the proxy
-egress rather than sitting beside it.
+`v1.14.1`) and the build is ON by default, because sing-box carries every proxied
+connection rather than sitting beside it. A test fails if the Dockerfile and
+`data/singbox-release.json` name different versions.
 
 **The Go image and the sing-box tag are coupled — bump them together.**
 v1.14.1's `go.mod` requires `go 1.25.5`, and an older toolchain fails the build
 outright rather than warning, so stage 1 pins `golang:1.25.14-alpine`. Raising
-`SINGBOX_VERSION` without checking its `go.mod` is the way this build breaks. Pass `--build-arg SINGBOX_VERSION=none` to skip the stage and build a
-binary-free image; the site still runs, every stream takes the direct fallback,
-and `/api/admin/proxy` says so.
+`SINGBOX_VERSION` without checking its `go.mod` is the way this build breaks.
+Pass `--build-arg SINGBOX_VERSION=none` to skip the stage and build a binary-free
+image. That image **starts**, but it refuses every proxied stream and server-side
+fetch (there is no direct fallback — §0c); use it only where the daemon arrives
+some other way (`SINGBOX_BIN`).
+
+**Moving to a newer release** is three edits: `version` and every digest in
+`data/singbox-release.json` (the comment in that file gives the `gh api` call that
+prints GitHub's own digests), and the Dockerfile's `SINGBOX_VERSION`.
 
 **Why not vendor the source?** ZoFHub's `LICENSE` is proprietary — *"NOT an
 open-source license"*, forbidding redistribution — and this repo is pushed to a
@@ -125,9 +169,9 @@ surfaces from `sing-box check`, not from `spawn`, so it used to take the
 `config rejected: spawn sing-box ENOENT` for a config that was perfectly valid.
 Both halves of that were wrong. `checkConfig` now flags `missingBinary`
 separately, and the supervisor **gives up** — one log line, no retry loop,
-`gaveUp: "binary not found"` in `/api/admin/proxy`, and egress degrades to
-direct. A rejected *config* still backs off 1s → 60s, because a redeploy can
-fix that one.
+`gaveUp: "binary not found"` in `/api/admin/proxy`, and every proxied connection
+is refused until a binary is installed (there is no direct fallback — §0c). A
+rejected *config* still backs off 1s → 60s, because a redeploy can fix that one.
 
 `/api/admin/proxy` reports the daemon's API (`singbox`) and the supervisor
 (`singboxProcess`) **separately**, because "we never launched it" and "we
@@ -169,13 +213,13 @@ two protocols on one path and picks by URL shape: a trailing `/` gets the Wisp
 protocol, anything else gets `WSProxyConnection` — a host:port relay addressed
 as `/wisp/example.com:443` that ignores `conn_options` and hard-codes its own
 socket. So a prefix match would leave a working proxy that bypasses sing-box,
-bypasses `egressStats()`, and ignores `SINGBOX_REQUIRE=1`. `routeProxyUpgrade`
+bypasses `egressStats()`, and ignores the egress policy. `routeProxyUpgrade`
 accepts exactly `/wisp/` and answers everything else `400`. (Not an SSRF hole in
 either branch — wsproxy runs the same destination filter. What the bypass leaked
 was the egress path, not the target.)
 
-**`SINGBOX_REQUIRE` covers TCP only — and UDP is now switched off because of
-it.** wisp-js selects the socket class per stream type:
+**Egress covers TCP only — so UDP is switched off.** wisp-js selects the socket
+class per stream type:
 
 ```js
 let SocketImpl = type === stream_types.TCP ? this.TCPSocket : this.UDPSocket;
@@ -183,31 +227,53 @@ let SocketImpl = type === stream_types.TCP ? this.TCPSocket : this.UDPSocket;
 
 ZoFHub injects `TCPSocket` and nothing else, so a **UDP** stream never touched
 `SingboxTCPSocket` at all — it left the Node process directly, outside the
-daemon, outside `egressStats()`, and outside `SINGBOX_REQUIRE=1`. An operator
-who set that flag to guarantee their server's own IP is never exposed did not
-get that guarantee for UDP.
+daemon, outside `egressStats()`, and outside the egress policy. An operator who
+wanted a guarantee that their server's own IP is never exposed did not get it for
+UDP.
 
 Nothing in ZoFHub uses UDP through the tunnel, so
-[`lib/wisp-policy.mjs`](../../lib/wisp-policy.mjs) now sets `allow_udp_streams:
-false` by default and the hole is closed. `WISP_ALLOW_UDP=1` reopens it and
-warns, naming this exact consequence. If UDP is ever genuinely needed, the fix
-is a `UDPSocket` class that dials through sing-box — not the flag.
+[`lib/wisp-policy.mjs`](../../lib/wisp-policy.mjs) sets `allow_udp_streams: false`
+and the hole is closed. `WISP_ALLOW_UDP=1` is honoured **only** where a developer
+has permitted direct egress (outside production); everywhere else it is ignored,
+with a warning that says why — and the backstop guard (§0e) refuses direct UDP
+anyway. If UDP is ever genuinely needed, the fix is a `UDPSocket` class that dials
+through sing-box — not the flag.
 
-**Failure is degradation, not an outage.** A default that takes the proxy down
-when a daemon is missing is worse than no default. A failed dial falls back to a
-direct connection and is counted:
+**Failure is a refusal, not a leak.** An earlier version fell back to a direct
+connection when the daemon did not answer — "degraded and visible beats broken
+and mysterious". That is the right trade for a dashboard and the wrong one for a
+control whose purpose is that this server's address is never exposed to a
+destination: a fallback fires exactly when the daemon is down, which is exactly
+when an attacker (or a crash loop) would want it to. A refused stream is a
+visible, retryable error; a silent direct one is a leak nobody sees.
+
+So a stream the daemon cannot carry is **closed** (Wisp close reason *network
+error*), a server-side fetch fails with `EgressUnavailableError` (`code:
+'EEGRESS'`, shown to a visitor as a `502`), and both are counted. The supervisor
+restarts a dead daemon with backoff, and the first request after it is back
+works — nothing needs a redeploy.
 
 | Setting | Default | Effect |
 |---|---|---|
-| `SINGBOX_EGRESS` | `1` | `0` dials directly and never contacts the daemon |
 | `SINGBOX_SOCKS` | `127.0.0.1:2080` | where the mixed/SOCKS inbound listens |
-| `SINGBOX_REQUIRE` | unset | `1` fails the stream rather than connecting directly |
 | `SINGBOX_DIAL_TIMEOUT_MS` | `8000` | bounds a stalled handshake |
+| `SINGBOX_ALLOW_DIRECT=1`, `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0` | unset | **Development only.** Any one of them lets a developer with no sing-box binary on their laptop connect directly when the daemon cannot carry a stream; the boot log says so. **When `NODE_ENV=production` all three are ignored** — and the boot log says that too. |
+
+[`lib/egress-policy.mjs`](../../lib/egress-policy.mjs) is the whole rule, in one
+function (`egressPolicy`), read by every path — so there is exactly one place that
+decides, and `singboxEgress.policy.mode` in `/api/admin/proxy` (`enforced` or
+`direct-permitted`) says which answer it gave. The same module's
+`EgressUnavailableError` is deliberately **not** the SSRF module's
+`BlockedDestinationError`: that one means "you asked for somewhere we never go" (a
+client error), this one means "we would have gone, and the egress path is down" (a
+server-side outage, to be retried).
 
 `egressStats()` (in `/api/admin/proxy` as `singboxEgress`) reports
-`viaSingbox` / `viaDirect` / `refused` and a `singboxSharePct` — the one number
-worth alerting on. It is **`null`, not `0`**, before anything has been proxied,
-because 0% of zero streams is no data rather than a fault.
+`viaSingbox` / `viaDirect` / `refused` for tunnel streams, `fetchViaSingbox` /
+`fetchDirect` / `fetchRefused` for server-side fetches, the `policy`, and a
+`singboxSharePct` — the one number worth alerting on. It is **`null`, not `0`**,
+before anything has been proxied, because 0% of zero streams is no data rather
+than a fault. In production `viaDirect` and `fetchDirect` stay at zero.
 
 ### Verified against a real daemon, not a mock
 
@@ -223,12 +289,14 @@ was checked separately, against an actual **sing-box 1.14.1** binary:
 | A real page fetched through `/wisp/` end to end | `HTTP/1.1 200 OK`, 1067 bytes |
 | `singboxEgress` after that fetch | `viaSingbox=1, viaDirect=0, share=100%` |
 | The daemon's own Clash counter | `downloadBytes=1067` — **matches the bytes the tunnel client received** |
-| Boot with **no** binary present | tunnel still returns `HTTP/1.1 200 OK`; `viaDirect=1`, fallback cause recorded, `/healthz` 200 |
+| The daemon killed under a running server and held down | Wisp streams closed with *network error*; uncached embeds answered `502`; `fetchDirect` stayed `0`; and the server process held **no connection to anything but its database**, checked with `netstat` |
+| The daemon released | the supervisor restarted it; the next Wisp stream and the next embed worked, with no redeploy |
+| `npm run verify-proxy`, all four engines | Ultraviolet, Scramjet, GUST and HORIZON each rendered `http://example.com/` in a real Chromium, through the enforced path |
 
-The last two rows are the ones that matter. The byte counter matching means the
-traffic genuinely crossed the daemon rather than merely being reported as
-having done so; and the no-binary row is the evidence that on-by-default is safe
-to ship, because the degraded path is a working site rather than a broken one.
+The byte-counter row is the one that matters most: it means the traffic
+genuinely crossed the daemon rather than merely being reported as having done so.
+The outage rows are the evidence that the control fails closed — that "the daemon
+is down" produces refusals, not connections from this host.
 
 **What this does not weaken.** wisp-js resolves and filters the destination
 itself *before* connect, refusing loopback and private targets regardless of
@@ -260,7 +328,157 @@ wherever the caller has not already resolved.
 
 ---
 
+## 0d. Server-side fetches
+
+The Wisp tunnel is one way a visitor makes this server connect out. The other is
+asking it to fetch a URL: a game embed, a thumbnail, an asset, a link check, a
+catalog import. All of those go through
+[`lib/safe-fetch.mjs`](../../lib/safe-fetch.mjs), which used to dial straight from
+Node. It now hands `node:http` / `node:https` an `Agent` whose sockets are tunnels
+through the daemon ([`lib/egress.mjs`](../../lib/egress.mjs)) — through
+`Agent.createConnection`, the one supported seam for "connect somewhere else".
+Nothing in Node is patched and nothing global changes: only requests handed this
+agent are affected.
+
+```
+safeFetch → validating resolver (every answer public) → the validated ADDRESS
+          → SOCKS5 CONNECT by IPv4/IPv6 literal → sing-box → origin
+          → TLS over the tunnel, verified against the original HOSTNAME
+```
+
+What stays exactly as it was is the SSRF defence. The name is still resolved by
+the validating resolver first and **every** answer must be public; what is dialled
+is that validated *address*, never the name, so neither the daemon nor a
+rebinding resolver can be steered to a private target between the check and the
+connection. The daemon's own routing layer refuses private ranges again — a
+second, independent check. TLS is verified against the hostname the caller asked
+for (SNI and certificate name), not the address dialled, and `rejectUnauthorized`
+is not something a caller can turn off.
+
+Two choices worth knowing. **One request per tunnel** (`keepAlive: false`): a
+pooled socket was dialled — and its address validated — for some *earlier*
+request, and reusing it would skip exactly the check this module exists to make.
+And **at most three addresses** are tried for one name, because an IPv6 answer
+from a host with no IPv6 route is the common case and this is a courtesy, not a
+scan.
+
+A fetch that cannot cross the daemon fails with `EgressUnavailableError` and is
+counted in `fetchRefused`. `waitForSingbox()` lets boot-time work (the thumbnail
+job, the TLS probe) wait for the daemon rather than start a burst of refusals
+before it is up.
+
+---
+
+## 0e. The backstop guard
+
+§0c and §0d fix the two ways we *know* a visitor can make this server connect
+out. That is a list of the doors someone remembered.
+[`lib/egress-guard.mjs`](../../lib/egress-guard.mjs) is the wall: it wraps
+`net.Socket.prototype.connect` and the `dgram` send/connect methods, and refuses
+every outbound connection that is neither
+
+- **loopback** — sing-box's own inbound, the Clash API, health probes; nor
+- **a named infrastructure host** — a host the *operator* configured.
+
+Every outbound TCP connection Node makes — `node:http`, `node:https`, `node:tls`,
+the built-in `fetch`, the Redis client, a WebSocket client — bottoms out in
+`net.Socket.prototype.connect`, so wrapping that one method covers code we did not
+write and cannot audit line by line. A code path nobody has written yet, a
+dependency that starts making its own requests, or a regression in §0c or §0d now
+fails with `EEGRESS_BLOCKED`, a counter and a log line, instead of quietly
+exposing this server's address.
+
+**The allowlist is derived from the environment**, not written in code: the
+Supabase URL, `REDIS_URL` / `UPSTASH_REDIS_URL`, `SINGBOX_API_URL`, the host in
+`SINGBOX_SOCKS`, `api.resend.com` only when `RESEND_API_KEY` is set, `sideshift.ai`
+only when it is the selected swap provider, the `PROXY_*_URL` companion engines
+this server only *probes*, and anything in `EGRESS_DIRECT_ALLOW` (comma
+separated; `host` is exact, `*.suffix` is any subdomain but not the apex).
+Hostnames only — a connection URL carries credentials, and only the host is kept.
+A host that was never configured can never be reached, and adding a database needs
+no code change.
+
+**Why infrastructure may go direct and visitor traffic may not.** Routing the
+database through a daemon that the site itself supervises would make a daemon
+restart an outage of the whole site. So those hosts are *named*, and nothing else
+is let through.
+
+Refusals are recorded as `egress_bypass_blocked` security events and shown under
+`egressGuard` in `/api/admin/proxy` — hostnames and counts only, never a URL, a
+path or a credential. In production the guard is always in `enforce` mode and
+`EGRESS_GUARD` is ignored; elsewhere `EGRESS_GUARD=warn` logs what would have been
+blocked without blocking it.
+
+**What it cannot see, said plainly.** DNS lookups are not TCP connections: a name
+resolved by this process is still seen by this host's resolver (§0c). It guards
+*this* process — a child process is a different process, so each installs its own
+(`tools/fetch-y8-thumbs.mjs` does). And it is **not a sandbox**: code that can run
+arbitrary JavaScript in this process can restore the original method. The goal is
+the failure that actually occurs — accident and regression — not a hostile
+dependency, which no in-process control can stop.
+[`test/egress-inventory.test.mjs`](../../test/egress-inventory.test.mjs) is its
+counterpart at review time: it scans the server code and fails if a file starts
+dialling out on its own.
+
+---
+
+## 0f. Engines that run in the visitor's browser
+
+Everything above is the server. Two of the built-in engines, GUST and HORIZON
+(vendored under `proxy-engine/assets/`), are whole browser apps whose *code runs
+in the visitor's browser* and which chose their own relay. Left alone they could
+be pointed at a Wisp server of the visitor's choosing — typed into the settings,
+restored from storage, HORIZON's *Reset* button's upstream default, the bundled
+Discord client's saved relay — and GUST's proxied pages could open native
+WebSockets that skip the tunnel altogether. Each of those is traffic that belongs
+to this site leaving without crossing sing-box.
+
+They are patched to pin the tunnel to this site's own `/wisp/` (which §0c carries
+through the daemon) and to open WebSockets through the tunnel
+(`libcurl.WebSocket`).
+[`test/proxy-same-origin-wisp.test.mjs`](../../test/proxy-same-origin-wisp.test.mjs)
+fails if a stored, typed or default relay on another origin ever returns. The
+patches are recorded as modifications in `lib/licenses.mjs` and
+[`docs/CREDITS.md`](../CREDITS.md), as the AGPL-3.0 requires.
+
+The **companion engines** (`PROXY_NAUTILUS_URL`, `PROXY_DAYDREAM_URL`, …) are
+separate, operator-hosted services that this server only probes. What those
+services do with a visitor's traffic is outside this server, and outside what it
+can enforce.
+
+---
+
+## 0g. Deploying it: what has to be true
+
+The daemon is part of the site now, not an optional extra, so a deploy has to
+carry it.
+
+- **Render (native Node).** `render.yaml`'s `buildCommand` is
+  `npm ci --omit=dev && npm run singbox:install`; no dashboard change is needed.
+  If the pinned download cannot be fetched or does not match its digest, **the
+  build fails** — on purpose, so the previous deploy keeps serving.
+- **Docker.** The default build carries the daemon (§0).
+- **Check it after every deploy.** `GET /api/admin/proxy` (admin) should show
+  `singboxProcess.running: true`, `singboxEgress.policy.mode: "enforced"`, a
+  growing `viaSingbox` / `fetchViaSingbox`, `viaDirect` and `fetchDirect` at
+  **0**, and `egressGuard.blocked` at 0 in steady state. A non-zero
+  `egressGuard.blocked` is a real finding: `lastBlocked.origin` names the file that
+  tried to connect out.
+- **Infrastructure other than Supabase, Redis, Resend and sideshift** that has to
+  be reached directly goes in `EGRESS_DIRECT_ALLOW` (declared in `render.yaml`
+  without a value). Never put a destination a visitor chose there.
+- **If the daemon is down,** proxy streams and every server-side fetch (game-embed
+  wrappers, thumbnail fetches, link checks) are refused until the supervisor
+  brings it back. The catalog, accounts and AI — which do not use the proxy — keep
+  working.
+
+---
+
 ## 1. Deployment shape (the part that has to be true first)
+
+> This section is about the **optional REALITY profile**, where sing-box owns a
+> public `:443`. The default egress daemon is a loopback-only SOCKS inbound that
+> ZoFHub spawns itself inside the same container (§0b) and needs none of this.
 
 ZoFHub currently deploys as a **single Node container** (`Dockerfile`, one web
 service in `render.yaml`). sing-box is a separate long-running daemon that binds
@@ -449,16 +667,17 @@ running-config change the static service token is already denied.
 
 ## 5. Environment variables
 
-The first three are **declared** in `.env.example` and `render.yaml` and read by
-the shipped adapter. The rest are consumed by sing-box itself when rendering
-`deploy/singbox/config.template.json`, not by ZoFHub.
+The ZoFHub-side variables are **declared** in `.env.example` and, where they matter
+in production, `render.yaml`. The REALITY and UUID ones are consumed by sing-box
+itself when rendering the REALITY template, not by ZoFHub.
 
 | Variable | Purpose |
 |---|---|
-| `SINGBOX_EGRESS` | `0` stops routing proxy traffic through sing-box. **Default on.** |
 | `SINGBOX_SOCKS` | Where the mixed/SOCKS inbound listens. Default `127.0.0.1:2080`. |
-| `SINGBOX_REQUIRE` | `1` fails a stream rather than falling back to a direct connection. |
 | `SINGBOX_DIAL_TIMEOUT_MS` | Bounds a stalled SOCKS handshake. Default 8000. |
+| `SINGBOX_ALLOW_DIRECT`, `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0` | **Development-only** opt-outs of the fail-closed egress (§0c). **Ignored when `NODE_ENV=production`**, and deliberately not declared in `render.yaml`. |
+| `EGRESS_DIRECT_ALLOW` | Extra hosts this server may connect to *directly*, comma separated (`host` exact, `*.suffix` any subdomain). Infrastructure only (§0e). |
+| `EGRESS_GUARD` | `enforce` / `warn` / `off`, **outside production only** (§0e). |
 | `SINGBOX_MANAGED` | `0` stops ZoFHub supervising the daemon. **Default on.** |
 | `SINGBOX_BIN` / `SINGBOX_CONFIG_PATH` / `SINGBOX_CONFIG_TEMPLATE` | Binary, rendered-config path (written `0600`), template override. |
 | `SINGBOX_API_URL` | Loopback Clash API, e.g. `http://127.0.0.1:9090`. Unset ⇒ adapter reports `not-configured`; managed mode sets it. |
@@ -478,13 +697,24 @@ wait for the daemon, so a hung sing-box cannot hang the admin console.
 |---|---|
 | [`lib/singbox.mjs`](../../lib/singbox.mjs) | The read-only telemetry adapter. Registered. |
 | [`lib/singbox-socket.mjs`](../../lib/singbox-socket.mjs) | **The egress path.** SOCKS5 dialler injected into the Wisp tunnel. |
+| [`lib/egress-policy.mjs`](../../lib/egress-policy.mjs) | The one rule: may a visitor-driven connection leave directly? No — a developer outside production may opt in, loudly (§0c). |
+| [`lib/egress.mjs`](../../lib/egress.mjs) | Server-side fetches through the daemon (§0d). |
+| [`lib/egress-guard.mjs`](../../lib/egress-guard.mjs) | The process-level backstop: nothing else leaves (§0e). |
+| [`tools/install-singbox.mjs`](../../tools/install-singbox.mjs) | Build-time install of the pinned, SHA-256-verified binary (§0). |
+| [`data/singbox-release.json`](../../data/singbox-release.json) | The pin: version and per-platform digests. |
 | [`lib/singbox-supervisor.mjs`](../../lib/singbox-supervisor.mjs) | Managed mode: render, validate, spawn, restart, stop. |
 | [`proxy-engine/mount.mjs`](../../proxy-engine/mount.mjs) | `routeProxyUpgrade` — exact `/wisp/` match, closing the wsproxy bypass. |
 | `Dockerfile` | Stage 1 builds the pinned release; on by default. |
 | [`test/singbox.test.mjs`](../../test/singbox.test.mjs) | 28 tests: all seven failure modes, plus both shipped profiles. |
 | [`test/singbox-supervisor.test.mjs`](../../test/singbox-supervisor.test.mjs) | 26 tests: defaults, rendering, config-as-credential, wiring, missing-binary give-up. |
-| [`test/singbox-egress.test.mjs`](../../test/singbox-egress.test.mjs) | 23 tests: real SOCKS5 over real sockets, fallback, strict mode, CONNECT address types. |
+| [`test/singbox-egress.test.mjs`](../../test/singbox-egress.test.mjs) | Real SOCKS5 over real sockets, refusal when the daemon is down, the development opt-out, CONNECT address types. |
 | [`test/wisp-egress-contract.test.mjs`](../../test/wisp-egress-contract.test.mjs) | 9 tests pinning wisp-js's injection point and the exact-path match. |
+| [`test/egress-policy.test.mjs`](../../test/egress-policy.test.mjs) | Production ignores every opt-out; a developer's is explicit and announced. |
+| [`test/egress-agent.test.mjs`](../../test/egress-agent.test.mjs) | Server-side fetches against real mock daemons: validated address dialled, refusal, no direct retry. The TLS group skips itself, with a stated reason, on a machine whose antivirus intercepts TLS. |
+| [`test/egress-guard.test.mjs`](../../test/egress-guard.test.mjs) | Every `net`/`dgram` call shape, the derived allowlist, enforce/warn, production always enforcing. |
+| [`test/egress-inventory.test.mjs`](../../test/egress-inventory.test.mjs) | Static scan of the server code: nothing dials out on its own, and nothing outside `test/` can switch egress to direct. |
+| [`test/proxy-same-origin-wisp.test.mjs`](../../test/proxy-same-origin-wisp.test.mjs) | GUST and HORIZON stay pinned to this site's own `/wisp/` (§0f). |
+| [`test/singbox-install.test.mjs`](../../test/singbox-install.test.mjs) | The installer: digest mismatch refuses, an intact install is left alone, the pin matches the Dockerfile. |
 | [`deploy/singbox/config.template.json`](../../deploy/singbox/config.template.json) | **Default profile:** loopback mixed/SOCKS inbound — the egress path. Verified with `sing-box check` against a real 1.14.1 binary. |
 | [`deploy/singbox/config.reality.template.json`](../../deploy/singbox/config.reality.template.json) | **REALITY profile**, for a host where you own `:443`. Select it with `SINGBOX_CONFIG_TEMPLATE`. |
 | [`deploy/singbox/docker-compose.yml`](../../deploy/singbox/docker-compose.yml) | The two-service shape that lets sing-box own `:443`. |

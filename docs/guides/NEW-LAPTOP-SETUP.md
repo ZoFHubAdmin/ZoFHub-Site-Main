@@ -76,6 +76,18 @@ repairs anything that didn't copy cleanly.)
    pins, which is what CI and the Render deploy install, so a fresh laptop cannot
    quietly end up on different versions from production.
 
+   **The proxy also needs its sing-box daemon**, and there is no direct fallback:
+   anything that makes the server fetch a third-party URL (the proxy, `/embed/`
+   wrappers, thumbnails) is refused without it. Install the pinned one with:
+   ```bash
+   npm run singbox:install
+   ```
+   It downloads the release named in `data/singbox-release.json` and refuses it
+   unless its SHA-256 matches the committed digest; the binary goes in
+   `.singbox/`, which is git-ignored. Skip this if you are not working on those
+   features, or — on a development machine only — put `SINGBOX_ALLOW_DIRECT=1` in
+   `.env` to let them connect directly (it is ignored in production).
+
    No compiler, Python or build toolchain is needed for this step. `.npmrc` sets
    `ignore-scripts=true`, so no dependency runs code while installing — which is
    also what makes the install work at all, since one dependency ships a

@@ -11,8 +11,12 @@ import net from 'node:net';
 
 import {
   createSingboxTCPSocket, egressStats, _resetEgressStats,
-  socksTarget, singboxEgressEnabled, buildConnectRequest,
+  socksTarget, singboxEgressEnabled, buildConnectRequest, noteFetchEgress,
 } from '../lib/singbox-socket.mjs';
+import { EgressUnavailableError } from '../lib/egress-policy.mjs';
+
+// The environment a developer sets to permit a direct dial outside production.
+const DEV_DIRECT = { SINGBOX_ALLOW_DIRECT: '1' };
 
 // net.Server.close() stops ACCEPTING but then waits for every live connection
 // to end on its own. A test that leaves one open therefore hangs in its own
@@ -91,7 +95,9 @@ function startSocks({ replyCode = 0x00, appendAfterReply = null, onConnect = nul
 /** A plain TCP echo server, standing in for an origin reached directly. */
 function startEcho() {
   const live = new Set();
+  let accepted = 0;
   const srv = net.createServer((sock) => {
+    accepted++;
     live.add(sock);
     sock.on('close', () => live.delete(sock));
     sock.on('error', () => {});
@@ -99,7 +105,7 @@ function startEcho() {
   });
   return new Promise((resolve) => {
     srv.listen(0, '127.0.0.1', () => {
-      resolve({ port: srv.address().port, close: () => shutdown(srv, live) });
+      resolve({ port: srv.address().port, accepted: () => accepted, close: () => shutdown(srv, live) });
     });
   });
 }
@@ -181,35 +187,86 @@ test('bytes sharing a segment with the handshake reply are not lost', async () =
   } finally { await socks.close(); }
 });
 
-// ── Failure behaviour ──────────────────────────────────────────────────────
-test('an unreachable sing-box falls back to a direct connection', async () => {
+// -- Failure behaviour -------------------------------------------------------
+// There is NO direct fallback. A stream the daemon cannot carry is refused, and
+// nothing is dialled from this host instead. (This block used to assert the
+// opposite -- "falls back to a direct connection" -- which is exactly the leak the
+// fallback was: it fired when sing-box was down, i.e. when it mattered most.)
+test('an unreachable sing-box REFUSES the stream; nothing is dialled directly', async () => {
   _resetEgressStats();
   const echo = await startEcho();
   try {
-    // Port 1 is reserved and nothing listens on it — a reliable refusal.
+    // Port 1 is reserved and nothing listens on it -- a reliable refusal.
     const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: '127.0.0.1:1' } });
     const sock = new S('127.0.0.1', echo.port);
-    await sock.connect();
+    await assert.rejects(() => sock.connect(), (e) => e instanceof EgressUnavailableError && e.code === 'EEGRESS');
+    assert.equal(sock.viaSingbox, false);
+    assert.equal(echo.accepted(), 0, 'the origin saw a connection: a direct dial happened');
 
+    const st = egressStats();
+    assert.equal(st.refused, 1, 'a refusal must be counted, not silent');
+    assert.equal(st.viaDirect, 0);
+    assert.equal(st.viaSingbox, 0);
+    assert.match(st.lastError, /sing-box egress/);
+    assert.ok(st.lastRefusedAt, 'a refusal must be timestamped');
+  } finally { await echo.close(); }
+});
+
+test('a SOCKS error reply refuses the stream rather than hanging it or dialling directly', async () => {
+  _resetEgressStats();
+  const echo = await startEcho();
+  const socks = await startSocks({ replyCode: 0x05 });   // connection refused
+  try {
+    const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: `127.0.0.1:${socks.port}` } });
+    const sock = new S('127.0.0.1', echo.port);
+    await assert.rejects(() => sock.connect(), EgressUnavailableError);
+    assert.equal(sock.viaSingbox, false);
+    assert.match(egressStats().lastError, /connection refused/);
+    assert.equal(echo.accepted(), 0, 'a direct dial happened after the daemon said no');
+  } finally { await socks.close(); await echo.close(); }
+});
+
+test('the legacy SINGBOX_REQUIRE=1 is simply the default now', async () => {
+  _resetEgressStats();
+  const echo = await startEcho();
+  try {
+    const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: '127.0.0.1:1', SINGBOX_REQUIRE: '1' } });
+    const sock = new S('127.0.0.1', echo.port);
+    await assert.rejects(() => sock.connect(), /direct egress is refused/);
+    const st = egressStats();
+    assert.equal(st.refused, 1);
+    assert.equal(st.viaDirect, 0, 'strict mode must NOT have dialled directly');
+    assert.equal(echo.accepted(), 0);
+  } finally { await echo.close(); }
+});
+
+// -- The developer-only opt-out ---------------------------------------------
+test('outside production a developer can opt in to a direct fallback, and it is counted', async () => {
+  _resetEgressStats();
+  const echo = await startEcho();
+  try {
+    const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: '127.0.0.1:1', ...DEV_DIRECT } });
+    const sock = new S('127.0.0.1', echo.port);
+    await sock.connect();
     assert.equal(sock.viaSingbox, false);
     await sock.send(Buffer.from('still works'));
     assert.equal((await sock.recv()).toString(), 'still works');
     await sock.close();
 
     const st = egressStats();
-    assert.equal(st.viaDirect, 1, 'fallback must be counted, not silent');
+    assert.equal(st.viaDirect, 1, 'a permitted fallback must be counted, not silent');
     assert.equal(st.viaSingbox, 0);
     assert.match(st.lastError, /sing-box egress/);
-    assert.ok(st.lastFallbackAt, 'fallback must be timestamped');
+    assert.ok(st.lastFallbackAt, 'a fallback must be timestamped');
   } finally { await echo.close(); }
 });
 
-test('a SOCKS error reply falls back rather than hanging the stream', async () => {
+test('a SOCKS error reply falls back only when a developer opted in', async () => {
   _resetEgressStats();
   const echo = await startEcho();
-  const socks = await startSocks({ replyCode: 0x05 });   // connection refused
+  const socks = await startSocks({ replyCode: 0x05 });
   try {
-    const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: `127.0.0.1:${socks.port}` } });
+    const S = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: `127.0.0.1:${socks.port}`, ...DEV_DIRECT } });
     const sock = new S('127.0.0.1', echo.port);
     await sock.connect();
     assert.equal(sock.viaSingbox, false);
@@ -218,22 +275,7 @@ test('a SOCKS error reply falls back rather than hanging the stream', async () =
   } finally { await socks.close(); await echo.close(); }
 });
 
-test('SINGBOX_REQUIRE=1 fails the stream instead of leaking a direct connection', async () => {
-  _resetEgressStats();
-  const echo = await startEcho();
-  try {
-    const S = createSingboxTCPSocket({
-      env: { SINGBOX_SOCKS: '127.0.0.1:1', SINGBOX_REQUIRE: '1' },
-    });
-    const sock = new S('127.0.0.1', echo.port);
-    await assert.rejects(() => sock.connect(), /SINGBOX_REQUIRE=1/);
-    const st = egressStats();
-    assert.equal(st.refused, 1);
-    assert.equal(st.viaDirect, 0, 'strict mode must NOT have dialled directly');
-  } finally { await echo.close(); }
-});
-
-test('SINGBOX_EGRESS=0 dials directly and never contacts the daemon', async () => {
+test('SINGBOX_EGRESS=0 dials directly and never contacts the daemon -- outside production only', async () => {
   _resetEgressStats();
   const echo = await startEcho();
   const socks = await startSocks();
@@ -249,20 +291,57 @@ test('SINGBOX_EGRESS=0 dials directly and never contacts the daemon', async () =
   } finally { await socks.close(); await echo.close(); }
 });
 
-// ── Reporting ──────────────────────────────────────────────────────────────
+// -- PRODUCTION CANNOT OPT OUT ----------------------------------------------
+for (const [label, flags] of [
+  ['SINGBOX_ALLOW_DIRECT=1', { SINGBOX_ALLOW_DIRECT: '1' }],
+  ['SINGBOX_REQUIRE=0', { SINGBOX_REQUIRE: '0' }],
+  ['SINGBOX_EGRESS=0', { SINGBOX_EGRESS: '0' }],
+  ['all three at once', { SINGBOX_ALLOW_DIRECT: '1', SINGBOX_REQUIRE: '0', SINGBOX_EGRESS: '0' }],
+]) {
+  test(`production ignores ${label}: the stream is refused, never dialled directly`, async () => {
+    _resetEgressStats();
+    const echo = await startEcho();
+    try {
+      const S = createSingboxTCPSocket({
+        env: { NODE_ENV: 'production', SINGBOX_SOCKS: '127.0.0.1:1', ...flags },
+      });
+      const sock = new S('127.0.0.1', echo.port);
+      await assert.rejects(() => sock.connect(), EgressUnavailableError);
+      assert.equal(echo.accepted(), 0, `${label} opened a direct connection in production`);
+      assert.equal(egressStats().viaDirect, 0);
+    } finally { await echo.close(); }
+  });
+}
+
+test('production still USES the daemon when SINGBOX_EGRESS=0 is set -- the switch is ignored, not obeyed', async () => {
+  _resetEgressStats();
+  const socks = await startSocks();
+  try {
+    const S = createSingboxTCPSocket({
+      env: { NODE_ENV: 'production', SINGBOX_EGRESS: '0', SINGBOX_SOCKS: `127.0.0.1:${socks.port}` },
+    });
+    const sock = new S('93.184.216.34', 80);
+    await sock.connect();
+    assert.equal(socks.seen.length, 1, 'the daemon was bypassed');
+    assert.equal(sock.viaSingbox, true);
+    await sock.close();
+  } finally { await socks.close(); }
+});
+
+// -- Reporting --------------------------------------------------------------
 test('the share is null on zero streams, not a misleading 0%', async () => {
   _resetEgressStats();
   assert.equal(egressStats().singboxSharePct, null,
     'no data must not render as 0% coverage');
 });
 
-test('the share reflects the mix of tunnelled and fallback streams', async () => {
+test('the share reflects the mix of tunnelled and (developer-permitted) direct streams', async () => {
   _resetEgressStats();
   const echo = await startEcho();
   const socks = await startSocks();
   try {
     const good = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: `127.0.0.1:${socks.port}` } });
-    const bad = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: '127.0.0.1:1' } });
+    const bad = createSingboxTCPSocket({ env: { SINGBOX_SOCKS: '127.0.0.1:1', ...DEV_DIRECT } });
     for (const [Cls, n] of [[good, 3], [bad, 1]]) {
       for (let i = 0; i < n; i++) {
         const s = new Cls('127.0.0.1', echo.port);
@@ -276,6 +355,19 @@ test('the share reflects the mix of tunnelled and fallback streams', async () =>
     assert.equal(st.total, 4);
     assert.equal(st.singboxSharePct, 75);
   } finally { await socks.close(); await echo.close(); }
+});
+
+test('fetches are counted in the same share as streams', () => {
+  _resetEgressStats();
+  noteFetchEgress('viaSingbox'); noteFetchEgress('viaSingbox'); noteFetchEgress('viaSingbox');
+  noteFetchEgress('direct');
+  noteFetchEgress('refused', 'daemon not answering');
+  const st = egressStats();
+  assert.equal(st.fetchViaSingbox, 3);
+  assert.equal(st.fetchDirect, 1);
+  assert.equal(st.fetchRefused, 1);
+  assert.equal(st.singboxSharePct, 75, 'refusals are not traffic; they must not dilute the share');
+  assert.match(st.lastError, /daemon not answering/);
 });
 
 test('egress telemetry carries no secret', () => {

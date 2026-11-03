@@ -298,7 +298,7 @@ Every one of these **widens** a restrictive default, and every widening prints a
 | `WISP_BLOCKED_HOSTS` | — | Anchored glob patterns refused outright. |
 | `WISP_ALLOW_PRIVATE_IPS` | off | **Leave off.** On, the proxy can reach your internal network and cloud metadata endpoints. |
 | `WISP_ALLOW_LOOPBACK_IPS` | off | **Leave off.** On, the proxy can reach services bound to localhost on the host. |
-| `WISP_ALLOW_UDP` | off | UDP streams bypass the sing-box tunnel, so `SINGBOX_REQUIRE=1` does **not** cover them. |
+| `WISP_ALLOW_UDP` | off | UDP cannot cross sing-box, so this is honoured only where a developer has permitted direct egress; **ignored in production**. |
 | `WISP_MAX_STREAMS` | 256 | Streams **one tunnel** may multiplex. Without it the per-IP tunnel cap is bypassable by opening many streams inside one tunnel. |
 | `WISP_MAX_PER_IP` | 32 | Concurrent **tunnels** per client IP, out of a global 512, so one visitor cannot starve the pool. |
 
@@ -314,12 +314,16 @@ Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md).
 | `MASQR_DENY` | `404` (default) or `redirect`. |
 | `MASQR_REDIRECT_TO` | Where `redirect` mode sends people. |
 
-### Optional outbound tunnel (sing-box) — off by default
+### Outbound tunnel (sing-box) — enforced
 
-Full detail: [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md). The main switches are
-`SINGBOX_MANAGED`, `SINGBOX_SOCKS`, `SINGBOX_EGRESS` and `SINGBOX_REQUIRE`;
-the rest of the `SINGBOX_*` set configures the managed supervisor and the
-REALITY inbound.
+Full detail: [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md). Every connection the
+server makes for a visitor crosses sing-box or is refused; there is no direct
+fallback. `npm run singbox:install` downloads the pinned, SHA-256-verified binary
+into `.singbox/` (the Render build runs it for you). The main switches are
+`SINGBOX_MANAGED` and `SINGBOX_SOCKS`, plus `EGRESS_DIRECT_ALLOW` for
+infrastructure hosts. The development-only opt-outs (`SINGBOX_ALLOW_DIRECT`,
+`SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0`) are **ignored in production**. The rest
+of the `SINGBOX_*` set configures the managed supervisor and the REALITY inbound.
 
 ### Companion engines — off by default
 

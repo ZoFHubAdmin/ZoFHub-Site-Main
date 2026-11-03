@@ -8,8 +8,14 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import {
-  isPublicAddress, assertFetchable, safeFetch, BlockedDestinationError,
+  isPublicAddress, assertFetchable, safeFetch, BlockedDestinationError, directEgressForTests,
 } from '../lib/safe-fetch.mjs';
+
+// These tests need the FIRST hop to reach a listener on this machine, which the
+// production egress (a tunnel through sing-box, never a direct dial) does not do.
+// The test-only direct egress is the explicit way to ask for that; it is pinned
+// by test/egress-inventory.test.mjs to never appear outside test/.
+const DIRECT = { egress: directEgressForTests };
 
 /**
  * A dns.lookup stand-in that answers 127.0.0.1 in whichever shape was asked
@@ -125,7 +131,7 @@ describe('safeFetch against a loopback server refuses to connect', () => {
     });
     try {
       await assert.rejects(
-        safeFetch(`http://example.test:${port}/start`, { allowHttp: true, lookup, allowedPorts: new Set(['', String(port)]) }),
+        safeFetch(`http://example.test:${port}/start`, { ...DIRECT, allowHttp: true, lookup, allowedPorts: new Set(['', String(port)]) }),
         (e) => e instanceof BlockedDestinationError && /not public/.test(e.message),
       );
       assert.deepEqual(seen, ['/start'], 'the first hop must have been made, and only the first');
@@ -163,7 +169,7 @@ describe('denyHost is enforced on every hop', () => {
     try {
       await assert.rejects(
         safeFetch(`http://relay.test:${port}/go`, {
-          allowHttp: true, lookup, denyHost: isAi, allowedPorts: new Set(['', String(port)]),
+          ...DIRECT, allowHttp: true, lookup, denyHost: isAi, allowedPorts: new Set(['', String(port)]),
         }),
         (e) => e instanceof BlockedDestinationError && /not fetched by this server/.test(e.message),
       );

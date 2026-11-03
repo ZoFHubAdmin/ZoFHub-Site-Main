@@ -8,7 +8,7 @@
   Full license text: /licenses/gust      (or licenses/AGPL-3.0.txt in this repo)
 
   ─── AGPL-3.0 §5(a) — NOTICE OF MODIFICATION ──────────────────────────────
-  THIS IS A MODIFIED VERSION OF GUST. Modified by ZoFHub on 2026-07-30.
+  THIS IS A MODIFIED VERSION OF GUST. Modified by ZoFHub on 2026-07-30 and 2026-11-03.
 
   Changes from upstream:
     1. The default Wisp server was repointed from the upstream public host
@@ -16,6 +16,15 @@
        so proxy traffic never leaves this domain.
     2. ZoFHub's shared cloak system was added (Ctrl+` panic key, tab title and
        favicon cloaking) for parity with the rest of the site.
+    3. Only this site's own same-origin /wisp/ endpoint is accepted as a Wisp
+       server. The WISP-server and fallback-WISP settings, every stored value
+       and every libcurl.set_websocket() call are checked against it (zhWisp,
+       in the source below), so a visitor cannot route proxy traffic around this
+       site's tunnel to a server of their choosing. The built-in default for a
+       page not served over http(s) no longer names the upstream public host.
+    4. WebSockets opened by proxied pages are carried through the Wisp tunnel
+       (libcurl.WebSocket) instead of being opened directly from the visitor's
+       browser, which sent them around the tunnel to the third party.
 
   ─── AGPL-3.0 §13 — NETWORK-USE SOURCE OFFER ──────────────────────────────
   This file IS the Corresponding Source for the modified version you are
@@ -4822,7 +4831,7 @@
                                             <button class="settings-btn-icon" id="settingsWispReset"
                                                 title="Reset to default"><i class="fas fa-rotate-left"></i></button>
                                         </div>
-                                        <div class="settings-hint" id="settingsWispStatus">Current server shown above
+                                        <div class="settings-hint" id="settingsWispStatus">This site relays only through its own tunnel; other servers are not accepted. Current server shown above
                                         </div>
                                     </div>
                                 </div>
@@ -6261,9 +6270,24 @@
                         return (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/';
                     }
                 } catch (e) {}
-                return "wss://wisp.mercurywork.shop/";
+                return "";   // ZoFHub: not served by this site, so there is no tunnel to name
             })();
-            let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || GUST_DEFAULT_WISP; } catch { return GUST_DEFAULT_WISP; } })();
+            // ZoFHub (AGPL-3.0 §5(a), 2026-11-03): the ONLY Wisp server this page may use is
+            // this site's own same-origin /wisp/ (GUST_DEFAULT_WISP, above). The settings
+            // fields, every stored value, the pool and every libcurl.set_websocket() call are
+            // checked against it, because a server a visitor typed in (or one saved by an older
+            // build) would carry proxy traffic AROUND this site's tunnel — past its destination
+            // policy and its sing-box egress — to a third party of their choosing.
+            function zhWispOk(u) {
+                try {
+                    const p = new URL(String(u || ''), location.href);
+                    return (p.protocol === 'wss:' || p.protocol === 'ws:') && p.host === location.host
+                        && p.pathname === '/wisp/' && !p.search && !p.hash && !p.username && !p.password;
+                } catch (e) { return false; }
+            }
+            const zhWisp = (u) => (zhWispOk(u) ? String(u) : GUST_DEFAULT_WISP);
+            const zhSetWisp = (u) => { const f = libcurl.set_websocket; return f.call(libcurl, zhWisp(u)); };
+            let WISP = (function () { try { return zhWisp(ls.getItem('gust:wisp:v1')); } catch { return GUST_DEFAULT_WISP; } })();
             const $ = s => document.getElementById(s);
             const frame = $('frame');
             let _pendingNavHint = null;
@@ -9939,7 +9963,7 @@
                                 await new Promise(r => setTimeout(r, _delay));
                                 if (opts.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
                                 await libcurl.load_wasm();
-                                libcurl.set_websocket(WISP);
+                                zhSetWisp(WISP);
                                 curl = new libcurl.HTTPSession();
                                 curl.set_connections(MAX_CONCURRENT_ACTIVE, MAX_CONCURRENT_ACTIVE, MAX_CONCURRENT_ACTIVE);
                                 reconnected = true;
@@ -10058,7 +10082,10 @@
 
             function handleWsOpen(id, url, protocols) {
                 try {
-                    const ws = new WebSocket(url, protocols || undefined);
+                    // ZoFHub: through the Wisp tunnel (libcurl.WebSocket), never opened directly
+                    // from the visitor's browser — a native WebSocket here would connect straight
+                    // to the page's server, around the tunnel and around this site's egress.
+                    const ws = new libcurl.WebSocket(url, protocols || undefined);
                     ws.binaryType = "arraybuffer";
                     wsMap.set(id, ws);
                     const wsShort = url.replace(/^wss?:\/\//, '').slice(0, 50);
@@ -12771,7 +12798,7 @@ _VIEWER_DL_JS +
 
                     // ── Fallback retry logic ──────────────────────────────────
                     const _fbEnabled = (() => { try { return ls.getItem('gust:fallback:enabled') !== '0'; } catch { return true; } })();
-                    const _fbWisp    = (() => { try { return ls.getItem('gust:fallback:wisp') || ''; } catch { return ''; } })();
+                    const _fbWisp    = (() => { try { const v = ls.getItem('gust:fallback:wisp') || ''; return zhWispOk(v) ? v : ''; } catch { return ''; } })();
                     const _fbRetries = (() => { try { return Math.max(1, parseInt(ls.getItem('gust:fallback:retries') || '3', 10)); } catch { return 3; } })();
                     const _fbDelay   = (() => { try { return Math.max(0, parseInt(ls.getItem('gust:fallback:delay')   || '3', 10)); } catch { return 3; } })();
                     const _fb5xx     = (() => { try { return ls.getItem('gust:fallback:5xx')     !== '0'; } catch { return true; } })();
@@ -12825,7 +12852,7 @@ _VIEWER_DL_JS +
                             // Switch libcurl to fallback WISP
                             try {
                                 await libcurl.load_wasm();
-                                libcurl.set_websocket(_fbWisp);
+                                zhSetWisp(_fbWisp);
                                 curl = new libcurl.HTTPSession();
                                 curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
                             } catch (_swErr) {
@@ -12844,7 +12871,7 @@ _VIEWER_DL_JS +
                                     persistWorkingWisp(_fbWisp);
                                     log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i>Loaded: ${url} <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${_fbHost} (fallback retry ${_ri + 1}/${_fbRetries})</span>`, 'ok');
                                     // Restore primary WISP for subsequent requests
-                                    try { await libcurl.load_wasm(); libcurl.set_websocket(WISP); curl = new libcurl.HTTPSession(); curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT); } catch(_re) {}
+                                    try { await libcurl.load_wasm(); zhSetWisp(WISP); curl = new libcurl.HTTPSession(); curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT); } catch(_re) {}
                                     break;
                                 } catch (_fbErr) {
                                     if (_fbErr.name === 'AbortError') break;
@@ -12853,7 +12880,7 @@ _VIEWER_DL_JS +
                                     } else {
                                         log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">All ${_fbRetries} fallback retries failed — ${_fbHost} also unavailable</span>`, 'err');
                                         // Restore primary WISP before showing error page
-                                        try { await libcurl.load_wasm(); libcurl.set_websocket(WISP); curl = new libcurl.HTTPSession(); curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT); } catch(_re) {}
+                                        try { await libcurl.load_wasm(); zhSetWisp(WISP); curl = new libcurl.HTTPSession(); curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT); } catch(_re) {}
                                     }
                                 }
                             }
@@ -14164,7 +14191,7 @@ _VIEWER_DL_JS +
                             });
                         }
                         await libcurl.load_wasm();
-                        libcurl.set_websocket(WISP);
+                        zhSetWisp(WISP);
                         curl = new libcurl.HTTPSession();
                         curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
                         persistWorkingWisp(WISP);
@@ -14333,10 +14360,10 @@ _VIEWER_DL_JS +
                 const wispStatus = $("settingsWispStatus");
 
                 async function applyWispUrl(val) {
-                    WISP = val;
+                    WISP = zhWisp(val);
                     try {
                         await libcurl.load_wasm();
-                        libcurl.set_websocket(val);
+                        zhSetWisp(val);
                         curl = new libcurl.HTTPSession();
                         curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
                         log(`WISP switched to <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">${val.replace(/^wss?:\/\//, '').split('/')[0]}</span>`, 'ok');
@@ -14350,6 +14377,10 @@ _VIEWER_DL_JS +
                         const val = (wispInput.value || "").trim();
                         if (!val || (!val.startsWith("wss://") && !val.startsWith("ws://"))) {
                             showStatusMsg(wispStatus, "Must start with wss:// or ws://", "err");
+                            return;
+                        }
+                        if (!zhWispOk(val)) {
+                            showStatusMsg(wispStatus, "This site relays only through its own tunnel (" + GUST_DEFAULT_WISP + ")", "err");
                             return;
                         }
                         try {
@@ -16115,12 +16146,16 @@ _VIEWER_DL_JS +
                 const fbReset  = document.getElementById('settingsFallbackWispReset');
                 const fbStatus = document.getElementById('settingsFallbackWispStatus');
                 if (fbInput) {
-                    try { fbInput.value = ls.getItem('gust:fallback:wisp') || ''; } catch(e) {}
+                    try { const v = ls.getItem('gust:fallback:wisp') || ''; fbInput.value = zhWispOk(v) ? v : ''; } catch(e) {}
                 }
                 if (fbSave) {
                     fbSave.addEventListener('click', () => {
                         try {
                             const v = fbInput ? fbInput.value.trim() : '';
+                            if (v && !zhWispOk(v)) {
+                                if (fbStatus) showStatusMsg(fbStatus, 'This site relays only through its own tunnel.', 'err');
+                                return;
+                            }
                             if (v) ls.setItem('gust:fallback:wisp', v);
                             else   ls.removeItem('gust:fallback:wisp');
                             if (fbStatus) showStatusMsg(fbStatus, 'Saved.', 'ok');

@@ -72,6 +72,7 @@
     "eval-ai": "node --use-system-ca tools/eval-ai.mjs",
     "curate-ai": "node tools/run-python.mjs tools/curate-ai-dataset.py",
     "verify-proxy": "node --use-system-ca tools/verify-proxy.mjs",
+    "singbox:install": "node tools/install-singbox.mjs",
     "verify-ai": "node tools/verify-ai.mjs",
     "gd:import": "node --use-system-ca tools/gamedistribution-import.mjs"
   },

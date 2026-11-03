@@ -130,10 +130,9 @@ let SocketImpl = type === stream_types.TCP ? this.TCPSocket : this.UDPSocket;
 ```
 
 ZoFHub injects only `TCPSocket` (the sing-box dialler). A UDP stream therefore
-left the Node process **directly, bypassing sing-box entirely** — so
-`SINGBOX_REQUIRE=1`, the operator's explicit *"never leak this server's own
-IP"*, did not cover UDP. Nothing in ZoFHub uses UDP through the tunnel, so it is
-now closed.
+left the Node process **directly, bypassing sing-box entirely** — so the egress
+policy, the operator's explicit *"never leak this server's own IP"*, did not
+cover UDP. Nothing in ZoFHub uses UDP through the tunnel, so it is now closed.
 
 The policy is now stated, applied to the live server object before any upgrade
 is routed, printed at boot, and exposed in `/api/admin/proxy`:

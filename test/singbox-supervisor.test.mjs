@@ -297,9 +297,13 @@ describe('a missing binary is not reported as a bad config', () => {
   // printed "config rejected: spawn sing-box ENOENT" for a config that was
   // perfectly valid. Both halves of that were wrong.
   test('checkConfig flags a missing binary distinctly', async () => {
-    const r = await checkConfig('whatever.json');
-    // This repo's test environment has no sing-box on PATH.
-    if (r.ok) return;                       // a machine that HAS it: nothing to assert
+    // Hermetic: NAME a binary that cannot exist. Leaving it to the default would
+    // make the result depend on whether this machine has sing-box on PATH or has
+    // run `npm run singbox:install` (which puts the pinned daemon where the
+    // supervisor looks first) — and a real daemon rejecting `whatever.json` is a
+    // different outcome from the one this test is about.
+    const r = await checkConfig('whatever.json', { SINGBOX_BIN: 'definitely-not-a-real-binary-zofhub' });
+    assert.equal(r.ok, false);
     assert.equal(r.missingBinary, true, 'must be flagged, not folded into `error`');
     assert.match(r.error, /not found|cannot run/,
       'the message must name the binary, not the config');

@@ -8,17 +8,20 @@
 # process and talks to it over a socket; it does not link, modify or derive
 # from it. ZoFHub is not affiliated with or endorsed by its authors.
 #
-# The build is ON BY DEFAULT, because sing-box now carries the proxy's egress
-# (lib/singbox-socket.mjs) rather than sitting beside it as a dashboard widget.
-# An image without the binary still runs: the supervisor reports a missing
-# binary once, stops retrying, and every proxied stream falls back to a direct
-# connection while saying so in /api/admin/proxy. Pass SINGBOX_VERSION=none to
-# build that lighter image deliberately.
+# The build is ON BY DEFAULT, because sing-box carries every connection this
+# server makes for a visitor (lib/singbox-socket.mjs, lib/egress.mjs) and there is
+# NO direct fallback. An image without the binary still starts: the supervisor
+# reports the missing binary once and stops retrying — but every proxied stream
+# and server-side fetch is then REFUSED, and counted as such in
+# /api/admin/proxy. Pass SINGBOX_VERSION=none only for an image whose daemon
+# arrives some other way (SINGBOX_BIN).
 #
 # PINNED, NOT FLOATING. `latest` here would mean a rebuild six months from now
 # silently ships a different proxy daemon with a different config schema — the
 # exact failure the supervisor's `sing-box check` exists to catch, moved to a
-# place where it costs a deploy instead of a log line.
+# place where it costs a deploy instead of a log line. The same version is pinned,
+# with SHA-256 digests, in data/singbox-release.json for the non-Docker build
+# (tools/install-singbox.mjs); a test fails if the two disagree.
 ARG SINGBOX_VERSION=v1.14.1
 
 # Go version is tied to the sing-box version: v1.14.1's go.mod requires go

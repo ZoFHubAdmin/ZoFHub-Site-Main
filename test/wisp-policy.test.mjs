@@ -48,7 +48,7 @@ describe('the defaults are safe without any configuration at all', () => {
     // wisp-js picks the socket class per stream type:
     //   SocketImpl = type === TCP ? this.TCPSocket : this.UDPSocket
     // ZoFHub injects only TCPSocket, so a UDP stream leaves the Node process
-    // directly and SINGBOX_REQUIRE cannot cover it.
+    // directly, outside the egress policy.
     assert.equal(p.allowUdp, false);
   });
 
@@ -166,11 +166,29 @@ describe('every widening is loud', () => {
     assert.ok(p.warnings.some((w) => /ANY port/i.test(w)));
   });
 
-  test('enabling UDP warns that sing-box will not cover it', () => {
+  // UDP cannot cross sing-box (the integration is a TCP-only SOCKS5 CONNECT), so
+  // turning it on is a direct-egress switch. It is honoured only where a developer
+  // has explicitly permitted direct egress, and ignored -- loudly -- everywhere else.
+  test('WISP_ALLOW_UDP alone is IGNORED: UDP stays off and the warning says why', () => {
     const p = wispPolicy({ WISP_ALLOW_UDP: '1' });
+    assert.equal(p.allowUdp, false, 'UDP was enabled without anyone permitting direct egress');
+    assert.ok(p.warnings.some((w) => /IGNORED/.test(w) && /sing-box/.test(w)),
+      'an ignored switch must say it was ignored, not vanish');
+  });
+
+  test('UDP is honoured only when a developer has permitted direct egress, and then it warns', () => {
+    const p = wispPolicy({ WISP_ALLOW_UDP: '1', SINGBOX_ALLOW_DIRECT: '1' });
     assert.equal(p.allowUdp, true);
-    assert.ok(p.warnings.some((w) => /SINGBOX_REQUIRE/.test(w)),
+    assert.ok(p.warnings.some((w) => /do NOT pass through sing-box/.test(w)),
       'the UDP warning must name the egress guarantee it breaks');
+  });
+
+  test('production never enables UDP, whatever is set', () => {
+    const p = wispPolicy({
+      NODE_ENV: 'production', WISP_ALLOW_UDP: '1', SINGBOX_ALLOW_DIRECT: '1', SINGBOX_REQUIRE: '0', SINGBOX_EGRESS: '0',
+    });
+    assert.equal(p.allowUdp, false);
+    assert.ok(p.warnings.some((w) => /IGNORED/.test(w)));
   });
 
   test('allowing private IPs warns in the strongest terms', () => {

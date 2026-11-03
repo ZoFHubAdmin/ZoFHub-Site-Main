@@ -208,9 +208,10 @@ export function mountProxyEngines(app, express, { repoRoot } = {}) {
  * WSProxyConnection takes `(ws, path)` and ignores conn_options entirely — it
  * hard-codes `new NodeTCPSocket(...)`. So a client that asks for the wsproxy
  * shape gets a connection dialled straight out of Node: past sing-box, past
- * `egressStats()`, and past SINGBOX_REQUIRE=1, whose entire promise is that the
- * server's own IP is never the one that shows up at the origin. A prefix match
- * here would leave that opt-out reachable by anyone who can type a URL.
+ * `egressStats()`, and past the egress policy (lib/egress-policy.mjs), whose
+ * entire promise is that the server's own IP is never the one that shows up at
+ * the origin. A prefix match here would leave that bypass reachable by anyone
+ * who can type a URL.
  *
  * Every ZoFHub client asks for exactly `/wisp/` — GUST's and HORIZON's
  * same-origin Wisp defaults and browser.js's `setTransport` (used by

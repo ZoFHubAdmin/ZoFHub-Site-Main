@@ -1,0 +1,47 @@
+{
+  "$comment": [
+    "The sing-box release ZoFHub runs as its egress daemon, pinned by SHA-256.",
+    "",
+    "tools/install-singbox.mjs downloads the asset for the build platform from the",
+    "URL below and REFUSES it unless its SHA-256 equals the digest committed here,",
+    "so what runs is the exact file that was reviewed when this was pinned, not",
+    "whatever a release page serves on the day of a build.",
+    "",
+    "The digests are GitHub's own, read from the release API on 2026-11-03:",
+    "  gh api repos/SagerNet/sing-box/releases/tags/v1.14.1 --jq '.assets[] | [.name,.digest]'",
+    "To move to a newer release: change `version`, replace every digest from the same",
+    "API call, and bump the Dockerfile's SINGBOX_VERSION to match (a test fails if the",
+    "two disagree).",
+    "",
+    "sing-box is GPL-3.0 and is NOT vendored into this repository. The binary is",
+    "downloaded into .singbox/ (git-ignored) at build time and run as its own",
+    "process; ZoFHub is not a derivative work of it and is not affiliated with it."
+  ],
+  "tag": "v1.14.1",
+  "version": "1.14.1",
+  "releaseUrl": "https://github.com/SagerNet/sing-box/releases/tag/v1.14.1",
+  "downloadBase": "https://github.com/SagerNet/sing-box/releases/download/v1.14.1/",
+  "pinnedOn": "2026-11-03",
+  "assets": {
+    "linux-amd64": {
+      "name": "sing-box-1.14.1-linux-amd64.tar.gz",
+      "sha256": "12cb2816b52febb356f6a885b740cc8758c3f30b8ae0ca8edba80f0d2d35343f"
+    },
+    "linux-arm64": {
+      "name": "sing-box-1.14.1-linux-arm64.tar.gz",
+      "sha256": "6060b42fa84c5dcaeae1799af7f61b0f1ae4855d9d5ddc9e02baba17154b3ae2"
+    },
+    "darwin-amd64": {
+      "name": "sing-box-1.14.1-darwin-amd64.tar.gz",
+      "sha256": "b34381b047106fe84895df14f7aaae06f3182130b728006944deb0d59d8590c3"
+    },
+    "darwin-arm64": {
+      "name": "sing-box-1.14.1-darwin-arm64.tar.gz",
+      "sha256": "b9024642ef7b4848252df5469b7f60ef3c18bb5e217a16a0934f0174f8ad11b4"
+    },
+    "windows-amd64": {
+      "name": "sing-box-1.14.1-windows-amd64.zip",
+      "sha256": "5197f16d492d93202dc623622149a6ed040f8eca263128f91d603f2b901baa89"
+    }
+  }
+}

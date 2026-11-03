@@ -109,6 +109,44 @@ if (process.env.NODE_ENV === 'production' && envFileKeys.length) {
   }
 }
 
+// ========================================================================
+// Egress — nothing leaves this process except through sing-box.
+// ------------------------------------------------------------------------
+// Installed as early as the environment allows (the allowlist is DERIVED from
+// it), and before any engine, route or background job can open a socket. Two
+// layers, deliberately: lib/singbox-socket.mjs and lib/egress.mjs carry the two
+// known visitor-driven paths through the daemon, and this refuses every other
+// direct connection — so a path nobody has written yet, or a dependency that
+// starts making its own requests, fails loudly instead of exposing this
+// server's address. See lib/egress-policy.mjs for why production cannot opt out.
+// ========================================================================
+const { egressPolicy, describeEgressPolicy } = await import('./lib/egress-policy.mjs');
+const { installEgressGuard, egressGuardStats } = await import('./lib/egress-guard.mjs');
+const EGRESS_POLICY = egressPolicy();
+console.log(describeEgressPolicy(EGRESS_POLICY));
+// A refusal is a security-relevant event, but a loop retrying a refused host must
+// not flood the table: at most one per host per minute (the guard's own log line
+// is rate-limited the same way).
+const _egressBlockSeen = new Map();
+const EGRESS_GUARD = installEgressGuard({
+  onBlock(info) {
+    const now = Date.now();
+    if ((_egressBlockSeen.get(info.host) || 0) > now - 60_000) return;
+    if (_egressBlockSeen.size > 500) _egressBlockSeen.clear();
+    _egressBlockSeen.set(info.host, now);
+    // adminAuth / getSupabaseAdmin are defined further down; a refusal during
+    // the first moments of boot simply has no table to write to yet.
+    try {
+      adminAuth.securityEvent(getSupabaseAdmin(), {
+        kind: 'egress_bypass_blocked', severity: 'warn',
+        detail: { host: info.host, port: info.port, via: info.kind, origin: info.origin, enforced: info.enforced },
+      });
+    } catch { /* no event store yet, or it is down — the log line and counters stand */ }
+  },
+});
+console.log(`[egress] guard ${EGRESS_GUARD.mode}; direct connections allowed only to loopback`
+  + (EGRESS_GUARD.allow.length ? ` and: ${EGRESS_GUARD.allow.join(', ')}` : ''));
+
 // Supabase is replacing the legacy `service_role` JWT with a new `sb_secret_…`
 // key (legacy keys can no longer be rotated, and retire at the end of 2026).
 // Both do the same job — they bypass RLS — so this mirrors whichever one you
@@ -3800,7 +3838,7 @@ const { startSingbox, stopSingbox, singboxProcessStatus, singboxManaged } =
 // real traffic flow: every TCP stream the Wisp tunnel opens is dialled through
 // sing-box's loopback SOCKS inbound, falling back to a direct connection (and
 // saying so) when the daemon is not answering.
-const { createSingboxTCPSocket, egressStats, singboxEgressEnabled } =
+const { createSingboxTCPSocket, egressStats, singboxEgressEnabled, waitForSingbox } =
   await import('./lib/singbox-socket.mjs');
 // One class for the whole process — it reads the environment per connect(), so
 // building it once costs nothing and changes nothing about liveness.
@@ -4530,6 +4568,12 @@ app.get('/api/admin/proxy', async (req, res) => {
     //                    back to direct, so the share is reported explicitly
     //                    rather than inferred from liveness.
     singboxEgress: egressStats(),
+    //   `egressGuard`    the wall under all of it: direct connections that were
+    //                    REFUSED because they were neither loopback nor a named
+    //                    infrastructure host. A non-zero `blocked` is something
+    //                    trying to bypass sing-box — `lastBlocked.origin` says
+    //                    which file asked, which is where the fix goes.
+    egressGuard: egressGuardStats(),
     // Governance: approved-destination decisions by reason, live sessions,
     // pre-tunnel refusals and the effective policy. Counts only.
     governance: {
@@ -8211,6 +8255,16 @@ if (singboxManaged()) {
     .then((r) => console.log(`[singbox] supervisor: ${r.started ? 'running' : 'not started'} (${r.reason})`))
     .catch((e) => console.warn('[singbox] supervisor failed to start:', e?.message || e));
 }
+// Resolves true once the daemon accepts connections. Boot-time work that needs
+// egress waits on THIS instead of racing the supervisor: there is no direct
+// fallback any more, so a request made in the moment before the daemon binds its
+// port would be refused rather than quietly sent from this host. A managed daemon
+// gets a generous window (it validates its config first); one the operator runs
+// themselves is either already up or is not coming.
+const EGRESS_READY = (async () => {
+  if (!singboxEgressEnabled()) return false;     // a developer's explicit opt-out
+  return waitForSingbox({ timeoutMs: singboxManaged() ? 20_000 : 3_000 });
+})().catch(() => false);
 // Upgrade to the live Supabase catalog (best-effort; bundled stays if it fails),
 // then keep it fresh so auto-grown games appear without a restart.
 refreshCatalogFromSupabase().then(ok => {
@@ -8308,7 +8362,9 @@ function startListening(host, isFallback = false) {
     // it gets named here instead of being rediscovered from an engine's generic
     // error page. See lib/tls-interception.mjs.
     if (enabled.length) {
-      tlsInterception.detectInterception({ host: 'example.com' }).then((r) => {
+      // Through the daemon, like the traffic it is diagnosing — so it has to wait
+      // for it. (The probe itself refuses a direct connection when none is allowed.)
+      EGRESS_READY.then(() => tlsInterception.detectInterception({ host: 'example.com' })).then((r) => {
         TLS_INTERCEPTION = r;
         if (!r.intercepted) return;
         console.warn('  → WARNING: the proxy will fail on every https site —');
@@ -8321,4 +8377,11 @@ function startListening(host, isFallback = false) {
 }
 
 startListening(HOST);
-kickThumbnailFetch();   // grab any missing Y8 thumbnails from the web on every boot
+// Grab any missing Y8 thumbnails from the web on every boot — but only once the
+// daemon is up, because that job's downloads cross sing-box like everything else.
+// If it never comes up the job is skipped; it is idempotent and runs again on the
+// next boot, so nothing is lost by waiting.
+EGRESS_READY.then((ready) => {
+  if (ready || EGRESS_POLICY.directAllowed) kickThumbnailFetch();
+  else console.warn('[zofhub] thumbnail fetch skipped: sing-box is not answering and direct egress is refused');
+});

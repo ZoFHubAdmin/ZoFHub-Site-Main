@@ -39,7 +39,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 - 🌐 **Proxy browser (optional)** — four bundled same-origin engines — [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) and [Scramjet](https://github.com/MercuryWorkshop/scramjet) (service workers), [GUST](https://github.com/nautilus-os/GUST) and [HORIZON](https://github.com/RiptideMC/HORIZON) (single-file libcurl.js + Wisp apps, HORIZON a remodelled GUST) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through all four and fails if any stop working.
 - 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
-- 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon **degrades to a direct connection and reports it**, so the proxy never goes down over it. GPL-3.0, run as a separate program, not vendored.
+- 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon makes the connection **fail rather than leave directly** — there is no direct fallback — and the supervisor restarts it. GPL-3.0, run as a separate program, not vendored.
 - 💚 **Crash-safe by design** — `/healthz` returns **503 above 85% memory** so an orchestrator recycles the container before the OOM killer hits mid-request; the Wisp tunnel has a global cap **and** a per-client cap so one runaway visitor cannot starve the pool.
 - 🔒 **Stated egress policy** — `/wisp/` is the one endpoint that dials an address a stranger chose, so its rules are written down rather than inherited from a library default: a **port allowlist** (80/443/8080/8443 — not 25, 22 or 3306), **no UDP**, private/loopback addresses refused, and a per-tunnel stream cap. Proven against a live tunnel, including a control case. See [docs/proxy/INVISIPROXY.md](proxy/INVISIPROXY.md#2-what-is-integrated).
 - 🕶️ **Mirror survival (MASQR)** — *off by default.* A mirror domain usually dies because a shared link reaches a filter vendor whose crawler fetches it, sees a proxy, and burns the domain. Switched on, an unauthenticated visitor sees only the games hub while the proxy surfaces answer 404; a signed key in a link unlocks them. Never gates `/healthz`, the legal pages or the games. Not access control — see [docs/proxy/MASQR.md](proxy/MASQR.md).
@@ -534,11 +534,13 @@ instead of a hot restart loop, and backs off 1s → 60s on repeated failure. A
 cause that *cannot* resolve itself — the binary simply not being in the image —
 stops retrying instead of looping forever, and says so.
 
-Because it now sits in the traffic path, its failure mode is the load-bearing
-part: a dead or absent daemon makes each proxied stream fall back to a direct
-connection, counted and reported as `singboxEgress` in `/api/admin/proxy`, so
-the proxy degrades visibly rather than failing. Operators who would rather fail
-than expose the server's own address set `SINGBOX_REQUIRE=1`. Full detail in
+Because it sits in the traffic path, its failure mode is the load-bearing part,
+and that failure mode is to **refuse**: a dead or absent daemon makes each
+proxied stream and each server-side fetch fail (counted as `refused` in
+`singboxEgress`, `/api/admin/proxy`) rather than fall back to a direct connection
+that would expose the server's own address. In production no setting can change
+that, and a process-level guard refuses any other outbound connection that is not
+loopback or a named infrastructure host. Full detail in
 **[docs/proxy/SINGBOX.md](proxy/SINGBOX.md)**.
 
 ---

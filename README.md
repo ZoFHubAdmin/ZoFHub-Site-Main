@@ -18,7 +18,7 @@ A single-server web app that bundles three things into one site:
 
 1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
 2. **A free AI assistant** — a **text** chat that runs **entirely in the visitor's browser**: one keyless `GET` to `text.pollinations.ai`, made by their own browser on their own IP. No prompt or reply ever touches this server, and that is **enforced by the server** — there are no AI routes left to relay one. Pictures exist only as the opt-in `/image` command: one `<img>` loaded by their browser from `image.pollinations.ai`, never relayed here. No audio or video generation.
-3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose egress runs through a managed **sing-box** daemon by default.
+3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose connections are all carried by a managed **sing-box** daemon — or refused; there is no direct fallback.
 
 Built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres). It runs as **one always-on site**, with optional advertising on the hub pages only — never on the proxy, and never Google AdSense.
 
@@ -46,9 +46,12 @@ The full feature tour, architecture, security model, database setup and operatio
 git clone <your-repo-url>
 cd ZoFHub
 npm ci                    # exactly what package-lock.json pins — same as CI and Render
+npm run singbox:install   # the pinned sing-box daemon that carries proxy traffic (the Render build runs this too)
 cp .env.example .env      # then fill in your values (see docs)
 npm start                 # → http://localhost:8080
 ```
+
+> **No daemon, no proxy traffic.** Anything that makes the server fetch a third-party URL — the proxy, `/embed/` wrappers, thumbnails, link checks — crosses sing-box or is refused; there is no direct fallback. Skip `singbox:install` if you are not working on those, or, on a development machine only, set `SINGBOX_ALLOW_DIRECT=1` in `.env` (it is ignored in production). Details: [docs/proxy/SINGBOX.md](docs/proxy/SINGBOX.md).
 
 ```bash
 npm test          # the node:test suite (no framework, no install step)
