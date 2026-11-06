@@ -194,7 +194,7 @@ describe('the routes actually enforce it', () => {
       ["app.post('/api/admin/feedback/:id/:action'", 'moderation.write'],
       ["app.get('/api/admin/security'", 'security.read'],
       ["app.get('/api/admin/audit'", 'security.read'],
-      ["app.get('/api/admin/proxy'", 'telemetry.read'],
+      ["app.get('/api/admin/egress'", 'telemetry.read'],
     ];
     for (const [route, perm] of EXPECT) {
       const at = server.indexOf(route);

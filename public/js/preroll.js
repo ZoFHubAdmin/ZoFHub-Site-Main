@@ -30,7 +30,33 @@
 // ---------------------------------------------------------------------------
 
 import { adFrequencyController } from './ad-frequency.js';
-import { noteBlockedResource, reachable } from './support-gate.js';
+
+// How long the "can the browser reach this tag at all?" probe waits before giving up.
+const PROBE_TIMEOUT_MS = 4000;
+
+/**
+ * Can the browser send a request to `url` at all?
+ *   true   it answered (any status — a 404 or a CSP refusal of the SCRIPT is
+ *          still a reachable host, so it is not a blocker)
+ *   false  the browser refused to send it: an extension, a blocking DNS
+ *   null   no answer in time — unknown, never counted as blocked
+ * HEAD, opaque, no cookies, no referrer: nothing executes and nothing renders.
+ */
+async function reachable(url) {
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = setTimeout(() => ctrl?.abort(), PROBE_TIMEOUT_MS);
+  try {
+    await fetch(url, {
+      method: 'HEAD', mode: 'no-cors', credentials: 'omit', cache: 'no-store',
+      referrerPolicy: 'no-referrer', signal: ctrl?.signal,
+    });
+    return true;
+  } catch (e) {
+    return e?.name === 'AbortError' ? null : false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const GOOGLE_AD_RE = /googlesyndication|googleadservices|adsbygoogle|doubleclick/i;
 
@@ -242,7 +268,6 @@ export function runPreroll({ vast, box }) {
       }
       play(ad, file);
     }).catch((e) => {
-      if (e?.blocked) noteBlockedResource(vast);
       for (const u of e?.acc?.errors || []) pixel(u, { errorCode: e.code || 900 });
       finish(e?.blocked ? 'blocked' : e?.code === 303 ? 'no-fill' : 'error');
     });

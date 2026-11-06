@@ -21,8 +21,8 @@ from .repo import ROOT, read, rel, strip_js_comments, line_of, files_with_suffix
 CHECK = 'env'
 
 # `env.X` as well as `process.env.X`. Configuration modules take the
-# environment as a parameter — `masqrConfig(env = process.env)`, `geoConfig`,
-# `trustProxySetting`, `wispPolicy` — so their tests can pass a fake one, and a
+# environment as a parameter — `geoConfig(env = process.env)`, `egressPolicy`,
+# `trustProxySetting` — so their tests can pass a fake one, and a
 # pattern that only knew `process.env.` reported every one of those variables
 # as "nothing reads it". These are the same shapes test/deploy-config.test.mjs
 # recognises, so the two checkers agree about what the code reads.

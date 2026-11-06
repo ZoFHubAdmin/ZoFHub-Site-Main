@@ -1,4 +1,4 @@
-// The AI waits: 10 s after every text message, 45 s after every picture request.
+// The AI waits: 18 s after every text message, 50 s after every picture request.
 //
 // Two layers. The CLOCK (public/js/ai-cooldown.js) is exercised directly with an
 // injected clock and storage, because it is plain logic. The WIRING — that both
@@ -15,6 +15,7 @@ import {
   createCooldowns, formatWait, TEXT_COOLDOWN_MS, IMAGE_COOLDOWN_MS, MAX_COOLDOWN_MS,
   COOLDOWN_STORAGE_KEY,
 } from '../public/js/ai-cooldown.js';
+import { PROVIDER_IMAGE_WINDOW_SECONDS } from '../public/js/pollinations-image.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -35,9 +36,26 @@ function fakeClock(start = 1_000_000) {
 }
 
 describe('the required lengths', () => {
-  test('a text message waits 10 seconds', () => assert.equal(TEXT_COOLDOWN_MS, 10_000));
-  test('a picture request waits 45 seconds', () => assert.equal(IMAGE_COOLDOWN_MS, 45_000));
+  test('a text message waits 18 seconds', () => assert.equal(TEXT_COOLDOWN_MS, 18_000));
+  test('a picture request waits 50 seconds', () => assert.equal(IMAGE_COOLDOWN_MS, 50_000));
+  test('the picture wait is never shorter than the provider\'s own 45 second window', () => {
+    // Pollinations counts its window from when a request ARRIVES; ours starts when it is SENT.
+    assert.ok(IMAGE_COOLDOWN_MS >= PROVIDER_IMAGE_WINDOW_SECONDS * 1000,
+      'a wait shorter than the provider\'s window would let a second picture hit the limit');
+  });
+  test('the text wait stays above the free text tier\'s ~15 second gap between request starts', () => {
+    assert.ok(TEXT_COOLDOWN_MS > 15_000);
+  });
   test('no stored wait can exceed two minutes', () => assert.equal(MAX_COOLDOWN_MS, 120_000));
+});
+
+describe('the provider\'s window is stated on its own, not derived from our wait', () => {
+  test('pollinations-image.js does not import or read the cooldown constants', () => {
+    // Otherwise changing OUR wait would change what the error text claims about THEIR limit.
+    const img = codeOnly('public/js/pollinations-image.js');
+    assert.doesNotMatch(img, /IMAGE_COOLDOWN_MS|TEXT_COOLDOWN_MS|ai-cooldown/);
+  });
+  test('the provider\'s free window is 45 seconds', () => assert.equal(PROVIDER_IMAGE_WINDOW_SECONDS, 45));
 });
 
 describe('the clock', () => {
@@ -47,13 +65,13 @@ describe('the clock', () => {
     assert.equal(c.remainingSec('image'), 0);
   });
 
-  test('a 10 second text wait counts down to exactly zero', () => {
+  test('an 18 second text wait counts down to exactly zero', () => {
     const clock = fakeClock();
     const c = createCooldowns({ storage: memoryStorage(), now: clock.now });
-    assert.equal(c.start('text', TEXT_COOLDOWN_MS), 10);
+    assert.equal(c.start('text', TEXT_COOLDOWN_MS), 18);
     clock.advance(3000);
-    assert.equal(c.remainingSec('text'), 7);
-    clock.advance(6000);
+    assert.equal(c.remainingSec('text'), 15);
+    clock.advance(14_000);
     assert.equal(c.remainingSec('text'), 1);
     clock.advance(999);
     assert.equal(c.remainingSec('text'), 1, 'one millisecond early is still blocked');
@@ -62,11 +80,11 @@ describe('the clock', () => {
     assert.equal(c.remainingMs('text'), 0);
   });
 
-  test('a 45 second picture wait counts down to exactly zero', () => {
+  test('a 50 second picture wait counts down to exactly zero', () => {
     const clock = fakeClock();
     const c = createCooldowns({ storage: memoryStorage(), now: clock.now });
     c.start('image', IMAGE_COOLDOWN_MS);
-    clock.advance(44_999);
+    clock.advance(49_999);
     assert.equal(c.remainingSec('image'), 1);
     clock.advance(1);
     assert.equal(c.remainingSec('image'), 0);
@@ -87,18 +105,18 @@ describe('the clock', () => {
     c.start('image', IMAGE_COOLDOWN_MS);
     assert.equal(c.remainingSec('text'), 0, 'a picture request must not make a question wait');
     c.start('text', TEXT_COOLDOWN_MS);
-    clock.advance(10_000);
+    clock.advance(TEXT_COOLDOWN_MS);
     assert.equal(c.remainingSec('text'), 0);
-    assert.equal(c.remainingSec('image'), 35, 'the text wait ending must not touch the picture wait');
+    assert.equal(c.remainingSec('image'), 32, 'the text wait ending must not touch the picture wait');
   });
 
   test('a wait only ever lengthens', () => {
     const clock = fakeClock();
     const c = createCooldowns({ storage: memoryStorage(), now: clock.now });
-    c.start('image', 45_000);
-    c.start('image', 10_000);
-    assert.equal(c.remainingSec('image'), 45, 'a shorter wait must not cut a longer one short');
-    c.start('text', 10_000);
+    c.start('image', IMAGE_COOLDOWN_MS);
+    c.start('image', TEXT_COOLDOWN_MS);
+    assert.equal(c.remainingSec('image'), 50, 'a shorter wait must not cut a longer one short');
+    c.start('text', TEXT_COOLDOWN_MS);
     c.start('text', 30_000);
     assert.equal(c.remainingSec('text'), 30, 'a provider asking for longer must be honoured');
   });
@@ -130,7 +148,7 @@ describe('it survives a reload and is shared between tabs', () => {
     clock.advance(20_000);
     // "Reload": a brand-new instance, nothing in memory.
     const reloaded = createCooldowns({ storage, now: clock.now });
-    assert.equal(reloaded.remainingSec('image'), 25);
+    assert.equal(reloaded.remainingSec('image'), 30);
   });
 
   test('a wait started in one tab is seen by another', () => {
@@ -139,7 +157,7 @@ describe('it survives a reload and is shared between tabs', () => {
     const a = createCooldowns({ storage, now: clock.now });
     const b = createCooldowns({ storage, now: clock.now });
     a.start('text', TEXT_COOLDOWN_MS);
-    assert.equal(b.remainingSec('text'), 10);
+    assert.equal(b.remainingSec('text'), 18);
   });
 
   test('it is stored under one documented key', () => {
@@ -186,7 +204,7 @@ describe('it cannot be turned into a lockout', () => {
 
   test('no storage at all still works', () => {
     const c = createCooldowns({ storage: null, now: fakeClock().now });
-    assert.equal(c.start('image', 45_000), 45);
+    assert.equal(c.start('image', IMAGE_COOLDOWN_MS), 50);
   });
 });
 
@@ -207,13 +225,13 @@ describe('both AI surfaces really use it', () => {
     assert.equal(spec(chat), spec(orb), 'two different ?v= values would load the module twice, and the clocks would diverge');
   });
 
-  test('every text message starts the 10 second wait, when the turn ends', () => {
+  test('every text message starts the 18 second wait, when the turn ends', () => {
     const finish = chat.match(/function finishTurn\(\)\s*\{[\s\S]*?\n\}/)?.[0] || '';
     assert.match(finish, /cooldowns\.start\('text', TEXT_COOLDOWN_MS\)/, 'finishTurn() does not start the text wait');
     assert.match(finish, /composing\s*=\s*false/);
   });
 
-  test('every picture request starts the 45 second wait, when it is sent', () => {
+  test('every picture request starts the 50 second wait, when it is sent', () => {
     const make = chat.match(/async function makePicture[\s\S]*?\n\}\n/)?.[0] || '';
     assert.match(make, /cooldowns\.start\('image', IMAGE_COOLDOWN_MS\)/, 'makePicture() does not start the picture wait');
     const startAt = make.indexOf("cooldowns.start('image', IMAGE_COOLDOWN_MS)");
@@ -232,7 +250,7 @@ describe('both AI surfaces really use it', () => {
     assert.match(orb, /addEventListener\('pagehide'[\s\S]*?cooldowns\.start\('text', TEXT_COOLDOWN_MS\)/);
   });
 
-  test('the floating assistant waits the same 10 seconds after each answer', () => {
+  test('the floating assistant waits the same 18 seconds after each answer', () => {
     assert.match(orb, /finally\s*\{[\s\S]*?cooldowns\.start\('text', TEXT_COOLDOWN_MS\)/);
     assert.doesNotMatch(orb, /\b4000\b/, 'the old 4 second throttle is still in ai-helper.js');
   });

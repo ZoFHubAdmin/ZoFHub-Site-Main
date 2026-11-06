@@ -8,9 +8,9 @@
   padding: 16px clamp(14px, 2.4vw, 28px);
   /* Fills the first screen; the shared footer sits below it, as on every
      other page. --legal-bar-h is gone with the compact footer variant. */
-  height: calc(100vh - var(--header-h) - 16px - var(--inapp-bar-h, 0px));
+  height: calc(100vh - var(--header-h) - 16px);
   /* dvh: stable under mobile URL-bar show/hide */
-  height: calc(100dvh - var(--header-h) - 16px - var(--inapp-bar-h, 0px));
+  height: calc(100dvh - var(--header-h) - 16px);
   min-height: 480px;
 }
 /* PolliChat top bar: a mobile history toggle + title + status, sitting above
@@ -98,6 +98,22 @@
 .ai-provider-btn:hover { color: var(--text); }
 .ai-provider-btn.active { background: var(--brand); color: var(--brand-ink); }
 .ai-provider-note { margin: 7px 2px 0; font-size: 10.8px; line-height: 1.4; color: var(--text-mute); }
+/* Puter account panel: shown only while Puter.js is the chosen provider. */
+.ai-puter-auth {
+  margin: 8px 0 0; padding: 9px 10px;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,.18);
+}
+.ai-puter-auth[hidden] { display: none; }
+.ai-puter-auth-line { margin: 0 0 8px; font-size: 11.5px; line-height: 1.45; color: var(--text-dim); word-break: break-word; }
+.ai-puter-auth-btn {
+  width: 100%; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--brand); background: var(--brand); color: var(--brand-ink);
+  font: inherit; font-size: 12.5px; font-weight: 600;
+}
+.ai-puter-auth-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.ai-puter-auth-btn:disabled { opacity: .55; cursor: default; }
+.ai-puter-auth-btn[data-act="signout"] { background: transparent; color: var(--text-dim); border-color: var(--line-2); }
+.ai-puter-auth-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* AI media (audio / video) */
 .ai-media-wrap { display: flex; flex-direction: column; gap: 6px; }
 .ai-audio { width: 100%; min-width: 240px; }

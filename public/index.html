@@ -4,23 +4,25 @@
   <meta charset="utf-8" />
   <!-- Self-heal: nuke any stale ROOT-scoped service worker from an old build
        that could hijack /api/games or serve old assets. Runs first, before any
-       module loads. Proxy workers (/uv/, /scram/) are not affected. -->
+       module loads. -->
+  <!-- (Service workers the retired proxy browser installed under /uv/ and /scram/ are
+       unregistered by public/js/layout.js, which every page loads.) -->
   <script>
   (function(){try{if(!('serviceWorker'in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){if(r.scope===location.origin+'/'){r.unregister();if(window.caches&&caches.keys)caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});}});}).catch(function(){});}catch(e){}})();
   </script>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#1a0b3d" />
-  <meta name="description" content="ZoFHub is a cloud-based web-security sandboxing tool and browser diagnostic hub — open sites inside an isolated, sandboxed session and inspect how they load, render and behave." />
-  <title>ZoFHub — Web Security Sandbox &amp; Browser Diagnostics</title>
+  <meta name="description" content="ZoFHub is a free games hub: thousands of instant-play browser games plus a free AI chat assistant. No downloads, no sign-up." />
+  <title>ZoFHub — Free Browser Games &amp; AI Chat</title>
   <!-- Open Graph / social share -->
   <meta property="og:site_name" content="ZoFHub" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
-  <meta property="og:description" content="ZoFHub is a cloud-based web-security sandboxing tool and browser diagnostic hub — open sites inside an isolated, sandboxed session and inspect how they load, render and behave." />
+  <meta property="og:title" content="ZoFHub — Free Browser Games &amp; AI Chat" />
+  <meta property="og:description" content="ZoFHub is a free games hub: thousands of instant-play browser games plus a free AI chat assistant. No downloads, no sign-up." />
   <meta property="og:image" content="/assets/favicon.png" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="ZoFHub — Web Security Sandbox &amp; Browser Diagnostics" />
-  <meta name="twitter:description" content="Cloud-based web-security sandbox and browser diagnostics — isolated sessions, safe inspection." />
+  <meta name="twitter:title" content="ZoFHub — Free Browser Games &amp; AI Chat" />
+  <meta name="twitter:description" content="Thousands of free instant-play browser games and a free AI assistant." />
   <meta name="twitter:image" content="/assets/favicon.png" />
 
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
@@ -48,7 +50,6 @@
       <nav class="top-nav">
         <a href="/ai">AI</a>
         <a href="/community">Community</a>
-        <a href="/browser">Browser</a>
       </nav>
     </div>
   </header>

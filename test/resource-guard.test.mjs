@@ -104,30 +104,12 @@ describe('the catalog stays in memory and refreshes on a timer', () => {
   });
 });
 
-describe('the Wisp tunnel reclaims what it opens', () => {
-  test('idle tunnels are closed on a timer', () => {
-    assert.match(server, /WISP_IDLE_MS/, 'no idle timeout for proxy tunnels');
-    assert.match(server, /WISP_KEEPALIVE_MS/, 'no keepalive, so idle cannot be distinguished from dead');
-  });
-
-  test('there is a global cap and a per-client cap', () => {
-    // One client must not be able to exhaust the tunnel budget for everyone.
-    assert.match(server, /WISP_MAX_TUNNELS/, 'no global tunnel cap');
-    assert.match(server, /WISP_MAX_PER_IP/, 'no per-client tunnel cap');
-    // Refusals go through refuseUpgrade(), which writes a real status line so a
-    // client can back off instead of retrying a bare RST forever. Both the
-    // helper's status line AND each cap's use of it are pinned.
-    assert.match(server, /function refuseUpgrade\(socket, status, text\)[\s\S]{0,400}HTTP\/1\.1 \$\{status\} \$\{text\}/,
-      'refuseUpgrade no longer writes an HTTP status line');
-    assert.match(server, /WISP_MAX_TUNNELS\) \{[^}]*refuseUpgrade\(socket, 503, 'Service Unavailable'\)/, 'a refused tunnel gets no answer');
-    assert.match(server, /WISP_MAX_PER_IP\) \{[^}]*refuseUpgrade\(socket, 429, 'Too Many Requests'\)/, 'a per-client refusal gets no answer');
-  });
-
-  test('a closed tunnel gives its slot back', () => {
-    // The key is stored ON the socket because the request headers may be gone
-    // by close time — reading req again there would decrement the wrong bucket
-    // and leak capacity until restart.
-    assert.match(server, /socket\._wispIpKey/, 'the per-client bucket cannot be decremented on close');
+describe('no long-lived tunnel is held open for visitors', () => {
+  // The proxy browser's tunnel pool (idle timers, a global cap, a per-client cap) went with the browser.
+  // What replaces it is nothing: the server accepts no protocol upgrade, so there is no pool to leak.
+  test('server.js registers no upgrade handler and keeps no tunnel state', () => {
+    assert.doesNotMatch(server, /\.on\(\s*['"]upgrade['"]/, 'something accepts protocol upgrades again');
+    assert.doesNotMatch(server, /WISP_|_wispIpKey|refuseUpgrade/, 'tunnel-pool bookkeeping is back');
   });
 });
 

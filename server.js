@@ -345,14 +345,6 @@ const { safeFetch, BlockedDestinationError } = await import('./lib/safe-fetch.mj
 const { isAiProviderHost, mentionsAiProvider } = await import('./lib/ai-hosts.mjs');
 const { aiServerAllowed: aiRouteAllowed, isAiFallbackPath } = await import('./lib/ai-guard.mjs');
 const { sanitizeCatalogEntry } = await import('./lib/catalog-sanitize.mjs');
-// Whether THIS machine's outbound TLS is being terminated by a local security
-// product. The proxy engines do TLS end to end from the browser with their own
-// CA roots, so interception breaks every https destination in every engine
-// while ordinary browsing is unaffected — see lib/tls-interception.mjs.
-const tlsInterception = await import('./lib/tls-interception.mjs');
-// null until the boot probe answers; the public proxy view reports it so the
-// /browser page can say WHY a site failed instead of showing a blank frame.
-let TLS_INTERCEPTION = null;
 
 // Open a URL in the user's default browser — best-effort, no-op on failure.
 // Only fires for interactive local dev (TTY + not production + not NO_OPEN=1).
@@ -1340,102 +1332,6 @@ const TRUST_PROXY_FN = app.get('trust proxy fn');
 // ETags so conditional requests (304 Not Modified) save bandwidth at scale.
 app.set('etag', 'weak');
 
-// ------------------------------------------------------------------------
-// Companion "standalone browser" engines.
-// ------------------------------------------------------------------------
-// Ultraviolet, Scramjet, GUST and HORIZON are embedded directly in this app
-// and proxy from this same origin.  The other open-source proxy browsers the project
-// ships (NautilusOS, DayDream, Nebula) are *whole* self-contained
-// apps that assume they own the site root (absolute /uv/, /style.css, /a, …),
-// so they can't be nested under a sub-path without service-worker scope and
-// path collisions.  Instead each runs as its own self-contained service on its
-// own origin; the browser page lists the ones that are reachable and loads them
-// Companion browsers (Nebula, NautilusOS, DayDream) are SEPARATE
-// third-party apps — NOT part of this server, NOT deployed with the site, and
-// redundant with the built-in Ultraviolet/Scramjet/GUST/HORIZON engines (which
-// are same-origin and always work). They are therefore fully OPT-IN: a companion
-// appears in the /browser dropdown ONLY when its PROXY_*_URL is explicitly set
-// to a reachable instance. With none set (the default — normal `npm start` and
-// every deploy), the dropdown shows just the four built-in engines: clean, no
-// "offline" clutter, no errors. `npm run dev:all` sets these locally so a
-// developer who wants to tinker still sees whichever companions are running.
-//
-// EVERY URL HERE IS PUBLISHED, UNAUTHENTICATED, BY /api/proxies. So basic-auth
-// credentials pasted into one of these variables — a natural thing to do for a
-// private instance — would be handed verbatim to every visitor of the site.
-// publicEngineUrl() removes the userinfo before the value is ever stored, and
-// says so at boot, because auth the operator believes is configured is now not
-// being sent. An unparseable URL is left exactly as typed: it cannot leak a
-// credential we could not find, and rewriting a string we failed to understand
-// would only make the operator's typo harder to recognise.
-function publicEngineUrl(raw, varName) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  let u;
-  try { u = new URL(s); } catch { return s; }
-  if (!u.username && !u.password) return s;
-  u.username = '';
-  u.password = '';
-  console.warn(`[engines] removed credentials from ${varName}: that URL is published `
-    + 'publicly by /api/proxies. Sign in at the service itself instead.');
-  return u.href;
-}
-
-const COMPANION_ENGINES = [
-  { id: 'nautilus',     label: 'NautilusOS',   url: publicEngineUrl(process.env.PROXY_NAUTILUS_URL,     'PROXY_NAUTILUS_URL') },
-  { id: 'daydream',     label: 'DayDream',     url: publicEngineUrl(process.env.PROXY_DAYDREAM_URL,     'PROXY_DAYDREAM_URL') },
-  { id: 'nebula',       label: 'Nebula',       url: publicEngineUrl(process.env.PROXY_NEBULA_URL,       'PROXY_NEBULA_URL') },
-  // InvisiProxy LTS (AGPL-3.0, formerly Holy Unblocker LTS). It belongs in this
-  // list and NOT in the tree: it is a complete proxy application built on the
-  // same primitives ZoFHub already integrates directly (Ultraviolet, Scramjet,
-  // GUST, HORIZON, Wisp, bare-mux, epoxy), on Fastify under pnpm, and vendoring it would
-  // duplicate working architecture while pulling AGPL source into a proprietary
-  // work that is served over a network — engaging §13 for the combination.
-  // Deployed separately it stays a peer, and its obligations stay with its
-  // deployer. Provenance: data/invisiproxy-upstream.json · docs/proxy/INVISIPROXY.md
-  {
-    id: 'invisi',
-    label: 'InvisiProxy',
-    url: publicEngineUrl(process.env.PROXY_INVISI_URL, 'PROXY_INVISI_URL'),
-    // `npm run proxies` starts the four bundled companions and cannot start
-    // this one, so it carries its own instruction to the offline panel.
-    setup: 'pnpm install && pnpm start   (in your own InvisiProxy checkout)',
-  },
-].filter(e => e.url);
-
-// ── Kasm Workspaces ────────────────────────────────────────────────────────
-// A third kind of engine: not a rewriter (Ultraviolet) and not an
-// emulator but a REAL remote desktop, streamed by KasmVNC from a container
-// built out of github.com/kasmtech/workspaces-images.
-//
-// This process cannot host it — upstream ships Dockerfiles, not
-// a bundle, and there is no Docker daemon inside a Render web service. So it is
-// operator-hosted and pointed at by PROXY_KASM_URL, and the module's job is to
-// detect, BEFORE the frame is created, the two things that make a Kasm origin
-// silently unembeddable. See the header of lib/kasm-host.mjs.
-const { kasmExposure, kasmProbe, kasmEntry, kasmStatusLine } =
-  await import('./lib/kasm-host.mjs');
-const KASM = kasmExposure(process.env);
-if (KASM.mode === 'disabled') {
-  console.warn(`[kasm] ${KASM.reason}. Not offering it in /browser.`);
-}
-
-// Origins we must allow in frame-src so the stage iframe can embed a companion.
-const companionFrameOrigins = (() => {
-  const set = new Set();
-  for (const e of COMPANION_ENGINES) {
-    try { set.add(new URL(e.url).origin); } catch {}
-  }
-  // Kasm's origin, for the same reason. frame-src already carries a blanket
-  // `https:`, so this matters specifically for an operator running it over
-  // plain http on their own network — where CSP would otherwise be a second,
-  // invisible blocker stacked on top of the mixed-content rule.
-  if (KASM.mode === 'external') set.add(KASM.origin);
-  // Convenience for local development with the bundled launcher.
-  set.add('http://localhost:*');
-  set.add('http://127.0.0.1:*');
-  return [...set];
-})();
 
 // ---------------------------------------------------------------------------
 // Ad-network script origins, DERIVED FROM YOUR ENV — not a hardcoded list.
@@ -1506,10 +1402,7 @@ if (AD_ORIGINS.length) console.log(`[ads] CSP allows ${AD_ORIGINS.length} ad ori
 const CSP_DIRECTIVES = {
   defaultSrc: ["'self'"],
   scriptSrc: [
-    // 'wasm-unsafe-eval' lets GUST's and HORIZON's libcurl.js, and Scramjet's
-    // own wasm, compile their embedded WebAssembly even on browsers that no
-    // longer accept plain 'unsafe-eval' for wasm.
-    "'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'",
+    "'self'", "'unsafe-inline'", "'unsafe-eval'",
     'https://cdn.jsdelivr.net', 'https://esm.sh', 'https://unpkg.com',
     // https://js.puter.com serves the Puter.js SDK, the SECOND AI provider on
     // /ai. It is loaded ONLY when a visitor chooses "Puter.js" in the provider
@@ -1527,15 +1420,15 @@ const CSP_DIRECTIVES = {
     // again at injection time; tools/check-ads.mjs fails the build on it). A CSP
     // that still NAMED those origins meant the one layer that could have stopped
     // an accidental or injected tag from executing was the one layer holding the
-    // door open — on every page of the site, including /browser, /gust and /horizon.
+    // door open — on every page of the site.
     //
     // This does NOT cost the in-game revenue share. Games are not served under
     // this policy: /embed/:slug sets its own deliberately permissive CSP for the
     // game sandbox (`default-src *`, with frame-ancestors 'self'), so a
     // GameMonetize or GameDistribution title still runs its publisher's own ad
     // stack inside its own frame. What changed is that ZoFHub's OWN pages can no
-    // longer initialise Google ad code by any route — which is the thing that
-    // gets a proxy domain banned at the account level.
+    // longer initialise Google ad code by any route — which is the kind of
+    // thing that gets an account banned.
     //
     // Do not add them back here. If a game genuinely needs one, it belongs in
     // the /embed route's policy, not in the policy the whole site runs under.
@@ -1544,21 +1437,14 @@ const CSP_DIRECTIVES = {
     'https://*.supabase.co',
     ...AD_ORIGINS
   ],
-  // cdnjs serves the Font-Awesome icon CSS that HORIZON uses;
-  // a stylesheet cannot execute, so this is far below the script-src the repo
-  // already grants jsdelivr/unpkg.
-  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
-  fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com', 'data:'],
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  fontSrc:  ["'self'", 'https://fonts.gstatic.com', 'data:'],
   imgSrc:   ["'self'", 'https:', 'data:', 'blob:'],
-  // blob: + data: let GUST and HORIZON read their own embedded wasm/blob
-  // payloads via fetch/XHR; wss:/ws: carry the Wisp tunnel (same-origin
-  // /wisp/ by default).
-  connectSrc: ["'self'", 'https:', 'wss:', 'ws:', 'blob:', 'data:'],
+  connectSrc: ["'self'", 'https:', 'blob:', 'data:'],
   // Permissive frame-src — the user controls which URLs end up in the catalog,
-  // so any HTTPS game host should be loadable.  This also covers ad networks,
-  // the panic-button cloak destinations, and the companion browser services
-  // (their own origins, added so the proxy stage iframe can embed them).
-  frameSrc: ["'self'", 'https:', 'data:', 'blob:', ...companionFrameOrigins],
+  // so any HTTPS game host should be loadable.  This also covers ad networks
+  // and the panic-button cloak destinations.
+  frameSrc: ["'self'", 'https:', 'data:', 'blob:'],
   mediaSrc:    ["'self'", 'https:', 'data:', 'blob:'],
   workerSrc:   ["'self'", 'blob:'],
   manifestSrc: ["'self'"]
@@ -1578,8 +1464,8 @@ app.use(helmet({
 // ── Server-side AI fallback routes: refused before anything else runs ──────
 // /api/ai/text, /api/ai/image and /api/ai/echo answer 403 in production, and
 // outside production to anything but a genuine loopback client (lib/ai-guard.mjs).
-// This runs ahead of CORS, the body parser, rate limiting, maintenance mode and
-// MASQR, so a refused request costs nothing: no preflight is answered, no body
+// This runs ahead of CORS, the body parser, rate limiting and maintenance
+// mode, so a refused request costs nothing: no preflight is answered, no body
 // is read, and no error path can turn the refusal into a 400, 413 or 429. It
 // covers every method and every spelling that normalises to one of the three
 // paths. The route handlers keep their own identical check behind this one.
@@ -1690,7 +1576,7 @@ app.use((req, res, next) => (req.path.startsWith('/api/admin/cms/import/') ? nex
 const { createProviderIndex } = await import('./lib/provider-registry.mjs');
 const CONTROL = {
   store: null, schema: 'initialising', reason: 'The control plane is starting.',
-  cms: null, settings: null, staff: null, proxy: null,
+  cms: null, settings: null, staff: null,
   providers: createProviderIndex(),
 };
 
@@ -1708,7 +1594,7 @@ const FEATURE_ROUTES = [
 const routeMatches = (path, p) => (p.endsWith('/') ? path.startsWith(p) : path === p || path.startsWith(p + '/'));
 // Maintenance mode never takes down the console, the health probes, the AGPL
 // source offer, or the assets the maintenance page itself needs.
-const MAINTENANCE_EXEMPT = /^\/(admin(\/|$)|api\/admin\/|healthz$|readyz$|livez$|ping$|api\/health$|api\/site-config$|licenses|robots\.txt$|favicon|assets\/)/;
+const MAINTENANCE_EXEMPT = /^\/(admin(\/|$)|api\/admin\/|healthz$|readyz$|livez$|ping$|api\/health$|api\/site-config$|robots\.txt$|favicon|assets\/)/;
 const plainPage = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${htmlEscapeText(title)}</title></head><body><main><h1>${htmlEscapeText(title)}</h1><p>${htmlEscapeText(body)}</p></main></body></html>`;
 function htmlEscapeText(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -1736,8 +1622,7 @@ app.use((req, res, next) => {
 });
 
 // What a visitor's page may know before it renders: the public settings only
-// (lib/settings-registry.mjs marks which), the proxy's approved destinations,
-// the advertising this page may carry, and whether the ad-block gate applies.
+// (lib/settings-registry.mjs marks which) and the advertising this page may carry.
 //
 // ONE HANDLER. There used to be two routes at this path. This one answered and
 // never called next(), so the second — the surface-gated ad payload — was dead
@@ -1746,7 +1631,7 @@ app.use((req, res, next) => {
 //
 // THE AD PAYLOAD IS SURFACE-GATED. The caller says which page it is on (an
 // explicit ?surface=, else the Referer path), and anything that is not a native
-// ad surface — the proxy pages above all — gets every ad field present and
+// ad surface gets every ad field present and
 // EMPTY, so a client that forgets to check `adsAllowed` still has nothing to
 // render. layout.js holds the client half of the same boundary; either alone
 // is one edit away from failing open.
@@ -1783,48 +1668,14 @@ app.get('/api/site-config', (req, res) => {
     ok: true,
     announcement: ann && ann.active ? { text: ann.text, level: ann.level } : null,
     features,
-    proxy: CONTROL.proxy ? publicProxyView() : null,
     adsAllowed,
     ...(adsAllowed ? publicAdConfig(AD_CONFIG, { surface, region }) : emptyPublicAdConfig()),
-    // Sent on EVERY surface, including /browser: that is where the premium
-    // engines are, and the page must know whether they may be locked without
-    // being handed anything ad-related. See public/js/support-gate.js.
-    supportGate: adblockGateOn(),
-  });
 });
-
-/**
- * Does the ad-block premium gate apply right now? Only while at least one
- * network is actually serving — locking engines "to support the ads" on a
- * deployment that runs none would be a lock with no reason — and only while
- * the console switch is on.
- */
-function adblockGateOn() {
-  if (!AD_CONFIG.anyActive) return false;
-  return !CONTROL.settings || CONTROL.settings.get('ads.adblock_gate') !== false;
-}
+});
 
 /** Is a video pre-roll configured for game pages in any region? */
 function prerollConfigured() {
   return Boolean(AD_CONFIG.global?.preroll || Object.values(AD_CONFIG.regional || {}).some((p) => p.preroll));
-}
-
-// Engines the page may offer: switched on in the console AND actually installed.
-function publicProxyView() {
-  const v = CONTROL.proxy.publicView();
-  const installed = {
-    ultraviolet: !!proxyStatus.ultraviolet, scramjet: !!proxyStatus.scramjet,
-    gust: !!proxyStatus.gust, horizon: !!proxyStatus.horizon,
-  };
-  const view = { ...v, engines: v.engines.filter((e) => installed[e]) };
-  // Published ONLY when interception is actually detected, and only the product
-  // name — enough for the page to explain a failure before the user concludes
-  // the engines are broken, without describing this host's security software to
-  // the internet at large. In production this field is absent.
-  if (TLS_INTERCEPTION?.intercepted) {
-    view.tlsIntercepted = { product: TLS_INTERCEPTION.product || 'a local security product' };
-  }
-  return view;
 }
 
 // Permissions-Policy: explicitly delegate every capability a game iframe
@@ -1885,62 +1736,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========================================================================
-// Optional proxy stack
-// ========================================================================
-// ── Always-on proxy + proxy-friendly ads ────────────────────────────────────
-// ZoFHub is ALWAYS a proxy site. There is NO hub / Google-AdSense mode: Google
-// bans proxy / anonymizer domains at the ACCOUNT level, so the site earns solely
-// via the six proxy-friendly networks in lib/ad-providers.mjs, each on its own
-// role. The web proxy stack (Ultraviolet / Scramjet / GUST / HORIZON / Wisp)
-// is always enabled. PROXY_ENABLED is kept as a
-// named constant (always true) so the code that reads it stays readable.
-const PROXY_ENABLED = true;
-
-// ── The AGPL engines, behind one call ───────────────────────────────────────
-// Ultraviolet, Scramjet, GUST, HORIZON, their service workers and the Wisp
-// tunnel now live entirely in proxy-engine/. This file keeps the proprietary half: the
-// Supabase models, the catalog, identity, ads, feedback, donations and the
-// admin console. The only things crossing the boundary are an Express app in
-// and a { proxyStatus, wisp } out — no shared state, no shared imports.
-//
-// This is a structural boundary, not a legal one. proxy-engine/mount.mjs says
-// plainly what that does and does not change about the AGPL position; the short
-// version is that a folder is not a licence boundary, the engines here are
-// unmodified upstream builds, and docs/CREDITS.md still carries the §13 source offer
-// that actually keeps this compliant.
-// ── Proxy discovery gate (MASQR) ───────────────────────────────────────────
-// Registered BEFORE the engines and before express.static, because the whole
-// point is to answer for /browser, /uv/, /horizon … before anything can serve
-// them. OFF unless MASQR_ENABLED is set, in which case this is a pass-through.
-//
-// What it buys: a mirror domain usually dies because somebody shares the link,
-// a filter vendor's crawler fetches it, sees a web proxy, and burns the domain.
-// With the gate on, an unauthenticated client sees the games hub — which is
-// what this site actually is — and the proxy surfaces answer 404.
-//
-// It is NOT access control and must never be described as such. See lib/masqr.mjs.
-const { masqrConfig, masqrMiddleware, masqrStatusLine, mintKey: mintMasqrKey, grantKeyFor } =
-  await import('./lib/masqr.mjs');
-const MASQR = masqrConfig(process.env);
-for (const w of MASQR.warnings) console.warn(`[masqr] ${w}`);
-
 // ── Regional routing (lib/geo.mjs) ─────────────────────────────────────────
 // Keeps each region's visitors on that region's domain(s), so one market's
 // block lists stop reaching another market's domain. A pass-through unless
 // REGION_ROUTES assigns hosts. Top-level page loads only — never an API call,
 // an asset, a frame, a health probe or ads.txt.
 //
-// Registered BEFORE the MASQR gate on purpose: a keyed visitor about to be
-// moved to their region's domain has to take the key with them (the grant is a
-// host-only cookie), and the gate here would otherwise 404 the proxy page first.
-// The key is computed only when a redirect is actually issued.
 app.use((req, res, next) => {
   if (!GEO.routing) return next();
   const d = routeDecision(
     { method: req.method, host: req.hostname, url: req.originalUrl || req.url, headers: req.headers },
     GEO,
-    { grant: () => grantKeyFor(MASQR, req.headers.cookie) },
   );
   if (d.action === 'stay') {
     res.append('Set-Cookie', d.cookie + (process.env.NODE_ENV === 'production' ? '; Secure' : ''));
@@ -1950,268 +1756,9 @@ app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
   return res.redirect(302, d.location);
 });
-// send404 is a hoisted function declaration further down this file, so passing
-// it here is safe: the gate only calls it per request, long after boot.
-app.use(masqrMiddleware(MASQR, { deny404: (req, res) => send404(req, res) }));
-
-// ========================================================================
-// Proxy governance (lib/proxy-control.mjs, lib/proxy-service.mjs)
-// ------------------------------------------------------------------------
-// The engines are kept and served; what changes is that the platform decides
-// WHERE they may connect. Every tunnel stream is checked against the approved
-// destinations an administrator manages in the console, and anything not on
-// that list is refused. Until the list has loaded, only PROXY_APPROVED_TARGETS
-// (if set) is approved — the tunnel fails closed, never open.
-// ========================================================================
-const {
-  createProxyGovernor, createSessionTracker, resolveGuarded, DestinationRefused,
-  DEFAULT_POLICY: PROXY_DEFAULT_POLICY, targetsFromEnv,
-} = await import('./lib/proxy-control.mjs');
-const PROXY_GOVERNOR = createProxyGovernor();
-const PROXY_SESSIONS = createSessionTracker();
-PROXY_GOVERNOR.setTargets(targetsFromEnv(process.env.PROXY_APPROVED_TARGETS).rows);
-// PROXY_ACCESS_MODE applies from the first request, not after the async load —
-// otherwise `disabled` would be `public` for the first seconds of every boot.
-let PROXY_POLICY = {
-  ...PROXY_DEFAULT_POLICY,
-  ...(['public', 'staff', 'disabled'].includes(String(process.env.PROXY_ACCESS_MODE || '').trim().toLowerCase())
-    ? { accessMode: String(process.env.PROXY_ACCESS_MODE).trim().toLowerCase() } : {}),
-};
-PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
-// Refusals BEFORE a tunnel exists, by cause. Destination refusals are counted by
-// the governor itself, by reason code.
-const PROXY_REFUSALS = { maintenance: 0, disabled: 0, origin: 0, staffOnly: 0 };
-
-// Rewarded proxy access ("Boost", lib/reward-*.mjs). OFF by default
-// (REWARDS_ENABLED) — see lib/reward-policy.mjs for why this does not
-// contradict docs/README.md's "no offer-to-unlock gates" line: the only
-// thing a grant ever changes is the free/boost stream-cap split just added
-// above, never access to the games hub, the catalog, or any built-in engine.
-// Created unconditionally (cheap — an empty Map until the feature is used) so
-// guardedSocketClass() below can read it even if REWARDS_ENABLED is unset:
-// tierFor() on an unconfigured cache always resolves to 'free'.
-const { createEntitlementCache } = await import('./lib/reward-entitlement.mjs');
-const { rewardsEnabled: REWARDS_ENABLED_FN } = await import('./lib/reward-policy.mjs');
-const REWARD_ENTITLEMENT_CACHE = createEntitlementCache({ getSupabaseAdmin });
-const REWARDS_ENABLED_ENV = REWARDS_ENABLED_FN(process.env);
-
-const PROXY_ENGINE_PATHS = [
-  ['/uv/', 'ultraviolet'], ['/scram/', 'scramjet'],
-  ['/gust', 'gust'], ['/proxy', 'gust'], ['/horizon', 'horizon'],
-];
-const PROXY_TRANSPORT_PATHS = ['/baremux/', '/epoxy/', '/libcurl/'];
-
-// Staff-only access mode: the same session validation the console uses, cached
-// for a minute per session token so a proxied page's hundreds of asset requests
-// cost one database round trip, not hundreds.
-const staffProxyCache = new Map();
-async function staffProxyAllowed(headers, ip) {
-  const token = adminAuth.parseCookies(headers?.cookie)[adminAuth.SESSION_COOKIE];
-  if (!token) return false;
-  const key = adminAuth.hashToken(token);
-  const hit = staffProxyCache.get(key);
-  if (hit && hit.exp > Date.now()) return hit.ok;
-  let ok = false;
-  const supa = getSupabaseAdmin();
-  if (supa) {
-    const sess = await adminAuth.validateSession(supa, token, {
-      ipHash: adminAuth.hashIp(ip), userAgent: headers?.['user-agent'],
-    }).catch(() => null);
-    ok = !!sess && rbac.can(principalFromSession(sess), 'proxy.use');
-  }
-  if (staffProxyCache.size > 2000) staffProxyCache.clear();
-  staffProxyCache.set(key, { ok, exp: Date.now() + 60_000 });
-  return ok;
-}
-
-function proxyEngineFor(path) {
-  for (const [prefix, id] of PROXY_ENGINE_PATHS) {
-    const base = prefix.replace(/\/$/, '');
-    if (path === base || path.startsWith(base + '/')) return id;
-  }
-  return null;
-}
-
-app.use(async (req, res, next) => {
-  const p = req.path;
-  const engine = proxyEngineFor(p);
-  const transport = PROXY_TRANSPORT_PATHS.some((t) => p.startsWith(t));
-  const page = p === '/browser' || p === '/browser.html';
-  if (!engine && !transport && !page) return next();
-  if (engine && CONTROL.proxy && !CONTROL.proxy.engineEnabled(engine)) {
-    return res.status(404).type('text').send('This proxy engine is turned off.');
-  }
-  if (PROXY_POLICY.accessMode === 'disabled') {
-    return page
-      ? res.status(503).type('html').send(plainPage('Proxy unavailable', 'The proxy browser is turned off by the site administrator.'))
-      : res.status(503).type('text').send('The proxy is turned off.');
-  }
-  if (PROXY_POLICY.accessMode === 'staff' && !(await staffProxyAllowed(req.headers, req.ip))) {
-    return page
-      ? res.status(403).type('html').send(plainPage('Staff only', 'The proxy browser is currently limited to signed-in staff.'))
-      : res.status(403).type('text').send('Staff only.');
-  }
-  next();
-});
-
-// GUST's and HORIZON's own chrome each attach inline on* handlers — GUST's
-// whole button-driven UI runs on ~30 onclick handlers plus favicon error-
-// fallbacks; HORIZON (a remodelled GUST) kept a handful (image error-fallbacks,
-// one hover tooltip). The site-wide helmet policy sets `script-src-attr 'none'`,
-// which blocks EVERY inline handler — on GUST that meant most of its buttons
-// silently did nothing when clicked, which is indistinguishable from "the proxy
-// is broken" to anyone using it. Relax that ONE directive, for ONLY these two
-// first-party vendored documents — every other directive, and every other
-// route, is left exactly as helmet set it. This does not widen what scripts may
-// run: `script-src` already allows 'unsafe-inline' site-wide, so inline
-// <script> executes everywhere regardless; this only lets a handler be attached
-// inline on these two pages. It touches no third party's headers and does not
-// affect egress.
-app.use(['/gust', '/proxy', '/horizon'], (req, res, next) => {
-  const csp = res.getHeader('Content-Security-Policy');
-  if (typeof csp === 'string' && csp.includes("script-src-attr 'none'")) {
-    res.setHeader('Content-Security-Policy', csp.replace("script-src-attr 'none'", "script-src-attr 'unsafe-inline'"));
-  }
-  next();
-});
-
-const { mountProxyEngines, routeProxyUpgrade } = await import('./proxy-engine/mount.mjs');
-const { proxyStatus, wisp } = mountProxyEngines(app, express, { repoRoot: __dirname });
-
-// ── Egress policy ──────────────────────────────────────────────────────────
-// /wisp/ is the only endpoint here that opens a TCP connection to an address a
-// stranger picked, so its rules ARE the security boundary of the proxy. They
-// used to be wisp-js's defaults, which is not the same as being ZoFHub's
-// policy: an inherited default is a promise nobody made, and it changes when a
-// dependency changes. Applied immediately after the server object exists and
-// BEFORE any upgrade can be routed into it. See lib/wisp-policy.mjs.
-const { wispPolicy, applyWispPolicy, wispPolicyLine } = await import('./lib/wisp-policy.mjs');
-const WISP_POLICY = wispPolicy(process.env);
-const WISP_POLICY_APPLIED = wisp ? applyWispPolicy(wisp, WISP_POLICY) : { applied: false, reason: 'no wisp server' };
-for (const e of WISP_POLICY.errors) console.warn(`[egress] ${e}`);
-for (const w of WISP_POLICY.warnings) console.warn(`[egress] WARNING: ${w}`);
-if (wisp && !WISP_POLICY_APPLIED.applied) {
-  console.warn(`[egress] policy NOT applied (${WISP_POLICY_APPLIED.reason}). `
-    + 'The tunnel is running on wisp-js defaults: no port restriction and no stream cap.');
-}
-
-// ── Approved destinations: the allowlist wisp-js consults ────────────────────
-// wisp-js checks `hostname_whitelist` entries with entry.test(hostname) before
-// it allocates a stream (server/filter.mjs). One entry, backed by the governor,
-// turns that into the console's approved-destination list. WISP_BLOCKED_HOSTS
-// still applies on top: wisp-js ignores its blacklist once a whitelist is set,
-// so the patterns are honoured inside the same test. Raw IP literals are
-// refused outright — an approval names a site, never an address.
-if (wisp?.options) {
-  const blocked = WISP_POLICY.blockedHosts || [];
-  wisp.options.hostname_whitelist = [{
-    test: (h) => !blocked.some((re) => re.test(String(h).toLowerCase()))
-      && PROXY_GOVERNOR.evaluate({ host: h, port: null, staff: true }).decision === 'ALLOW',
-  }];
-  wisp.options.allow_direct_ip = false;
-}
-
-// WISP_MAX_STREAMS / WISP_ALLOWED_PORTS / WISP_MAX_PER_IP remain the operator's
-// CEILINGS: the console can set a policy inside them, never outside.
-const WISP_ENV_STREAM_CAP = String(process.env.WISP_MAX_STREAMS || '').trim() && WISP_POLICY.streamLimitPerTunnel !== -1
-  ? WISP_POLICY.streamLimitPerTunnel : null;
-
-/** Push a validated policy (lib/proxy-control.mjs validatePolicy) into the live tunnel. */
-function applyProxyPolicy(policy) {
-  const envPorts = WISP_POLICY.allowedPorts;               // null = no env restriction
-  const ports = policy.allowedPorts.filter((port) => envPorts === null
-    || envPorts.some((e) => (Array.isArray(e) ? port >= e[0] && port <= e[1] : e === port)));
-  PROXY_POLICY = { ...policy, allowedPorts: ports };
-  PROXY_GOVERNOR.setPolicy(PROXY_POLICY);
-  WISP_MAX_TUNNELS = policy.maxTunnels;
-  WISP_MAX_PER_IP = WISP_ENV_MAX_PER_IP ? Math.min(WISP_ENV_MAX_PER_IP, policy.maxPerClient) : policy.maxPerClient;
-  WISP_IDLE_MS = policy.idleMinutes * 60_000;
-  if (wisp?.options) {
-    // An EMPTY list blocks every port in wisp-js (nothing matches) — the right
-    // failure when the console and the environment share no port at all.
-    wisp.options.port_whitelist = ports;
-    wisp.options.stream_limit_total = WISP_ENV_STREAM_CAP ? Math.min(WISP_ENV_STREAM_CAP, policy.streamsPerTunnel) : policy.streamsPerTunnel;
-  }
-  staffProxyCache.clear();
-}
-
-// A connect-time refusal of an APPROVED name that resolved to a private
-// address is either a misconfiguration or a DNS-rebinding attempt. Recorded as a
-// security event, at most once a minute per host so a loop cannot flood it.
-const _privateRefusalSeen = new Map();
-function noteProxyPrivateRefusal(host) {
-  const now = Date.now();
-  if ((_privateRefusalSeen.get(host) || 0) > now - 60_000) return;
-  if (_privateRefusalSeen.size > 500) _privateRefusalSeen.clear();
-  _privateRefusalSeen.set(host, now);
-  adminAuth.securityEvent(getSupabaseAdmin(), {
-    kind: 'proxy_private_address', severity: 'warn',
-    detail: { host: String(host).slice(0, 253), reason: 'an approved destination resolved to a private or reserved address' },
-  });
-}
-
-/**
- * The per-tunnel socket class. wisp-js constructs one per stream with
- * (hostname, port); this subclass re-checks the destination WITH its port,
- * resolves DNS itself, refuses any private answer, and dials the address it
- * validated — which is what closes the rebinding window between wisp-js's own
- * lookup and the connection. It also feeds the session record its counts.
- */
-function guardedSocketClass(sessionId, tier = 'free') {
-  return class GuardedTCPSocket extends SingboxTCPSocket {
-    async connect() {
-      // The free-tier additional cap (lib/proxy-control.mjs's
-      // freeStreamsPerTunnel). wisp-js's own stream_limit_total stays set to
-      // the generous ceiling (policy.streamsPerTunnel) for everyone, as
-      // before this feature existed — a 'boost' tier sees no change from
-      // today's behavior; only 'free' is additionally capped, here.
-      if (tier !== 'boost' && PROXY_SESSIONS.activeStreams(sessionId) >= PROXY_POLICY.freeStreamsPerTunnel) {
-        PROXY_SESSIONS.denied(sessionId);
-        throw new DestinationRefused('free_tier_stream_cap');
-      }
-      const d = PROXY_GOVERNOR.evaluate({ host: this.hostname, port: this.port, staff: true });
-      if (d.decision !== 'ALLOW') { PROXY_SESSIONS.denied(sessionId); throw new DestinationRefused(d.reason); }
-      let address;
-      try { address = await resolveGuarded(this.hostname); }
-      catch (e) {
-        PROXY_SESSIONS.denied(sessionId);
-        if (e?.reason === 'private_address') noteProxyPrivateRefusal(this.hostname);
-        throw e;
-      }
-      this.hostname = address;
-      await super.connect();
-      this._zhCounted = true;
-      PROXY_SESSIONS.streamOpened(sessionId);
-    }
-    async send(data) { PROXY_SESSIONS.touch(sessionId); return super.send(data); }
-    async close() {
-      if (this._zhCounted) { this._zhCounted = false; PROXY_SESSIONS.streamClosed(sessionId); }
-      return super.close();
-    }
-  };
-}
-
-// What /api/admin/proxy reports. Built from the values READ BACK off the live
-// wisp-js options object rather than recomputed from the environment: an
-// operator asking "can this proxy reach my database?" needs the effective
-// answer, and a policy that failed to apply is exactly the case where the
-// intended one would lie. `warnings` lists every deliberate widening.
-function egressReport() {
-  return {
-    ...WISP_POLICY_APPLIED,
-    // RegExp objects do not survive JSON; the count is the useful part.
-    hostnameBlacklistPatterns: WISP_POLICY_APPLIED.hostname_blacklist ?? 0,
-    warnings: WISP_POLICY.warnings,
-    errors: WISP_POLICY.errors,
-  };
-}
-
 // ========================================================================
 // Static + APIs
 // ========================================================================
-// The proxy front-end assets (horizon, uv, …) are ALWAYS served — this is a
-// proxy site with no hub mode that would ever hide them.
-
 // ---- Canonical redirects for the `.html` twins of the legal pages ----------
 // MUST be registered BEFORE express.static below. The legal pages are served
 // extensionless (/credits) from ./legal, templated at boot so {{CONTACT}} becomes
@@ -2228,7 +1775,7 @@ function egressReport() {
 // matter what files exist in public/. Verified: with public/credits.html present,
 // /credits.html returned 200 (the stray file) when this ran after the static
 // mount, and 301 → /credits when it runs here.
-const LEGAL_HTML_TWINS = ['/privacy', '/terms', '/dmca', '/cookies', '/credits', '/licenses'];
+const LEGAL_HTML_TWINS = ['/privacy', '/terms', '/dmca', '/cookies', '/credits'];
 for (const route of LEGAL_HTML_TWINS) {
   app.get(`${route}.html`, (req, res) => res.redirect(301, route));
 }
@@ -2276,7 +1823,7 @@ app.use(express.static(PUBLIC_DIR, {
     if (!isThumb && /\.(html|css|js|mjs|svg)$/.test(path)) res.setHeader('Cache-Control', 'no-cache');
     // .mjs is not mapped by every Express/send build, and a wrong MIME makes the
     // browser refuse a module import. (Kept for any ES module served out of
-    // public/ — the proxy transports under /epoxy/ and /baremux/ are .mjs.)
+    // public/.)
     if (path.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
   }
 }));
@@ -2343,7 +1890,6 @@ app.get('/api/health', async (req, res) => {
       configured: !!supabase?.configured,
       connected: !!supabase?.connected,
     },
-    proxy: proxyStatus,
     ...(isAdmin ? { node: process.version, catalogSource: CATALOG.source } : {}),
   });
 });
@@ -2594,84 +2140,6 @@ app.get('/livez', (req, res) => {
   res.status(PROCESS_FAULT ? 503 : 200).json({ ok: !PROCESS_FAULT, status: PROCESS_FAULT ? 'unhealthy' : 'alive' });
 });
 
-// Companion standalone-browser reachability.  The browser page calls this to
-// learn which of the external proxy browsers (NautilusOS, DayDream, …) are
-// online right now and should appear in the engine dropdown.  Results are
-// cached briefly so a page refresh doesn't re-probe every service.
-const companionCache = { at: 0, data: null };
-// `kind` is sent explicitly so every consumer can branch on it instead of
-// inferring "no kind means companion" — the browser page's built-in engines
-// carry kind 'sw'/'app', and its reload path compares === 'companion' to decide
-// whether to offer the "open in a new tab" escape hatch (cross-origin embedding
-// can be refused invisibly). Without this field that check was always false.
-async function probeCompanion(e) {
-  // `setup` is carried through when an engine defines one: the offline panel
-  // prefers it over the bundled-launcher hint, which only applies to the four
-  // companions `npm run proxies` actually starts.
-  const base = { id: e.id, label: e.label, url: e.url, kind: 'companion', setup: e.setup };
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 1500);
-    const r = await fetch(e.url, { method: 'GET', redirect: 'manual', signal: ctrl.signal });
-    clearTimeout(timer);
-    return { ...base, up: r.status < 500 };
-  } catch {
-    return { ...base, up: false };
-  }
-}
-app.get('/api/proxies', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-
-  const now = Date.now();
-  let engines = companionCache.data;
-  if (!engines || now - companionCache.at >= 5000) {
-    engines = await Promise.all(COMPANION_ENGINES.map(probeCompanion));
-    companionCache.at = now;
-    companionCache.data = engines;
-  }
-
-  const extra = [];
-  const kasm = await kasmStatus();
-  if (kasm) extra.push(kasmEntry(req, KASM, kasm));
-
-  // Governance. The access mode applies to every engine. EVERYTHING in this
-  // list is a SEPARATE server the operator hosts, so this server's
-  // approved-destination policy cannot govern a byte of its traffic — which is
-  // why they are one switch, off by default, and labelled as ungoverned in the
-  // console. The engines that run INSIDE this site (Ultraviolet, Scramjet,
-  // GUST, HORIZON) are not here precisely because they do pass
-  // through the tunnel and are governed.
-  let list = extra.length ? [...engines, ...extra] : engines;
-  const mode = PROXY_POLICY.accessMode;
-  if (mode === 'disabled' || (mode === 'staff' && !(await staffProxyAllowed(req.headers, req.ip)))) list = [];
-  if (!(!!CONTROL.proxy && CONTROL.proxy.engineEnabled('external'))) list = [];
-  res.json({ engines: list });
-});
-
-// Kasm reachability, cached AND de-duplicated.
-//
-// /api/proxies is unauthenticated, and this probe opens a real TLS connection
-// to somebody else's machine. Without both guards a page refresh loop turns
-// ZoFHub into a small traffic amplifier pointed at the operator's own server.
-// The cache alone is not enough: N requests arriving inside one cold window
-// each start their own probe, so concurrent callers share a single in-flight
-// promise as well.
-const kasmCache = { at: 0, data: null, inflight: null };
-const KASM_PROBE_TTL_MS = 10_000;
-function kasmStatus() {
-  if (KASM.mode !== 'external') return Promise.resolve(null);
-  const now = Date.now();
-  if (kasmCache.data && now - kasmCache.at < KASM_PROBE_TTL_MS) return Promise.resolve(kasmCache.data);
-  if (kasmCache.inflight) return kasmCache.inflight;
-  kasmCache.inflight = kasmProbe(KASM.url)
-    .then((r) => { kasmCache.data = r; kasmCache.at = Date.now(); return r; })
-    // A probe that throws must not poison the cache into permanent "offline";
-    // report it down for this window and try again on the next one.
-    .catch(() => ({ up: false, reason: 'probe-failed' }))
-    .finally(() => { kasmCache.inflight = null; });
-  return kasmCache.inflight;
-}
-
 // ── THE SERVER-SIDE AI DIAGNOSTICS AND THE KEY ENDPOINT ARE GONE ─────────
 //
 // Removed with the server-side pipeline they described:
@@ -2753,13 +2221,7 @@ const LIMITS = createLimiterSet({
   recSeen:         { capacity: 40,  refillMs: 1_000 },
   forYou:          { capacity: 30,  refillMs: 2_000 },
   proxyDiag:       { capacity: 10,  refillMs: 3_000 },
-  // Rewarded proxy access ("Boost", lib/reward-routes.mjs). Sessions are rare,
-  // human-paced claims; callbacks are a provider's own postback rate, which a
-  // real integration may burst more than the mock ever will.
-  rewardSession:     { capacity: 6,  refillMs: 15_000 },
-  rewardCallback:    { capacity: 30, refillMs: 2_000 },
-  rewardEntitlement: { capacity: 20, refillMs: 3_000 },
-  // Telemetry is fire-and-forget and bursty by nature: one page load can emit
+// Telemetry is fire-and-forget and bursty by nature: one page load can emit
   // several vitals at once (LCP, CLS, INP, FCP, TTFB). Generous burst, slow
   // refill — enough for honest reporting, not enough to spin a counter.
   telemetry:       { capacity: 20,  refillMs: 3_000 },
@@ -3808,8 +3270,7 @@ async function resolveAdmin(req) {
 /**
  * The principal a validated session represents. A staff session carries its
  * account's role (public.admin_users); the owner's carries none and resolves to
- * `owner` in lib/admin-rbac.mjs. Used by resolveAdmin() and by the proxy's
- * staff-only access mode, so both reach the same answer for the same cookie.
+ * `owner` in lib/admin-rbac.mjs. Used by resolveAdmin().
  */
 function principalFromSession(sess) {
   if (sess.user) {
@@ -3834,16 +3295,10 @@ const { singboxTelemetry } = await import('./lib/singbox.mjs');
 // fails soft: with it unset every call below no-ops and the site is unchanged.
 const { startSingbox, stopSingbox, singboxProcessStatus, singboxManaged } =
   await import('./lib/singbox-supervisor.mjs');
-// The proxy's EGRESS path. This is the piece that puts sing-box in the site's
-// real traffic flow: every TCP stream the Wisp tunnel opens is dialled through
-// sing-box's loopback SOCKS inbound, falling back to a direct connection (and
-// saying so) when the daemon is not answering.
-const { createSingboxTCPSocket, egressStats, singboxEgressEnabled, waitForSingbox } =
-  await import('./lib/singbox-socket.mjs');
-// One class for the whole process — it reads the environment per connect(), so
-// building it once costs nothing and changes nothing about liveness.
-const SingboxTCPSocket = createSingboxTCPSocket();
-
+// The EGRESS path. Server-side fetches (lib/safe-fetch.mjs) are dialled through sing-box's
+// loopback SOCKS inbound, and are REFUSED when the daemon is not answering: there is no direct
+// fallback (lib/egress-policy.mjs). egressStats() reports how that is going.
+const { egressStats, singboxEgressEnabled, waitForSingbox } = await import('./lib/singbox-socket.mjs');
 /**
  * Authorise an already-authenticated admin for one permission.
  *
@@ -4262,7 +3717,6 @@ app.get('/api/admin/dashboard', async (req, res) => {
     liveNow: presenceSnapshot().total,
     peakConcurrent: usage.usageSnapshot().peakConcurrent,
     plays: { lifetime: _liveTotalPlays, tracked: playCounts.size },
-    proxy: proxyStatus,
   };
   try { out.supabase = await cachedSupabaseHealth(); }
   catch { out.supabase = { configured: isSupabaseConfigured(), connected: false }; }
@@ -4313,13 +3767,7 @@ app.get('/api/admin/dashboard', async (req, res) => {
       };
     } catch { out.staff = null; }
   }
-  out.proxyControl = {
-    accessMode: PROXY_POLICY.accessMode,
-    approvedTargets: CONTROL.proxy ? CONTROL.proxy.snapshot().targets.approved : 0,
-    liveSessions: PROXY_SESSIONS.size,
-    refusals: { ...PROXY_REFUSALS },
-  };
-  out.rateLimited = { admin: ADMIN_429, wispGlobal: wispStats.rejected, wispPerClient: wispStats.rejectedPerIp };
+  out.rateLimited = { admin: ADMIN_429 };
   out.build = { version: PKG_VERSION, commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 12) || null };
   res.json(out);
 });
@@ -4528,30 +3976,22 @@ app.get('/api/admin/quality', (req, res) => {
   });
 });
 
-// ── GET /api/admin/proxy ───────────────────────────────────────────────────
-// Telemetry for the proxy layer THIS SERVER ACTUALLY RUNS: the Wisp tunnel and
-// the engines mounted by proxy-engine/mount.mjs (Ultraviolet, Scramjet, GUST,
-// HORIZON, bare-mux, epoxy, libcurl).
+// ── GET /api/admin/egress ──────────────────────────────────────────────
+// Where this server's outbound traffic goes. Every connection made on a visitor's behalf crosses
+// sing-box or is refused (lib/egress-policy.mjs); this answers "is that actually happening?".
 //
-// Everything reported here is measured in-process. There is no external proxy
-// daemon to scrape and no second service to be out of sync with, so the numbers
-// cannot disagree with what the server is doing — they ARE what the server is
-// doing.
-app.get('/api/admin/proxy', async (req, res) => {
+// Everything reported here is measured in-process or read from the loopback daemon, so the numbers
+// cannot disagree with what the server is doing.
+app.get('/api/admin/egress', async (req, res) => {
   if (!requirePerm(req, res, 'telemetry.read')) return;
   res.setHeader('Cache-Control', 'no-store');
   const mem = process.memoryUsage();
-  // The external sing-box instance, if one is configured. Awaited here rather
-  // than fetched by the client so its loopback API is never exposed to a
-  // browser, and its own timeout (1.5s) bounds this handler. It always resolves.
+  // The sing-box instance, if reachable. Awaited here rather than fetched by the client so its
+  // loopback API is never exposed to a browser, and its own timeout (1.5s) bounds this handler.
+  // It always resolves.
   const singbox = await singboxTelemetry();
   res.json({
     ok: true,
-    // Which engines mounted at boot. A `false` here is why a given proxy route
-    // 404s, and it is otherwise only visible in the boot log.
-    engines: proxyStatus,
-    tunnels: wispSnapshot(),
-    egress: egressReport(),
     // sing-box (GPL-3.0, its own process — see docs/proxy/SINGBOX.md).
     //   `singbox`        what the daemon's API reports. `reachable:false` is the
     //                    honest default; nothing fabricates traffic for a daemon
@@ -4563,10 +4003,8 @@ app.get('/api/admin/proxy', async (req, res) => {
     singbox,
     singboxProcess: singboxProcessStatus(),
     //   `singboxEgress`  the answer to "is it actually carrying our traffic?",
-    //                    which neither of the two above can give. A daemon can
-    //                    be up and reachable while every stream quietly falls
-    //                    back to direct, so the share is reported explicitly
-    //                    rather than inferred from liveness.
+    //                    which neither of the two above can give: fetches via the
+    //                    daemon, and fetches REFUSED because it could not carry them.
     singboxEgress: egressStats(),
     //   `egressGuard`    the wall under all of it: direct connections that were
     //                    REFUSED because they were neither loopback nor a named
@@ -4574,14 +4012,6 @@ app.get('/api/admin/proxy', async (req, res) => {
     //                    trying to bypass sing-box — `lastBlocked.origin` says
     //                    which file asked, which is where the fix goes.
     egressGuard: egressGuardStats(),
-    // Governance: approved-destination decisions by reason, live sessions,
-    // pre-tunnel refusals and the effective policy. Counts only.
-    governance: {
-      policy: { ...PROXY_POLICY },
-      decisions: PROXY_GOVERNOR.stats().decisions,
-      sessions: PROXY_SESSIONS.stats(),
-      refusals: { ...PROXY_REFUSALS },
-    },
     process: {
       uptimeSec: Math.round(process.uptime()),
       rssMb: Math.round(mem.rss / 1048576),
@@ -4592,7 +4022,6 @@ app.get('/api/admin/proxy', async (req, res) => {
     ts: new Date().toISOString(),
   });
 });
-
 // ── GET /api/admin/games ───────────────────────────────────────────────────
 // Search the live catalog. Reads the in-memory catalog rather than the database
 // so a mistyped filter cannot become an expensive scan.
@@ -4749,50 +4178,6 @@ app.post('/api/admin/recommendations/:id/:action', async (req, res) => {
 // shorter than 12 characters so this cannot become a mass-delete by "a".
 //
 // Admin-gated: it is a delete, and the matching text is somebody's content.
-// --- POST /api/admin/masqr/key -----------------------------------------------
-// Mint a proxy access key. Without this the gate would be a feature with no way
-// to use it: keys are HMAC-signed rather than stored, so there is nothing to
-// insert into a table by hand and no way to produce one except by signing.
-//
-// Permission + CSRF like every other admin write: a key is a capability, and a
-// cross-site POST from a logged-in admin's browser must not be able to mint one.
-// The key is returned ONCE, in the response body, and is never logged or stored
-// — there is nowhere to look it up again, by design.
-app.post('/api/admin/masqr/key', async (req, res) => {
-  if (!requirePerm(req, res, 'security.write')) return;
-  if (!requireAdminCsrf(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
-
-  if (!MASQR.enabled) {
-    return res.status(503).json({
-      ok: false,
-      error: MASQR.mode === 'misconfigured'
-        ? 'The proxy gate is misconfigured — see the [masqr] warning in the server log.'
-        : 'The proxy gate is off. Set MASQR_ENABLED=1 and MASQR_SECRET to use it.',
-    });
-  }
-
-  // An operator may want a short-lived key for one class period. Bounded on
-  // both ends: zero would mint something already expired, and "forever" defeats
-  // the point of keys that age out after a leak.
-  const days = Number(req.body?.days);
-  const ttlDays = Number.isFinite(days) && days > 0 ? Math.min(days, 365) : MASQR.ttlDays;
-  const key = mintMasqrKey(MASQR.secret, { ttlMs: ttlDays * 24 * 60 * 60 * 1000 });
-  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
-
-  res.json({
-    ok: true,
-    key,
-    expires,
-    ttlDays,
-    // The shape the key is meant to travel in. Built from the request so it is
-    // correct on whichever mirror the admin happens to be signed in to.
-    link: `${req.protocol}://${req.get('host')}/browser?k=${encodeURIComponent(key)}`,
-    note: 'Shown once. It is signed, not stored — there is no way to look it up again. '
-      + 'Rotating MASQR_SECRET invalidates every key at once.',
-  });
-});
-
 app.post('/api/admin/ai-feedback/forget', async (req, res) => {
   // Deleting somebody's content is a state change with a permission AND a CSRF
   // requirement, like every other admin write here. adminGate alone would have
@@ -5011,9 +4396,6 @@ app.get('/api/admin/ads', (req, res) => {
   res.set('Cache-Control', 'private, no-store');
   res.json({
     ...adminAdConfig(AD_CONFIG),
-    // Surfaces are part of the compliance story an admin needs to see: it is
-    // the answer to "are we running ads on the proxy?" (no, structurally).
-    surfaces: { adsAllowedOn: 'native pages only', proxyExcluded: true },
     cspOrigins: AD_ORIGINS.length,
     // Changing providers means changing environment variables and restarting —
     // deliberately NOT a runtime write. A mutable ad config endpoint is a
@@ -5024,7 +4406,6 @@ app.get('/api/admin/ads', (req, res) => {
       + 'CLICKADU_PREROLL_VAST) in the host environment and redeploy. Regional variants add __<REGION>. '
       + 'See docs/features/ADVERTISING.md.',
     regions: GEO.regionIds,
-    adblockGate: adblockGateOn(),
   });
 });
 
@@ -5092,8 +4473,6 @@ app.get('/api/admin/system', async (req, res) => {
         process.env.NODE_ENV === 'production'
           ? 'refused (403) — production never runs inference on this server'
           : 'loopback clients only — a local-development aid'),
-      flag('Proxy engines', Object.values(proxyStatus || {}).some(Boolean),
-        Object.entries(proxyStatus || {}).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'),
     ],
     // Same list the boot log prints. A warning that lives only in a log nobody
     // tails is a warning that does not exist, so it also lands in the console.
@@ -5398,7 +4777,6 @@ const { createMemoryStore } = await import('./lib/cms-store-memory.mjs');
 const { createSupabaseStore } = await import('./lib/cms-store-supabase.mjs');
 const { createSettingsService } = await import('./lib/settings-service.mjs');
 const { createStaffService } = await import('./lib/staff-service.mjs');
-const { createProxyService } = await import('./lib/proxy-service.mjs');
 const { mountAdminApi } = await import('./lib/admin-api.mjs');
 const { runGdImport, IMPORT_ACTOR: GD_IMPORT_ACTOR } = await import('./lib/gamedistribution-import.mjs');
 const PKG_VERSION = (() => { try { return JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8')).version; } catch { return null; } })();
@@ -5496,7 +4874,6 @@ function controlStatus() {
     schema: CONTROL.schema, storage: CONTROL.store?.kind || null,
     reason: CONTROL.schema === 'ready' ? null : CONTROL.reason,
     settings: CONTROL.settings?.status() || null,
-    proxy: CONTROL.proxy?.status() || null,
     providers: CONTROL.providers.list().map((p) => ({ id: p.id, status: p.status })),
     // The catalog freeze: baseline, what is published against it, and whether an
     // unlock is in force (with the time left on it). Here rather than on its own
@@ -5530,7 +4907,7 @@ async function initControlPlane() {
     store = createMemoryStore({ categories: cats });
     CONTROL.schema = 'memory';
     CONTROL.reason = 'No database is configured: the control plane is running in memory and nothing is saved.';
-    // CONTROL_MEMORY_SEED: a JSON file of settings, proxy destinations and games
+    // CONTROL_MEMORY_SEED: a JSON file of settings and games
     // to start the in-memory control plane with. Honoured ONLY here — with no
     // database configured, where nothing persists — so it can never write to or
     // shadow a real deployment's data. It exists for local development and for
@@ -5540,7 +4917,6 @@ async function initControlPlane() {
       try {
         const seed = JSON.parse(readFileSync(String(process.env.CONTROL_MEMORY_SEED), 'utf8'));
         for (const [k, v] of Object.entries(seed.settings || {})) await store.putSetting(k, v, 'seed');
-        for (const t of seed.targets || []) await store.insertTarget({ ...t, created_by: 'seed' });
         for (const g of seed.games || []) await store.insertGame({ ...g, created_by: 'seed', updated_by: 'seed' });
         console.log(`[control] memory seed loaded from ${process.env.CONTROL_MEMORY_SEED}`);
       } catch (e) { console.warn('[control] CONTROL_MEMORY_SEED ignored:', e.message); }
@@ -5570,24 +4946,7 @@ async function initControlPlane() {
     catch (e) { console.warn('[control] providers could not be read — using the built-in registry:', e.message); }
     CONTROL.staff = createStaffService({ store, hashPassword: adminAuth.hashPassword, verifyPassword: adminAuth.verifyPassword, audit: controlAudit });
   }
-  CONTROL.proxy = createProxyService({ store, governor: PROXY_GOVERNOR, sessions: PROXY_SESSIONS, audit: controlAudit, onPolicy: applyProxyPolicy });
-  await CONTROL.proxy.load();
-  // A reachable proxy with an EMPTY allowlist refuses every destination — the
-  // client shows "Not an approved destination" with NO console error, which
-  // reads to an operator as "the proxy browser is broken / loads nothing". It
-  // isn't: the engines (UV/Scramjet/GUST/HORIZON/Wisp) are fine and the allowlist is doing
-  // its job. Say so once, plainly, so the fix is understood as "approve
-  // destinations", not "debug the service worker". Fires only when the count is
-  // genuinely zero, read AFTER load(), so it can't false-warn a configured box.
-  try {
-    const snap = CONTROL.proxy.snapshot();
-    if (snap.policy.accessMode !== 'disabled' && snap.targets.approved === 0) {
-      console.warn('[control] proxy has 0 approved destinations — it will refuse EVERY site until '
-        + 'some are added (set PROXY_APPROVED_TARGETS, or approve them in the admin console). '
-        + 'The engines are fine; this is the allowlist working as designed.');
-    }
-  } catch { /* snapshot shape guard — never let a status line break init */ }
-  for (const p of [...(CONTROL.settings.status().problems || []), ...(CONTROL.proxy.status().problems || [])]) console.warn(`[control] ${p}`);
+  for (const p of (CONTROL.settings.status().problems || [])) console.warn(`[control] ${p}`);
   console.log(`[control] ${CONTROL.schema}${CONTROL.reason ? ` — ${CONTROL.reason}` : ''}`);
   // A migration applied later is picked up without a restart.
   if (['missing', 'unreachable'].includes(CONTROL.schema) && !_controlRetry) {
@@ -5602,36 +4961,13 @@ const ADMIN_API = mountAdminApi(app, {
     allow: (scope, key) => { const ok = LIMITS.allow(scope, key, { rawKey: true }); if (!ok) ADMIN_429++; return ok; },
     retryAfterSec: (scope, key) => LIMITS.retryAfterSec(scope, key, { rawKey: true }),
   },
-  services: { cms: () => CONTROL.cms, staff: () => CONTROL.staff, settings: () => CONTROL.settings, proxy: () => CONTROL.proxy },
+  services: { cms: () => CONTROL.cms, staff: () => CONTROL.staff, settings: () => CONTROL.settings },
   unavailableReason: () => CONTROL.reason || 'The control plane is not ready.',
   auditDenied: (req, perm, reason) => auditAction(req, 'rbac.denied', perm, 'denied', { role: rbac.roleForPrincipal(req.admin), via: req.admin?.via, reason }),
   status: controlStatus,
   gdImport: { start: startGdImport, status: gdImportStatus },
-  proxyOverview: () => proxyControlOverview(),
   log: (...a) => console.warn(...a),
 });
-
-// Rewarded proxy access ("Boost"). Mounted only when REWARDS_ENABLED is set —
-// a deployment that never opts in has none of these routes registered at
-// all, the same posture lib/ai-guard.mjs's production check and the ad
-// providers' *_ENABLED flags both use. The admin console's live kill-switch
-// (rewards.enabled, lib/settings-registry.mjs) is checked on every request
-// inside mountRewardApi(), so turning it off there takes effect immediately
-// without a restart; this env flag only controls whether the routes exist.
-let REWARD_API = null;
-if (REWARDS_ENABLED_ENV) {
-  const { mountRewardApi, rewardApiEnabled } = await import('./lib/reward-routes.mjs');
-  REWARD_API = mountRewardApi(app, {
-    enabled: () => rewardApiEnabled(process.env, (k) => CONTROL.settings?.get(k)),
-    getSupabaseAdmin,
-    limits: { allow: (scope, ip) => LIMITS.allow(scope, ip) },
-    clientIp: (req) => resolveClientIp(req, req.socket, TRUST_PROXY_FN),
-    clientTag: (req) => (adminAuth.hashIp(resolveClientIp(req, req.socket, TRUST_PROXY_FN)) || '').slice(0, 8) || null,
-    securityEvent: (fields) => adminAuth.securityEvent(getSupabaseAdmin(), fields),
-    entitlementCache: REWARD_ENTITLEMENT_CACHE,
-  });
-  console.log(`[rewards] mounted (${REWARD_API.routes.length} routes${REWARD_API.mockMounted ? ', mock provider active — dev/test only' : ''})`);
-}
 
 const ADMIN_ASSETS = {
   'admin.css':         { file: 'admin.css',         type: 'text/css; charset=utf-8',        public: true },
@@ -7159,9 +6495,6 @@ app.get('/api/proxy/diag', async (req, res) => {
   // 2) Asset proxy — does our /asset path succeed locally?  (Internal sanity check.)
   report.checks.assetProxy = { ok: !isInternalHost(target.hostname) && target.protocol === 'https:' };
 
-  // 3) Proxy stack availability
-  report.checks.proxies = proxyStatus;
-
   report.ok = !!report.checks.direct?.ok;
   res.json(report);
 });
@@ -7277,7 +6610,7 @@ app.get('/play/:gameSlug', async (req, res) => {
   const proxySrc = `/embed/${game.slug}`;
 
   // ── Load-path routing ────────────────────────────────────────────────────
-  // ZoFHub is always a proxy site (PROXY_ENABLED is always true), so games load
+  // Games load
   // SAME-ORIGIN through /embed by default — a network filter only ever sees THIS
   // domain, never the game CDN. Routing is per-HOST because a few publishers need
   // special handling:
@@ -7327,7 +6660,7 @@ app.get('/play/:gameSlug', async (req, res) => {
   if (req.query.direct === '1')                 iframeSrc = dynamicEmbedUrl;
   else if (req.query.proxy === '1')             iframeSrc = proxySrc;
   else if (isY8 || isHtmlGames || isFamobi)     iframeSrc = proxySrc;      // fit CSS + same-origin relative-asset resolution + EMBED_GUARD (no new-tab) on every build
-  else if (PROXY_ENABLED && !isSdkDirectOnly)   iframeSrc = proxySrc;      // unblock build → same-origin everything safe to proxy
+  else if (!isSdkDirectOnly)                    iframeSrc = proxySrc;      // unblock build → same-origin everything safe to proxy
   else                                          iframeSrc = dynamicEmbedUrl;
 
   // Preconnect to the publisher origin so the browser opens TCP+TLS in parallel
@@ -7389,15 +6722,15 @@ app.get('/play/:gameSlug', async (req, res) => {
 
 // ========================================================================
 // /ads.txt — IAB authorized-digital-sellers declaration.
-// ZoFHub is a proxy site and uses NO Google AdSense. It monetizes via the six
-// proxy-friendly networks in lib/ad-providers.mjs. Most of those
+// ZoFHub uses NO Google AdSense. It monetizes via the six ad networks in
+// lib/ad-providers.mjs. Most of those
 // use popunder/push formats that need no ads.txt entry; if a network DOES give
 // you one, add it via the ADS_TXT_EXTRA env var (\n-separated). In-game ads run
 // under each game publisher's own domain/ads.txt, not here.
 app.get('/ads.txt', (req, res) => {
   const lines = [
     '# ads.txt — Authorized Digital Sellers (IAB Tech Lab).',
-    '# ZoFHub uses proxy-friendly ad networks, not Google AdSense.',
+    '# ZoFHub does not use Google AdSense.',
     '# In-game ads run under each game publisher\'s own domain/ads.txt, not here.',
   ];
   const extra = (process.env.ADS_TXT_EXTRA || '').replace(/\\n/g, '\n').trim();
@@ -7406,9 +6739,8 @@ app.get('/ads.txt', (req, res) => {
 });
 
 // ========================================================================
-// /robots.txt — keep proxy/utility + internal routes out of search indexing.
-// The web-proxy pages can get a domain classified as a proxy/anonymizer, and the
-// internal API/embed/asset routes shouldn't be crawled — but the games/content
+// /robots.txt — keep utility + internal routes out of search indexing.
+// The internal API/embed/asset routes shouldn't be crawled — but the games/content
 // pages stay fully crawlable (and the sitemap is advertised) for SEO.
 function requestOrigin(req) {
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
@@ -7423,26 +6755,9 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /api/',
     'Disallow: /embed/',
     'Disallow: /asset',
-    'Disallow: /browser',
-    'Disallow: /gust',
-    'Disallow: /proxy',
-    'Disallow: /horizon',
-    'Disallow: /uv/',
-    'Disallow: /scram/',
-    'Disallow: /epoxy/',
-    'Disallow: /baremux/',
-    'Disallow: /libcurl/',
-    'Disallow: /wisp/',
-    // /licenses, /licenses/* and /licenses.json are DELIBERATELY crawlable.
-    // They carry the AGPL-3.0 §13 source offer and the §5 modification notice.
-    // The proxy engine PATHS above are disallowed (they are machine assets that
-    // can get a domain classified as an anonymizer), but the license and source
-    // offer for that same code must stay openly reachable. Do not add a
-    // Disallow for /licenses.
-    'Allow: /licenses',
-  ];
+];
   // Advertise the sitemap so search engines discover the games catalog (the
-  // proxy routes above are already disallowed, so only content pages get crawled).
+  // internal routes above are already disallowed, so only content pages get crawled).
   lines.push('', `Sitemap: ${requestOrigin(req)}/sitemap.xml`);
   res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(lines.join('\n') + '\n');
 });
@@ -7473,10 +6788,6 @@ app.get('/sitemap.xml', (req, res) => {
   add('/donate', '0.3', 'monthly');
   add('/leaderboard', '0.4', 'daily');
   add('/ai', '0.5', 'monthly');
-  // The copyleft source offer. Listed so it is independently discoverable even
-  // if the footer link is ever lost in a redesign — AGPL §13 compliance should
-  // not depend on one nav element surviving.
-  add('/licenses', '0.4', 'monthly');
   const cats = new Set();
   for (const g of CATALOG.games) { const c = (g.category || '').toLowerCase(); if (c) cats.add(c); }
   for (const c of cats) add(`/category/${encodeURIComponent(c)}`, '0.7', 'weekly');
@@ -7495,9 +6806,6 @@ app.get('/favicon.ico', (req, res) => {
 
 app.get('/',         (req, res) => res.sendFile(join(PUBLIC_DIR, 'index.html')));
 app.get(['/ai', '/pollichat'], (req, res) => res.sendFile(join(PUBLIC_DIR, 'pollichat.html')));
-app.get('/browser',  (req, res) => res.sendFile(join(PUBLIC_DIR, 'browser.html')));
-// The proxy engine routes (/horizon, /uv/, and the shared transport) are
-// registered by proxy-engine/mount.mjs, so this file serves no AGPL asset.
 app.get('/community',(req, res) => res.sendFile(join(PUBLIC_DIR, 'community.html')));
 
 // Donations. The dialog (donate.js) is the fast path from any page; this is the
@@ -7516,7 +6824,7 @@ app.get('/leaderboard', (req, res) => res.sendFile(join(PUBLIC_DIR, 'leaderboard
 // and Famobi through the embed proxy (see injectGdReferrer and the isY8 branch
 // below it), and the supplied dataset's embedding policy forbids proxying,
 // mirroring or modifying a GameFlare embed. Reusing it would break that rule
-// silently the moment PROXY_ENABLED is on, so GameFlare gets its own player
+// silently, so GameFlare gets its own player
 // whose iframe src is the exact embed_url and nothing else.
 //
 // Both routes serve static HTML; the data arrives from /api/gameflare/games.
@@ -7730,125 +7038,6 @@ for (const [route, file] of Object.entries(LEGAL_PAGES)) {
 }
 
 // ========================================================================
-// COPYLEFT COMPLIANCE — /licenses, /licenses/:id, /licenses.json
-// ------------------------------------------------------------------------
-// ZoFHub serves two AGPL-3.0 proxy engines and one LGPL-3.0 library to every
-// visitor who opens /browser or /horizon. Naming them on /credits is attribution,
-// not compliance. These routes discharge the actual obligations:
-//
-//   AGPL §4  — the license text must accompany the work. Before this, every
-//              /uv/LICENSE, … returned 404: the site served the
-//              code and withheld the license.
-//   AGPL §13 — a user interacting over a network must be offered the
-//              Corresponding Source of the version they are running. That is
-//              what /licenses.json is: a machine-readable written offer,
-//              pinned to the versions actually installed.
-//   AGPL §5  — a MODIFIED work must carry prominent notices of the change and
-//              its date. HORIZON is modified (its Wisp target was repointed at
-//              our own /wisp/ and its third-party relay pool removed), so its
-//              entry states that, dates it, and links the running modified file
-//              rather than only upstream.
-//   LGPL §4  — same notice/text requirement for libcurl.js.
-//
-// Deliberately NOT behind the legal-page templating: these are verbatim license
-// texts and must be served byte-for-byte, with no {{token}} substitution.
-// ========================================================================
-const { getComponents, getLicenseText, getManifest } = await import('./lib/licenses.mjs');
-
-// Machine-readable written offer. JSON so a compliance checker (or a human with
-// curl) can enumerate every served component, its exact version, and where to
-// get its source — without scraping HTML.
-app.get('/licenses.json', (req, res) => {
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.json(getManifest(requestOrigin(req), contactEmail));
-});
-
-// Verbatim license text, e.g. /licenses/ultraviolet.
-// text/plain so browsers display it rather than download it, and so no markup
-// can alter a legal document.
-app.get('/licenses/:id', (req, res) => {
-  const text = getLicenseText(String(req.params.id).toLowerCase());
-  if (!text) return send404(req, res);
-  res.type('text/plain; charset=utf-8')
-     .set('Cache-Control', 'public, max-age=86400')
-     .send(text);
-});
-
-// Human-readable index.
-//
-// The PAGE SHELL is legal/licenses.html — a real file carrying the exact same
-// head, header, footer and script tags as every other legal page, so /licenses
-// is identical to /privacy, /terms and /credits BY CONSTRUCTION rather than by
-// someone remembering to keep a template string in sync.
-//
-// That drift already happened once: this page previously lived as an inline
-// template here and was missing the Google Fonts <link>s, so it rendered in a
-// fallback system font while every other page used Inter/Lilita One. Moving the
-// shell into legal/ makes that class of bug impossible — the page is now built
-// from the same file pattern, loaded through the same renderLegal() templating,
-// as its four siblings.
-//
-// Only the COMPONENT TABLE is generated, from the same getComponents() the JSON
-// manifest uses, so the human page and the machine-readable offer can never
-// disagree about versions or modification status.
-const LICENSES_PAGE = (() => {
-  const rows = getComponents().map(c => {
-    // Vendored components (HORIZON) have no npm version — label them as such
-    // rather than printing an empty or bogus "v".
-    const ver = c.version
-      ? ` <span class="lic-ver">v${htmlEscape(c.version)}</span>`
-      : ' <span class="lic-ver">vendored in-repo</span>';
-    const modBadge = c.modified ? ' <span class="lic-mod">MODIFIED</span>' : '';
-    // Copyleft gets the same amber emphasis credits.html uses, so the two pages
-    // read as one system instead of two different designs.
-    const copyleft = /AGPL|LGPL|GPL/i.test(c.spdx) ? ' lic-copyleft' : '';
-    const licCell = c.licenseAvailable
-      ? `<a class="lic-spdx${copyleft}" href="/licenses/${htmlEscape(c.id)}">${htmlEscape(c.spdx)}</a>`
-      : `<span class="lic-spdx${copyleft}">${htmlEscape(c.spdx)}</span>`;
-    const modDetail = c.modified ? `
-              <div class="lic-changes">
-                <strong>Changed by ZoFHub on ${htmlEscape(c.modifiedOn)}:</strong>
-                <ul>${c.modifications.map(m => `<li>${htmlEscape(m)}</li>`).join('')}</ul>
-                <p>Corresponding Source of the running, modified version:
-                  <a href="${htmlEscape(c.modifiedSourceAt)}">${htmlEscape(c.modifiedSourceAt)}</a></p>
-              </div>` : '';
-    return `            <tr>
-              <td><a href="${htmlEscape(c.repo)}" target="_blank" rel="noopener">${htmlEscape(c.name)}</a>${ver}${modBadge}
-                <div class="lic-role">${htmlEscape(c.role)}</div>${modDetail}</td>
-              <td>${licCell}</td>
-              <td><a href="${htmlEscape(c.repo)}" target="_blank" rel="noopener">source</a></td>
-            </tr>`;
-  }).join('\n');
-
-  const table = `<div class="lic-wrap">
-        <table class="lic-table">
-          <thead><tr><th>Component</th><th>License</th><th>Source</th></tr></thead>
-          <tbody>
-${rows}
-          </tbody>
-        </table>
-      </div>`;
-
-  // renderLegal() applies the same {{CONTACT}} / {{SITE_URL}} substitution every
-  // other legal page receives; the generated table is injected on top of it.
-  //
-  // GLOBAL regex, not a plain string. A string .replace() substitutes only the
-  // FIRST match, so any earlier mention of the placeholder — even inside an HTML
-  // comment — would swallow the table and leave the real placeholder rendered
-  // raw on the page. That happened; this makes it structurally impossible.
-  const html = renderLegal('licenses.html').replace(/\{\{COMPONENT_TABLE\}\}/g, table);
-  // Fail loudly at BOOT rather than silently serving a broken page to visitors.
-  if (html.includes('{{')) {
-    console.warn('[licenses] unsubstituted {{token}} left in the rendered page — check legal/licenses.html');
-  }
-  return html;
-})();
-
-app.get('/licenses', (req, res) => {
-  res.set('Cache-Control', 'public, max-age=3600').type('html').send(LICENSES_PAGE);
-});
-
-// ========================================================================
 // /category/:catSlug — server-templates a per-category page
 // (each is its own URL — DOM only ever holds one page of <=60 tiles)
 // ========================================================================
@@ -7937,275 +7126,8 @@ app.use((err, req, res, _next) => {
 // ========================================================================
 httpServer.on('request', app);
 
-// ── Wisp tunnel lifecycle ──────────────────────────────────────────────────
-// An upgraded socket leaves Express entirely: no route, no res.end(), none of
-// the timeouts that reclaim an ordinary request. It lives until somebody closes
-// it — and the somebody is usually a browser tab that was closed on a laptop
-// that went to sleep, which sends no FIN at all. Those sockets are invisible
-// and permanent, and each one pins its Wisp stream buffers.
-//
-// Three mechanisms, each covering what the others cannot:
-//
-//   TCP KEEPALIVE reclaims sockets whose peer is GONE (sleeping laptop, dropped
-//   Wi-Fi, killed tab). This is the one that matters, because it distinguishes
-//   "dead" from "quiet" at the OS level — a long-lived tunnel with no traffic is
-//   perfectly healthy and must not be killed for being idle.
-//
-//   AN IDLE TIMEOUT reclaims sockets that are merely silent for far longer than
-//   any live session plausibly is. Ten minutes of literally zero bytes on a
-//   proxy tunnel is an abandoned tab, not a patient user.
-//
-//   A CONCURRENCY CAP keeps a burst from becoming an OOM. Refusing the 513th
-//   tunnel costs one visitor a retry; accepting it can cost every visitor the
-//   process.
-let WISP_IDLE_MS = 10 * 60 * 1000;     // no bytes either way for this long → reclaim (policy: idleMinutes)
-const WISP_KEEPALIVE_MS = 30 * 1000;   // probe a silent peer this often
-let WISP_MAX_TUNNELS = 512;            // hard ceiling on concurrent upgrades (policy: maxTunnels)
-const wispSockets = new Set();
-
-// ── Per-client fairness cap ──────────────────────────────────────────────
-// The global cap above stops the process being OOM-killed, but it does nothing
-// about FAIRNESS: one client — a runaway tab reconnecting in a loop, a script,
-// a leak on the visitor's own end — can open hundreds of tunnels and consume
-// the whole pool, so the 512th refusal lands on an innocent bystander while the
-// offender holds 500 sockets. That is the "single-user stream leak crashes the
-// core" case. This bounds any one client to a slice of the pool.
-//
-// The key is the client address, resolved exactly as req.ip is (see
-// wispClientKey below). This proxy is anonymous — there is no per-user token
-// to key on. It is a coarse key (a shared NAT counts as one client), which is
-// why the per-IP cap is generous relative to the global one: it exists to stop
-// a single runaway, not to ration normal use.
-// WISP_MAX_PER_IP in the environment is a ceiling; the console's policy
-// (maxPerClient) can only lower it (applyProxyPolicy).
-const WISP_ENV_MAX_PER_IP = (() => {
-  const raw = Number(process.env.WISP_MAX_PER_IP);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : null;
-})();
-let WISP_MAX_PER_IP = WISP_ENV_MAX_PER_IP || 32;
-const wispPerIp = new Map();           // ipKey -> live tunnel count
-
-// The raw upgrade `req` is not an Express req, so req.ip is unavailable here.
-//
-// This used to take the LEFT-MOST X-Forwarded-For entry, which is text the
-// client writes: a runaway or hostile client could present a new "address"
-// on every upgrade and never hit the per-client cap at all. It now resolves the
-// address with Express's own compiled trust function (lib/trust-proxy.mjs), so
-// the upgrade path believes exactly the hops req.ip believes — and IPv6 is
-// keyed on its /64, like every other budget.
-function wispClientKey(req, socket) {
-  return clientKeyOf(resolveClientIp(req, socket, TRUST_PROXY_FN));
-}
-
-// Telemetry for the admin console. Cheap by construction: `opened`, `closed`
-// and `rejected` are three integers, and the byte totals come from
-// socket.bytesRead / bytesWritten, which Node already maintains for every
-// socket — nothing here wraps a stream or copies a buffer, so measuring the
-// tunnel costs the tunnel nothing.
-//
-// Totals are accumulated ON CLOSE, because a socket's counters are only final
-// once it ends. Live traffic is summed across the open set at read time, so
-// `bytesIn` in the API is (settled + in-flight) rather than a figure that jumps
-// when a long download finally finishes.
-// `rejected` = refused at the global cap; `rejectedPerIp` = refused at the
-// per-client cap. Separated because they mean different things: the first says
-// "raise capacity", the second says "one client is misbehaving" — and a
-// dashboard that adds them together can never tell an operator which.
-const wispStats = { opened: 0, closed: 0, rejected: 0, rejectedPerIp: 0, peak: 0, bytesIn: 0, bytesOut: 0 };
-
-/** A point-in-time view of the tunnel layer, for /api/admin/proxy. */
-function wispSnapshot() {
-  let liveIn = 0, liveOut = 0;
-  for (const sock of wispSockets) {
-    liveIn += sock.bytesRead || 0;
-    liveOut += sock.bytesWritten || 0;
-  }
-  // The busiest single client, so a leak shows up as a number an operator can
-  // act on rather than being hidden inside the aggregate live count.
-  let topClient = 0;
-  for (const n of wispPerIp.values()) if (n > topClient) topClient = n;
-  return {
-    live: wispSockets.size,
-    capacity: WISP_MAX_TUNNELS,
-    // What an operator actually wants to know: how close to refusing are we?
-    saturationPct: Math.round((wispSockets.size / WISP_MAX_TUNNELS) * 1000) / 10,
-    peak: wispStats.peak,
-    opened: wispStats.opened,
-    closed: wispStats.closed,
-    // Non-zero means the cap is being hit and visitors are being turned away.
-    rejected: wispStats.rejected,
-    rejectedPerIp: wispStats.rejectedPerIp,
-    perIpCap: WISP_MAX_PER_IP,
-    distinctClients: wispPerIp.size,
-    topClientTunnels: topClient,
-    bytesIn: wispStats.bytesIn + liveIn,
-    bytesOut: wispStats.bytesOut + liveOut,
-    idleTimeoutMs: WISP_IDLE_MS,
-    keepAliveMs: WISP_KEEPALIVE_MS,
-  };
-}
-
-// The Origin a browser sends on a WebSocket upgrade must be this site. Without
-// the check any other website could open tunnels from its visitors' browsers
-// through this server. A request with no Origin is not a browser (browsers
-// always send one) and is left to the other checks.
-const PROXY_EXTRA_ORIGINS = new Set(String(process.env.PROXY_ALLOWED_ORIGINS || '')
-  .split(',').map((o) => o.trim().toLowerCase()).filter(Boolean));
-function upgradeOriginOk(req) {
-  const origin = req.headers.origin;
-  if (!origin) return true;
-  let host;
-  try { host = new URL(origin).host.toLowerCase(); } catch { return false; }
-  const own = String(req.headers.host || '').toLowerCase();
-  // X-Forwarded-Host is believed only when a proxy in front is trusted at all
-  // (TRUST_PROXY); with none, it is text the client wrote.
-  const fwd = TRUST_PROXY.value && req.headers['x-forwarded-host']
-    ? String(req.headers['x-forwarded-host']).split(',')[0].trim().toLowerCase() : '';
-  return host === own || (!!fwd && host === fwd) || PROXY_EXTRA_ORIGINS.has(String(origin).toLowerCase());
-}
-
-function refuseUpgrade(socket, status, text) {
-  // A real HTTP response, not a bare destroy: a client that gets a status can
-  // back off, whereas a silent RST looks like a network fault and is retried
-  // immediately and forever.
-  try { socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); }
-  catch { /* peer already gone */ }
-  socket.destroy();
-}
-
-/**
- * Every /wisp/ upgrade passes through here — every engine, without exception.
- * A second listener for one engine used to route straight into the tunnel,
- * skipping the global cap, the per-client cap and the idle timeout. One handler
- * for all of them is what makes "the same caps" true rather than aspirational.
- */
-async function handleProxyUpgrade(req, socket, head) {
-  try {
-    if (CONTROL.settings?.get('site.maintenance')?.enabled) { PROXY_REFUSALS.maintenance++; return refuseUpgrade(socket, 503, 'Service Unavailable'); }
-    if (PROXY_POLICY.accessMode === 'disabled') { PROXY_REFUSALS.disabled++; return refuseUpgrade(socket, 403, 'Forbidden'); }
-    if (!upgradeOriginOk(req)) { PROXY_REFUSALS.origin++; return refuseUpgrade(socket, 403, 'Forbidden'); }
-    if (wispSockets.size >= WISP_MAX_TUNNELS) { wispStats.rejected++; return refuseUpgrade(socket, 503, 'Service Unavailable'); }
-
-    // Per-client cap. Checked BEFORE routing the upgrade so a runaway client is
-    // refused without ever allocating a Wisp stream for it.
-    const ipKey = wispClientKey(req, socket);
-    if ((wispPerIp.get(ipKey) || 0) >= WISP_MAX_PER_IP) { wispStats.rejectedPerIp++; return refuseUpgrade(socket, 429, 'Too Many Requests'); }
-
-    let staff = false;
-    if (PROXY_POLICY.accessMode === 'staff') {
-      staff = await staffProxyAllowed(req.headers, resolveClientIp(req, socket, TRUST_PROXY_FN));
-      if (!staff) { PROXY_REFUSALS.staffOnly++; return refuseUpgrade(socket, 403, 'Forbidden'); }
-      if (socket.destroyed) return;
-    }
-
-    // The session record: counts and timestamps only, never destinations. The
-    // client tag is a short HMAC so the console can see "one client, many
-    // tunnels" without holding an address.
-    const clientTag = (adminAuth.hashIp(ipKey) || '').slice(0, 8) || null;
-
-    // "Boost" tier lookup. REWARDS_ENABLED_ENV is checked first so a
-    // deployment that never turned this on pays no cookie parse and no cache
-    // lookup — tier is always 'free' there, identical to today's behavior.
-    // The id is identity.js's existing persistent player id, carried by the
-    // zh_player_id cookie lib/reward-routes.mjs sets the first time a visitor
-    // claims a Boost session; a visitor who never uses the feature never has
-    // the cookie, so this resolves to 'free' for them too.
-    let tier = 'free';
-    if (REWARDS_ENABLED_ENV) {
-      const playerId = adminAuth.parseCookies(req.headers?.cookie)['zh_player_id'];
-      if (playerId) tier = await REWARD_ENTITLEMENT_CACHE.tierFor(playerId);
-    }
-
-    const sid = PROXY_SESSIONS.open({ clientTag, staff, tier, kill: (reason) => { socket._zhCloseReason = reason; try { socket.destroy(); } catch { /* gone */ } } });
-
-    // Anything that is not exactly `/wisp/` is refused — including the
-    // `/wisp/host:port` wsproxy shape, which wisp-js would otherwise serve with
-    // a socket class of its own choosing, bypassing every check above.
-    if (!routeProxyUpgrade(wisp, req, socket, head, { TCPSocket: guardedSocketClass(sid, tier) })) {
-      PROXY_SESSIONS.close(sid, 'bad_request');
-      return refuseUpgrade(socket, 400, 'Bad Request');
-    }
-
-    wispSockets.add(socket);
-    // Charge this tunnel to its client. The key is stored ON the socket so the
-    // close handler decrements the SAME bucket even if the header is gone by then.
-    socket._wispIpKey = ipKey;
-    wispPerIp.set(ipKey, (wispPerIp.get(ipKey) || 0) + 1);
-    wispStats.opened++;
-    if (wispSockets.size > wispStats.peak) wispStats.peak = wispSockets.size;
-    // Interactive proxy traffic is many small frames; Nagle batches them into
-    // visible input lag.
-    socket.setNoDelay(true);
-    socket.setKeepAlive(true, WISP_KEEPALIVE_MS);
-    socket.setTimeout(WISP_IDLE_MS);
-    // 'timeout' does NOT close the socket on its own — Node only notifies. The
-    // destroy has to be explicit, which is exactly the step that gets forgotten.
-    socket.on('timeout', () => { socket._zhCloseReason = 'idle_timeout'; try { socket.destroy(); } catch { /* raced */ } });
-    // One removal point for every ending: close covers error, timeout-destroy,
-    // FIN and RST alike, so neither the Set nor the per-client map nor the
-    // session table can outlive the sockets they track.
-    socket.once('close', () => {
-      wispSockets.delete(socket);
-      wispStats.closed++;
-      const key = socket._wispIpKey;
-      if (key !== undefined) {
-        const n = (wispPerIp.get(key) || 0) - 1;
-        if (n > 0) wispPerIp.set(key, n);
-        else wispPerIp.delete(key);
-      }
-      wispStats.bytesIn += socket.bytesRead || 0;
-      wispStats.bytesOut += socket.bytesWritten || 0;
-      PROXY_SESSIONS.close(sid, socket._zhCloseReason || 'closed');
-    });
-    socket.on('error', () => { /* handled by close; prevents an unhandled throw */ });
-  } catch (err) {
-    console.error('[zofhub] upgrade error:', err?.message || err);
-    try { socket.destroy(); } catch { /* already gone */ }
-  }
-}
-
-httpServer.on('upgrade', (req, socket, head) => { handleProxyUpgrade(req, socket, head); });
-
-// Session lifetime cap (policy: maxSessionMinutes). Idle sockets are reclaimed
-// by the socket timeout above; this catches the long-lived-but-busy tunnel.
-// A cleanup sweep over live sockets, not a job scheduler.
-setInterval(() => {
-  for (const [id, reason] of PROXY_SESSIONS.expired({ maxSessionMs: PROXY_POLICY.maxSessionMinutes * 60_000 })) {
-    PROXY_SESSIONS.terminate(id, reason);
-  }
-}, 30_000).unref();
-
-/** Everything the Proxy Management view shows, in one response. */
-function proxyControlOverview() {
-  return {
-    policy: { ...PROXY_POLICY },
-    engines: CONTROL.proxy ? CONTROL.proxy.snapshot().engines : [],
-    installed: { ...proxyStatus },
-    status: CONTROL.proxy ? CONTROL.proxy.status() : null,
-    decisions: PROXY_GOVERNOR.stats(),
-    sessions: PROXY_SESSIONS.stats(),
-    refusals: { ...PROXY_REFUSALS },
-    tunnels: wispSnapshot(),
-    egress: egressReport(),
-    ceilings: {
-      maxPerClient: WISP_ENV_MAX_PER_IP, streamsPerTunnel: WISP_ENV_STREAM_CAP,
-      ports: WISP_POLICY.allowedPorts,
-    },
-  };
-}
-
-// Reclaim the whole tunnel set on shutdown. Without this, an orchestrator's
-// SIGTERM waits for the grace period and then SIGKILLs, because every open
-// tunnel is a reason for the server not to close — which turns the memory-based
-// 503 above into a hard kill instead of the clean restart it exists to enable.
-function closeWispTunnels() {
-  for (const sock of wispSockets) { try { sock.destroy(); } catch { /* ignore */ } }
-  wispSockets.clear();
-  wispPerIp.clear();
-}
 for (const sig of ['SIGTERM', 'SIGINT']) {
   process.once(sig, () => {
-    closeWispTunnels();
     // Stop the managed daemon explicitly. node is PID 1 in the container, so a
     // child left running would be orphaned into a zombie rather than reaped.
     // Not awaited — the 5s backstop below bounds the whole shutdown, and the
@@ -8326,21 +7248,12 @@ function startListening(host, isFallback = false) {
     }
   });
   httpServer.listen(PORT, host, () => {
-    const enabled = Object.entries(proxyStatus).filter(([, v]) => v).map(([k]) => k);
     const url = `http://localhost:${PORT}`;
     console.log(`\n  ZoFHub v3 running`);
     console.log(`  → Open in your browser: ${url}`);
     console.log(`  → catalog: ${CATALOG.source}`);
-    console.log(`  → proxy:   ${enabled.length ? enabled.join(', ') : 'offline'}`);
     console.log('  ' + swapStatusLine());
-    // The EFFECTIVE egress policy, read back off the live wisp-js options —
-    // not the intended one. Those differ exactly when something is wrong.
-    console.log('  ' + wispPolicyLine(WISP_POLICY));
-    console.log('  ' + masqrStatusLine(MASQR));
     console.log('  ' + geoStatusLine(GEO));
-    // Printed even when unconfigured, so "where did Kasm go?" is answerable
-    // from the boot banner instead of by reading source.
-    console.log('  ' + kasmStatusLine(KASM));
     printAdminSecurityStatus();
     console.log(`  → client IPs: trust proxy = ${JSON.stringify(TRUST_PROXY.value)} (${TRUST_PROXY.source})`);
     // A baseline already near the health ceiling means the instance will be
@@ -8354,24 +7267,6 @@ function startListening(host, isFallback = false) {
       }
     }
     console.log(`  → press Ctrl+C in this terminal to stop the server\n`);
-    // TLS interception check — after the banner, because it needs a network
-    // round trip and nothing may wait on it. The engines do TLS END TO END from
-    // the browser with their own compiled-in CA roots, so a local product that
-    // terminates 443 breaks EVERY https destination in EVERY engine while
-    // ordinary browsing stays fine. That reads exactly like a broken proxy, so
-    // it gets named here instead of being rediscovered from an engine's generic
-    // error page. See lib/tls-interception.mjs.
-    if (enabled.length) {
-      // Through the daemon, like the traffic it is diagnosing — so it has to wait
-      // for it. (The probe itself refuses a direct connection when none is allowed.)
-      EGRESS_READY.then(() => tlsInterception.detectInterception({ host: 'example.com' })).then((r) => {
-        TLS_INTERCEPTION = r;
-        if (!r.intercepted) return;
-        console.warn('  → WARNING: the proxy will fail on every https site —');
-        for (const line of tlsInterception.describeInterception(r)) console.warn(`             ${line}`);
-        console.warn('');
-      }).catch(() => { /* a detector must never be able to break a boot */ });
-    }
     openInBrowser(url);
   });
 }

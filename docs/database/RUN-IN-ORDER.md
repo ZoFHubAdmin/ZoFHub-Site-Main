@@ -13,16 +13,16 @@ number is your real proof the data saved, and it should climb as you go.
 
 ## 1. Structure first — one file, one paste
 
-Paste **`SCHEMA-ONLY.sql`** and Run. That is the entire schema: all **16**
+Paste **`SCHEMA-ONLY.sql`** and Run. That is the entire schema: all **21**
 migrations concatenated in dependency order. It is idempotent, so re-running is
 safe.
 
 | File | What it is |
 |------|------------|
-| `SCHEMA-ONLY.sql` | **Use this one.** Every schema migration, in order. ~1,900 lines, which the web editor handles fine. |
+| `SCHEMA-ONLY.sql` | **Use this one.** Every schema migration, in order. ~3,300 lines, which the web editor handles fine. |
 | `ALL-IN-ONE.sql` | The same schema **plus the whole catalog** (~6.5 MB). Far too big for the web editor — `psql` restores only. |
 
-### The 17 migrations, in order
+### The 21 migrations, in order
 
 Names and purposes come from the `ORDER` array; this table is a reading aid, not
 a second source of truth.
@@ -43,9 +43,13 @@ a second source of truth.
 | 12 | `scores_restore` | **re-creates `public.scores`** after the retirement in 11 |
 | 13 | `subscriber_emails` | mirror-update list: two columns, anon INSERT only |
 | 14 | `ai_feedback` | AI answer feedback + `prune_ai_feedback()` / `forget_ai_feedback()` |
-| 15 | `control_plane` | the admin control plane: staff accounts, the game lifecycle (**the public read path now requires `status = 'published'`**), providers, categories/tags, typed settings, proxy destinations and policy, a hash-chained audit trail. See [CONTROL-PLANE.md](../admin/CONTROL-PLANE.md) |
-| 16 | `schema_hardening` | audit corrections; **must stay the last file that creates objects** |
-| 17 | `grants` | role privileges. **MUST BE LAST** |
+| 15 | `control_plane` | the admin control plane: staff accounts, the game lifecycle (**the public read path now requires `status = 'published'`**), providers, categories/tags, typed settings, the (now unused) proxy destination and policy tables, a hash-chained audit trail. See [CONTROL-PLANE.md](../admin/CONTROL-PLANE.md) |
+| 16 | `game_telemetry` | aggregate quality telemetry: which games fail to render (per browser family and platform) and bucketed page-speed counters — no id, IP, session or user-agent column |
+| 17 | `scoring_profiles` | per-game scoring profiles: which metric a game is scored on, its unit, precision and bounds, and which direction wins |
+| 18 | `recommendation_taxonomy` | genres and other fields for community game requests, validated against one shared list |
+| 19 | `rewards` | **retired.** Tables and a service-role-only function for the removed proxy browser's "Boost" feature. Nothing reads or writes them any more; they stay in the history because dropping data is a migration the operator chooses to write (migrations are applied to production on merge) |
+| 20 | `schema_hardening` | audit corrections; **must stay the last file that creates objects** |
+| 21 | `grants` | role privileges. **MUST BE LAST** |
 
 > **Why `scores_restore` is a separate file.** Migration 11 used to drop the
 > leaderboard. That drop is now commented out — but Supabase tracks migrations
@@ -73,7 +77,7 @@ a second source of truth.
 > restates the list.
 >
 > It used to. An earlier version named five files as "the structure"; the schema
-> has sixteen. The ones it omitted included `grants.sql`, and a database built
+> has twenty-one. The ones it omitted included `grants.sql`, and a database built
 > by following that list came up with every table answering
 > `42501 permission denied for table games` — the tables existed, and nothing
 > could read them.
@@ -82,7 +86,7 @@ a second source of truth.
 
 `npm run audit:repo` compares the running database against these migrations. If
 it reports errors naming `scores`, `subscriber_emails`, `ai_feedback` or any
-control-plane table (`admin_users`, `game_providers`, `proxy_targets`, …), those
+control-plane table (`admin_users`, `game_providers`, `game_categories`, …), those
 forward migrations have **not been applied to the live project yet**.
 
 They apply automatically when merged to `main` through the Supabase GitHub
@@ -93,9 +97,9 @@ integration (see [`docs/database/SUPABASE-MIGRATIONS.md`](SUPABASE-MIGRATIONS.md
 | `db/scores-restore.sql` | `scores`, `prune_scores()` |
 | `db/14_subscriber_emails.sql` | `subscriber_emails` |
 | `db/15_ai_feedback.sql` | `ai_feedback`, `prune_ai_feedback()`, `forget_ai_feedback()` |
-| `db/control-plane.sql` | `admin_users`, `game_providers`, `game_categories`, `game_tags`, `game_tag_links`, `site_settings`, `proxy_providers`, `proxy_targets`, `proxy_policies`; the `status`/`provider_id` columns on `games`; `cms_bulk_transition()`, `cms_set_game_tags()`, `cms_status_counts()`, `admin_audit_verify()` |
+| `db/control-plane.sql` | `admin_users`, `game_providers`, `game_categories`, `game_tags`, `game_tag_links`, `site_settings`, `proxy_providers`, `proxy_targets`, `proxy_policies` (unused since the proxy browser was removed); the `status`/`provider_id` columns on `games`; `cms_bulk_transition()`, `cms_set_game_tags()`, `cms_status_counts()`, `admin_audit_verify()` |
 
-Re-running `SCHEMA-ONLY.sql` also covers them, since it includes all seventeen and
+Re-running `SCHEMA-ONLY.sql` also covers them, since it includes all twenty-one and
 is idempotent. Afterwards, re-run `npm run db:verify`.
 
 > **Check they are committed first.** The integration reads only what is on

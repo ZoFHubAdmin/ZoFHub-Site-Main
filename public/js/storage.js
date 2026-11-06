@@ -64,12 +64,5 @@ export const store = {
     get: () => read('panic', { url: 'https://classroom.google.com/h', mode: 'cloak', disguise: true, key: 'ctrl+Backquote' }),
     set: (patch) => { const cur = { ...store.panic.get(), ...patch }; write('panic', cur); return cur; }
   },
-  // Rewarded proxy access ("Boost"). NOT authoritative — public/js/reward-claim.js
-  // paints instantly from this on load, but never decides "is boosted now" from
-  // it; every decision that matters re-fetches GET /api/rewards/entitlement.
-  rewardEntitlement: {
-    get: () => read('rewardEntitlement', { tier: 'free', expiresAt: null }),
-    set: (v) => write('rewardEntitlement', v)
-  },
   wipe: () => { for (const k of Object.keys(localStorage)) if (k.startsWith(NS)) localStorage.removeItem(k); }
 };

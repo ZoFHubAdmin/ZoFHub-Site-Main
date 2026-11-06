@@ -12,7 +12,7 @@
 | Rules | [`lib/scores.mjs`](../../lib/scores.mjs) — pure, no database, no Express |
 | Submit UI | [`public/js/score-submit.js`](../../public/js/score-submit.js), on every game page |
 | Board | `/leaderboard` ([`public/js/leaderboard.js`](../../public/js/leaderboard.js)); `?game=<slug>` for one game |
-| Schema | migrations 2, 3, 4, 5, 10 and 12 — see [RUN-IN-ORDER.md](../database/RUN-IN-ORDER.md#the-17-migrations-in-order) |
+| Schema | migrations 2, 3, 4, 5, 10 and 12 — see [RUN-IN-ORDER.md](../database/RUN-IN-ORDER.md#the-21-migrations-in-order) |
 | Retention | the nightly `score-prune` job, 03:55 UTC |
 
 ---
@@ -174,7 +174,7 @@ All optional; the defaults above apply when unset.
 
 ---
 
-**Related:** [documentation map](../README.md#-documentation) · [the schema history](../database/RUN-IN-ORDER.md) · [visitor identity and other visitor features](VISITOR-FEATURES.md) · [the ten scheduled jobs](../guides/HOW-IT-WORKS.md#11-the-night-shift--ten-scheduled-jobs-libcron-jobsmjs)
+**Related:** [documentation map](../README.md#-documentation) · [the schema history](../database/RUN-IN-ORDER.md) · [visitor identity and other visitor features](VISITOR-FEATURES.md) · [the ten scheduled jobs](../guides/HOW-IT-WORKS.md#11-the-night-shift--eight-scheduled-jobs-libcron-jobsmjs)
 
 ---
 

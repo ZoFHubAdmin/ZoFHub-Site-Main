@@ -27,7 +27,6 @@
         <a href="/">Games</a>
         <a href="/ai">AI</a>
         <a href="/community">Community</a>
-        <a href="/browser">Browser</a>
       </nav>
     </div>
   </header>
@@ -35,7 +34,7 @@
   <main class="legal-shell">
     <div class="legal-hero">
       <h1>Privacy Policy</h1>
-      <p class="legal-updated">Last updated: October 6, 2026</p>
+      <p class="legal-updated">Last updated: November 4, 2026</p>
     </div>
 
     <div class="legal-body">
@@ -83,7 +82,7 @@
         <li><strong>How fast the page was.</strong> On about one page view in ten we measure the
           standard web performance timings and store each one as simply
           <em>good</em>, <em>needs improvement</em> or <em>poor</em>, together with the
-          <em>type</em> of page (home, game, category, AI, browser).</li>
+          <em>type</em> of page (home, game, category, AI or other).</li>
       </ul>
       <p>What is <strong>not</strong> stored, by design rather than by promise: no IP address and no
         hash of one, no cookie, no session or visitor or device identifier, no full browser
@@ -121,21 +120,13 @@
         unavailable &mdash; private browsing, or storage switched off &mdash; we cannot count, so no
         full-screen ad is shown at all. Clearing your browser data removes it.</p>
 
-      <h3>The ad-block check</h3>
-      <p>The ads above are what pay for the proxy servers, so the Site checks whether an ad blocker is
-        stopping them. The check runs <strong>in your browser only</strong>: it looks at whether a
-        test element was hidden and whether our ad containers and the ad networks' scripts loaded. If
-        a blocker is found, your browser keeps a small record in local storage
-        (<code>zofhub.support.v1</code>): how many pages in a row showed a blocker, what kind of
-        evidence it was, a timestamp, and the addresses of up to three ad-network scripts that failed
-        to load. It is never sent to our servers or to an ad network. After three pages with a
-        blocker on, the premium proxy engines (the standalone browsers) are paused until
-        the blocker is paused; the games and the built-in engines are never affected. The first page
-        you load with the blocker paused clears the record.</p>
-      <p>To tell a blocked script apart from one that is merely broken, your browser may send a
-        request to that script's address with no cookies and no referrer, which receives nothing
-        that runs. On the proxy browser this only happens when you have told us you paused your
-        blocker and a previous check found network-level blocking; no ad is ever loaded there.</p>
+      <h3>The video ad's reachability check</h3>
+      <p>Before a game starts, the video ad network's address is requested by your browser, not by
+        us. If that request fails, your browser may send a second, empty request to the same address
+        &mdash; no cookies, no referrer, nothing that runs &mdash; only to tell a request that an ad
+        blocker stopped apart from one that is merely broken, so the game can start straight away
+        either way. The result is used once, in your browser, to decide what to show. It is not
+        stored, and it is never sent to our servers.</p>
 
       <h3>What game recommendations use</h3>
       <p>To suggest games you might like, we keep a small amount of information
@@ -159,9 +150,8 @@
         of it, and recommendations simply go back to showing popular games.</p>
 
       <h2>4. Advertising</h2>
-      <p>We do <strong>not</strong> load Google AdSense or any other Google advertising code —
-        Google's programs are not available to sites like this one, which include a web-proxy
-        feature, so no data is shared with Google for advertising purposes.</p>
+      <p>We do <strong>not</strong> load Google AdSense or any other Google advertising code, so no
+        data is shared with Google for advertising purposes.</p>
       <p>Advertising on this Site is served by third-party ad networks. Depending on which are
         enabled at any given time, these may include:</p>
       <ul>
@@ -182,8 +172,7 @@
       </ul>
       <p>This is the complete list of advertising networks ZoFHub can use. We do not work with any
         other network, and we never load Google AdSense or Google Ad Manager. At any given time only
-        the networks we have enabled are active — often fewer than the six listed here. None of them
-        is ever loaded on the proxy browser or any other proxy page.</p>
+        the networks we have enabled are active — often fewer than the six listed here.</p>
       <p>What this means for you:</p>
       <ul>
         <li>The network — not us — serves the ads, and it may set its own cookies or similar
@@ -191,14 +180,12 @@
           them. Any data it collects is governed by <em>that network's</em> privacy policy, not this
           one. We do not receive, store, or have access to those identifiers.</li>
         <li>We never send an ad network your display name, your favorites, your scores, or anything
-          you type into the AI assistant or the proxy browser.</li>
+          you type into the AI assistant.</li>
         <li>You can limit interest-based advertising generally at
           <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info/choices</a>
           and <a href="https://www.youronlinechoices.eu/" target="_blank" rel="noopener">youronlinechoices.eu</a>,
           and you can block or delete cookies in your browser at any time. An ad blocker will also
-          stop these networks loading. The games and the built-in proxy engines keep working normally
-          with one enabled; the premium proxy engines are paused while it stays on (see
-          &ldquo;The ad-block check&rdquo; in Section 3).</li>
+          stop these networks loading, and the games keep working normally with one enabled.</li>
       </ul>
       <p>Games embedded from third-party providers may show their own in-game ads. Those run inside
         the game frame under the provider's own policies — see Section 5.</p>
@@ -235,15 +222,15 @@
               by our servers. As with text, <strong>Pollinations itself receives your picture
               description</strong> and your IP address and handles them under <em>their</em> privacy
               policy, not ours. The free service allows one picture every 45 seconds for each
-              network, and the AI page enforces that wait on your device.</li>
+              network; the AI page makes you wait 50 seconds between pictures, enforced on your
+              device.</li>
           </ul>
           Nothing is generated, relayed or stored on our servers with any of these, and there is no AI
           audio or video generation anywhere on the Site.</li>
         <li><strong>Game providers</strong> — games are embedded from third-party providers, which may
           set their own cookies inside the game frame under their own privacy policies.</li>
         <li><strong>Advertising</strong> — only the networks listed in Section 4, and only
-          those we have enabled. None of them is ever loaded on the proxy browser or inside a
-          proxied page.</li>
+          those we have enabled.</li>
       </ul>
 
       <h2>6. Children's privacy</h2>
@@ -318,7 +305,6 @@
         <a href="/cookies">Cookie Policy</a>
         <a href="/dmca">DMCA / Copyright</a>
         <a href="/credits">Credits &amp; Licenses</a>
-        <a href="/licenses">Open Source &amp; Source Offer</a>
       </nav>
     </div>
   </main>

@@ -26,6 +26,12 @@ driven by [`public/js/game-page.js`](../../public/js/game-page.js).
 | `OPTIMISTIC_REVEAL` | **2.5 s** | when the overlay comes off regardless |
 | `NET_TIMEOUT` | **35 s** | overlay safety net — must exceed any single stage |
 
+> **Where an `/embed/<slug>` stage fetches from.** The wrapper fetches the
+> publisher's page on the server, and that fetch crosses the sing-box daemon or is
+> refused ([SINGBOX.md](../proxy/SINGBOX.md)). A daemon that is down therefore shows
+> up as a `502` on every proxied stage — not as a slow game — and the admin
+> console's **Egress** view counts it as `refused`.
+
 These are **last-resort fallbacks, not the happy path.** The iframe's own `load`
 event reveals the game the instant it is genuinely ready, which for most games is
 well under a second.

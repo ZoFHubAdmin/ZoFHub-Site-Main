@@ -1,21 +1,18 @@
 # ZoFHub — Go-Live Checklist
 
-The strategy: **one always-on proxy site, deployed once.** ZoFHub always runs the
-web proxy (Ultraviolet/Scramjet/GUST/HORIZON/Wisp), so it is both the games hub and the
-"unblocked at school" site on the **same** domain.
+The strategy: **one always-on site, deployed once.** ZoFHub is a games hub with a
+free AI assistant.
 
-Because the proxy is always on, **Google AdSense/Ezoic can't be used** — they ban
-proxy/anonymizer domains at the account level. Advertising comes from six
-supported networks, one role each (Ad-Maven / ExoClick / HilltopAds / Clickadu /
-Mondiad / PopAds), on the **hub and game pages only**, plus the in-game ads the
-game publishers already run. Ads
-never run on the proxy itself. If a domain gets filtered at schools, rotate to a
-new domain — the code is unchanged.
+**Google AdSense/Ezoic are not used.** Advertising comes from six supported
+networks, one role each (Ad-Maven / ExoClick / HilltopAds / Clickadu / Mondiad /
+PopAds), on pages ZoFHub wrote only, plus the in-game ads the game publishers
+already run. If a domain gets filtered at schools, rotate to a new domain — the
+code is unchanged.
 
 ---
 
 ## 1. Host (NOT Vercel)
-ZoFHub is a persistent server (cron + in-memory catalog + `/wisp` WebSocket), so
+ZoFHub is a persistent server (cron + in-memory catalog + a supervised sing-box daemon), so
 serverless won't work. Use **Render** (`render.yaml` included), Railway, Fly.io,
 or a VPS.
 - **Paid always-on plan** — simplest; nothing ever sleeps.
@@ -27,7 +24,7 @@ or a VPS.
   **one** service only so you stay under Render's 750 free hours/month.
 
 ## 2. Database (Supabase)
-- [ ] Paste **`db/SCHEMA-ONLY.sql`** into the SQL Editor and Run. One file, all 16
+- [ ] Paste **`db/SCHEMA-ONLY.sql`** into the SQL Editor and Run. One file, all 21
       schema migrations in dependency order, idempotent — re-running is safe.
       Do **not** paste `db/ALL-IN-ONE.sql`: at ~6.5 MB the web editor refuses it,
       and it is meant for `psql` restores.
@@ -70,36 +67,22 @@ or a VPS.
 | `REGION_ROUTES` | — | optional regional domains + regional ad tags (`<VAR>__<REGION>`); see `.env.example` |
 | `CRON_SECRET` | ✓ | protects `/healthz` detail; set the SAME value in your uptime monitor |
 | `HEALTH_MEM_MAX_PCT` | — | `/healthz` returns 503 above this memory % (default 85) for zero-downtime recycles |
-| `WISP_MAX_PER_IP` | — | max concurrent proxy tunnels per client IP (default 32); stops one client starving the pool |
-| `WISP_ALLOWED_PORTS` | — | ports the tunnel may dial (default `80,443,8080,8443`). Deliberately excludes 25/22/3306 — see [docs/proxy/INVISIPROXY.md](../proxy/INVISIPROXY.md) |
-| `WISP_ALLOW_UDP` | — | default off, and **ignored in production**. UDP cannot cross sing-box (it carries TCP only), so it is honoured only where a developer has permitted direct egress |
-| `WISP_ALLOW_PRIVATE_IPS` | — | default off. Leave it off: on means the public tunnel can reach your private network and `169.254.169.254` |
-| `WISP_MAX_STREAMS` | — | concurrent streams **one tunnel** may hold (default 256) |
-| `WISP_ALLOW_LOOPBACK_IPS` | — | default off. Leave it off: on means the tunnel can reach services bound to localhost on the host itself |
-| `WISP_BLOCKED_HOSTS` | — | anchored glob patterns refused outright, e.g. `*.internal.example.com` |
-| `MASQR_ENABLED` | — | **off by default.** `1` hides the proxy surfaces from anyone without a key. See [docs/proxy/MASQR.md](../proxy/MASQR.md) |
-| `MASQR_SECRET` | if gated | 32+ random chars. **Required when `MASQR_ENABLED=1`** — without it the gate refuses to engage and warns loudly rather than locking everyone out |
-| `MASQR_KEY_TTL_DAYS` | — | key lifetime, default 30 |
-| `MASQR_DENY` | — | `404` (default) or `redirect` |
-| `PROXY_INVISI_URL` | — | optional [InvisiProxy](../proxy/INVISIPROXY.md) instance you host yourself; unset = engine not offered |
-| `PROXY_KASM_URL` | — | optional [Kasm](../proxy/KASM.md) desktop you host yourself. **Userinfo is stripped** — a `user:pass@` URL would otherwise leak the password through `/api/proxies` |
-| `SINGBOX_*` | — | **enforced.** sing-box carries every connection the server makes for a visitor — proxy streams and server-side fetches — or the connection is **refused**; there is no direct fallback, and the development-only opt-outs (`SINGBOX_ALLOW_DIRECT`, `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0`) are **ignored in production**. ZoFHub supervises the daemon (`SINGBOX_MANAGED=0` stops that). **The daemon has to exist:** Render's build runs `npm run singbox:install` (pinned and SHA-256-verified; any failure fails the build, so the previous deploy keeps serving) and the Docker image builds it. After a deploy `/api/admin/proxy` should show `singboxProcess.running: true` and `singboxEgress.policy.mode: "enforced"`. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
+| `SINGBOX_*` | — | **enforced.** sing-box carries every connection the server makes for a visitor (embeds, thumbnails, assets, link checks) or the connection is **refused**; there is no direct fallback, and the development-only opt-outs (`SINGBOX_ALLOW_DIRECT`, `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0`) are **ignored in production**. ZoFHub supervises the daemon (`SINGBOX_MANAGED=0` stops that). **The daemon has to exist:** Render's build runs `npm run singbox:install` (pinned and SHA-256-verified; any failure fails the build, so the previous deploy keeps serving) and the Docker image builds it. After a deploy `/api/admin/proxy` should show `singboxProcess.running: true` and `singboxEgress.policy.mode: "enforced"`. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md) |
 | `EGRESS_DIRECT_ALLOW` | — | hosts the server may connect to **directly**, comma separated (`host` or `*.suffix`). Infrastructure only — the database, cache and mail hosts are already derived from your other settings. Anything else that is not loopback is refused by `lib/egress-guard.mjs` |
 | `DONATE_*_ADDRESS` | — | donation addresses, **environment only, never committed**. Checksum-verified at boot; a method that fails is dropped rather than served |
 | `NODE_ENV` | `production` | |
 
-> **Check the boot banner after deploying.** It prints one line per subsystem and
-> is the fastest way to confirm what is actually switched on:
+> **Check the boot log after deploying.** It prints one `[prefix]` line per
+> subsystem and is the fastest way to confirm what is actually switched on:
 >
 > ```
-> → egress:  ports 80,443,8080,8443 · no UDP · private IPs blocked · max 256 streams/tunnel
-> → masqr:   off (proxy is open to everyone)
-> → admin:   password login active (sessions, CSRF, lockout)
+> [egress] enforced: every visitor-driven connection crosses sing-box, or is refused
+> [singbox] supervisor: running (...)
+> [ads] roles → ...
 > ```
 
-## 4. Ad networks (proxy-friendly only)
-Google AdSense/Ezoic are **not** an option here (they ban proxy sites). Best money
-for an always-proxy games hub, in order:
+## 4. Ad networks
+Google AdSense/Ezoic are **not** used here. Best money for a games hub, in order:
 1. **In-game ads — already wired.** Register your domain in your **GameMonetize**
    and **GameDistribution** publisher dashboards so their in-game ad revenue is
    attributed to you. This is your biggest, most reliable earner and needs no
@@ -115,9 +98,8 @@ for an always-proxy games hub, in order:
    ```
 
    > ⚠ **None of them has approved this site.** All six review your specific
-   > domain, and ZoFHub hosts a web proxy — raise that with each network
-   > explicitly before enabling. The audience includes minors: set every
-   > dashboard to mainstream (non-adult) categories. See
+   > domain — check each network's terms before enabling. The audience
+   > includes minors: set every dashboard to mainstream (non-adult) categories. See
    > [`docs/features/ADVERTISING.md`](../features/ADVERTISING.md).
 
    Start with **one**. Stacking popunder networks makes them fight each other and
@@ -127,7 +109,7 @@ for an always-proxy games hub, in order:
 - [ ] The boot log's `[ads] set but NOT used:` line is absent — every ad variable you set is one the code reads.
 - [ ] `npm run check-ads` passes — it catches the CSP blocking a network, which is otherwise silent.
 - [ ] Confirmed with each enabled network that this domain, and the specific format, are approved.
-- [ ] Checked `/browser` serves **no** advertising (it must not — verify after enabling).
+- [ ] `npm run check-ads` also confirms a path nobody classified is handed no advertising (deny-by-default).
 - [ ] Any accidental Google/AdSense tag is auto-stripped server-side — nothing to do.
 
 ## 5. Pre-launch QA
@@ -139,16 +121,12 @@ for an always-proxy games hub, in order:
 - [ ] "For You" fills after playing a few games, and no single category owns the row.
 - [ ] Admin: log in at `/admin`; confirm a logged-out request to
       `/api/admin/dashboard` returns **401**, not 200.
-- [ ] `/browser` loads and `/api/site-config` shows `"proxy": true` (always-on proxy).
-- [ ] `npm test` passes (1379 tests) and `npm run audit:repo` reports no errors
+- [ ] Admin → **Egress** shows sing-box connected and running, with **0** refused fetches.
+- [ ] `npm test` passes and `npm run audit:repo` reports no errors
       you have not consciously accepted.
-- [ ] **`npm run verify-proxy` renders real pages through every engine.** An HTTP
-      200 from a proxy route proves nothing — the page can still be blank.
+- [ ] **`npm run verify-ai` passes** — it drives a real browser through the AI page and checks what actually crosses the network.
 - [ ] `npm run db:verify` passes — it proves the tables are *readable*, which a
       row count in the SQL editor does not.
-- [ ] If `MASQR_ENABLED=1`: mint a key, confirm the link unlocks `/browser`,
-      confirm `/healthz` still answers **200**, and confirm a plain visitor still
-      gets the games hub. A gated `/healthz` restart-loops the container.
 
 ## 6. Domain & DNS
 - [ ] Point your domain at the service; if a domain gets filtered, add a fresh one.
@@ -160,5 +138,5 @@ for an always-proxy games hub, in order:
 ## 7. Honest expectations
 A brand-new low-traffic games site earns little at first (games display RPMs are
 often ~$1–5 per 1,000 views, and embedded-game ad value is shared with the game
-publisher). Proxy-friendly networks generally pay lower RPMs than mainstream
+publisher). The networks used here generally pay lower RPMs than mainstream
 display networks, so revenue is modest until traffic grows.

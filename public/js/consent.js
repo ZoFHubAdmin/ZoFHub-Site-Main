@@ -7,8 +7,8 @@
 //
 // NOTE — the Google Consent Mode v2 shim that used to live here was REMOVED.
 // It pushed ad_storage / ad_user_data / ad_personalization signals into a
-// dataLayer for a gtag.js that this site never loads: ZoFHub is a proxy site, so
-// Google's ad programs aren't available to it and no Google ad code is served
+// dataLayer for a gtag.js that this site never loads: ZoFHub does not use Google's
+// ad programs and no Google ad code is served
 // (see lib/ad-providers.mjs, proxy-ads.js and ad-slots.js). Signalling
 // consent to a tag that doesn't exist did nothing except imply, in code and in
 // the legal pages, that Google advertising was active here. If a Google-
@@ -20,7 +20,6 @@
 // ---------------------------------------------------------------------------
 
 const KEY = 'zofhub:consent:v1';
-const isProxyArea = /^\/(uv|epoxy|baremux)\//.test(location.pathname) || location.pathname === '/horizon';
 
 let stored = null;
 try { stored = localStorage.getItem(KEY); } catch {}
@@ -32,8 +31,8 @@ function persist(choice) {
   document.dispatchEvent(new CustomEvent('zofhub:consent', { detail: choice }));
 }
 
-// Don't nag returning visitors, and stay out of the proxy browser surface.
-if (stored || isProxyArea) {
+// Don't nag returning visitors.
+if (stored) {
   // nothing to show
 } else {
   injectStyles();

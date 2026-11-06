@@ -3,7 +3,7 @@
 **Read this first — it's short and it's the whole story.**
 
 This is a **private full-backup repository**. Almost **everything** is committed to
-GitHub on purpose — code, data, `node_modules` and every companion app's files.
+GitHub on purpose — code, data and `node_modules`.
 So moving to a new laptop is: **clone, install, restore `.env`, run.** The
 **one** thing you carry across by hand is `.env`.
 
@@ -27,8 +27,6 @@ Everything that matters is committed and comes down with `git clone`:
 - **All your code** — server, frontend, tools, SQL.
 - **`.env.example`** — every variable the server reads, commented. *(The real
   `.env` is **not** committed — see the warning above.)*
-- **The companion apps' files** — NautilusOS, DayDream, scramjet.
-  *(Nebula is the one exception — see below.)*
 - **All data files** — catalogs, audits, caches, state.
 
 ## 📦 Everything — including `node_modules` — is committed
@@ -36,21 +34,6 @@ Everything that matters is committed and comes down with `git clone`:
 This repo now backs up **literally everything**, including every `node_modules`
 folder, so nothing at all is left out. After cloning you already have all the
 downloaded packages.
-
-**One exception — Nebula is no longer in the tree.** It was 520 MB across 33,360
-files for a companion that only ever ran locally (the deployed site serves
-Ultraviolet, Scramjet, GUST and HORIZON, and never offers a companion because `render.yaml` sets
-no `PROXY_*_URL`). Its pnpm `node_modules` was a symlink store that restored as
-broken stubs on a fresh Windows clone anyway. A clone will **not** bring it down.
-
-Nothing was lost — it's still in history:
-
-```bash
-git checkout 07a2a6f7 -- Nebula      # restore it exactly as it was
-```
-
-`npm run proxies` detects the folder and starts Nebula automatically if it's
-present and built; if it's absent it just says so and launches the other three.
 
 (The **main website** uses the root `node_modules`, which restores fine — but
 running `npm install` once after cloning is still the safe habit, since it
@@ -76,9 +59,9 @@ repairs anything that didn't copy cleanly.)
    pins, which is what CI and the Render deploy install, so a fresh laptop cannot
    quietly end up on different versions from production.
 
-   **The proxy also needs its sing-box daemon**, and there is no direct fallback:
-   anything that makes the server fetch a third-party URL (the proxy, `/embed/`
-   wrappers, thumbnails) is refused without it. Install the pinned one with:
+   **The server also needs its sing-box daemon**, and there is no direct fallback:
+   anything that makes the server fetch a third-party URL (`/embed/`
+   wrappers, thumbnails, link checks) is refused without it. Install the pinned one with:
    ```bash
    npm run singbox:install
    ```
@@ -131,25 +114,6 @@ repairs anything that didn't copy cleanly.)
    interpreter installed it says so and exits, rather than failing as a confusing
    "command not found".
 
-7. **(Only if you want the companion browsers locally)** each has its own deps.
-   The main site does **not** need any of these — it uses the built-in
-   Ultraviolet/Scramjet/GUST/HORIZON engines. Per companion:
-
-   | Companion | Setup | Port |
-   |---|---|---|
-   | **NautilusOS** | none — pure static | 8091 |
-   | **DayDream** | `cd DayDream && pnpm install && pnpm run build`, then copy `config.example.js` → `config.js` | 8093 |
-   | **Nebula** | *not in the repo* — restore with `git checkout 07a2a6f7 -- Nebula` first, then `cd Nebula && pnpm install && pnpm run build` and copy `config.example.toml` → `config.toml` | 8094 |
-
-   Then `npm run dev:all` starts the site **and** every companion that's ready,
-   and points the server at each so they show up in the `/browser` dropdown.
-   This is a **local-only** convenience: the deployed site never offers a
-   companion, because `render.yaml` sets no `PROXY_*_URL` and `COMPANION_ENGINES`
-   filters out any entry without one. Live, you always get exactly the four
-   same-origin engines — Ultraviolet, Scramjet, GUST and HORIZON.
-   `npm run proxies` prints exactly what it started and, for anything it
-   skipped, the precise reason and the command that fixes it.
-
 That's it. Your live site on Render is unaffected by any laptop change — it
 deploys from GitHub, not your machine.
 
@@ -172,24 +136,11 @@ git push backup main
 
 ---
 
-## 🗃️ About the companion `.git` histories (advanced — you can ignore this)
-
-To put the companion apps' files *directly* into this repo, their own inner `.git`
-folders were moved out to a sibling folder: **`../ZoFHub-nested-git-backups/`**
-(next to this project, not inside it). Their *files* are fully backed up here in
-GitHub; only their separate commit histories live in that sibling folder. You almost
-certainly never need those — but if you ever want to pull upstream updates for a
-companion, that's where they are. It is **not** part
-of this repo and does **not** transfer with `git clone`; copy it to USB only if you
-specifically care about those histories.
-
----
-
 ## 🧠 The mental model
 
 - **This private repo = your complete backup, minus `.env`.** Clone it and you
   have everything except your local secrets, which you restore by hand.
-- **`node_modules` is committed too** — 2,364 files are tracked, so a clone comes
+- **`node_modules` is committed too** — about 1,460 files are tracked, so a clone comes
   down ready to run. Running `npm ci` once afterwards is still the safe habit: it
   repairs anything that did not copy cleanly and pins exactly what production
   installs.

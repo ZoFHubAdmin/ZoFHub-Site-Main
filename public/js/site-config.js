@@ -1,9 +1,8 @@
 // ZoFHub · site-config.js — the page's one request for /api/site-config.
 // ---------------------------------------------------------------------------
 // Several modules need the same answer: layout.js (announcement, feature
-// switches, advertising), game-page.js (whether a pre-roll comes before the
-// game), browser.js (the approved destinations) and support-gate.js (whether
-// the ad-block gate applies). Each used to fetch it for itself — layout.js
+// switches, advertising) and game-page.js (whether a pre-roll comes before the
+// game). Each used to fetch it for itself — layout.js
 // alone asked twice — so an ordinary page view cost two or three identical
 // requests. At a million page views that is millions of requests nobody needed.
 //

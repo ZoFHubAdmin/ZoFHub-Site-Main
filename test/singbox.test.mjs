@@ -92,7 +92,7 @@ describe('a reachable daemon', () => {
   test('a malformed but successful body degrades to zeros, not NaN', async () => {
     // A 200 that is not the shape we expect is still "reachable" — the daemon
     // answered. But NaN in a dashboard is worse than 0, and `undefined.length`
-    // would throw and take the whole /api/admin/proxy response down.
+    // would throw and take the whole /api/admin/egress response down.
     const r = await singboxTelemetry(ENV, { fetchImpl: jsonOk({ connections: 'not-an-array' }) });
     assert.equal(r.reachable, true);
     assert.equal(r.live, 0);
@@ -130,7 +130,7 @@ describe('failure is always honest', () => {
   }
 
   test('it never rejects, whatever fetch does', async () => {
-    // /api/admin/proxy awaits this inline. One dead daemon must not be able to
+    // /api/admin/egress awaits this inline. One dead daemon must not be able to
     // take down the whole proxy telemetry endpoint.
     for (const impl of [boom('Error'), async () => { throw 'a string, not an Error'; }, async () => null]) {
       await assert.doesNotReject(() => singboxTelemetry(ENV, { fetchImpl: impl }));
@@ -141,9 +141,9 @@ describe('failure is always honest', () => {
 describe('it is wired in, and wired in safely', () => {
   const server = readFileSync(join(ROOT, 'server.js'), 'utf8');
 
-  test('/api/admin/proxy actually reports it', () => {
+  test('/api/admin/egress actually reports it', () => {
     assert.match(server, /singboxTelemetry/, 'server.js never calls the adapter');
-    const at = server.indexOf("app.get('/api/admin/proxy'");
+    const at = server.indexOf("app.get('/api/admin/egress'");
     assert.notEqual(at, -1);
     const body = server.slice(at, at + 1600);
     assert.match(body, /await singboxTelemetry\(\)/, 'the endpoint does not await the adapter');
@@ -152,7 +152,7 @@ describe('it is wired in, and wired in safely', () => {
   });
 
   test('the adapter never returns the URL or the secret', () => {
-    // This object is embedded verbatim in /api/admin/proxy, which the browser
+    // This object is embedded verbatim in /api/admin/egress, which the browser
     // reads. Asserted on VALUES, not on field names: the console legitimately
     // NAMES these variables in its help text ("SINGBOX_API_SECRET is wrong or
     // missing"), and a substring check for the name only tests the test.
@@ -180,11 +180,11 @@ describe('it is wired in, and wired in safely', () => {
   test('the admin console never calls the management API itself', () => {
     // It is a loopback admin surface: reaching it means rewriting routing and
     // enumerating every live connection. The console must only ever read
-    // ZoFHub's own /api/admin/proxy.
+    // ZoFHub's own /api/admin/egress.
     const ui = readFileSync(join(ROOT, 'admin-ui', 'assets', 'admin.js'), 'utf8');
     assert.ok(!/fetch\([^)]*9090/.test(ui), 'the admin console fetches the Clash API directly');
     assert.ok(!/new WebSocket\([^)]*9090/.test(ui), 'the admin console opens a socket to the Clash API');
-    assert.match(ui, /api\('\/api\/admin\/proxy'\)/,
+    assert.match(ui, /api\('\/api\/admin\/egress'\)/,
       'the console should read sing-box through ZoFHub, not directly');
   });
 

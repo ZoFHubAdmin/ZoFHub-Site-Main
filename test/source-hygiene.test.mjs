@@ -22,7 +22,7 @@ import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const DIRS = ['lib', 'test', 'tools', 'public/js', 'admin-ui', 'db', 'supabase/migrations', 'proxy-engine'];
+const DIRS = ['lib', 'test', 'tools', 'public/js', 'admin-ui', 'db', 'supabase/migrations'];
 const FILES = ['server.js'];
 const EXT = /\.(m?js|cjs|sql|html|css)$/;
 
@@ -30,7 +30,7 @@ function walk(dir, out = []) {
   let entries;
   try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
   for (const e of entries) {
-    if (e.name === 'node_modules' || e.name.startsWith('.') || e.name === 'fixtures' || e.name === 'vendor' || e.name === 'assets' && dir.endsWith('proxy-engine')) continue;
+    if (e.name === 'node_modules' || e.name.startsWith('.') || e.name === 'fixtures' || e.name === 'vendor') continue;
     const p = join(dir, e.name);
     if (e.isDirectory()) walk(p, out);
     else if (EXT.test(e.name)) out.push(p);

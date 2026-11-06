@@ -27,11 +27,11 @@ supabase/
 └── seed.sql        preview branches ONLY — never runs on production
 ```
 
-**17 migrations.** The filenames encode the order, and two positions are
+**21 migrations.** The filenames encode the order, and two positions are
 load-bearing: `schema_hardening` must stay the last file that *creates* objects,
 and `grants` must be last of all because it assigns privileges over whatever
 exists at the end. Purposes for each are in
-[`docs/database/RUN-IN-ORDER.md`](RUN-IN-ORDER.md#the-17-migrations-in-order).
+[`docs/database/RUN-IN-ORDER.md`](RUN-IN-ORDER.md#the-21-migrations-in-order).
 
 ---
 
@@ -100,7 +100,7 @@ production breaks.
 The integration has no migration ledger for this project — the schema was
 originally applied by pasting SQL into the dashboard editor, so
 `supabase_migrations.schema_migrations` does not exist. On first connection the
-integration therefore treats **all 17 migrations as unapplied and runs them, on
+integration therefore treats **all 21 migrations as unapplied and runs them, on
 every merge.**
 
 That is safe. Every migration is idempotent (`IF NOT EXISTS` / `OR REPLACE` /
@@ -124,7 +124,7 @@ was analysed statement by statement:
   routine, it does not run during the migration.
 
 The standing proof is CI, not this list: the `migrations-apply` job applies all
-sixteen to a real Postgres 15 **twice** and fails if the second pass errors.
+twenty-one to a real Postgres 15 **twice** and fails if the second pass errors.
 
 ## Free plan
 

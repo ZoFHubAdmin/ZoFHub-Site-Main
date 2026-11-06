@@ -2,10 +2,14 @@
 // ---------------------------------------------------------------------------
 // Two independent windows, because the two limits they respect are independent:
 //
-//   text   10 s   starts when a text answer has FINISHED (or failed, or was
-//                 cancelled) — "after every message, a 10 second cooldown".
-//   image  45 s   starts when an image request is SENT — the free image service
-//                 allows one picture per 45 s per IP, counted from the request.
+//   text   18 s   starts when a text answer has FINISHED (or failed, or was
+//                 cancelled) — "after every message, an 18 second cooldown". Kept
+//                 above the free text tier's ~15 s gap between request starts.
+//   image  50 s   starts when an image request is SENT. The free image service
+//                 allows one picture per 45 s per IP, counted from the moment its
+//                 request ARRIVES; our wait is 5 s longer than that window, so a
+//                 slower request one time and a faster one the next cannot let a
+//                 second picture reach the provider early.
 //
 // A text message does not wait on an image and an image does not wait on a text
 // message: they go to different endpoints with different limits.
@@ -20,8 +24,8 @@
 // storage and skip it, and the only thing they gain is the provider's own 429/402.
 // ---------------------------------------------------------------------------
 
-export const TEXT_COOLDOWN_MS = 10_000;
-export const IMAGE_COOLDOWN_MS = 45_000;
+export const TEXT_COOLDOWN_MS = 18_000;
+export const IMAGE_COOLDOWN_MS = 50_000;
 
 // No stored wait may ever exceed this. A system clock set far into the future, or a
 // hand-edited value, must cost a visitor at most two minutes, never a lockout.
@@ -86,8 +90,8 @@ export function createCooldowns({ storage = defaultStorage(), now = () => Date.n
   }
 
   /**
-   * Begin (or extend) a wait of `ms`. It only ever lengthens: a 10 s window
-   * cannot cut short a 45 s one, and a provider's "retry after 41s" is honoured
+   * Begin (or extend) a wait of `ms`. It only ever lengthens: an 18 s window
+   * cannot cut short a 50 s one, and a provider's "retry after 41s" is honoured
    * on top of the fixed window rather than replaced by it.
    */
   function start(kind, ms) {

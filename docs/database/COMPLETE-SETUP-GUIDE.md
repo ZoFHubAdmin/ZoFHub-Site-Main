@@ -24,7 +24,7 @@ Loads every game source into Supabase at once. This is how the live database
 
 **B) Supabase SQL Editor (manual)** — two pastes:
 
-1. **`SCHEMA-ONLY.sql`** — the entire schema, all 17 migrations in dependency
+1. **`SCHEMA-ONLY.sql`** — the entire schema, all 21 migrations in dependency
    order, idempotent *(once; safe to re-run)*.
 2. Every `load-*.sql` game loader — big ones are split into `-partNN.sql`;
    run the parts in numeric order. All are idempotent upserts, so re-running is safe.
@@ -73,7 +73,7 @@ migrations have not been applied to the live project yet**:
 
 They apply automatically on merge to `main` via the Supabase GitHub integration
 ([docs/database/SUPABASE-MIGRATIONS.md](SUPABASE-MIGRATIONS.md)), or by re-running
-`SCHEMA-ONLY.sql`, which includes all seventeen and is idempotent.
+`SCHEMA-ONLY.sql`, which includes all twenty-one and is idempotent.
 
 > **Check they are committed first.** The integration reads only what is on
 > `main`. If `git status` lists these files as untracked (`??`), they have never

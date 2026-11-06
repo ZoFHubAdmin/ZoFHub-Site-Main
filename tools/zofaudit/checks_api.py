@@ -71,9 +71,9 @@ def collect_routes() -> list[tuple[str, str, int]]:
         for slug in re.findall(r"'([a-z0-9-]+)'", decl.group(1)):
             out.append(('get', '/' + slug, line_of(src, decl.start())))
 
-    # Rewarded proxy access ("Boost") registers its routes the same way,
-    # through one add('<method>', '/api/rewards/...', ...) helper.
-    for extra in (ROOT / 'lib' / 'admin-api.mjs', ROOT / 'lib' / 'reward-routes.mjs'):
+    # The control-plane API registers its routes through one
+    # add('<method>', '/api/admin/...', ...) helper in lib/admin-api.mjs.
+    for extra in (ROOT / 'lib' / 'admin-api.mjs',):
         if extra.exists():
             asrc = strip_js_comments(read(extra))
             out += [(m.group(1), m.group(2), line_of(asrc, m.start())) for m in _ADD_ROUTE.finditer(asrc)]

@@ -1,9 +1,10 @@
 # Y8 embeddable games — the standalone scraper
 
-> **You usually don't need to run this by hand.** The live site keeps Y8 fresh on
-> its own: the weekly **`y8-sync`** cron job (`lib/y8-ingest.mjs`) re-scrapes Y8's
-> embed directory and upserts the games into Supabase. This standalone scraper
-> (`scrape-y8.js`) is here for **manual / one-off** harvesting or debugging.
+> **This is a manual tool.** The weekly `y8-sync` cron job that used to re-scrape
+> Y8 automatically was retired when the catalog was frozen
+> ([CATALOG-FREEZE.md](CATALOG-FREEZE.md)); `lib/y8-ingest.mjs` (`npm run y8-sync`)
+> now refuses to write without an explicit confirmation. This standalone scraper
+> (`scrape-y8.js`) is for **manual / one-off** harvesting or debugging.
 
 Everything comes from Y8's **official embed directory**
 (`y8.com/games_for_your_website`), the sanctioned way to put Y8 games on your own

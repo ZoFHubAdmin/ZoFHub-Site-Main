@@ -53,11 +53,10 @@ FROM node:22-alpine
 WORKDIR /app
 
 # .npmrc is copied WITH the manifests, not later with the rest of the source.
-# It carries ignore-scripts=true, and @mercuryworkshop/scramjet declares
-# `preinstall: npx only-allow pnpm`, which exits 1 under npm. node:22-alpine
-# ships npm 10, which has no install-script gate of its own — so if this layer
-# runs before .npmrc is present, the build fails on preinstall. `package*.json`
-# does not glob it.
+# It carries ignore-scripts=true: no dependency may run code while it installs.
+# node:22-alpine ships npm 10, which has no install-script gate of its own, so if
+# this layer runs before .npmrc is present a dependency's install script would
+# run. `package*.json` does not glob it.
 COPY package*.json .npmrc ./
 RUN npm install --omit=dev
 

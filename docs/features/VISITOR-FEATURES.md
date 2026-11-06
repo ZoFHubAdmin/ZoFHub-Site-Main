@@ -160,8 +160,7 @@ Three modes:
 | **overlay** | drops an iframe of the safe page on top of ZoFHub; the URL does not change |
 
 Settings — mode, destination, hotkey — are saved in `localStorage`. The same
-cloak system (`/js/panic.js`) runs site-wide on every page, including the
-proxy browser.
+cloak system (`/js/panic.js`) runs site-wide on every page.
 
 ---
 
@@ -179,7 +178,6 @@ proxy browser.
 | Mirror-update email | database | until removed | the address you volunteered — nothing else |
 | AI feedback (thumbs) | database | 180 days | redacted before insert; consent recorded per row |
 | AI prompts and replies | **never reach the server** | — | — |
-| Pages you browse through the proxy | not logged by this code | — | see [INVISIPROXY.md §6](../proxy/INVISIPROXY.md#6-privacy) |
 | Server access logs | your **host** (Render) | per the host's retention | may include your IP — outside this code's control |
 
 The daily tally is what the admin console's "visitors today" shows. It is labelled

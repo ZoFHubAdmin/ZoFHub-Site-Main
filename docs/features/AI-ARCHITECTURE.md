@@ -273,8 +273,15 @@ The provider's `Retry-After` **lengthens** the visitor's wait; it never shortens
 
 | | Length | Starts | Why that moment |
 |---|---|---|---|
-| **Text message** | **10 s** | when the answer has finished, failed or been cancelled | "after every message"; also keeps the gap between request *starts* above the free tier's ~15 s |
-| **Picture request** | **45 s** | when the request is sent | the provider's own 45 s window starts when its request arrives |
+| **Text message** | **18 s** | when the answer has finished, failed or been cancelled | "after every message"; also keeps the gap between request *starts* above the free tier's ~15 s |
+| **Picture request** | **50 s** | when the request is sent | the provider's own 45 s window starts when its request *arrives*, so ours is 5 s longer: a slow request followed by a fast one cannot get a second picture to the provider early |
+
+The picture wait (`IMAGE_COOLDOWN_MS`, 50 s) and the provider's free window
+(`PROVIDER_IMAGE_WINDOW_SECONDS`, 45 s, in `pollinations-image.js`) are separate
+numbers on purpose. The first is our policy and may change; the second is a fact
+about Pollinations that the error text quotes ("one picture every 45 seconds for
+each network"), so it is not derived from the first. A test pins that our wait is
+never shorter than their window.
 
 They are **independent** — a picture does not make a question wait, and a message
 does not make a picture wait — because they are different endpoints with
@@ -349,12 +356,35 @@ The key difference from PolliChat: Puter is **the visitor's own account**.
 `puter.ai.chat([...messages], false, { normalize: true, signal })` runs
 entirely in that visitor's browser against **their** sign-in and **their**
 usage allowance — our server is nowhere in the path, same as PolliChat, but
-there is no shared anonymous tier here to rate-limit; a cold session simply
-opens Puter's own sign-in popup. `askPuterWithContext()` maps every failure
-(no sign-in, usage exhausted, a network fault, a timeout) onto the **same**
-typed-`.code` vocabulary `askAI()` uses, so `describePuterFailure()` can reuse
-`describeFailure()` for every code the two share and add its own wording only
-for the two that are Puter-specific (`auth`, `usage`).
+there is no shared anonymous tier here to rate-limit; a cold session has to sign
+in to (or sign up for) a Puter account first. `askPuterWithContext()` maps every
+failure (no sign-in, a blocked or cancelled sign-in window, usage exhausted, a
+network fault, a timeout) onto the **same** typed-`.code` vocabulary `askAI()`
+uses, so `describePuterFailure()` can reuse `describeFailure()` for every code the
+two share and add its own wording only for the Puter-specific ones (`auth`,
+`popup-blocked`, `auth-cancelled`, `usage`).
+
+**How the sign-in screen reaches the visitor, and why it once did not.** The SDK
+decides its environment **once, when it loads**, and only a `web` environment ever
+opens a sign-in window. It reads `globalThis.process` to make that call, and a
+page that defines a `process` object (a bundler shim, an extension, a polyfill)
+makes it conclude it is running in Node.js: `authenticateWithPuter()` then
+returns immediately, the chat request goes out with no account, and Puter answers
+`401 Unauthorized` — with no window, no dialog and nothing for the visitor to
+act on. `ensurePuter()` therefore hides `window.process` for the duration of the
+**first** load only (`hideNodeGlobal()`; loading the SDK a second time to repair
+it is impossible, it registers a custom element that cannot be registered twice)
+and restores it straight afterwards.
+
+Signing in is also an explicit, visible step rather than a side effect of the
+first message: `startPuterSignIn()` opens Puter's window **inside the user
+gesture** (a click on the **Sign in to Puter** button in the sidebar panel, or on
+the same button in the error notice), which is what keeps a browser's popup
+blocker from swallowing it. If the browser blocks it anyway, the SDK shows its own
+dialog and `startPuterSignIn()` coexists with that rather than racing it; if
+neither can open, the panel says so in words and the button stays available.
+`askPuterWithContext()` signs in before it starts the generation timer, so time spent in the
+sign-in window never counts against the answer's timeout.
 
 `pollichat.js` keeps a small `PROVIDERS` map — `{ pollichat, puter }`, each
 with its own `ask()` and `describe()` — and `respond()` looks up the active
@@ -578,4 +608,4 @@ still not something to commit to a repository with a remote.
 
 ---
 
-**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [why AI traffic never uses the proxy](../proxy/INVISIPROXY.md#6-privacy) · [commands](../guides/COMMANDS.md)
+**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [commands](../guides/COMMANDS.md)

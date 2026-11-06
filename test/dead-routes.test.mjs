@@ -26,10 +26,6 @@ import { fileURLToPath } from 'node:url';
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SERVER = readFileSync(join(ROOT, 'server.js'), 'utf8');
 const ADMIN_API = readFileSync(join(ROOT, 'lib', 'admin-api.mjs'), 'utf8');
-// Rewarded proxy access ("Boost") registers its routes the same way, through
-// one add('<method>', '/api/rewards/…', …) helper in lib/reward-routes.mjs —
-// read from that file for the same reason as ADMIN_API above.
-const REWARD_API = readFileSync(join(ROOT, 'lib', 'reward-routes.mjs'), 'utf8');
 
 /**
  * Every path the server registers.
@@ -72,7 +68,6 @@ function declaredRoutes(src) {
   //    proves that). Read from that file rather than exempted, so a console call
   //    to a route that module no longer registers still fails here.
   for (const m of ADMIN_API.matchAll(/\badd\(\s*'(?:get|post|put|patch|delete)'\s*,\s*('[^']*')/g)) collect(m[1]);
-  for (const m of REWARD_API.matchAll(/\badd\(\s*'(?:get|post|put|patch|delete)'\s*,\s*('[^']*')/g)) collect(m[1]);
 
   return routes;
 }
@@ -157,8 +152,6 @@ describe('the server declares every route the site points at', () => {
                    ...walk(join(ROOT, 'legal'), ['.html']),
                    ...walk(join(ROOT, 'admin-ui'), ['.html'])];
     for (const file of pages) {
-      // The vendored GUST proxy app owns its own root and its own paths.
-      if (rel(file).startsWith('proxy-engine/assets/gust/')) continue;
       const src = readFileSync(file, 'utf8');
       for (const m of src.matchAll(HREF)) {
         if (!isReachable(m[1])) offenders.push(`${rel(file)} → ${m[1]}`);
@@ -197,7 +190,6 @@ describe('the leaderboard is present on every layer, or on none', () => {
     const callers = [];
     for (const file of [...walk(join(ROOT, 'public'), ['.js', '.html']),
                         ...walk(join(ROOT, 'admin-ui'), ['.js', '.html'])]) {
-      if (rel(file).startsWith('proxy-engine/assets/gust/')) continue;
       if (/['"`]\/api\/(admin\/)?scores/.test(readFileSync(file, 'utf8'))) callers.push(rel(file));
     }
     assert.ok(callers.includes('public/js/leaderboard.js'),

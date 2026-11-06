@@ -39,6 +39,50 @@ const CHAT_OPTIONS = { normalize: true };
 
 let sdkPromise = null;
 
+// ── The SDK must be constructed as if on a web page ────────────────────────
+// Puter's SDK decides what it is running in at the instant it LOADS, and one of its tests is
+// whether a global named `process` exists: if so it concludes it is in Node.js. In that mode it
+// never restores a saved session, never shows a sign-in window or dialog, and sends every chat
+// request without an account, which is answered "401 Unauthorized". Browser polyfills, ad
+// scripts and extensions sometimes define `process`; on such a page the visitor presses Send
+// and no sign-up screen ever appears. (Reproduced against the real SDK with a one-line
+// `window.process = {}`.)
+//
+// The decision is made once, in the SDK's constructor, so it cannot be fixed afterwards by
+// changing its `env` field (the session restore and the rest of the web setup are skipped for
+// good), and loading the SDK a second time fails because it registers a custom element that
+// cannot be registered twice. So the global is moved out of the way while the SDK loads and
+// put back the moment it has, which is the only point at which the SDK looks.
+
+/**
+ * Hide `window.process` and return a function that puts it back. If another script assigns a
+ * `process` while it is hidden, that value is what comes back. A global that cannot be
+ * redefined is left alone (returns a no-op): the explicit sign-in still works on such a page,
+ * it just is not remembered between visits.
+ */
+export function hideNodeGlobal() {
+  const saved = Object.getOwnPropertyDescriptor(window, 'process');
+  if (!saved || !saved.configurable) return () => {};
+  let assigned = false;
+  let late;
+  try {
+    Object.defineProperty(window, 'process', {
+      configurable: true, enumerable: saved.enumerable,
+      get: () => undefined,
+      set: (v) => { assigned = true; late = v; },
+    });
+  } catch { return () => {}; }
+  let back = false;
+  return () => {
+    if (back) return;
+    back = true;
+    try {
+      if (assigned) Object.defineProperty(window, 'process', { value: late, writable: true, configurable: true, enumerable: true });
+      else Object.defineProperty(window, 'process', saved);
+    } catch { /* the page carries on without it rather than break */ }
+  };
+}
+
 /**
  * Resolve once `window.puter.ai.chat` is callable, injecting the SDK the first
  * time. Bounded: a script that never loads rejects as 'offline' rather than
@@ -49,7 +93,11 @@ export function ensurePuter({ timeoutMs = 15000 } = {}) {
   if (sdkPromise) return sdkPromise;
 
   sdkPromise = new Promise((resolve, reject) => {
+    // Only when a tag is about to be injected: a page that already has the SDK has nothing to hide.
+    const alreadyInjected = !!document.querySelector('script[data-puter-sdk]');
+    const putProcessBack = alreadyInjected ? () => {} : hideNodeGlobal();
     const fail = (msg) => {
+      putProcessBack();
       sdkPromise = null;                 // let a later attempt retry from scratch
       const e = new Error(msg);
       e.code = 'offline';
@@ -59,6 +107,12 @@ export function ensurePuter({ timeoutMs = 15000 } = {}) {
     const ready = () => {
       if (settled) return;
       settled = true; clearInterval(poll); clearTimeout(timer);
+      putProcessBack();
+      // Said once, because the cause is invisible otherwise: the SDK came up thinking it is not in a
+      // web page, so it will not remember a sign-in between visits.
+      if (!['web', 'app', 'gui'].includes(window.puter?.env)) {
+        console.warn(`[puter] the SDK loaded believing its environment is "${window.puter?.env}" (something on this page defines \`process\` and could not be moved aside); sign-in will work for this visit but will not be remembered.`);
+      }
       resolve(window.puter);
     };
     const timer = setTimeout(() => { if (!settled) { settled = true; clearInterval(poll); fail('the Puter SDK did not load'); } }, timeoutMs);
@@ -78,6 +132,173 @@ export function ensurePuter({ timeoutMs = 15000 } = {}) {
     if (window.puter?.ai?.chat) ready();   // already present (a second switch)
   });
   return sdkPromise;
+}
+
+// ── Signing in ─────────────────────────────────────────────────────────────
+// Puter's SDK opens its own sign-in window the first time an API is called without a session.
+// That window is opened from INSIDE the SDK, after our code has already waited for the SDK to
+// download, so on a slow connection — or in a browser that is strict about pop-ups (Safari,
+// phones, anything with a blocker) — it arrives after the browser has stopped treating the
+// click as a user gesture, and is dropped without a word. The visitor was then told a window
+// "should open" and had no way to open one.
+//
+// So signing in is an explicit step with its own button. It starts from a click or a keypress
+// while the SDK is ALREADY loaded (the chat page preloads it the moment Puter is chosen), and
+// if the browser still refuses the window we know at once — window.open returns nothing — and
+// say so instead of waiting out the generation timeout.
+
+const puterError = (code, message) => { const e = new Error(message); e.code = code; return e; };
+
+/** True once the SDK has loaded far enough to sign a visitor in and to chat. */
+export function puterReady() {
+  return typeof window !== 'undefined'
+    && typeof window.puter?.auth?.signIn === 'function'
+    && typeof window.puter?.ai?.chat === 'function';
+}
+
+/** Start loading the SDK without asking it anything. Resolves true/false; never throws. */
+export function preloadPuter() {
+  return ensurePuter().then(() => true, () => false);
+}
+
+/** 'signed-in' | 'signed-out' | 'unknown' (SDK not loaded, or it does not say). */
+export function puterSignInState() {
+  try {
+    const auth = window.puter?.auth;
+    if (typeof auth?.isSignedIn !== 'function') return 'unknown';
+    return auth.isSignedIn() ? 'signed-in' : 'signed-out';
+  } catch { return 'unknown'; }
+}
+
+/** The signed-in account's username, or '' when there is none or it cannot be read. */
+export async function puterUsername() {
+  try {
+    const u = await window.puter?.auth?.getUser?.();
+    return String(u?.username || '').replace(/[^\w.@ -]/g, '').slice(0, 64);
+  } catch { return ''; }
+}
+
+/** Sign out of Puter on this site. Resolves true/false; never throws. */
+export async function signOutOfPuter() {
+  try { await window.puter?.auth?.signOut?.(); return true; } catch { return false; }
+}
+
+/** Is the SDK's own "Continue" dialog on screen? (Its recovery when the browser refuses the window.) */
+function sdkDialogOpen() {
+  try {
+    const host = document.querySelector('puter-dialog');
+    if (!host) return false;
+    const inner = host.shadowRoot?.querySelector('dialog');
+    return inner ? inner.open : true;
+  } catch { return false; }
+}
+
+/** Resolve true as soon as the SDK's dialog is showing, or false after `ms`. */
+function waitForSdkDialog(ms) {
+  if (typeof document === 'undefined') return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const look = () => {
+      if (sdkDialogOpen()) return resolve(true);
+      if (Date.now() - started >= ms) return resolve(false);
+      setTimeout(look, 100);
+    };
+    look();
+  });
+}
+
+/** What went wrong inside the SDK's own sign-in, in our typed vocabulary. */
+function signInFailure(err) {
+  const s = String(err?.error?.code || err?.code || err?.message || err?.error || err || '').toLowerCase();
+  if (/cancel|clos|dismiss|abort/.test(s)) return puterError('auth-cancelled', 'the Puter sign-in window was closed');
+  if (/network|offline|fetch/.test(s)) return puterError('offline', 'could not reach Puter to sign in');
+  return puterError('auth', 'could not sign in to Puter');
+}
+
+let signingIn = null;
+let signingInSince = 0;
+// A double-click joins the sign-in that is already open. A click after that starts a fresh one: if
+// the SDK never reports that its window closed, joining forever would hand every later click the
+// same dead promise and leave the visitor unable to sign in until they reload.
+const SIGN_IN_JOIN_MS = 2000;
+// No sign-in is waited on for ever.
+const SIGN_IN_CEILING_MS = 3 * 60 * 1000;
+
+/**
+ * Open Puter's sign-in window and wait for the visitor to finish in it. Call it straight from a
+ * click or keypress handler, with nothing awaited first, or the browser may refuse the window.
+ * A second call within two seconds joins the first (a double-click); a later one starts again.
+ *
+ * Rejects with an Error carrying `.code`:
+ *   'popup-blocked'  the browser refused to open the window (allow pop-ups, then try again)
+ *   'auth-cancelled' the window was closed before sign-in finished
+ *   'offline'        the SDK is not loaded, or Puter could not be reached
+ *   'auth'           anything else
+ */
+export function startPuterSignIn({ onBlocked } = {}) {
+  if (signingIn && Date.now() - signingInSince < SIGN_IN_JOIN_MS) return signingIn;
+  if (!puterReady()) return Promise.reject(puterError('offline', 'the Puter SDK is not loaded yet'));
+
+  // Watch window.open for the length of the call so a refused window is noticed immediately. The
+  // wrapper changes nothing: it forwards the arguments and `this` and returns what open returned.
+  const realOpen = window.open;
+  let blocked = false;
+  const watcher = function (...args) {
+    const w = realOpen.apply(this, args);
+    if (!w) blocked = true;
+    return w;
+  };
+  window.open = watcher;
+  const restore = () => { if (window.open === watcher) window.open = realOpen; };
+
+  const popupBlocked = () => puterError('popup-blocked', 'the browser blocked the Puter sign-in window');
+  const attempt = new Promise((resolve, reject) => {
+    let sdkDialogShown = false;
+    // Refused by the browser AND no dialog from the SDK: that is a dead end we must report.
+    // Refused but the SDK is showing its own dialog: that is the SDK's recovery, so any failure
+    // after it is the visitor choosing Cancel, not a blocked window.
+    const failure = (err) => (blocked && !sdkDialogShown ? popupBlocked() : signInFailure(err));
+    // The SDK opens its window straight away or not at all. After a short grace, stop watching.
+    const grace = setTimeout(() => {
+      restore();
+      if (!blocked) return;
+      // The browser refused the window. Puter's SDK has its own recovery for that — a dialog with a
+      // Continue button, whose click is a real gesture and opens the window. If it shows one, leave
+      // it to run (and tell the visitor what to click); if it does not, say so ourselves rather
+      // than leave the visitor waiting for a window that cannot appear.
+      waitForSdkDialog(1500).then((shown) => {
+        if (shown) { sdkDialogShown = true; onBlocked?.(); }
+        else settle(reject, popupBlocked());
+      });
+    }, 900);
+    const ceiling = setTimeout(() => settle(reject, puterError('auth-cancelled', 'the Puter sign-in took too long')), SIGN_IN_CEILING_MS);
+    const settle = (fn, value) => { clearTimeout(grace); clearTimeout(ceiling); restore(); fn(value); };
+    try {
+      Promise.resolve(window.puter.auth.signIn()).then(
+        () => settle(resolve, true),
+        (err) => settle(reject, failure(err)));
+    } catch (err) {
+      settle(reject, failure(err));
+    }
+  });
+  signingIn = attempt;
+  signingInSince = Date.now();
+  const clear = () => { if (signingIn === attempt) signingIn = null; };
+  attempt.then(clear, clear);
+  return attempt;
+}
+
+/** Race `promise` against the caller's cancellation. */
+function abortable(promise, signal) {
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    const cancel = () => reject(puterError('cancelled', 'cancelled'));
+    if (signal.aborted) return cancel();
+    signal.addEventListener('abort', cancel, { once: true });
+    promise.then(
+      (v) => { signal.removeEventListener('abort', cancel); resolve(v); },
+      (e) => { signal.removeEventListener('abort', cancel); reject(e); });
+  });
 }
 
 /** Pull plain text out of whatever shape Puter returns. */
@@ -105,6 +326,7 @@ function classify(err) {
   const e = new Error(typeof raw === 'string' && raw ? raw : 'the Puter AI could not answer');
   e.detail = String(raw || '').slice(0, 200);
   if (/\b(limit|quota|insufficient|credit|usage|balance)\b/.test(s)) e.code = 'usage';
+  else if (/auth[_ ]?(cancel|clos)/.test(String(err?.error?.code || err?.code || '').toLowerCase())) e.code = 'auth-cancelled';
   else if (/\b(sign|signin|auth|login|log ?in|permission|denied|unauthor|account|token)\b/.test(s)) e.code = 'auth';
   else if (/\b(network|offline|failed to fetch|fetch failed|connection)\b/.test(s)) e.code = 'offline';
   else e.code = 'unexpected-response';
@@ -131,7 +353,20 @@ export async function askPuterWithContext(messages, { signal, onStatus, timeoutM
   if (signal?.aborted) { const e = new Error('cancelled'); e.code = 'cancelled'; throw e; }
 
   onStatus?.('Connecting to Puter…');
-  const puter = await ensurePuter();
+  // Already loaded (the chat page preloads it when Puter is chosen)? Then await NOTHING before the
+  // sign-in below: this call is still inside the keypress that sent the message, which is what
+  // lets the browser open the Puter window.
+  const puter = puterReady() ? window.puter : await ensurePuter();
+
+  // Sign in as an explicit step, before the generation timer starts, so waiting for a person to
+  // type a password never counts against the answer's time budget.
+  if (puterSignInState() === 'signed-out') {
+    onStatus?.('Waiting for you to sign in to Puter…');
+    await abortable(startPuterSignIn({
+      onBlocked: () => onStatus?.('Your browser blocked the sign-in window. Click “Continue” in the Puter dialog to open it.'),
+    }), signal);
+    if (puterSignInState() === 'signed-out') throw puterError('auth', 'not signed in to Puter');
+  }
 
   // Combine the caller's cancellation with our own timeout into one signal, the
   // same shape pollinations.js uses, so cancellation and timeouts behave the same
@@ -178,12 +413,19 @@ export async function askPuterWithContext(messages, { signal, onStatus, timeoutM
 export function describePuterFailure(error) {
   switch (error?.code) {
     case 'auth':
-      return 'Puter needs you to sign in to its free account to use this AI. A sign-in '
-        + 'window should open — allow it to continue. Or switch to PolliChat, which needs '
-        + 'no sign-in, or open the Browser to use ChatGPT, Claude or another AI.';
+      return 'Sign in to Puter first. Press “Sign in to Puter”: it opens a small Puter '
+        + 'window where you can use an existing account or create a free one. Or switch '
+        + 'to PolliChat, which needs no sign-in.';
+    case 'popup-blocked':
+      return 'Your browser blocked the Puter sign-in window. Allow pop-ups for this site '
+        + '(look for the blocked-window icon in the address bar), then press “Sign in to '
+        + 'Puter”. Or switch to PolliChat, which needs no sign-in.';
+    case 'auth-cancelled':
+      return 'The Puter sign-in window was closed before you finished. Press “Sign in to '
+        + 'Puter” to try again, or switch to PolliChat, which needs no sign-in.';
     case 'usage':
       return 'Your Puter account has reached its free AI usage limit for now. Try again '
-        + 'later, switch to PolliChat, or open the Browser to use another AI.';
+        + 'later, or switch to PolliChat.';
     default:
       return describeFailure(error);
   }

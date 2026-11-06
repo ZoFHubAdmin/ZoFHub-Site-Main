@@ -116,7 +116,7 @@ describe('the served site follows the host it was asked under', () => {
   });
 
   test('no HTML page hardcodes a hostname for itself', async () => {
-    for (const path of ['/', '/browser', '/donate', '/leaderboard', '/community']) {
+    for (const path of ['/', '/ai', '/donate', '/leaderboard', '/community']) {
       const html = (await getAs(MIRROR_B, path)).body;
       for (const bad of [MIRROR_A, 'zofhub.com', 'zofhub.onrender.com']) {
         assert.ok(!html.includes(bad), `${path} contains a hardcoded "${bad}"`);

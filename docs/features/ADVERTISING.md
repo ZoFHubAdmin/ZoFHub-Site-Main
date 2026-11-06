@@ -16,8 +16,8 @@ Every network also takes `<NETWORK>_ENABLED` (required) and `<NETWORK>_ZONE`
 (shown in the admin panel, renders nothing).
 
 Google AdSense and Ad Manager are refused at three separate layers and must
-never be enabled. Google bans proxy and anonymiser domains at the **account**
-level, so a single stray tag here could take down an unrelated AdSense account.
+never be enabled: a single stray Google tag could put an unrelated Google
+account at risk, and none of the six networks needs one.
 
 Source of truth: [`lib/ad-providers.mjs`](../../lib/ad-providers.mjs).
 
@@ -107,32 +107,30 @@ An override for a region that is not in `REGION_ROUTES` is reported as unread.
 
 ---
 
-## Advertising never touches the proxy
+## Where advertising may appear
 
 This is a compliance and security boundary, not a layout preference.
 
-| | What it is | Ads |
-|---|---|---|
-| **Native** | Pages ZoFHub authored — catalog, game pages, AI, community | Permitted |
-| **Proxy** | `/browser`, `/horizon`, the engine and transport paths, Wisp, service workers, and the companion engines (`/kasm`, `/invisi`) | **Never** |
+Ads render only on pages ZoFHub authored — the catalog, game pages, the AI page,
+the community page, the leaderboard and the legal pages. The rule is
+**deny-by-default**: a path that matches none of the entries in
+**`NATIVE_SURFACES`** (`lib/ad-providers.mjs`) gets no ads at all, because a
+route nobody classified is a route nobody reasoned about. `/donate` is
+deliberately ad-free as well.
 
-The authoritative list is **`PROXY_SURFACES`** in `lib/ad-providers.mjs`; the
-row above is a summary. `/donate` is deliberately ad-free as well.
+(This site once hosted a web-proxy browser, whose pages were other people's
+websites fetched in transit and could never carry our advertising. The browser
+is gone; the allow-list stays deny-by-default so nothing new is ever advertised
+on by accident.)
 
-> **This array does two jobs.** [`lib/masqr.mjs`](../../lib/masqr.mjs) derives
-> the mirror gate's hidden paths from it (plus `/api/proxies`). Adding a path
-> here both removes ads from it and — when `MASQR_ENABLED=1` — hides it from
-> unauthenticated visitors. See [MASQR.md](../proxy/MASQR.md).
+It is enforced in two places:
 
-It is enforced in three places:
-
-1. **`isAdSurface()`** — deny-list first, then an allow-list of native routes.
+1. **`isAdSurface()`** — an allow-list of native routes.
    **An unclassified route gets no ads.**
 2. **`/api/site-config`** returns every ad field present and *empty* for a
    non-native surface. A request with no `?surface=` and no same-host Referer is
-   no surface at all, and gets nothing.
-3. **`layout.js`** checks the path *before* loading any ad module, because it is
-   cached in visitors' browsers long after a server-side fix ships.
+   no surface at all, and gets nothing. `layout.js` only ever mounts what that
+   payload contains, so it cannot show an ad the server refused.
 
 > **History.** Until this revision `/api/site-config` had two route handlers.
 > The first always answered and never called `next()`, so the second — the one
@@ -155,7 +153,7 @@ It is enforced in three places:
 | Popunder | none (behind the page) | Desktop game pages | PopAds |
 
 **Never placed:** over game controls, over navigation, inside gameplay, over the
-AI composer, over proxy content, or anywhere an ad could be mistaken for a site
+AI composer, or anywhere an ad could be mistaken for a site
 control. Every fixed box reserves its size at creation time, so a late creative
 cannot shift the page; an unset placement collapses to nothing.
 
@@ -215,42 +213,6 @@ mobile user agent, not an iPad reporting a desktop UA).
 
 ---
 
-## The ad-block gate
-
-`public/js/support-gate.js`. While at least one network is active (and the
-console setting `ads.adblock_gate` is on), a visitor whose content blocker stays
-on for **3 page views or game plays** finds the **premium engines** — every
-standalone companion (NautilusOS, DayDream, Nebula, InvisiProxy, Kasm) — locked
-in `/browser` until they pause it and refresh. The built-in engines (Ultraviolet,
-HORIZON) are never locked. The
-games hub and the built-in engines (Ultraviolet, Scramjet, GUST, HORIZON) are **never**
-locked.
-
-- **Detection**, from three independent signals: a bait element carrying the
-  class names generic element-hiding lists target; our own ad containers being
-  hidden; and real ad scripts (or the VAST tag) failing to load **and** a
-  follow-up `HEAD` request to the same URL being refused by the browser. A 404,
-  a CSP refusal or a timeout never counts — misconfiguration is not a blocker.
-- **First detection in a session** shows a polite, dismissible note explaining
-  that the ads keep the proxy mirrors alive and free.
-- **The lock** is a card over the proxy stage with a **Pause Adblocker** button
-  (steps, then *I paused it — refresh*). The dropdown still lists the premium
-  engines, marked 🔒. Links to their origins are held to the same rule. A
-  session already running is not torn down mid-visit.
-- **Unlocking**: the first page with the blocker paused clears the record. On
-  `/browser` — where no ad is ever loaded — the check is the bait element, plus,
-  only when the stored verdict rests on network evidence and the page shows no
-  cosmetic blocking, a no-cookie, no-referrer `HEAD` to the loader URLs the hub
-  pages saw fail. Nothing executes and nothing renders.
-- **Storage**: `localStorage["zofhub.support.v1"]` (strike count, evidence kind,
-  timestamp, up to three URLs) and a once-per-session flag. Disclosed in the
-  privacy and cookie policies. Verdicts older than 7 days no longer lock.
-
-It is a fair-play request, not access control: a determined visitor can edit the
-page, and the premium engines' own origins do not check it.
-
----
-
 ## Compliance matrix
 
 Status values are used precisely:
@@ -265,7 +227,7 @@ Status values are used precisely:
 |---|---|---|
 | Site approval for `zofhub.*` | **Needs approval** | Per-domain review. Not granted by anything in this repo. |
 | Format approval | **Needs approval** | Approval for one format does not extend to another. |
-| Proxy/anonymiser content acceptance | **Not verified** | ZoFHub hosts a web proxy. Raise it explicitly with each network before enabling. |
+| Content acceptance | **Not verified** | Confirm with each network that a free games-and-AI site is acceptable before enabling. |
 | Traffic-source requirements | **Not verified** | Check your account dashboard. |
 | Audience-age requirements | **Not verified** | The audience includes minors. Consequences for ad targeting and COPPA/GDPR-K. Set every network to mainstream-only. |
 
@@ -286,8 +248,8 @@ No fake impressions or clicks. No automated interaction. No hidden or
 zero-opacity ads, and no ad loaded where nobody can see it. No forced
 interactions. No clickjacking. No refresh loops. No impression inflation. No
 modification of any network's code to alter tracking, attribution or fraud
-detection. No injection into proxied third-party pages. No attempt to evade the
-visitor's content blocker — the gate asks, it does not circumvent.
+detection. No injection into third-party pages. No attempt to evade the
+visitor's content blocker, and nothing is ever locked behind one.
 
 ---
 
@@ -314,7 +276,7 @@ npm run check-ads
 
 Walks the path a visitor's browser does and reports on each hop: which network
 is active in which role (and which variables are set but unread) → CSP → what
-`/api/site-config` actually serves to a hub page, a game page and `/browser` →
+`/api/site-config` actually serves to a hub page, a game page and a path nobody classified →
 host reachability. Non-zero exit if anything would stop an ad from rendering.
 
 The CSP allowlist is **derived from your configuration**, including every
@@ -335,11 +297,10 @@ protocol-relative). If a network chains to a domain you never pasted, add it to
 | `public/js/ad-slots.js` | Header, sidebar, native, popunder, interstitial. |
 | `public/js/ad-frequency.js` | The 20-minute throttle, shared by the interstitial and the pre-roll. |
 | `public/js/preroll.js` | The VAST pre-roll player. |
-| `public/js/support-gate.js` | Ad-block detection and the premium-engine gate. |
-| `public/js/layout.js` | Loads the ad stack — and refuses to on a proxy surface. |
+| `public/js/layout.js` | Loads the ad stack, from whatever `/api/site-config` hands this page. |
 | `tools/check-ads.mjs` | Pre-deploy verification. |
 | `test/ad-architecture.test.mjs`, `test/ad-boundary.test.mjs`, `test/production-guards.test.mjs` | The guarantees above, asserted. |
 
 ---
 
-**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [the proxy boundary this respects](../proxy/INVISIPROXY.md) · [go-live checklist](../guides/GO-LIVE.md)
+**Related:** [documentation map](../README.md#-documentation) · [how it all fits together](../guides/HOW-IT-WORKS.md) · [how the server's own traffic is handled](../proxy/SINGBOX.md) · [go-live checklist](../guides/GO-LIVE.md)

@@ -82,7 +82,7 @@ jobs:
           node-version: "22"
 
       # The FULL install, dev dependencies included, because the suite imports them:
-      # @electric-sql/pglite (database tests), jsqr (QR test), ws (tunnel tests).
+      # @electric-sql/pglite (database tests), jsqr (QR test).
       # With `--omit=dev` those files failed at import with "Cannot find package",
       # which kept this job red for reasons unrelated to the code under test.
       # Production installs stay `--omit=dev` (render.yaml, and the startup-check

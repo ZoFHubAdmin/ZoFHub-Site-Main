@@ -164,18 +164,38 @@ describe('the schema the migrations actually produce', () => {
     assert.deepEqual(dangerous.map((d) => `${d.file}: ${d.sig}`), []);
   });
 
+  // Functions whose only caller was the removed browser (rewarded proxy access). They are still in the
+  // migration history, and supabase/migrations/ is applied to PRODUCTION on merge, so dropping them is a
+  // deliberate act by the operator (a new migration), not something a code removal does by side effect.
+  // Until then each is service_role-only (revoked from public/anon/authenticated in db/rewards.sql).
+  // Listed by name, one entry per function, so a NEW caller-less definer function still fails this test.
+  const RETIRED_DEFINERS = new Set(['grant_reward_entitlement']);
+
   test('no SECURITY DEFINER function is left without a caller', () => {
     // Elevated-privilege code that nothing invokes can only ever run by accident.
     const callers = readFileSync(join(ROOT, 'lib', 'cron-jobs.mjs'), 'utf8')
-      + readFileSync(join(ROOT, 'server.js'), 'utf8')
-      + readFileSync(join(ROOT, 'lib', 'reward-sessions.mjs'), 'utf8');
+      + readFileSync(join(ROOT, 'server.js'), 'utf8');
     const orphans = [];
     for (const [sig, fn] of DB.functions) {
       if (!fn.definer) continue;
       const name = sig.split('(')[0];
+      if (RETIRED_DEFINERS.has(name)) continue;
       if (!callers.includes(`'${name}'`)) orphans.push(`${sig} (${fn.file})`);
     }
     assert.deepEqual(orphans, []);
+  });
+
+  test('every retired definer function is still defined, and still locked to the service role', () => {
+    // If a migration drops it, delete its entry above; if it stays, it must stay unreachable from the API keys.
+    for (const name of RETIRED_DEFINERS) {
+      const found = [...DB.functions].filter(([sig]) => sig.split('(')[0] === name);
+      assert.equal(found.length, 1, `${name} is no longer defined exactly once — remove it from RETIRED_DEFINERS`);
+      assert.ok(found[0][1].definer, `${name} lost SECURITY DEFINER`);
+      const sql = readFileSync(join(ROOT, 'db', 'rewards.sql'), 'utf8');
+      assert.match(sql, /revoke all on function public\.grant_reward_entitlement\(uuid, text, text, timestamptz\) from public/,
+        'the retired function is no longer revoked from PUBLIC');
+      assert.match(sql, /grant execute on function public\.grant_reward_entitlement\(uuid, text, text, timestamptz\) to service_role/);
+    }
   });
 
   test('every function pins search_path', () => {

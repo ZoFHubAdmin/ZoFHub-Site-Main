@@ -1,11 +1,12 @@
 // The advertising architecture: the six networks, the one role each owns, and
-// the boundary that keeps them off the proxy.
+// the deny-by-default boundary that decides which pages may carry them.
 //
 // None of this was tested before. The consequences of that were not theoretical:
-// public/browser.html imports layout.js, which is the module that loads the ad
-// stack, so configuring any network would have started serving ZoFHub's own
-// advertising on the web-proxy page — third-party content, monetised by us. No
-// code said that was wrong and nothing checked.
+// when the site still had a web-proxy browser, its page imported layout.js — the
+// module that loads the ad stack — so configuring any network would have started
+// serving ZoFHub's own advertising on third-party content. No code said that was
+// wrong and nothing checked. The browser is gone; the allow-list that would have
+// protected it is still the rule for every page, old or new.
 //
 // Everything here is pure: resolveAdConfig() takes an env object and returns a
 // value, so a test constructs a fake environment and asserts on the result. No
@@ -230,7 +231,7 @@ describe('where each placement may appear', () => {
     assert.equal(game.popunder.provider, 'popads');
   });
 
-  test('a proxy page gets nothing at all', () => {
+  test('a removed or unclassified page gets nothing at all', () => {
     for (const surface of ['/browser', '/horizon', '/horizon/x', '/uv/x', '/play']) {
       const pub = publicAdConfig(cfg, { surface });
       assert.equal(pub.preroll, null, surface);
@@ -240,7 +241,7 @@ describe('where each placement may appear', () => {
     assert.equal(publicAdConfig(cfg, {}).slots.header, '', 'no surface must mean no ads');
   });
 
-  test('isGamePage is a single game, never the bare /play or a proxy path', () => {
+  test('isGamePage is a single game, never the bare /play or a path nested under another page', () => {
     assert.equal(isGamePage('/play/x'), true);
     assert.equal(isGamePage('/play/x?ref=1'), true);
     assert.equal(isGamePage('/play'), false);
@@ -301,8 +302,8 @@ describe('regional tags', () => {
 });
 
 describe('Google ad code is refused everywhere', () => {
-  // AdSense/AdX ban proxy and anonymizer domains at the ACCOUNT level, so a
-  // single tag here could take down an unrelated account. Refused at every layer.
+  // A single Google ad tag could put an unrelated Google account at risk, and none of
+  // the six networks needs one. Refused at every layer.
   const googly = [
     'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
     'https://securepubads.g.doubleclick.net/tag/js/gpt.js',
@@ -341,9 +342,10 @@ describe('Google ad code is refused everywhere', () => {
   });
 });
 
-describe('the proxy / advertising boundary', () => {
+describe('the advertising boundary', () => {
   const NATIVE = ['/', '/category/racing', '/play/moto-x3m', '/ai', '/community', '/credits', '/privacy'];
-  const PROXY = [
+  // Paths the removed browser used, plus infrastructure paths: none of them is a page ZoFHub wrote.
+  const NOT_PAGES = [
     '/browser', '/browser/', '/horizon', '/horizon/x', '/gust', '/gust/x', '/proxy',
     '/uv/uv.bundle.js', '/scram/scramjet.all.js', '/epoxy/index.mjs', '/baremux/y.js',
     '/libcurl/index.mjs', '/wisp', '/bare/v3',
@@ -356,16 +358,16 @@ describe('the proxy / advertising boundary', () => {
     });
   }
 
-  for (const p of PROXY) {
-    test(`proxy surface must NOT: ${p}`, () => {
+  for (const p of NOT_PAGES) {
+    test(`not a page we wrote, so it must NOT carry ads: ${p}`, () => {
       assert.equal(isAdSurface(p), false, `${p} would have been monetised`);
     });
   }
 
   test('an unclassified surface defaults to NO ads', () => {
     // A route nobody classified is a route nobody reasoned about. Failing
-    // closed means a new proxy route is safe by default; failing open means it
-    // is monetised until someone notices.
+    // closed means a new route is safe by default; failing open means it is
+    // monetised until someone notices.
     assert.equal(isAdSurface('/some-new-route-nobody-classified'), false);
   });
 
@@ -373,28 +375,15 @@ describe('the proxy / advertising boundary', () => {
     assert.equal(isAdSurface('/browser?url=https://example.com'), false);
     assert.equal(isAdSurface('/browser#/gust'), false);
     assert.equal(isAdSurface('/BROWSER'), false, 'the check must be case-insensitive');
+    assert.equal(isAdSurface('/DONATE?x=/'), false, 'a donate page with a query string is still ad-free');
   });
 
-  test('layout.js refuses to load the ad stack on a proxy surface', () => {
-    // browser.html imports layout.js for the site chrome. The guard must be in
-    // the file, not just in the server, because layout.js is cached in visitors'
-    // browsers long after a server-side fix ships.
+  test('layout.js carries no list of page types of its own: the server decides, once', () => {
+    // The old client-side guard existed because browser.html imported layout.js. With no such page the
+    // only authority is /api/site-config (publicAdConfig by surface), which cannot drift from a copy.
     const src = readFileSync(join(ROOT, 'public', 'js', 'layout.js'), 'utf8');
-    assert.match(src, /ADS_ALLOWED_HERE/, 'layout.js has no client-side surface guard');
-    assert.match(src, /browser\|horizon\|gust\|proxy\|uv\|scram/,
-      'the client guard does not name the proxy surfaces');
-  });
-
-  test('no ad module is imported by a proxy page', () => {
-    // The vendored proxy UIs must not reference the ad stack at all.
-    const proxyPages = ['proxy-engine/assets/horizon/index.html', 'proxy-engine/assets/gust/index.html'];
-    for (const rel of proxyPages) {
-      let src;
-      try { src = readFileSync(join(ROOT, rel), 'utf8'); } catch { continue; }
-      for (const mod of ['ad-slots.js', 'proxy-ads.js', 'preroll.js', 'support-gate.js']) {
-        assert.ok(!src.includes(mod), `${rel} imports ${mod}`);
-      }
-    }
+    assert.ok(!/ADS_ALLOWED_HERE/.test(src), 'layout.js grew a second, client-side surface list');
+    assert.match(src, /\/api\/site-config/, 'layout.js no longer asks the server which ads this page may carry');
   });
 });
 
@@ -474,8 +463,8 @@ describe('PropellerAds is gone', () => {
   // public/game.html shipped a commented AdSense loader under a banner reading
   // "INSERT AD PROVIDER HEAD SCRIPT HERE (Google AdSense Auto-Ads …)". A
   // commented tag is one keystroke from a live one, and a live one here is an
-  // ACCOUNT-level ban: AdSense and Ad Manager prohibit proxy/anonymizer domains,
-  // so the penalty lands on the whole Google account, not just this site.
+  // account-level problem: the penalty lands on the whole Google account, not just
+  // this site (and this site once hosted a proxy, which those programs prohibit).
   //
   // Scoped to the files ZoFHub authors and serves as its own pages. It
   // deliberately does NOT cover:
@@ -512,7 +501,7 @@ describe('PropellerAds is gone', () => {
   test('no page carries a Google publisher tag, commented or live', () => {
     assert.deepEqual(adsenseOffenders, [],
       `Google ad publisher code found in:\n  ${adsenseOffenders.join('\n  ')}\n`
-      + 'AdSense/Ad Manager ban proxy domains at the ACCOUNT level.');
+      + 'Google ad code is not part of this site\'s ad stack.');
   });
 
   test('the legal pages list exactly the six supported networks, with their own policies', () => {

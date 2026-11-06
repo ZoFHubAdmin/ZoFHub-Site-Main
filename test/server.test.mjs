@@ -46,7 +46,11 @@ before(async () => {
     // suite asserts full-catalog behaviour (pagination over thousands of rows,
     // and the real game slugged "constructor"); the 100-game cap is its own
     // concern, unit-tested in test/active-roster.test.mjs.
-    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', NO_OPEN: '1', ACTIVE_GAMES_CAP: '0' },
+    // CRON_DISABLED: this suite imports lib/load-env.mjs, so the child inherits the real .env (with
+    // the Supabase admin key) and lives long enough for the 30 s post-boot link-check to fire,
+    // which WRITES is_working=false to the live games table. CI sets it job-wide; a developer's
+    // `npm test` did not.
+    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', NO_OPEN: '1', ACTIVE_GAMES_CAP: '0', CRON_DISABLED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', () => {});   // drain so the pipe never fills and stalls
@@ -66,8 +70,8 @@ before(async () => {
 after(() => { if (child && !child.killed) child.kill('SIGKILL'); });
 
 describe('pages and routes', () => {
-  const pages = ['/', '/ai', '/browser', '/community',
-                 '/credits', '/licenses', '/privacy', '/terms', '/dmca', '/cookies'];
+  const pages = ['/', '/ai', '/community',
+                 '/credits', '/privacy', '/terms', '/dmca', '/cookies'];
   for (const p of pages) {
     test(`GET ${p} -> 200`, async () => {
       const r = await get(p);
@@ -78,9 +82,19 @@ describe('pages and routes', () => {
 
   test('legal .html twins redirect to the canonical path', async () => {
     for (const p of ['/credits.html', '/privacy.html', '/terms.html',
-                     '/dmca.html', '/cookies.html', '/licenses.html']) {
+                     '/dmca.html', '/cookies.html']) {
       const r = await get(p, { redirect: 'manual' });
       assert.equal(r.status, 301, `${p} should 301`);
+    }
+  });
+
+  // The proxy browser and its AGPL source-offer pages are gone for good: a bookmark to one
+  // must get an honest 404, not a redirect, a blank page or a half-working shell.
+  test('the removed browser and licenses pages are gone', async () => {
+    for (const p of ['/browser', '/browser.html', '/gust', '/horizon', '/uv/uv.config.js', '/licenses', '/licenses.json',
+                     '/api/proxies', '/wisp/', '/baremux/', '/epoxy/', '/libcurl/']) {
+      const r = await get(p);
+      assert.equal(r.status, 404, `${p} should be gone, got ${r.status}`);
     }
   });
 
@@ -161,20 +175,11 @@ describe('security headers and error hygiene', () => {
       '404 leaked a stack trace');
   });
 
-  // REGRESSION: GUST's whole button-driven UI runs on inline onclick handlers
-  // (~30 of them), and HORIZON (a remodelled GUST) kept a handful more. The
-  // site-wide CSP's `script-src-attr 'none'` silently refused every one of
-  // them — on GUST that meant most buttons did nothing when clicked, which
-  // reads as "the proxy is broken" with no console error a user would notice.
-  // Scoped to exactly these two routes; every other page keeps the default.
-  test('GUST and HORIZON get script-src-attr relaxed; every other page keeps it refused', async () => {
-    for (const p of ['/gust', '/proxy', '/horizon']) {
+  // Every page keeps the strictest script-src-attr: nothing on this site attaches inline on* handlers.
+  test('every page keeps script-src-attr refused', async () => {
+    for (const p of ['/', '/ai', '/community']) {
       const csp = (await get(p)).headers.get('content-security-policy') || '';
-      assert.match(csp, /script-src-attr[^;]*'unsafe-inline'/, `${p} still refuses inline handlers`);
-    }
-    for (const p of ['/', '/browser', '/ai']) {
-      const csp = (await get(p)).headers.get('content-security-policy') || '';
-      assert.match(csp, /script-src-attr\s+'none'/, `${p} should not have this directive relaxed`);
+      assert.match(csp, /script-src-attr\s+'none'/, `${p} should refuse inline handlers`);
     }
   });
 });
@@ -732,21 +737,22 @@ describe('the server-side AI routes refuse every spelling, method and body', () 
 describe('/api/site-config is one route that answers everything', () => {
   // There used to be two routes here; the first always answered, so the second
   // — the ad payload — was dead code and no page ever received an ad.
-  test('settings, proxy view and ad fields arrive together, privately cached', async () => {
+  test('settings and ad fields arrive together, privately cached', async () => {
     const r = await get('/api/site-config?surface=/');
     assert.equal(r.status, 200);
     assert.match(r.headers.get('cache-control') || '', /^private/);
     const j = await r.json();
-    for (const k of ['ok', 'announcement', 'features', 'proxy', 'adsAllowed', 'adScripts', 'slots',
-      'interstitial', 'native', 'preroll', 'popunder', 'supportGate']) {
+    for (const k of ['ok', 'announcement', 'features', 'adsAllowed', 'adScripts', 'slots',
+      'interstitial', 'native', 'preroll', 'popunder']) {
       assert.ok(k in j, `${k} is missing`);
     }
+    for (const gone of ['proxy', 'supportGate']) assert.ok(!(gone in j), `${gone} is part of the removed browser and must not come back`);
     assert.equal(j.adsAllowed, true);
-    assert.equal(typeof j.supportGate, 'boolean');
   });
 
-  test('a proxy surface gets every ad field, empty', async () => {
-    for (const surface of ['/browser', '/horizon', '/uv/x']) {
+  test('an unclassified surface gets every ad field, empty', async () => {
+    // /donate is ad-free on purpose; the other two match no route at all (deny by default).
+    for (const surface of ['/donate', '/browser', '/some/page/nobody/classified']) {
       const j = await (await get('/api/site-config?surface=' + encodeURIComponent(surface))).json();
       assert.equal(j.adsAllowed, false, surface);
       assert.deepEqual(j.adScripts, []);
@@ -760,7 +766,7 @@ describe('/api/site-config is one route that answers everything', () => {
     // made every anonymous request look like the homepage.
     assert.equal((await (await get('/api/site-config')).json()).adsAllowed, false);
     const viaRef = async (ref) => (await (await get('/api/site-config', { headers: { Referer: ref } })).json()).adsAllowed;
-    assert.equal(await viaRef(`${BASE}/browser`), false);
+    assert.equal(await viaRef(`${BASE}/donate`), false);
     assert.equal(await viaRef(`${BASE}/`), true, 'a same-host Referer is how a page without ?surface= is classified');
     assert.equal(await viaRef('https://elsewhere.example/'), false, 'another site\'s Referer classified one of ours');
   });

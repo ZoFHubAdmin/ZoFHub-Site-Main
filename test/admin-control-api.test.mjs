@@ -6,8 +6,6 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
-import net from 'node:net';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountAdminApi } from '../lib/admin-api.mjs';
@@ -31,7 +29,7 @@ function captureRoutes() {
     isRecentAuth: () => false,
     limiter: { allow: () => true, retryAfterSec: () => 1 },
     services: {}, auditDenied: () => {}, status: () => ({}), gdImport: { start: () => ({}), status: () => ({}) },
-    proxyOverview: () => ({}), log: () => {},
+    log: () => {},
   };
   const { routes } = mountAdminApi(app, deps);
   return { routes, calls, log };
@@ -41,7 +39,7 @@ describe('every control-plane route is gated by construction', () => {
   const { routes, calls, log } = captureRoutes();
 
   test('there are routes, all under /api/admin, all on a real permission', () => {
-    assert.ok(routes.length >= 40, `only ${routes.length} routes`);
+    assert.ok(routes.length >= 30, `only ${routes.length} routes`);
     for (const r of routes) {
       assert.ok(r.path.startsWith('/api/admin/'), r.path);
       assert.ok(PERMISSION_IDS.includes(r.perm), `${r.method} ${r.path}: ${r.perm}`);
@@ -113,7 +111,7 @@ describe('as a content manager', () => {
 
   test('no credential: 401 on every control-plane read', async () => {
     for (const p of ['/api/admin/cms/games', '/api/admin/cms/status', '/api/admin/staff', '/api/admin/settings',
-      '/api/admin/proxy/control', '/api/admin/proxy/targets', '/api/admin/cms/providers', '/api/admin/audit/export']) {
+      '/api/admin/cms/providers', '/api/admin/audit/export']) {
       assert.equal((await s.call('GET', p, undefined, { auth: false })).status, 401, p);
     }
   });
@@ -134,14 +132,15 @@ describe('as a content manager', () => {
     }
   });
 
-  test('cannot approve, publish, manage staff, change settings or touch the proxy', async () => {
+  test('cannot approve, publish, manage staff or change settings', async () => {
     const list = await s.call('GET', '/api/admin/cms/games?status=pending_review');
     const id = list.json.rows[0].id;
     assert.equal((await s.call('POST', `/api/admin/cms/games/${id}/transition`, { action: 'approve' })).status, 403);
     assert.equal((await s.call('POST', '/api/admin/staff', { username: 'mallory', role: 'admin' })).status, 403);
     assert.equal((await s.call('PUT', '/api/admin/settings/site.maintenance', { value: { enabled: true, message: '' } })).status, 403);
-    assert.equal((await s.call('POST', '/api/admin/proxy/targets', { pattern: 'example.org', purpose: 'test' })).status, 403);
-    assert.equal((await s.call('PUT', '/api/admin/proxy/policy', { policy: { accessMode: 'public' } })).status, 403);
+    // The removed browser's control routes must be gone, not merely forbidden.
+    assert.equal((await s.call('POST', '/api/admin/proxy/targets', { pattern: 'example.org', purpose: 'test' })).status, 404);
+    assert.equal((await s.call('PUT', '/api/admin/proxy/policy', { policy: { accessMode: 'public' } })).status, 404);
     assert.equal((await s.call('DELETE', `/api/admin/cms/games/${id}`, { confirm: 'x' })).status, 403);
   });
 
@@ -187,7 +186,7 @@ describe('as a content manager', () => {
     const r = await s.call('GET', '/api/site-config', undefined, { auth: false });
     assert.equal(r.json.announcement.text, 'Scheduled maintenance tonight at 22:00 UTC.');
     assert.equal(r.json.features.ai, false);
-    for (const k of ['policy', 'decisions', 'unlisted', 'maxTunnels', 'ads', 'catalog']) assert.ok(!r.text.includes(`"${k}"`), `leaked ${k}`);
+    for (const k of ['proxy', 'policy', 'ads', 'catalog']) assert.ok(!r.text.includes(`"${k}"`), `leaked ${k}`);
   });
 });
 
@@ -225,7 +224,7 @@ describe('maintenance mode', () => {
   before(async () => { s = await boot(3524, { ADMIN_SERVICE_ROLE: 'viewer', CONTROL_MEMORY_SEED: join(ROOT, 'test', 'fixtures', 'control-seed-maintenance.json') }); });
   after(async () => { await s.stop(); });
 
-  test('public pages and APIs answer 503; the console, health and licences stay up', async () => {
+  test('public pages and APIs answer 503; the console and health stay up', async () => {
     const home = await s.call('GET', '/', undefined, { auth: false });
     assert.equal(home.status, 503);
     assert.match(home.text, /Back in ten minutes/);
@@ -235,91 +234,5 @@ describe('maintenance mode', () => {
     assert.notEqual((await s.call('GET', '/admin/login', undefined, { auth: false })).status, 503);
     assert.equal((await s.call('GET', '/api/admin/cms/status')).status, 200);
     assert.equal((await s.call('GET', '/livez', undefined, { auth: false })).status, 200);
-    assert.notEqual((await s.call('GET', '/licenses', undefined, { auth: false })).status, 503);
-  });
-
-  test('and the proxy tunnel is closed too', async () => {
-    assert.match(await rawUpgrade(3524, 'http://127.0.0.1:3524'), / 503 /);
-  });
-});
-
-// ── The proxy, through the real server ──────────────────────────────────────
-function rawUpgrade(port, origin) {
-  return new Promise((resolve) => {
-    const sock = net.connect(port, '127.0.0.1', () => {
-      sock.write(`GET /wisp/ HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n`
-        + `Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n${origin ? `Origin: ${origin}\r\n` : ''}\r\n`);
-    });
-    let buf = '';
-    const done = () => { sock.destroy(); resolve(buf.split('\r\n')[0] || 'no response'); };
-    sock.on('data', (d) => { buf += d; if (buf.includes('\r\n')) done(); });
-    sock.on('error', done);
-    setTimeout(done, 5000);
-  });
-}
-
-describe('proxy governance through the running server', () => {
-  describe('access mode: disabled', () => {
-    let s;
-    before(async () => { s = await boot(3525, { PROXY_ACCESS_MODE: 'disabled' }); });
-    after(async () => { await s.stop(); });
-
-    test('page, engines, companions and tunnel are all closed; the site is not', async () => {
-      assert.equal((await s.call('GET', '/browser', undefined, { auth: false })).status, 503);
-      assert.equal((await s.call('GET', '/uv/uv.config.js', undefined, { auth: false })).status, 503);
-      assert.deepEqual((await s.call('GET', '/api/proxies', undefined, { auth: false })).json.engines, []);
-      assert.match(await rawUpgrade(3525, 'http://127.0.0.1:3525'), / 403 /);
-      assert.equal((await s.call('GET', '/', undefined, { auth: false })).status, 200);
-    });
-  });
-
-  describe('access mode: public', () => {
-    let s;
-    before(async () => { s = await boot(3526, { PROXY_APPROVED_TARGETS: 'example.org' }); });
-    after(async () => { await s.stop(); });
-
-    test('another website cannot open a tunnel from its visitors\' browsers', async () => {
-      assert.match(await rawUpgrade(3526, 'https://evil.example.net'), / 403 /);
-      assert.match(await rawUpgrade(3526, 'http://127.0.0.1:3526'), / 101 /);
-    });
-
-    test('a stream to an unapproved host is refused by the real tunnel', async () => {
-      const require = createRequire(join(ROOT, 'noop.cjs'));
-      const WebSocket = require('ws');
-      const reason = await new Promise((resolve) => {
-        const ws = new WebSocket('ws://127.0.0.1:3526/wisp/', { headers: { Origin: 'http://127.0.0.1:3526' } });
-        let r = null;
-        const finish = () => { try { ws.close(); } catch { /* closing */ } resolve(r); };
-        const t = setTimeout(finish, 6000);
-        ws.on('open', () => {
-          const h = Buffer.from('neverssl.com', 'utf8');
-          const payload = Buffer.alloc(3 + h.length);
-          payload.writeUInt8(0x01, 0); payload.writeUInt16LE(80, 1); h.copy(payload, 3);
-          const p = Buffer.alloc(5 + payload.length);
-          p.writeUInt8(0x01, 0); p.writeUInt32LE(1, 1); payload.copy(p, 5);
-          ws.send(p);
-        });
-        ws.on('message', (raw) => {
-          const b = Buffer.from(raw);
-          if (b.length >= 6 && b.readUInt8(0) === 0x04 && b.readUInt32LE(1) === 1) { r = b.readUInt8(5); clearTimeout(t); finish(); }
-        });
-        ws.on('error', () => { clearTimeout(t); finish(); });
-      });
-      assert.equal(reason, 0x48, 'the tunnel did not refuse an unapproved destination with HostBlocked');
-    });
-
-    test('the page learns the approved list, and nothing internal', async () => {
-      const r = await s.call('GET', '/api/site-config', undefined, { auth: false });
-      assert.equal(r.json.proxy.accessMode, 'public');
-      assert.deepEqual(r.json.proxy.destinations.map((d) => d.pattern), ['example.org']);
-    });
-
-    test('external companions are not offered unless an administrator turns them on', async () => {
-      const r = await s.call('GET', '/api/proxies', undefined, { auth: false });
-      // No companion URL is configured and `external` is off by default, so the
-      // list is empty. The built-in engines (Scramjet, Ultraviolet, GUST,
-      // HORIZON, Interstellar) are listed by the page itself, not by this route.
-      assert.deepEqual(r.json.engines, [], JSON.stringify(r.json.engines));
-    });
   });
 });

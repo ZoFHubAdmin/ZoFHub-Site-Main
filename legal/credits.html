@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#1a0b3d" />
-  <meta name="description" content="ZoFHub Credits & Licenses — attribution for the open-source software, fonts, and game publishers whose work makes ZoFHub possible, with license notices and the AGPL network-use source offer." />
+  <meta name="description" content="ZoFHub Credits & Licenses — attribution for the open-source software, fonts, and game publishers whose work makes ZoFHub possible, with their license notices." />
   <title>Credits &amp; Licenses · ZoFHub</title>
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <link rel="apple-touch-icon" href="/assets/favicon.png" />
@@ -41,7 +41,6 @@
         <a href="/">Games</a>
         <a href="/ai">AI</a>
         <a href="/community">Community</a>
-        <a href="/browser">Browser</a>
       </nav>
     </div>
   </header>
@@ -49,7 +48,7 @@
   <main class="legal-shell">
     <div class="legal-hero">
       <h1>Credits &amp; Licenses</h1>
-      <p class="legal-updated">Last updated: July 19, 2026</p>
+      <p class="legal-updated">Last updated: November 4, 2026</p>
     </div>
 
     <div class="legal-body">
@@ -70,6 +69,7 @@
             <tr><td><a href="https://github.com/node-cron/node-cron" target="_blank" rel="noopener">node-cron</a></td><td>Scheduled maintenance jobs</td><td class="lic">ISC</td></tr>
             <tr><td><a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> (PostgreSQL)</td><td>Game catalog, scores &amp; community data</td><td class="lic">Apache-2.0 / MIT</td></tr>
             <tr><td><a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a></td><td>Free browser-direct AI (text chat, and pictures via the opt-in /image command)</td><td class="lic">MIT</td></tr>
+            <tr><td><a href="https://github.com/SagerNet/sing-box" target="_blank" rel="noopener">sing-box</a> <span class="muted">(an unmodified upstream release, downloaded or built from source, and run as a separate program on our servers; it is not served to visitors)</span></td><td>Carries this server's outbound connections</td><td class="lic lic-copyleft">GPL-3.0-or-later</td></tr>
             <tr><td><a href="https://github.com/HeyPuter/puter" target="_blank" rel="noopener">Puter.js</a> <span class="muted">(<code>@heyputer/puter.js</code> SDK, loaded on demand from <code>js.puter.com</code>)</span></td><td>Second AI provider — runs on the visitor's own Puter account</td><td class="lic">Apache-2.0</td></tr>
           </tbody>
         </table>
@@ -84,104 +84,6 @@
         separately licensed AGPL-3.0, but that program runs on <strong>Puter's own infrastructure</strong>
         under the visitor's own account — ZoFHub does not serve it over a network, so no AGPL §13
         obligation attaches to ZoFHub for it.</p>
-
-      <h2>Proxy engines (served from this site)</h2>
-      <p>The optional web-browser feature is powered by these open-source proxy projects, served to
-        users from this origin:</p>
-      <div class="credits-table-wrap">
-        <table>
-          <thead><tr><th>Project</th><th>Role</th><th>License</th></tr></thead>
-          <tbody>
-            <tr><td><a href="https://github.com/titaniumnetwork-dev/Ultraviolet" target="_blank" rel="noopener">Ultraviolet</a></td><td>In-page proxy engine (service worker)</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/scramjet" target="_blank" rel="noopener">Scramjet</a></td><td>In-page proxy engine (service worker)</td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GUST</a></td><td>Service-worker-free proxy browser (libcurl.js + Wisp) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/RiptideMC/HORIZON" target="_blank" rel="noopener">HORIZON</a></td><td>Single-file proxy browser (a remodelled GUST: libcurl.js + Wisp) &mdash; <strong>modified</strong></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/bare-mux" target="_blank" rel="noopener">bare-mux</a></td><td>Transport multiplexer <span class="muted">(archived upstream; served version unaffected)</span></td><td class="lic">MIT</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/wisp-js" target="_blank" rel="noopener">Wisp (wisp-js)</a></td><td>Tunnel protocol client</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/EpoxyTransport" target="_blank" rel="noopener">Epoxy transport</a></td><td>TLS-over-Wisp transport</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
-            <tr><td><a href="https://github.com/MercuryWorkshop/libcurl-transport" target="_blank" rel="noopener">libcurl transport</a></td><td>curl-over-Wisp transport (GUST's alternative to Epoxy)</td><td class="lic lic-copyleft">AGPL-3.0-only</td></tr>
-            <tr><td><a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a></td><td>WASM curl (used by GUST, bundled inside HORIZON)</td><td class="lic lic-copyleft">LGPL-3.0-or-later</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2>AGPL-3.0 §13 — network-use source offer</h2>
-      <p>Because ZoFHub serves the AGPL-3.0 components above over a network, their users are offered the
-        <strong>corresponding source</strong>: it is each project's upstream repository (linked above) at
-        the version pinned in the site's <code>package-lock.json</code>. To request the source for a specific
-        deployed build, contact us at {{CONTACT}} or via the <strong>ZoFHub Discord</strong> linked in the
-        footer below. <strong>Wisp (wisp-js)</strong> is <em>not</em> part of this offer — verified
-        2026-10-29, it is <strong>LGPL-3.0-or-later</strong>, not AGPL-3.0 as this page previously said;
-        LGPL carries no network-use clause. Its notice and license are still provided, under
-        LGPL-3.0 §4, in the LGPL section below alongside libcurl.js.</p>
-      <p><strong>Two of these are modified, as AGPL-3.0 &sect;5 requires us to state.</strong>
-        <strong>GUST</strong> (changed 2026-07-30) has its default Wisp server repointed from the upstream
-        public host to this site's own same-origin <code>/wisp/</code> endpoint, and ZoFHub's shared cloak
-        system added. <strong>HORIZON</strong> (changed 2026-10-16) has every Wisp reference repointed to
-        this site's own same-origin <code>/wisp/</code> endpoint and its pool of third-party public relays
-        removed, so its traffic is governed by this deployment's tunnel rather than leaving to a stranger's
-        relay. Each corresponding source is linked from <a href="/licenses">/licenses</a>. Every other
-        component above is served unmodified.</p>
-      <p><strong>The live, machine-checked version of this offer is at
-        <a href="/licenses">/licenses</a></strong> (JSON: <a href="/licenses.json">/licenses.json</a>).
-        That page is generated from the packages this server is actually running, so the versions it
-        lists can never drift from the code being served, and it links the verbatim license text for
-        every component.</p>
-      <p>This offer covers <strong>Ultraviolet, Scramjet, GUST, HORIZON</strong> and
-        <strong>Epoxy transport / libcurl transport</strong> under AGPL-3.0, and separately extends to
-        <strong>Wisp (wisp-js)</strong> and
-        <a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a>
-        under LGPL-3.0. <strong>GUST and HORIZON are each modified by ZoFHub</strong>; their changes, dates,
-        and links to the running modified source are listed on <a href="/licenses">/licenses</a> as
-        AGPL-3.0 §5 requires.</p>
-      <p><em>Note on Ultraviolet:</em> its npm package declares
-        <code>"license": "MIT"</code> in <code>package.json</code>, but it ships a full
-        <strong>GNU AGPL-3.0</strong> text in its <code>LICENSE</code> file, and GitHub reports the
-        repository as AGPL-3.0. Where those two disagree the LICENSE file is the operative grant, so
-        ZoFHub treats it as AGPL-3.0 and makes the §13 source offer for it. This page previously listed
-        it as MIT; that was incorrect and has been corrected.</p>
-      <p><em>Note on Scramjet, found the same way (verified 2026-10-29):</em> its npm package also
-        declares <code>"license": "MIT"</code>, while the package itself ships the full
-        <strong>GNU AGPL-3.0</strong> text as its <code>LICENSE</code> file and the upstream repository's
-        own root <code>package.json</code> declares <code>"AGPL-3.0-only"</code> — the MIT string in the
-        published npm package looks like a packaging mistake on the maintainers' side, not a relicense.
-        The LICENSE file is again the operative grant, so this page and the dependency table below
-        (which detects this automatically, by reading the LICENSE file rather than trusting the
-        declared field) both treat Scramjet as AGPL-3.0, and the §13 offer covers it.</p>
-
-      <h2>Standalone companion browsers (optional, not bundled)</h2>
-      <p>ZoFHub can optionally list these separate, self-hosted proxy-browser apps when they are running.
-        They are <strong>not bundled with the live site</strong>; each keeps its own copyleft license, and
-        anyone deploying one must honour that license (including the AGPL network-use clause).</p>
-      <div class="credits-table-wrap">
-        <table>
-          <thead><tr><th>Project</th><th>Repository</th><th>License</th></tr></thead>
-          <tbody>
-            <tr><td>NautilusOS</td><td><a href="https://github.com/nautilus-os/NautilusOS" target="_blank" rel="noopener">nautilus-os/NautilusOS</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td>DayDream</td><td><a href="https://github.com/Night-N3twork/DayDream" target="_blank" rel="noopener">Night-N3twork/DayDream</a> <span class="muted">(org renamed from NightProxy)</span></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td>Nebula</td><td><a href="https://github.com/NebulaServices/Nebula" target="_blank" rel="noopener">NebulaServices/Nebula</a></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td>InvisiProxy LTS <span class="muted">(formerly Holy Unblocker LTS)</span></td><td><a href="https://github.com/InvisiProxy/InvisiProxyLTS" target="_blank" rel="noopener">InvisiProxy/InvisiProxyLTS</a> <span class="muted">(moved from QuiteAFancyEmerald/InvisiProxy, now archived there as InvisiProxy-Legacy)</span></td><td class="lic lic-copyleft">AGPL-3.0</td></tr>
-            <tr><td>Kasm Workspaces <span class="muted">(remote desktop images)</span></td><td><a href="https://github.com/kasmtech/workspaces-images" target="_blank" rel="noopener">kasmtech/workspaces-images</a></td><td class="lic">MIT <span class="muted">· KasmVNC inside is GPL-2.0</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p><strong>MASQR.</strong> ZoFHub ships <strong>no Masqr code</strong> either. The
-        <a href="https://github.com/titaniumnetwork-dev/MasqrProject" target="_blank" rel="noopener">MASQR project</a>
-        (© Mercury Workshop 2024, <em>AntiSkip License</em> — MIT's text plus an added condition, so not MIT)
-        named a problem this site has: a mirror domain dies once a shared link reaches a filter vendor whose
-        crawler fetches it and classifies it as a proxy. ZoFHub's own implementation of that idea lives in
-        <code>lib/masqr.mjs</code>, is written from scratch, and is <strong>off by default</strong>.
-        Details in <code>docs/proxy/MASQR.md</code>.</p>
-
-      <p><strong>InvisiProxy.</strong> ZoFHub ships <strong>no InvisiProxy code</strong> — no copy, no dependency,
-        no bundled build. Reviewing it did change two things here, both written from scratch against different
-        libraries: ZoFHub's Wisp tunnel now states its egress rules explicitly instead of inheriting them from a
-        library default, and there is now a check that every proxy engine really renders pages. Credit for those
-        ideas belongs to InvisiProxy and its contributors — © TitaniumNetwork and the InvisiProxy contributors,
-        led by <a href="https://github.com/QuiteAFancyEmerald" target="_blank" rel="noopener">QuiteAFancyEmerald</a>,
-        now maintained at <a href="https://github.com/InvisiProxy/InvisiProxyLTS" target="_blank" rel="noopener">InvisiProxy/InvisiProxyLTS</a>.
-        The full provenance record, including what was deliberately <em>not</em> taken and why, is in
-        <code>docs/proxy/INVISIPROXY.md</code> and <code>data/invisiproxy-upstream.json</code>.</p>
 
       <h2>Games</h2>
       <p>The games on ZoFHub are embedded through their publishers' <strong>official / authorized embed
@@ -219,9 +121,9 @@
         deployed. Each row links the project's own repository or homepage.</p>
       <!-- Generated by lib/credits.mjs and substituted in server.js.
            The licence shown is read from each package's LICENSE FILE, not from
-           the `license` field in its package.json, because two of the proxy
-           engines declare MIT in metadata while shipping AGPL-3.0 licence text.
-           Where the two disagree the row says so.
+           the `license` field in its package.json, because a package can declare
+           MIT in metadata while shipping different licence text. Where the two
+           disagree the row says so.
            NOTE: do not write the placeholder's name in this comment — the
            substitution would replace the first match and inject the table
            here instead of below. -->
@@ -236,7 +138,6 @@
       </div>
 
       <nav class="legal-related" aria-label="Related policies">
-        <a href="/licenses">Open Source &amp; Source Offer</a>
         <a href="/privacy">Privacy Policy</a>
         <a href="/terms">Terms of Service</a>
         <a href="/dmca">DMCA / Copyright</a>

@@ -196,6 +196,10 @@ is **SOCKS5 and will not work directly**; Tor can expose a CONNECT proxy with
 `HTTPTunnelPort 9080`. Two honest caveats: swap providers commonly block Tor
 exits, so this can turn into "donations silently fail"; and it hides the server's
 IP from the provider while changing nothing about the records they keep.
+The server's egress guard ([SINGBOX.md §0e](../proxy/SINGBOX.md)) refuses any
+direct connection that is neither loopback nor a named infrastructure host, so the
+proxy itself must be on loopback (as Tor's `127.0.0.1:9080` is) or listed in
+`EGRESS_DIRECT_ALLOW`; otherwise the donation calls are refused at the socket.
 
 ---
 

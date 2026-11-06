@@ -1,9 +1,9 @@
 // ZoFHub · proxy-ads.js — page-level ad loader scripts.
 // ---------------------------------------------------------------------------
-// NAME NOTE: "proxy-ads" means "ads on a site that HAPPENS to host a proxy",
-// not "ads on proxied pages". It has never meant the latter, and must not: this
-// module is only ever imported from layout.js, which refuses to load the ad
-// stack on a proxy surface at all. See lib/ad-providers.mjs → isAdSurface.
+// NAME NOTE: "proxy-ads" is a historical name, from when this site also hosted a
+// proxy browser. The browser is gone; this is simply the page-level ad loader for
+// the hub pages. It is only ever imported from layout.js, after the server has
+// approved an ad config. See lib/ad-providers.mjs.
 //
 // Loads the page-level loader script URL(s) for the one role that is nothing but
 // a loader: HilltopAds' in-page push (HILLTOPADS_PUSH_SCRIPT). Every other
@@ -18,16 +18,14 @@
 //     their attribution.
 //   • Each URL is injected AT MOST ONCE per page, so a misconfiguration that
 //     lists the same loader under two networks cannot double-load it.
-//   • Loads NO Google/AdSense/AdX code, ever. Google bans proxy domains at the
-//     ACCOUNT level, so one stray tag could take down an unrelated account.
+//   • Loads NO Google/AdSense/AdX code, ever.
 //   • Failure is silent and total: a blocked or offline network leaves the page
 //     exactly as it was. No retries, no reloads, no placeholder boxes.
 // If nothing is configured, this file does nothing.
 // ---------------------------------------------------------------------------
 
 (function () {
-  // Belt-and-suspenders: never run outside the proxy build.
-  if (typeof window === 'undefined' || window.ZOFHUB_PROXY !== true) return;
+  if (typeof window === 'undefined') return;
 
   const scripts = Array.isArray(window.ZOFHUB_PROXY_ADS) ? window.ZOFHUB_PROXY_ADS : [];
   if (!scripts.length) return;
@@ -36,7 +34,7 @@
   for (const raw of scripts) {
     const url = String(raw || '').trim();
     // Only allow https script URLs, and never anything that looks like Google's
-    // ad stack (that belongs on the hub build only).
+    // ad stack.
     if (!/^https:\/\//i.test(url)) continue;
     if (/googlesyndication|googleadservices|adsbygoogle|doubleclick/i.test(url)) continue;
     if (injected.has(url)) continue;

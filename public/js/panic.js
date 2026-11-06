@@ -438,7 +438,7 @@ export function openAboutBlank() {
 
 // Is the user typing somewhere? The hotkey must never fire mid-keystroke in a
 // text field — a custom combo that happens to be a plain letter must not
-// interrupt a reward-claim form, a chat box, or any other input. Exported and
+// interrupt a form, a chat box, or any other input. Exported and
 // pure (no DOM event needed, just the target) so it is testable without a
 // browser — see test/panic-guard.test.mjs.
 export function isEditableTarget(t) {

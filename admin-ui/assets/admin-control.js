@@ -1,7 +1,7 @@
 // admin-ui/assets/admin-control.js — the control-plane sections of the console.
 // ---------------------------------------------------------------------------
-// Content (the game CMS), Review, Taxonomy, Providers, Staff, Settings, Proxy
-// control, Audit and My account. Loaded by admin.js, which owns routing and the
+// Content (the game CMS), Review, Taxonomy, Providers, Staff, Settings, Audit
+// and My account. Loaded by admin.js, which owns routing and the
 // shared markup helpers.
 //
 // TWO RULES, same as admin.js:
@@ -34,7 +34,7 @@ const DESTRUCTIVE_BULK = new Set(['unpublish', 'archive', 'remove_tag']);
 /** Nav entries this module adds, with the permission that makes each useful. */
 export const CONTROL_NAV = {
   content: 'games.read', review: 'games.review', taxonomy: 'games.read', providers: 'games.read',
-  staff: 'users.read', settings: 'games.read', proxyctl: 'proxy.read', audit: 'security.read', account: null,
+  staff: 'users.read', settings: 'games.read', audit: 'security.read', account: null,
 };
 
 export function controlViews(h) {
@@ -821,128 +821,6 @@ export function controlViews(h) {
   };
 
   // ===========================================================================
-  // Proxy control
-  // ===========================================================================
-  const TSTATE = { approved: 'ok', pending: 'warn', revoked: 'bad' };
-  const proxyctl = {
-    title: 'Proxy control',
-    sub: 'Engines, approved destinations, limits and live sessions',
-    async render() {
-      const [o, t, s] = await Promise.all([
-        call('/api/admin/proxy/control'), call('/api/admin/proxy/targets'), call('/api/admin/proxy/sessions'),
-      ]);
-      const p = o.policy;
-      const approved = t.targets.filter((x) => x.status === 'approved').length;
-      const dec = o.decisions?.decisions || {};
-      const strip = `<div class="grid g-stats">
-        ${stat('Access', esc(p.accessMode), p.accessMode === 'public' ? 'anyone, approved destinations only' : p.accessMode === 'staff' ? 'signed-in staff only' : 'no tunnels', { state: p.accessMode === 'disabled' ? 'warn' : 'ok' })}
-        ${stat('Approved destinations', fmt(approved), `${fmt(t.targets.length)} listed`, { state: approved ? 'ok' : 'warn' })}
-        ${stat('Live sessions', fmt(s.stats.live), `${fmt(s.stats.opened)} opened since restart`)}
-        ${stat('Refused streams', fmt(Object.entries(dec).filter(([k]) => k !== 'approved_target').reduce((a, [, v]) => a + v, 0)), 'not an approved destination')}
-      </div>`;
-      const canT = can('proxy.targets');
-      const targets = card('Approved destinations', `
-        ${canT ? `<form data-tnew class="form-grid">
-          <label class="field"><span>Host or *.domain</span><input name="pattern" required placeholder="example.org or *.example.org"></label>
-          <label class="field"><span>Ports</span><input name="ports" value="443" placeholder="443, 80"></label>
-          <label class="field wide"><span>Purpose (why the platform is authorised to reach it)</span><input name="purpose" required minlength="3" maxlength="300"></label>
-          <label class="field"><span>Owner</span><input name="owner" maxlength="80"></label>
-          <label class="field"><span>Expires</span><input name="expires_at" type="date"></label>
-          <div class="wide form-actions"><button class="btn">Propose destination</button><span class="hint">A proposal is not live until approved, which needs your password.</span></div></form>` : ''}
-        ${table([{ t: 'Destination' }, { t: 'Ports' }, { t: 'Status' }, { t: 'Purpose' }, { t: 'Expires' }, { t: '' }],
-          t.targets.map((x) => [
-            `<span class="mono">${esc(x.pattern)}</span>${x.readOnly ? ' ' + pill('env') : ''}`,
-            esc((x.ports || []).join(', ')),
-            `${pill(x.status, TSTATE[x.status] || '')}${x.approved_by ? `<br><span class="hint">by ${esc(x.approved_by)}</span>` : ''}`,
-            esc(x.purpose || ''),
-            x.expires_at ? esc(when(x.expires_at)) : '—',
-            canT && !x.readOnly ? `<div class="btn-row">
-              ${x.status !== 'approved' ? `<button class="btn sm primary" data-tact="approve" data-id="${esc(x.id)}">Approve</button>` : ''}
-              ${x.status !== 'revoked' ? `<button class="btn sm" data-tact="revoke" data-id="${esc(x.id)}">Revoke</button>` : ''}
-              ${x.status !== 'approved' ? `<button class="btn sm danger" data-tact="delete" data-id="${esc(x.id)}">Delete</button>` : ''}</div>` : '',
-          ]))}`, { hint: 'The tunnel connects ONLY to hosts on this list, on the listed ports. Wildcards cover subdomains of the named site; public suffixes (*.com) and wildcard-DNS services cannot be approved.' });
-
-      const unl = o.decisions?.unlisted || [];
-      const requested = card('Requested, not approved', unl.length
-        ? `${table([{ t: 'Host' }, { t: 'Attempts', n: true }, { t: 'Last' }, { t: '' }], unl.slice(0, 25).map((u) => [
-          `<span class="mono">${esc(u.host)}</span>`, fmt(u.count), esc(ago(u.lastSeen)),
-          canT ? `<button class="btn sm" data-propose="${esc(u.host)}">Propose</button>` : '']))}
-          ${canT ? '<div class="form-actions"><button class="btn sm ghost" data-clear-unl>Forget this list</button></div>' : ''}`
-        : '<p class="empty">No refused hostnames recorded.</p>', { hint: 'Hostnames and counts only, in memory, never who asked. Cleared on restart.' });
-
-      const eng = card('Engines', table([{ t: 'Engine' }, { t: 'Installed' }, { t: 'Offered' }, { t: '' }], (o.engines || []).map((e) => [
-        esc(e.name), o.installed?.[e.id] ? pill('yes', 'ok') : pill('no'),
-        e.enabled ? pill('on', 'ok') : pill('off', 'bad'),
-        can('proxy.manage') ? `<button class="btn sm" data-eng="${esc(e.id)}" data-on="${e.enabled ? '0' : '1'}">${e.enabled ? 'Turn off' : 'Turn on'}</button>` : '',
-      ])));
-
-      const canP = can('proxy.policy');
-      const lim = (k, label, [lo, hi]) => `<label class="field"><span>${esc(label)}</span><input type="number" name="${k}" min="${lo}" max="${hi}" value="${esc(p[k])}"${canP ? '' : ' disabled'}></label>`;
-      const policy = card('Access and limits', `<form data-pol class="form-grid">
-        <label class="field"><span>Access mode</span><select name="accessMode"${can('proxy.manage') ? '' : ' disabled'}>${[['public', 'Public'], ['staff', 'Staff only'], ['disabled', 'Off']].map(([v, l]) => opt(v, l, p.accessMode === v)).join('')}</select></label>
-        ${lim('maxTunnels', 'Max tunnels', [1, 2000])}${lim('maxPerClient', 'Per client', [1, 256])}${lim('streamsPerTunnel', 'Streams / tunnel', [1, 1024])}
-        ${lim('idleMinutes', 'Idle minutes', [1, 120])}${lim('maxSessionMinutes', 'Max session minutes', [5, 1440])}
-        <label class="field"><span>Ports</span><input name="allowedPorts" value="${esc(p.allowedPorts.join(', '))}"${canP ? '' : ' disabled'}></label>
-        <div class="wide form-actions">${canP ? '<button class="btn primary">Save policy</button><span class="hint">Raising a limit or opening access needs your password; lowering never does.</span>' : ''}</div></form>`);
-
-      const live = card('Live sessions', `${table([{ t: 'Session' }, { t: 'Client' }, { t: 'Age' }, { t: 'Idle' }, { t: 'Streams', n: true }, { t: 'Refused', n: true }, { t: '' }],
-        s.live.map((x) => [`<span class="mono">${esc(x.id)}</span>${x.staff ? ' ' + pill('staff', 'info') : ''}`, `<span class="mono">${esc(x.clientTag || '—')}</span>`,
-          `${fmt(Math.round(x.ageSec / 60))}m`, `${fmt(x.idleSec)}s`, `${fmt(x.activeStreams)} / ${fmt(x.streams)}`, fmt(x.denied),
-          can('proxy.sessions') ? `<button class="btn sm danger" data-kill="${esc(x.id)}">End</button>` : '']))}
-        ${s.recent.length ? `<p class="hint">Recently ended: ${s.recent.slice(0, 8).map((r) => `${esc(r.id)} (${esc(r.reason)})`).join(' · ')}</p>` : ''}`,
-        { hint: 'Counts and timestamps only. Destinations are never recorded per session, and nothing here is written to the database.' });
-
-      const reasons = Object.entries(dec).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k.replace(/_/g, ' '), fmt(v)]);
-      return `${strip}
-        <div class="grid g-wide">${targets}<div class="grid">${policy}${eng}</div></div>
-        <div class="grid g-2">${live}<div class="grid">${requested}${card('Decisions since restart', reasons.length ? kv(reasons) : '<p class="empty">No connections yet.</p>')}</div></div>
-        ${o.status?.problems?.length ? `<p class="msg error">${esc(o.status.problems.join(' · '))}</p>` : ''}`;
-    },
-    wire() {
-      const root = vroot();
-      const ports = (v) => String(v || '').split(/[\s,]+/).filter(Boolean).map(Number);
-      root.querySelector('[data-tnew]')?.addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        const f = new FormData(ev.target);
-        const exp = f.get('expires_at');
-        try {
-          await call('/api/admin/proxy/targets', { method: 'POST', body: { pattern: f.get('pattern'), ports: ports(f.get('ports')), purpose: f.get('purpose'), owner: f.get('owner') || null, ...(exp ? { expires_at: new Date(`${exp}T23:59:59Z`).toISOString() } : {}) } });
-          flash('Destination proposed. Approve it to make it live.'); h.rerender();
-        } catch (e) { say(e.data?.errors?.join('; ') || e.message); }
-      });
-      root.querySelector('[data-pol]')?.addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        const f = new FormData(ev.target);
-        const policy = { allowedPorts: ports(f.get('allowedPorts')) };
-        for (const k of ['maxTunnels', 'maxPerClient', 'streamsPerTunnel', 'idleMinutes', 'maxSessionMinutes']) if (f.get(k) !== null) policy[k] = parseInt(f.get(k), 10);
-        if (f.get('accessMode')) policy.accessMode = f.get('accessMode');
-        try { await call('/api/admin/proxy/policy', { method: 'PUT', body: { policy } }); flash('Policy saved and applied.'); h.rerender(); }
-        catch (e) { say(e.data?.errors?.join('; ') || e.message); }
-      });
-      root.addEventListener('click', async (ev) => {
-        const b = ev.target.closest('button');
-        if (!b) return;
-        try {
-          if (b.dataset.tact) {
-            if (b.dataset.tact === 'delete') { if (!window.confirm('Delete this destination?')) return; await call(`/api/admin/proxy/targets/${b.dataset.id}`, { method: 'DELETE' }); }
-            else await call(`/api/admin/proxy/targets/${b.dataset.id}/${b.dataset.tact}`, { method: 'POST' });
-            h.rerender();
-          } else if (b.dataset.eng) {
-            await call(`/api/admin/proxy/engines/${encodeURIComponent(b.dataset.eng)}`, { method: 'PUT', body: { enabled: b.dataset.on === '1' } }); h.rerender();
-          } else if (b.dataset.kill) {
-            await call(`/api/admin/proxy/sessions/${encodeURIComponent(b.dataset.kill)}/terminate`, { method: 'POST' }); h.rerender();
-          } else if (b.dataset.propose) {
-            const f = root.querySelector('[data-tnew]');
-            if (f) { f.querySelector('[name=pattern]').value = b.dataset.propose; f.querySelector('[name=purpose]').focus(); }
-          } else if (b.dataset.clearUnl !== undefined) {
-            await call('/api/admin/proxy/unlisted/clear', { method: 'POST' }); h.rerender();
-          }
-        } catch (e) { say(e.message); }
-      });
-    },
-  };
-
-  // ===========================================================================
   // Audit
   // ===========================================================================
   const audit = {
@@ -954,7 +832,7 @@ export function controlViews(h) {
       const page = await audit.fetch(null);
       s.rows = page.rows; s.cursor = page.nextCursor;
       return `<div class="toolbar">
-          <label class="field"><span>Action prefix</span><input class="ctl" data-af="action" placeholder="game. / user. / proxy." value="${esc(s.f.action)}"></label>
+          <label class="field"><span>Action prefix</span><input class="ctl" data-af="action" placeholder="game. / user. / settings." value="${esc(s.f.action)}"></label>
           <label class="field"><span>Outcome</span><select class="ctl" data-af="outcome">${opt('', 'Any')}${['success', 'failure', 'denied'].map((o) => opt(o, o, s.f.outcome === o)).join('')}</select></label>
           <label class="field"><span>User</span><input class="ctl" data-af="username" value="${esc(s.f.username)}"></label>
           <label class="field grow"><span>Target contains</span><input class="ctl" data-af="q" value="${esc(s.f.q)}"></label>
@@ -1053,7 +931,7 @@ export function controlViews(h) {
     },
   };
 
-  const views = { content, review, taxonomy, providers, staff, settings, proxyctl, audit, account };
+  const views = { content, review, taxonomy, providers, staff, settings, audit, account };
   // Each render lands in a FRESH container, and every listener a view adds is
   // bound to that container. Binding to the long-lived #views element instead
   // would stack one more listener per render, so a click would fire N times.

@@ -3,14 +3,14 @@
 // Two rules here are not preferences, they are the difference between earning
 // and being banned:
 //
-//   1. GOOGLE'S AD STACK NEVER RUNS ON ZOFHUB'S OWN PAGES. AdSense and Ad
-//      Manager forbid proxy/anonymizer traffic. A single adsbygoogle tag on a
-//      page that also proxies is not a policy warning, it is an ACCOUNT-level
-//      ban that takes every other site on that account with it.
+//   1. GOOGLE'S AD STACK NEVER RUNS ON ZOFHUB'S OWN PAGES. This site once ran a
+//      web-proxy browser, and AdSense and Ad Manager forbid proxy/anonymizer
+//      traffic; one adsbygoogle tag next to it was an ACCOUNT-level ban risk.
+//      The browser is gone, the rule stays: the ad stack is a fixed set of
+//      networks and Google is deliberately not one of them.
 //
-//   2. NO AD EVER LOADS INSIDE A PROXY SURFACE. A visitor using /browser or
-//      /gust is reading something on their own behalf; a third-party ad script
-//      there sees that traffic. That is the user-safety line.
+//   2. ADS ONLY APPEAR ON PAGES ZOFHUB WROTE. The allow-list is deny-by-default,
+//      so a route nobody classified (a removed page, a new one) carries no ad.
 //
 // Neither is self-enforcing, so both are asserted from the outside: what the
 // registry emits, what the CSP permits, and what the server answers per surface.
@@ -35,7 +35,7 @@ describe('Google ad code cannot initialise on a ZoFHub page', () => {
     // refuses to EMIT Google ad code; the CSP is the only one that stops code
     // that got there some other way from EXECUTING. It previously listed
     // googlesyndication / googletagmanager explicitly, which meant the one
-    // backstop was held open on every page of the site, /browser included.
+    // backstop was held open on every page of the site.
     const start = server.indexOf('const CSP_DIRECTIVES');
     assert.ok(start > 0, 'CSP_DIRECTIVES not found — this test is pointed at nothing');
     const block = server.slice(start, server.indexOf('};', start));
@@ -180,8 +180,10 @@ describe('the interstitial is throttled, and fails closed', () => {
   });
 });
 
-describe('no ad may exist inside a proxy surface', () => {
-  test('every proxy surface is refused, including the in-app engines', () => {
+describe('ads only appear on pages ZoFHub wrote', () => {
+  test('removed browser surfaces and engine paths are refused, with everything under them', () => {
+    // Nothing serves these any more (test/server.test.mjs checks the 404s). They stay refused here so a
+    // future route that reuses one of the names does not inherit an ad slot by accident.
     for (const p of ['/browser', '/horizon', '/uv', '/epoxy', '/baremux', '/wisp']) {
       assert.equal(isAdSurface(p), false, `${p} is treated as an ad surface`);
       assert.equal(isAdSurface(`${p}/deeper/path`), false, `${p}/… is treated as an ad surface`);
@@ -207,8 +209,8 @@ describe('no ad may exist inside a proxy surface', () => {
     assert.equal(isAdSurface('/something-invented-later'), false);
   });
 
-  test('the proxy list and the native list never overlap', () => {
-    const overlap = AD_SURFACES.proxy.filter(p => AD_SURFACES.native.includes(p));
-    assert.deepEqual(overlap, [], 'a surface is classified as both proxy and native');
+  test('the allow-list is the only list: there is no second, proxy class of surface', () => {
+    assert.deepEqual(Object.keys(AD_SURFACES), ['native']);
+    assert.ok(AD_SURFACES.native.length > 5, 'the native list is empty — nothing would ever earn');
   });
 });

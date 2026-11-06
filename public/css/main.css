@@ -78,11 +78,6 @@
   --radius:    12px;
   --radius-sm: 9px;
   --header-h:  64px;
-  /* Height of the in-app-browser banner (layout.js) when one is showing, 0
-     otherwise. The same contract as --legal-bar-h: the banner declares its
-     height here, and everything positioned from the top of the viewport adds
-     it, so the banner reserves space instead of covering the header. */
-  --inapp-bar-h: 0px;
   /* Shadows are violet-tinted (not black) so cards sit IN the indigo world
      instead of looking punched out of it. */
   --shadow-card: 0 3px 10px rgba(12,6,38,.5), 0 1px 2px rgba(12,6,38,.6);
@@ -386,19 +381,19 @@ kbd {
 
 /* ── ONE FOOTER, ON EVERY PAGE ──────────────────────────────────────────────
    There used to be a second, one-row "compact legal bar" variant
-   (.site-footer-mini) that /ai and /browser carried instead of the real
-   footer, on the grounds that they are fixed-height app shells and a
-   six-column block would push the composer or the proxy frame below the fold.
+   (.site-footer-mini) that /ai carried instead of the real
+   footer, on the grounds that it is a fixed-height app shell and a
+   six-column block would push the composer below the fold.
 
-   It did not: those shells are sized to `100vh - header`, so they already fill
+   It did not: that shell is sized to `100vh - header`, so they already fill
    the first screen on their own and the footer simply sits BELOW them, exactly
    as it does on every other page. What the variant actually produced was two
    different footers on one site — a six-column one with the brand, the social
    cluster, the tagline and the Play/Explore columns, and a bare row of six
-   links — so /ai and /browser looked like a different product, and anything
-   added to the real footer silently never appeared on them.
+   links — so /ai looked like a different product, and anything
+   added to the real footer silently never appeared on it.
 
-   Both now use the same <footer class="site-footer">, built by the same
+   It now uses the same <footer class="site-footer">, built by the same
    mountFooter() in /js/layout.js. --legal-bar-h is gone with the variant; the
    shells no longer reserve a row's height for a bar that is not there. */
 
@@ -1236,13 +1231,3 @@ body.nav-open { overflow: hidden; }
 }
 .site-announce.is-warning { background: var(--warn); color: var(--brand-ink); }
 
-/* In-app browser banner offset (see --inapp-bar-h in :root). The banner is
-   position:fixed at the top; html.zh-inapp is set only while it exists. The
-   fixed-height shells (browser.css, ai.css) subtract the same variable. */
-html.zh-inapp body { padding-top: var(--inapp-bar-h); }
-html.zh-inapp .site-header { top: var(--inapp-bar-h); }
-html.zh-inapp .mobile-nav {
-  top: calc(var(--header-h) + var(--inapp-bar-h));
-  max-height: calc(100dvh - var(--header-h) - var(--inapp-bar-h));
-}
-html.zh-inapp .mobile-nav-backdrop { inset: calc(var(--header-h) + var(--inapp-bar-h)) 0 0; }

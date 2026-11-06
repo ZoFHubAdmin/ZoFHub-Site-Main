@@ -2,8 +2,7 @@
 
 The console at `/admin` is where the site is **changed**, not only watched:
 games and their lifecycle, providers, categories and tags, staff accounts, typed
-settings, the proxy's approved destinations and limits, and the audit trail that
-records all of it.
+settings, and the audit trail that records all of it.
 
 | | |
 |---|---|
@@ -14,7 +13,6 @@ records all of it.
 | Providers | [`lib/provider-registry.mjs`](../../lib/provider-registry.mjs) |
 | Staff | [`lib/staff-service.mjs`](../../lib/staff-service.mjs), [`lib/admin-auth.mjs`](../../lib/admin-auth.mjs) |
 | Settings | [`lib/settings-registry.mjs`](../../lib/settings-registry.mjs), [`lib/settings-service.mjs`](../../lib/settings-service.mjs) |
-| Proxy governance | [`lib/proxy-control.mjs`](../../lib/proxy-control.mjs), [`lib/proxy-service.mjs`](../../lib/proxy-service.mjs) — see [proxy/GOVERNANCE.md](../proxy/GOVERNANCE.md) |
 | Audit redaction | [`lib/audit-redact.mjs`](../../lib/audit-redact.mjs) |
 | Console UI | [`admin-ui/assets/admin-control.js`](../../admin-ui/assets/admin-control.js) |
 | GameDistribution import | [features/GAMEDISTRIBUTION.md](../features/GAMEDISTRIBUTION.md) |
@@ -33,10 +31,8 @@ Until then:
 - the **public site is unchanged** — the migration's only effect on it is to make
   the public read path require `status = 'published'`, and every existing game
   defaults to `published`;
-- the console's Content, Staff, Settings and Proxy-control sections answer
+- the console's Content, Staff and Settings sections answer
   **503 with the reason**, and the Overview says so;
-- the **proxy refuses every destination** except those in
-  `PROXY_APPROVED_TARGETS` — it fails closed, not open (§7);
 - the server re-checks every five minutes, so applying the migration later needs
   no restart.
 
@@ -69,10 +65,10 @@ console are staff.
 | Role | Can | Cannot |
 |---|---|---|
 | `super_admin` | everything | — (only the owner can create one, and two super admins cannot act on each other) |
-| `admin` | run the platform: content, review, publish, bulk, import, providers, taxonomy, staff below admin, settings, ads, proxy destinations/limits/engines/sessions | change roles, delete accounts, permanently delete games, revoke other people's sessions |
+| `admin` | run the platform: content, review, publish, bulk, import, providers, taxonomy, staff below admin, settings, ads | change roles, delete accounts, permanently delete games, revoke other people's sessions |
 | `content_manager` | create and edit drafts, submit for review | approve, publish, configure anything |
 | `moderator` | approve / reject games, moderate community content | publish, create, configure |
-| `analyst` | read metrics, the catalog and proxy health | change anything |
+| `analyst` | read metrics, the catalog and egress health | change anything |
 | `support` | answer feedback, moderate community posts | change content or configuration |
 
 The full permission list is `PERMISSIONS` in
@@ -88,9 +84,8 @@ database does.
 - **Privilege changes end sessions.** Role change, suspension, password reset and
   deletion revoke every live session of that account; a suspended account's
   session dies on its next request even without that.
-- **Step-up confirmation.** Permanent deletion, role changes, approving a proxy
-  destination, raising a proxy limit, widening a provider's origins, suspending a
-  provider and turning on maintenance mode all require the password to have been
+- **Step-up confirmation.** Permanent deletion, role changes, widening a provider's
+  origins, suspending a provider and turning on maintenance mode all require the password to have been
   re-entered on *this* session within five minutes (`POST /api/admin/auth/reauth`).
   A service token can never satisfy it.
 - **Temporary passwords are shown once.** Created or reset accounts get a random
@@ -191,9 +186,8 @@ stored value that fails validation falls back to the default and is reported.
 | Key | Effect |
 |---|---|
 | `site.announcement` | a one-line banner on every public page (plain text, set with `textContent`) |
-| `site.maintenance` | public pages and APIs answer **503**; the console, health checks, `/licenses` and the tunnel's refusal stay correct. Needs a fresh password |
+| `site.maintenance` | public pages and APIs answer **503**; the console and health checks stay up. Needs a fresh password |
 | `features.ai` · `community` · `leaderboard` · `donate` · `subscribe` · `feedback` | switching one off makes its **API and page answer 404** — the server stops serving it, the links are removed from pages |
-| `catalog.gd_auto_import` | the weekly GameDistribution import |
 | `catalog.gd_auto_publish_clean` | publish imported games that pass every licensing check |
 | `ads.enabled`, `ads.disabled_networks` | switch advertising, or single networks, **off**. A network can only be switched *on* in the environment, where its tags live; nothing here stores script |
 
@@ -227,13 +221,20 @@ that was refused.
 
 ---
 
-## 7. Proxy governance
+## 7. Retired: proxy governance
 
-The proxy engines are kept and served, under explicit control: an
-administrator-managed list of **approved destinations** is the only set of hosts
-the tunnel will connect to, with access modes, resource limits, engine switches,
-live sessions and a record of refusals. The full model is in
-**[proxy/GOVERNANCE.md](../proxy/GOVERNANCE.md)**.
+The proxy browser this section governed — approved destinations, access modes,
+engine switches and live sessions — has been removed, together with its console
+screens and `/api/admin/proxy/*` routes. The console's **Egress** view
+(`/api/admin/egress`, `telemetry.read`) replaces it for the one thing that
+remains worth watching: where the server's own outbound traffic goes.
+
+The tables `proxy_providers`, `proxy_targets` and `proxy_policies` are still in
+the migration history and, if the migration was applied, in the database. Nothing
+reads or writes them any more. They are left in place on purpose: migrations under
+`supabase/migrations/` are applied to production when merged, so dropping data is a
+migration the operator writes and runs deliberately, not a side effect of removing
+code.
 
 ---
 
@@ -255,8 +256,7 @@ Postgres 17 and switching to each role (`test/control-plane-db.test.mjs`).
 Constraints the database enforces on its own: status values (`CHECK`), category
 and provider references (foreign keys; a category holding games or a provider
 with games cannot be deleted), one row per provider game, case-insensitive unique
-staff usernames, known staff roles, proxy destinations that name a site (never
-`*`, a bare TLD or an IP address) on web ports only.
+staff usernames, known staff roles.
 
 ---
 
@@ -270,9 +270,8 @@ database is an infrastructure action with its own credentials, not a web form.
   schedule if the project is on it.
 - **What restores what.** The schema is fully reproducible from
   `supabase/migrations/` (or `db/SCHEMA-ONLY.sql`). Games deleted by mistake can
-  be rebuilt from the `game.delete` audit snapshot. Proxy destinations and policy
-  live in `proxy_targets` / `proxy_policies`; secrets never do — they stay in the
-  host's environment.
+  be rebuilt from the `game.delete` audit snapshot. Secrets never live in the
+  database — they stay in the host's environment.
 - **Migration state** is visible in the console: Overview → Control plane shows
   whether the schema is `ready`, `missing` or running in `memory`.
 
@@ -283,8 +282,6 @@ database is an infrastructure action with its own credentials, not a web form.
 1. Apply the migration (§1). Confirm Overview → Control plane says **database**.
 2. Sign in as the owner; create staff accounts with the least role that fits.
 3. Review **Providers** — the seeded statuses come from an automated audit.
-4. Add the **proxy destinations** the site is authorised to reach, or set the
-   access mode to `staff` / `disabled` (Proxy control).
 5. Decide `catalog.gd_auto_publish_clean`, then run a GameDistribution **dry run**
    before the first real import.
 6. Settings → confirm the feature flags and the announcement.
@@ -299,19 +296,16 @@ not discovered.
 | # | Risk | Severity | Status / what would close it |
 |--:|---|---|---|
 | 1 | **Proxied games run third-party code on this site's origin.** Y8, HTMLGames and Famobi games (~6,500) are served through `/embed/<slug>`, same-origin, in an iframe with `allow-scripts allow-same-origin` and a permissive CSP. A malicious or compromised game can therefore act with the session of an admin who plays it while signed in. | **High** | *Mitigated:* every credential-minting or irreversible action needs a fresh password, which a script cannot supply (creating accounts, resetting passwords, role changes, deletions, approving proxy destinations, widening providers, maintenance mode); the console refuses to be framed even same-origin. *Not closed:* publishing, settings and moderation remain reachable with a live session. **Fix:** serve `/embed` from a separate origin (e.g. `embed.<domain>`), or add a CSP `sandbox` without `allow-same-origin` after testing game compatibility. **Until then: do not play proxied games in the browser profile you use for `/admin`.** |
-| 2 | **The migration is not on the live database yet.** Until it is, the management sections answer 503 and the proxy refuses every destination not in `PROXY_APPROVED_TARGETS`. Deploying this code **changes the proxy's behaviour immediately**: it stops reaching sites until destinations are approved. | High (operational) | Apply the migration, then approve destinations — or set `PROXY_APPROVED_TARGETS` before deploying. |
+| 2 | **The migration is not on the live database yet.** Until it is, the management sections answer 503 and Overview says so. | Medium (operational) | Apply the migration (§1). |
 | 3 | **Licensing screening is pattern-based.** It catches marks by name; it cannot see trade dress (a Minecraft-style block character in a game whose title and tags are clean) and it produces false positives. With auto-publish on, clean games go live without a person looking. | Medium | Human review is the control for flagged games. For zero-trust publishing, turn off `catalog.gd_auto_publish_clean`. |
-| 4 | **In-process state.** Proxy sessions, refused-host counts and admin rate limits live in one process's memory. A second instance would not share them. | Medium (only if scaled out) | Move to Redis (already optional in the stack) before running more than one instance. |
-| 5 | **Staff-only proxy mode caches session checks for 60 s.** A revoked staff session keeps proxy access for up to a minute. | Low | Shorten the cache, or clear it on revocation (it is cleared on every policy change already). |
-| 6 | **External companions are not governed.** They are separate servers the destination policy cannot see. | Low (off by default) | Keep `external` off unless each companion enforces its own allowlist. |
-| 7 | **Tamper-evidence, not tamper-proofing.** A database superuser could rewrite rows *and* recompute the chain. | Low | Periodically record the newest `row_hash` somewhere the database cannot write (an issue, a signed commit). |
-| 8 | **Automated pipelines publish directly.** The grow job and the Y8 sync insert trusted-host, trademark-filtered games as `published` without a `provider_id` (their code predates the lifecycle). | Low | Route them through `importFromProvider` in a follow-up; the migration's provider backfill can be re-run meanwhile. |
-| 9 | **No media uploads.** Thumbnails are URLs on a provider's image origin or `/thumbs/`. Deliberate — the host's disk is ephemeral — but it means no custom art without a provider. | Low | Add Supabase Storage with type/size/signature checks if needed. |
-| 10 | **Catalog size.** A first GameDistribution import roughly doubles the served catalog, which is held in memory. | Low | Watch memory after the first `--apply`; import with `--no-auto-publish` to publish in batches. |
+| 4 | **In-process state.** Admin rate limits and the egress counters live in one process's memory. A second instance would not share them. | Medium (only if scaled out) | Move to Redis (already optional in the stack) before running more than one instance. |
+| 5 | **Tamper-evidence, not tamper-proofing.** A database superuser could rewrite rows *and* recompute the chain. | Low | Periodically record the newest `row_hash` somewhere the database cannot write (an issue, a signed commit). |
+| 6 | **Operator-run pipelines publish directly.** The grow tool and the Y8 sync (no longer scheduled; they refuse to write without `--confirm`) insert trusted-host, trademark-filtered games as `published` without a `provider_id` (their code predates the lifecycle). | Low | Route them through `importFromProvider` in a follow-up; the migration's provider backfill can be re-run meanwhile. |
+| 7 | **No media uploads.** Thumbnails are URLs on a provider's image origin or `/thumbs/`. Deliberate — the host's disk is ephemeral — but it means no custom art without a provider. | Low | Add Supabase Storage with type/size/signature checks if needed. |
+| 8 | **Catalog size.** A first GameDistribution import roughly doubles the served catalog, which is held in memory. | Low | Watch memory after the first `--apply`; import with `--no-auto-publish` to publish in batches. |
 
 ---
 
 **Related:** [documentation map](../README.md#-documentation) ·
-[proxy governance](../proxy/GOVERNANCE.md) ·
 [GameDistribution import](../features/GAMEDISTRIBUTION.md) ·
 [migration order](../database/RUN-IN-ORDER.md)

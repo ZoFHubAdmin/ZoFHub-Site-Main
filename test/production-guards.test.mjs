@@ -124,7 +124,8 @@ describe('the six-network payload, as a production page receives it', () => {
     assert.match(hub.slots.header, /a\.exo\.test/);
     assert.equal(hub.preroll, null);
     assert.equal(hub.popunder, null);
-    assert.equal(hub.supportGate, true);
+    // The ad-block premium gate belonged to the removed browser; nothing may offer or enforce it again.
+    assert.ok(!('supportGate' in hub), 'supportGate is part of the removed browser and must not come back');
   });
 
   test('a game page adds the pre-roll and the popunder', async () => {
@@ -133,13 +134,13 @@ describe('the six-network payload, as a production page receives it', () => {
     assert.equal(game.popunder.provider, 'popads');
   });
 
-  test('the proxy page gets nothing, but still learns whether the gate applies', async () => {
+  test('a path nobody classified (the removed browser\'s, say) gets nothing', async () => {
     const px = await cfgFor('/browser');
     assert.equal(px.adsAllowed, false);
     assert.deepEqual(px.slots, { header: '', sidebar: '' });
     assert.equal(px.preroll, null);
     assert.equal(px.popunder, null);
-    assert.equal(px.supportGate, true);
+    assert.ok(!('supportGate' in px));
   });
 
   test('the visitor\'s region picks the tag; everyone else gets the global one', async () => {

@@ -208,10 +208,12 @@ describe('typed settings', () => {
     assert.deepEqual(problems, []);
   });
 
-  test('the ad-block gate is a console switch, on by default, and never public', () => {
-    assert.equal(SETTINGS['ads.adblock_gate'].default, true);
-    assert.equal(SETTINGS['ads.adblock_gate'].perm, 'ads.manage');
-    assert.notEqual(SETTINGS['ads.adblock_gate'].public, true);
+  test('the removed browser leaves no setting behind', () => {
+    // The ad-block gate, the proxy access policy and every other browser switch went with the browser.
+    // A leftover would be a console toggle that does nothing, which is worse than no toggle.
+    for (const id of Object.keys(SETTINGS)) {
+      assert.ok(!/^(proxy|rewards|masqr|ads.adblock)/.test(id), `${id} belongs to the removed browser`);
+    }
   });
 });
 

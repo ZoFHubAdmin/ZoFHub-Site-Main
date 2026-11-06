@@ -2,7 +2,7 @@
 // ---------------------------------------------------------------------------
 //   npm run verify-ai
 //
-// The sibling of `npm run verify-proxy`, and it exists for the same reason: the
+// A real-browser check of the AI page against a booted server, and it exists for one reason: the
 // claims this feature makes are claims about what a REAL BROWSER does, and no
 // amount of reading the source can settle them. It boots the real server, opens
 // /ai in a real Chromium, types a real prompt, and records EVERY network request
@@ -15,11 +15,11 @@
 //   3. no key round-trip, no model discovery, no local inference download,
 //      and a TEXT message makes no image request
 //   4. the returned text is rendered into the existing message list
-//   5. a prompt containing HTML is escaped, and a resend inside the 10 s wait
-//      that follows every answer is refused (and the wait really lasts ~10 s)
+//   5. a prompt containing HTML is escaped, and a resend inside the 18 s wait
+//      that follows every answer is refused (and the wait really lasts ~18 s)
 //   6. /image <description> asks https://image.pollinations.ai/<description>
 //      from the browser — ONE GET, issued by an <img>, no query string, no
-//      server hop — shows the picture, and a second /image inside the 45 s wait
+//      server hop — shows the picture, and a second /image inside the 50 s wait
 //      is refused
 //
 // It makes a real request to the free tier, so it can fail for an honest
@@ -38,7 +38,10 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const PROMPT = process.env.AI_VERIFY_PROMPT || 'In one short sentence, what is a prime number?';
 
 const server = spawn(process.execPath, ['server.js'], {
-  env: { ...process.env, PORT, NODE_ENV: 'development', NO_OPEN: '1' },
+  // CRON_DISABLED: this server inherits the real .env, Supabase admin key included, and a run
+  // lasts well over 30 s. Without it the first link-check fires and WRITES is_working=false to
+  // the live games table. A verification run must never touch live data.
+  env: { ...process.env, PORT, NODE_ENV: 'development', NO_OPEN: '1', CRON_DISABLED: '1' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 let serverLog = '';
@@ -182,10 +185,10 @@ try {
     'the returned text rendered in the existing message list',
     JSON.stringify(rendered));
 
-  // ── Every answer is followed by a 10 s wait ──────────────────────────────
+  // ── Every answer is followed by an 18 s wait ──────────────────────────────
   // The wait starts when the answer lands, so a message sent straight after it
   // must be refused: no upstream request, no new user bubble, and the typed text
-  // kept. Then the wait must really END about 10 s after the answer — a lock that
+  // kept. Then the wait must really END about 18 s after the answer — a lock that
   // never lifted would pass the first half and leave a dead page.
   const countUserTurns = () => page.evaluate(() =>
     document.querySelectorAll('#aiMessages .msg.user').length);
@@ -203,17 +206,17 @@ try {
   const burst = requests.slice(reqBefore).filter((r) => r.url.startsWith('https://text.pollinations.ai/'));
   const newTurns = (await countUserTurns()) - turnsBefore;
   check(burst.length === 0 && newTurns === 0,
-    'a message sent inside the 10s wait is refused',
+    'a message sent inside the 18s wait is refused',
     `${burst.length} request(s), ${newTurns} new user turn(s) accepted`);
   check((await page.inputValue('#aiInput')) === 'sent inside the wait',
     'and what was typed is kept');
   let waitEnded = true;
   try {
-    await page.waitForFunction(() => !document.querySelector('#aiSend').disabled, null, { timeout: 15000 });
+    await page.waitForFunction(() => !document.querySelector('#aiSend').disabled, null, { timeout: 26000 });
   } catch { waitEnded = false; }
   const waitedSec = (Date.now() - answeredAt) / 1000;
-  check(waitEnded && waitedSec >= 8.5 && waitedSec <= 12.5,
-    'the wait ends about 10s after the answer', `${waitedSec.toFixed(1)}s`);
+  check(waitEnded && waitedSec >= 16.5 && waitedSec <= 21,
+    'the wait ends about 18s after the answer', `${waitedSec.toFixed(1)}s`);
 
   // ── A prompt containing HTML is escaped, not interpreted ─────────────────
   await page.fill('#aiInput', '<img src=x onerror=alert(1)>');
@@ -284,7 +287,7 @@ try {
     await page.fill('#aiInput', '/image a second apple');
     const hint2 = await page.textContent('#aiHint');
     check(await page.$eval('#aiSend', (b) => b.disabled) && /Next picture in \d+s/.test(hint2),
-      'a second /image inside the 45s wait is refused, with a countdown', hint2);
+      'a second /image inside the 50s wait is refused, with a countdown', hint2);
     const before2 = requests.length;
     await page.press('#aiInput', 'Enter');
     await page.waitForTimeout(800);
@@ -358,7 +361,7 @@ try {
       note: document.querySelector('.ai-orb-note').textContent,
     }));
     check(orbWait.disabled && /You can ask again in \d+s/.test(orbWait.note),
-      'the floating assistant also waits 10s after an answer', JSON.stringify(orbWait));
+      'the floating assistant also waits 18s after an answer', JSON.stringify(orbWait));
     // A 429 is the documented free-tier limit and is not a defect. A 404 is the
     // UNDOCUMENTED way this endpoint sometimes expresses the same throttle
     // (measured: back-to-back requests gave 200 then 404, and the identical
@@ -374,10 +377,10 @@ try {
     await orbPage.close();
   }
 
-  // ── /browser also carries the shared footer ──────────────────────────────
+  // ── another page carries the full shared footer too, and the removed browser page is a real 404 ──
   {
     const bp = await browser.newPage();
-    await bp.goto(`${BASE}/browser`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await bp.goto(`${BASE}/community`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await bp.waitForFunction(() => !!document.querySelector('.site-footer')?.dataset.enhanced,
       { timeout: 20000 }).catch(() => {});
     const f = await bp.evaluate(() => {
@@ -389,7 +392,9 @@ try {
       };
     });
     check(!!f && !f.mini && f.columns >= 3 && f.brand,
-      '/browser renders the full shared footer too', JSON.stringify(f));
+      '/community renders the full shared footer too', JSON.stringify(f));
+    const gone = await bp.goto(`${BASE}/browser`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    check(gone?.status() === 404, '/browser is gone (a real 404, not a redirect or a blank page)', String(gone?.status()));
     await bp.close();
   }
 

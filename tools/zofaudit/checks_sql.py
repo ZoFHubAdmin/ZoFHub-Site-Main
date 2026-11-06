@@ -17,6 +17,14 @@ from .sqlmodel import Schema, apply_sql, signature, parse_arg_types
 
 CHECK = 'sql'
 
+# SECURITY DEFINER functions whose only caller was the removed proxy browser (rewarded proxy
+# access). They are still in the migration history, and supabase/migrations/ is applied to
+# production on merge, so dropping them is a deliberate migration by the operator, not a side
+# effect of removing code. Until then each must stay revoked from public/anon/authenticated
+# (checked below, as an error) and is reported as info. test/schema-integrity.test.mjs keeps the
+# same list and fails if one is dropped from the schema without being removed from it.
+RETIRED_DEFINERS = frozenset({'grant_reward_entitlement'})
+
 # The migration order lives in ORDER inside tools/sync-supabase-migrations.mjs.
 # It is read from there rather than restated here for the same reason that file
 # exists at all: two hand-maintained copies of an ordering drift, and the drift
@@ -371,7 +379,12 @@ def run(report) -> None:
                     path=fn.origin.file, line=fn.origin.line,
                     detail='It runs with the definer\'s rights and the publishable key can reach it.\n'
                            'Add: revoke all on function ' + sig + ' from public, anon, authenticated;'))
-            if not called and not bound:
+            if not called and not bound and fn.name in RETIRED_DEFINERS:
+                report.add(Finding(
+                    CHECK, 'info',
+                    f'retired SECURITY DEFINER function, kept until a migration drops it: {sig}',
+                    path=fn.origin.file, line=fn.origin.line))
+            elif not called and not bound:
                 report.add(Finding(
                     CHECK, 'warn',
                     f'SECURITY DEFINER function has no caller anywhere: {sig}',

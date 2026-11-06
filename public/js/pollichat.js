@@ -22,16 +22,19 @@
 // this browser and never through our server. See public/js/pollinations-image.js.
 //
 // Two waits, both from public/js/ai-cooldown.js and both kept across reloads:
-// 10 s after every text message, 45 s after every picture request. They are
+// 18 s after every text message, 50 s after every picture request. They are
 // independent — a picture does not make you wait to ask a question.
 
 import { $, $$, el, renderMarkdownLite, escapeHtml } from './utils.js';
 import { askWithContext, describeFailure } from './pollinations.js?v=20261016';
-import { askPuterWithContext, describePuterFailure } from './puter.js?v=20261025';
+import {
+  askPuterWithContext, describePuterFailure, puterReady, preloadPuter, puterSignInState,
+  puterUsername, startPuterSignIn, signOutOfPuter,
+} from './puter.js?v=20261104';
 import {
   parseImageCommand, buildImageUrl, loadImage, diagnoseImageFailure, describeImageFailure, IMAGE_USAGE,
-} from './pollinations-image.js?v=20261102';
-import { cooldowns, formatWait, TEXT_COOLDOWN_MS, IMAGE_COOLDOWN_MS } from './ai-cooldown.js?v=20261102';
+} from './pollinations-image.js?v=20261104';
+import { cooldowns, formatWait, TEXT_COOLDOWN_MS, IMAGE_COOLDOWN_MS } from './ai-cooldown.js?v=20261104';
 import { SYSTEM_PROMPT } from './ai-prompt.js';
 import { store } from './storage.js';
 
@@ -89,6 +92,10 @@ function statusLineFor(providerId) {
 // ===========================================================================
 let current = null;             // { id, title, messages, provider }
 let composing = false;
+// Puter account panel (declared up here because init() reaches it before the code that uses it).
+const PUTER_BLOCKED_NOTE = 'Your browser blocked the sign-in window. Click “Continue” in the Puter dialog to open it.';
+let puterLoad = 'idle';         // 'idle' | 'loading' | 'ready' | 'failed' — the SDK download, not the sign-in
+let puterPanelSeq = 0;          // drops a stale async paint when two refreshes overlap
 // The in-flight request, so a new message (or a page navigation) can cancel the
 // one it supersedes instead of racing it. Without this, two overlapping sends
 // resolve in arrival order and the OLDER answer can overwrite the newer one.
@@ -176,6 +183,7 @@ function loadInitialChat() {
   renderProviderSwitch();
   bindComposer();
   bindProviderSwitch();
+  bindPuterPanel();
   bindSideToggle();
   bindSuggestCards($('#aiMessages'));
   $('#aiNew')?.addEventListener('click', newChat);
@@ -194,7 +202,7 @@ function loadInitialChat() {
   });
 })();
 
-// Stop the answer being written. Its 10 s wait starts now, exactly as if the answer
+// Stop the answer being written. Its 18 s wait starts now, exactly as if the answer
 // had finished: the request left this machine either way.
 function abortText() {
   if (!composing) return;
@@ -204,7 +212,7 @@ function abortText() {
   refreshComposer();
 }
 
-// Stop the picture being made. Its 45 s wait began when it was sent and is not
+// Stop the picture being made. Its 50 s wait began when it was sent and is not
 // touched here — stopping waiting for a picture does not un-send the request.
 function abortImage() {
   if (!imageInFlight && !imageBusy) return;
@@ -285,6 +293,7 @@ function bindSuggestCards(scope) {
 // ===========================================================================
 function renderProviderSwitch() {
   $$('.ai-provider-btn').forEach(b => b.classList.toggle('active', b.dataset.provider === current.provider));
+  syncPuterPanel();
 }
 function bindProviderSwitch() {
   $$('.ai-provider-btn').forEach(b => b.addEventListener('click', () => {
@@ -296,6 +305,67 @@ function bindProviderSwitch() {
     renderProviderSwitch();
     setStatus(statusLineFor(id));
   }));
+}
+
+// ===========================================================================
+// Puter account panel
+// ===========================================================================
+// Puter.js runs on the visitor's OWN Puter account, so there is a sign-in step that PolliChat does
+// not have. The SDK would open the sign-in window by itself on the first request, but it does so
+// after downloading, which can be too late for the browser to treat as a click — and then nothing
+// appears. This panel is the dependable way in: it shows whether the visitor is signed in, and its
+// button's own click opens the sign-in window directly. See /js/puter.js.
+
+/** Load the SDK (only ever for a visitor who has chosen Puter) and paint the panel. */
+function syncPuterPanel() {
+  if (current?.provider !== 'puter') { paintPuterPanel(); return; }
+  if (puterReady()) { puterLoad = 'ready'; paintPuterPanel(); return; }
+  if (puterLoad === 'loading') return;
+  puterLoad = 'loading';
+  paintPuterPanel();
+  preloadPuter().then((ok) => { puterLoad = ok ? 'ready' : 'failed'; paintPuterPanel(); });
+}
+
+async function paintPuterPanel(errorText) {
+  const box = $('#aiPuterAuth'), line = $('#aiPuterAuthLine'), btn = $('#aiPuterAuthBtn');
+  if (!box || !line || !btn) return;
+  const on = current?.provider === 'puter';
+  box.hidden = !on;
+  if (!on) return;
+  const seq = ++puterPanelSeq;
+  const set = (text, label, act, disabled = false) => {
+    if (seq !== puterPanelSeq) return;            // a newer paint superseded this one
+    line.textContent = errorText || text;
+    btn.textContent = label; btn.dataset.act = act; btn.disabled = disabled;
+  };
+  if (!puterReady()) {
+    if (puterLoad === 'failed') set('Puter could not be reached. Check your connection — some networks block js.puter.com.', 'Try again', 'retry');
+    else set('Connecting to Puter…', 'Sign in to Puter', 'wait', true);
+    return;
+  }
+  if (puterSignInState() === 'signed-in') {
+    set('Signed in to Puter.', 'Sign out', 'signout');
+    const name = await puterUsername();
+    if (name) set(`Signed in to Puter as ${name}.`, 'Sign out', 'signout');
+  } else {
+    set('Not signed in. Puter is free: sign in, or create an account, in the small window that opens.', 'Sign in to Puter', 'signin');
+  }
+}
+
+function bindPuterPanel() {
+  const btn = $('#aiPuterAuthBtn');
+  btn?.addEventListener('click', () => {
+    const act = btn.dataset.act;
+    if (act === 'retry') { puterLoad = 'idle'; syncPuterPanel(); return; }
+    if (act === 'signout') { signOutOfPuter().then(() => paintPuterPanel()); return; }
+    if (act !== 'signin') return;
+    // startPuterSignIn() is the FIRST thing this click does, so the browser sees the window as
+    // opened by the click.
+    const attempt = startPuterSignIn({ onBlocked: () => { $('#aiPuterAuthLine').textContent = PUTER_BLOCKED_NOTE; } });
+    btn.disabled = true;
+    $('#aiPuterAuthLine').textContent = 'Waiting for you to sign in in the Puter window…';
+    attempt.then(() => paintPuterPanel(), (e) => paintPuterPanel(describePuterFailure(e)));
+  });
 }
 
 // ===========================================================================
@@ -475,11 +545,22 @@ async function respond() {
       finishTurn();
       return;
     }
-    showError(provider.describe(e));
-    finishTurn();
+    // A problem signing in to Puter is not a request: nothing left this machine, so it costs no
+    // wait, and the card offers the sign-in itself rather than a retry that would only fail the
+    // same way.
+    const signIn = signInProblem(provider, e);
+    showError(provider.describe(e), signIn);
+    if (signIn) finishTurnWithoutWait(); else finishTurn();
   } finally {
     if (inFlight === controller) inFlight = null;
   }
+}
+
+/** The sign-in button for an error card, when the failure is about being signed in to Puter. */
+function signInProblem(provider, e) {
+  if (provider.id !== 'puter' || !puterReady()) return null;
+  if (!['auth', 'popup-blocked', 'auth-cancelled'].includes(e?.code)) return null;
+  return { label: 'Sign in to Puter', start: startPuterSignIn, describe: describePuterFailure };
 }
 
 // Remove a text reply's placeholder wherever it now sits. It used to be enough to
@@ -497,7 +578,7 @@ function dropReply(reply) {
 
 // ── Error notice, with a Retry that re-sends the same message ──────────────
 // Transient UI: not stored in chat history, and only ever one at a time.
-function showError(message) {
+function showError(message, signIn) {
   const wrap = $('#aiMessages'); if (!wrap) return;
   wrap.querySelector('.ai-notice-row')?.remove();
 
@@ -507,18 +588,34 @@ function showError(message) {
   icon.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>';
   const text = el('div', { class: 'ai-notice-text' });
   text.textContent = message;                    // textContent: never markup
-  const retry = el('button', { class: 'ai-rl-btn', type: 'button' });
-  retry.addEventListener('click', () => {
-    // A retry is another request, so it waits out the same 10 s as a new message.
-    if (retry.disabled || composing || cooldowns.remainingSec('text') > 0) return;
-    row.remove();
-    respond();
-  });
-  watchCooldown({ kind: 'text', btn: retry, ready: 'Try again', wait: (s) => `Try again in ${formatWait(s)}` });
-
   bubble.appendChild(icon);
   bubble.appendChild(text);
-  bubble.appendChild(retry);
+
+  if (signIn) {
+    // Not a retry: a retry would fail the same way. This button's own click opens the sign-in
+    // window (start() is the first thing it does), then sends the same message again.
+    const go = el('button', { class: 'ai-rl-btn ai-rl-primary', type: 'button' });
+    go.textContent = signIn.label;
+    go.addEventListener('click', () => {
+      const attempt = signIn.start({ onBlocked: () => { text.textContent = PUTER_BLOCKED_NOTE; } });
+      go.disabled = true;
+      text.textContent = 'Waiting for you to sign in in the Puter window…';
+      attempt.then(
+        () => { row.remove(); paintPuterPanel(); respond(); },
+        (err) => { text.textContent = signIn.describe(err); go.disabled = false; paintPuterPanel(); });
+    });
+    bubble.appendChild(go);
+  } else {
+    const retry = el('button', { class: 'ai-rl-btn', type: 'button' });
+    retry.addEventListener('click', () => {
+      // A retry is another request, so it waits out the same 18 s as a new message.
+      if (retry.disabled || composing || cooldowns.remainingSec('text') > 0) return;
+      row.remove();
+      respond();
+    });
+    watchCooldown({ kind: 'text', btn: retry, ready: 'Try again', wait: (s) => `Try again in ${formatWait(s)}` });
+    bubble.appendChild(retry);
+  }
   const body = el('div', { class: 'msg-body' });
   body.appendChild(bubble);
   const av = el('div', { class: 'msg-av' });
@@ -527,7 +624,7 @@ function showError(message) {
   row.appendChild(body);
   wrap.appendChild(row);
   wrap.scrollTop = wrap.scrollHeight;
-  setStatus('Tap Try again to retry');
+  setStatus(signIn ? 'Sign in to Puter to continue' : 'Tap Try again to retry');
 }
 
 // ── Styled "you hit the rate limit" notice ─────────────────────────────────
@@ -540,7 +637,7 @@ function showRateLimit(seconds) {
   const total = Math.max(5, Math.min(120, Math.round(seconds) || 15));
 
   // The provider asked for this long. The text wait only ever lengthens, so it
-  // covers whichever is longer — this or the usual 10 s — and the composer stays
+  // covers whichever is longer — this or the usual 18 s — and the composer stays
   // locked for exactly as long as the card says.
   cooldowns.start('text', total * 1000);
 
@@ -664,11 +761,17 @@ async function sendText(text) {
   await respond();
 }
 
-// The answer is in (or the attempt failed or was cancelled): the 10 s wait for the
+// The answer is in (or the attempt failed or was cancelled): the 18 s wait for the
 // next message starts now.
 function finishTurn() {
   composing = false;
   cooldowns.start('text', TEXT_COOLDOWN_MS);
+  refreshComposer();
+}
+
+// A sign-in problem is not a request: nothing was sent, so there is no wait to serve.
+function finishTurnWithoutWait() {
+  composing = false;
   refreshComposer();
 }
 
@@ -745,7 +848,7 @@ async function makePicture(reply) {
       }
     }
     if (failure.code === 'rate-limited') {
-      // Honour what the service said, on top of our own 45 s (it only lengthens).
+      // Honour what the service said, on top of our own 50 s (it only lengthens).
       cooldowns.start('image', ((Number(failure.retryAfter) || 0) + 1) * 1000);
     }
     console.warn('[ai] picture failed:', failure.code || '', failure.message || failure);

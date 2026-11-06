@@ -81,20 +81,24 @@ describe('reading a destination out of net.Socket.connect', () => {
 });
 
 describe('the infrastructure allowlist comes from the environment', () => {
-  test('a database host, a cache host, a mail provider, a swap provider, companions', () => {
+  test('a database host, a cache host, a mail provider, a swap provider, the daemon', () => {
     const hosts = buildInfraAllowlist({
       SUPABASE_URL: 'https://abcd1234.supabase.co',
       REDIS_URL: 'rediss://default:hunter2@cache.example.net:6380',
       RESEND_API_KEY: 're_123',
       SWAP_PROVIDER: 'sideshift',
-      PROXY_NAUTILUS_URL: 'https://nautilus.example.org/app',
-      PROXY_KASM_URL: 'https://kasm.example.org:8443',
       SINGBOX_API_URL: 'http://127.0.0.1:9090',
     });
-    for (const h of ['abcd1234.supabase.co', 'cache.example.net', 'api.resend.com', 'sideshift.ai',
-      'nautilus.example.org', 'kasm.example.org', '127.0.0.1']) {
+    for (const h of ['abcd1234.supabase.co', 'cache.example.net', 'api.resend.com', 'sideshift.ai', '127.0.0.1']) {
       assert.ok(hosts.includes(h), `${h} missing from ${JSON.stringify(hosts)}`);
     }
+  });
+
+  test('the removed browser\'s companion URLs no longer open a hole in the guard', () => {
+    // PROXY_*_URL used to be allowlisted so the engine picker could probe them. Nothing reads them now,
+    // so setting one must not make a host reachable.
+    const hosts = buildInfraAllowlist({ PROXY_NAUTILUS_URL: 'https://nautilus.example.org/app', PROXY_KASM_URL: 'https://kasm.example.org:8443' });
+    assert.deepEqual(hosts, []);
   });
 
   test('a connection string contributes its HOST only, never its credentials', () => {
@@ -120,7 +124,7 @@ describe('the infrastructure allowlist comes from the environment', () => {
   });
 
   test('garbage in the environment does not throw', () => {
-    assert.doesNotThrow(() => buildInfraAllowlist({ SUPABASE_URL: 'not a url', REDIS_URL: '%%%', PROXY_KASM_URL: '::' }));
+    assert.doesNotThrow(() => buildInfraAllowlist({ SUPABASE_URL: 'not a url', REDIS_URL: '%%%', SINGBOX_API_URL: '::' }));
   });
 });
 

@@ -694,12 +694,13 @@ describe('the UI tells the truth about the free tier', () => {
 
   test('the disclaimer tells visitors where to go if this AI does not answer', () => {
     // Explicit requirement: when one AI is slow/down, say so and name the
-    // actual alternatives — the other listed provider, and the Browser itself.
+    // actual alternative — the other listed provider. (The proxy browser that used to be the
+    // third suggestion is gone, so the page must not send anyone to it.)
     const html = read('public/pollichat.html');
-    assert.match(html, /Puter\.js/, 'the disclaimer does not point to the other listed provider');
-    assert.match(html, /ChatGPT/i, 'the disclaimer does not mention using the browser for ChatGPT');
-    assert.match(html, /Claude/i, 'the disclaimer does not mention using the browser for Claude');
-    assert.match(html, /href="\/browser"/, 'the disclaimer does not link to the Browser');
+    const note = html.slice(html.indexOf('class="ai-disclaimer"'), html.indexOf('</p>', html.indexOf('class="ai-disclaimer"')));
+    assert.match(note, /Puter\.js/, 'the disclaimer does not point to the other listed provider');
+    assert.ok(!/href="\/browser"/.test(html), 'pollichat.html links to the removed Browser');
+    assert.ok(!/\bthe Browser\b/.test(note), 'the disclaimer still mentions the removed Browser');
   });
 
   test('a failure is shown as a failure, never as an answer', () => {
@@ -728,11 +729,11 @@ describe('the UI tells the truth about the free tier', () => {
 
 describe('every page carries the same footer', () => {
   const PAGES = [
-    'public/index.html', 'public/pollichat.html', 'public/browser.html', 'public/community.html',
+    'public/index.html', 'public/pollichat.html', 'public/community.html',
     'public/leaderboard.html', 'public/donate.html', 'public/category.html', 'public/game.html',
     'public/404.html', 'public/gameflare.html', 'public/gameflare-play.html',
     'legal/privacy.html', 'legal/terms.html', 'legal/cookies.html', 'legal/dmca.html',
-    'legal/licenses.html', 'legal/credits.html',
+    'legal/credits.html',
   ];
 
   // Two GameFlare pages legitimately keep ONE child: a <p class="footer-legal">
@@ -774,7 +775,7 @@ describe('every page carries the same footer', () => {
   });
 
   test('the app shells no longer reserve height for the removed legal bar', () => {
-    for (const f of ['public/css/ai.css', 'public/css/browser.css']) {
+    for (const f of ['public/css/ai.css']) {
       assert.doesNotMatch(codeOnly(f), /--legal-bar-h/,
         `${f} still subtracts the height of a bar that no longer exists`);
     }

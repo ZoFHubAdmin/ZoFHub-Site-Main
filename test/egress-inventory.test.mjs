@@ -68,7 +68,7 @@ function walk(dir, acc = []) {
   }
   return acc;
 }
-const SERVER_FILES = ['server.js', 'proxy-engine/mount.mjs', ...walk('lib')];
+const SERVER_FILES = ['server.js', ...walk('lib')];
 const SRC = new Map(SERVER_FILES.map((f) => [f, code(read(f))]));
 const NOSTR = new Map(SERVER_FILES.map((f) => [f, code(read(f), true)]));
 
@@ -91,10 +91,7 @@ describe('only approved modules may import a socket API', () => {
     'lib/egress-guard.mjs': 'wraps net and dgram so nothing else can connect directly',
     'lib/singbox-socket.mjs': 'the SOCKS5 tunnel to the daemon, on loopback',
     'lib/safe-fetch.mjs': 'the chokepoint for server-side fetches; hands node:http(s) the sing-box agent',
-    'lib/proxy-control.mjs': 'isIP only — an address predicate, no socket is opened',
     'lib/ai-guard.mjs': 'isIP only — an address predicate, no socket is opened',
-    'lib/tls-interception.mjs': 'a TLS probe that runs over a stream tunnelled through the daemon',
-    'lib/kasm-host.mjs': 'a reachability probe of the OPERATOR-configured Kasm host (allowlisted via PROXY_KASM_URL)',
   };
   const RX = /(?:from\s+|require\()\s*['"](?:node:)?(net|tls|http|https|http2|dgram)['"]/g;
 
@@ -143,7 +140,7 @@ describe('raw fetch() is allowed only where the destination is the operator\'s o
   // `fetch(` as a call, or `= fetch` as a default. Not `safeFetch(`, not `.fetch(`.
   const CALL = /(?<![\w.$])fetch\s*\(|=\s*fetch\s*[,)}]/g;
   const APPROVED = {
-    'server.js': { count: 2, why: 'the companion-engine reachability probe (operator-configured PROXY_*_URL, allowlisted) and the mail-provider call (api.resend.com, allowlisted only when RESEND_API_KEY is set)' },
+    'server.js': { count: 1, why: 'the mail-provider call (api.resend.com, allowlisted only when RESEND_API_KEY is set)' },
     'lib/supabase.mjs': { count: 1, why: 'the database client (SUPABASE_URL, allowlisted)' },
     'lib/singbox.mjs': { count: 1, why: "the daemon's own loopback Clash API" },
     'lib/swap.mjs': { count: 1, why: 'the swap provider (allowlisted only when SWAP_PROVIDER names it)' },
@@ -157,23 +154,23 @@ describe('raw fetch() is allowed only where the destination is the operator\'s o
       + "the operator's own infrastructure must be on the allowlist and listed here.");
   });
 
-  test('the two raw calls in server.js go only where the allowlist says', () => {
+  test('the one raw call in server.js goes only where the allowlist says', () => {
     // Find the calls on the string-blanked text, read their first argument from the
     // real text at the same index (the two are the same length by construction).
     const blank = NOSTR.get('server.js');
     const real = SRC.get('server.js');
     const targets = [...blank.matchAll(/(?<![\w.$])fetch\s*\(\s*/g)]
       .map((m) => real.slice(m.index + m[0].length).split(/,\s*\{/)[0].trim());
-    assert.deepEqual(targets, ['e.url', '`https://api.resend.com/audiences/${encodeURIComponent(audience)}/contacts`']);
+    assert.deepEqual(targets, ['`https://api.resend.com/audiences/${encodeURIComponent(audience)}/contacts`']);
   });
 
   test('every raw-fetch destination is on the infrastructure allowlist when it is configured', async () => {
     const { buildInfraAllowlist } = await import('../lib/egress-guard.mjs');
     const allow = buildInfraAllowlist({
       SUPABASE_URL: 'https://p.supabase.co', RESEND_API_KEY: 'x', SWAP_PROVIDER: 'sideshift',
-      PROXY_NAUTILUS_URL: 'https://n.example.org', SINGBOX_API_URL: 'http://127.0.0.1:9090',
+      SINGBOX_API_URL: 'http://127.0.0.1:9090',
     });
-    for (const h of ['p.supabase.co', 'api.resend.com', 'sideshift.ai', 'n.example.org', '127.0.0.1']) {
+    for (const h of ['p.supabase.co', 'api.resend.com', 'sideshift.ai', '127.0.0.1']) {
       assert.ok(allow.includes(h), `${h} is fetched directly but not allowlisted`);
     }
   });
@@ -198,7 +195,7 @@ describe('visitor-driven fetches all use safeFetch, and safeFetch never connects
   test('the test-only direct egress is referenced from nowhere but its definition and tests', () => {
     const users = SERVER_FILES.filter((f) => SRC.get(f).includes('directEgressForTests'));
     assert.deepEqual(users.sort(), ['lib/egress.mjs', 'lib/safe-fetch.mjs']);
-    for (const f of ['tools/fetch-y8-thumbs.mjs', 'proxy-engine/mount.mjs']) {
+    for (const f of ['tools/fetch-y8-thumbs.mjs']) {
       if (existsSync(join(ROOT, f))) assert.ok(!read(f).includes('directEgressForTests'), f);
     }
   });
@@ -252,13 +249,13 @@ describe('the guard is installed before anything can open a socket', () => {
     assert.ok(at('installEgressGuard(') > -1);
   });
 
-  test('before the database client, the cache, the proxy engines and the supervisor', () => {
+  test('before the database client, the cache and the supervisor', () => {
     const guard = at('installEgressGuard(');
     // The dynamic-import spellings are assembled, not written out: the repository auditor
     // reads a literal `import('…')` inside a string as a real import and tries to resolve it.
     const dynamicImport = (spec) => `import('${spec}')`;
     const late = ['./lib/supabase.mjs', './lib/cache.mjs', './lib/singbox-supervisor.mjs'].map(dynamicImport);
-    for (const needle of [...late, 'mount.mjs', 'new Redis', 'createClient(']) {
+    for (const needle of [...late, 'new Redis', 'createClient(']) {
       const i = at(needle);
       if (i === -1) continue;
       assert.ok(guard < i, `the guard is installed AFTER ${needle}`);
@@ -295,11 +292,10 @@ describe('the one tool the server spawns at boot', () => {
   });
 });
 
-describe('boot-time probes go through the daemon too', () => {
-  test('the TLS interception probe opens its stream through sing-box, not straight out', () => {
-    const s = code(read('lib/tls-interception.mjs'));
-    assert.match(s, /openSingboxTunnel\(/);
-    assert.doesNotMatch(s, /connect\(\{\s*host,\s*port,\s*servername:\s*host,\s*rejectUnauthorized:\s*false\s*\}\s*,/,
-      'the probe still connects directly with a callback form that has no tunnel');
+describe('the removed browser left no boot-time probe or reachability check behind', () => {
+  test('no file under lib/ still probes a configured companion host or intercepts TLS on its own', () => {
+    for (const f of ['lib/tls-interception.mjs', 'lib/kasm-host.mjs', 'lib/proxy-control.mjs', 'lib/wisp-policy.mjs']) {
+      assert.ok(!existsSync(join(ROOT, f)), `${f} is part of the removed browser and must not come back`);
+    }
   });
 });

@@ -158,8 +158,6 @@ describe('every page has a usable heading outline', () => {
     const scan = (dir, exts) => {
       for (const file of walk(dir, exts)) {
         const rel = file.slice(ROOT.length + 1).replace(/\\/g, '/');
-        // The vendored GUST proxy app is third-party and serves itself.
-        if (rel.startsWith('proxy-engine/assets/gust/')) continue;
         const src = stripAllComments(readFileSync(file, 'utf8'));
         for (const m of src.matchAll(HANDLER)) offenders.push(`${rel}: ${m[0].trim()}`);
       }

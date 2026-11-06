@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {
   geoConfig, countryOf, regionOf, routeDecision, isTopLevelNavigation, isNeverRouted, STAY_COOKIE,
 } from '../lib/geo.mjs';
-import { mintKey, grantKeyFor, GRANT_COOKIE, masqrConfig } from '../lib/masqr.mjs';
 
 const ROUTES = 'SOUTH_ASIA:IN,PK,BD,LK,NP,BT,MV=play-in.example.test,alt-in.example.test;'
   + 'NORTH_AMERICA:US,CA=play-us.example.test;GLOBAL:*=zofhub.example.test';
@@ -102,13 +101,13 @@ describe('routing decisions', () => {
     assert.equal(isTopLevelNavigation('HEAD', PAGE), true);
   });
 
-  test('health, ads.txt, robots, legal, API, assets and proxy internals are never moved', () => {
+  test('health, ads.txt, robots, legal, API and static assets are never moved', () => {
     for (const url of ['/healthz', '/api/site-config', '/ads.txt', '/robots.txt', '/sitemap.xml', '/privacy',
-      '/dmca', '/assets/logo.png', '/js/layout.js', '/embed/slope', '/uv/uv.bundle.js', '/wisp/', '/admin']) {
+      '/dmca', '/assets/logo.png', '/js/layout.js', '/embed/slope', '/admin']) {
       assert.equal(isNeverRouted(url), true, url);
       assert.equal(decide({ host: 'x.test', url, headers: { ...PAGE, 'cf-ipcountry': 'IN' } }).action, 'none', url);
     }
-    assert.equal(isNeverRouted('/browser'), false, 'the proxy page is exactly what should be isolated');
+    assert.equal(isNeverRouted('/play/some-game'), false, 'a game page is exactly what a regional domain should serve');
   });
 
   test('?geo=stay opts out, and the cookie keeps it that way', () => {
@@ -124,7 +123,7 @@ describe('routing decisions', () => {
   });
 
   test('it holds no state: the same input always gives the same answer, fast', () => {
-    const input = { method: 'GET', host: 'zofhub.example.test', url: '/browser', headers: { ...PAGE, 'cf-ipcountry': 'IN' } };
+    const input = { method: 'GET', host: 'zofhub.example.test', url: '/play/some-game', headers: { ...PAGE, 'cf-ipcountry': 'IN' } };
     const first = JSON.stringify(routeDecision(input, cfg));
     const t0 = process.hrtime.bigint();
     for (let i = 0; i < 100_000; i++) routeDecision(input, cfg);
@@ -136,27 +135,10 @@ describe('routing decisions', () => {
   });
 });
 
-describe('a MASQR key crosses the regional redirect', () => {
-  const masqr = masqrConfig({ MASQR_ENABLED: '1', MASQR_SECRET: 'a-test-secret-that-is-long-enough' });
-
-  test('a valid grant rides the redirect as ?k=, computed only when a redirect happens', () => {
-    const key = mintKey(masqr.secret, { ttlMs: 60_000 });
-    let calls = 0;
-    const grant = () => { calls++; return grantKeyFor(masqr, `${GRANT_COOKIE}=${key}`); };
-    const d = routeDecision({ method: 'GET', host: 'zofhub.example.test', url: '/browser?x=1',
-      headers: { ...PAGE, 'cf-ipcountry': 'IN' } }, cfg, { grant });
-    assert.equal(d.location, `https://play-in.example.test/browser?x=1&k=${encodeURIComponent(key)}`);
-    assert.equal(calls, 1);
-    routeDecision({ method: 'GET', host: 'play-in.example.test', url: '/', headers: { ...PAGE, 'cf-ipcountry': 'IN' } }, cfg, { grant });
-    assert.equal(calls, 1, 'the grant was verified for a request that was not redirected');
-  });
-
-  test('an expired, forged or absent grant is never promoted into a link', () => {
-    const expired = mintKey(masqr.secret, { ttlMs: 1, now: Date.now() - 10_000 });
-    const forged = mintKey('some-other-secret-entirely-xyz', { ttlMs: 60_000 });
-    for (const cookie of [`${GRANT_COOKIE}=${expired}`, `${GRANT_COOKIE}=${forged}`, '', 'x=1']) {
-      assert.equal(grantKeyFor(masqr, cookie), '', cookie);
-    }
-    assert.equal(grantKeyFor(masqrConfig({}), `${GRANT_COOKIE}=${mintKey(masqr.secret)}`), '', 'gate off, but a key was returned');
+describe('the regional redirect carries nothing but the path', () => {
+  test('the redirect target is the destination host plus the original path and query, and no access token', () => {
+    const d = routeDecision({ method: 'GET', host: 'zofhub.example.test', url: '/play/some-game?x=1',
+      headers: { ...PAGE, 'cf-ipcountry': 'IN' } }, cfg);
+    assert.equal(d.location, 'https://play-in.example.test/play/some-game?x=1');
   });
 });

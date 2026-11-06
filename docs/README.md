@@ -4,47 +4,35 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-1379%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1813%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
-A single-server web app that bundles three things into one site:
+A single-server web app that bundles two things into one site:
 
-1. **A games hub** — **~12,300 playable games** served from official/authorized embeds (~16,900 catalogued; see [Catalog](#-the-catalog-what-is-actually-served)), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
-2. **A free AI assistant** — a **text** chat, plus an opt-in `/image` command for pictures, that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai) per message (and one `<img>` per picture), made by their own browser on their own IP. **No prompt, reply, picture description or picture ever touches this server** — not by convention, but because there is no AI route left that could relay one. No audio or video generation. A 10-second wait follows every message and a 45-second wait every picture. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
-3. **A proxy web browser** — an optional "open the web" mode (Ultraviolet, Scramjet, GUST + HORIZON/Wisp) for filtered networks, whose egress runs through a managed **[sing-box](proxy/SINGBOX.md)** daemon by default.
+1. **A games hub** — a catalog of **~16,900 games** (**~12,300 eligible** to serve, all from official/authorized embeds; see [Catalog](#-the-catalog-what-is-actually-served)) of which the public roster is a fixed, curated set (`ACTIVE_GAMES_CAP`, default 100), with search, categories, favorites, a Game of the Day, a natural-language **Vibe Finder**, and a personalized **For You** row.
+2. **A free AI assistant** — a **text** chat, plus an opt-in `/image` command for pictures, that runs **entirely in the visitor's browser**: one keyless `GET` to [Pollinations](https://pollinations.ai) per message (and one `<img>` per picture), made by their own browser on their own IP. **No prompt, reply, picture description or picture ever touches this server** — not by convention, but because there is no AI route left that could relay one. No audio or video generation. An 18-second wait follows every message and a 50-second wait every picture. See [AI runs on the visitor's device](#-ai-runs-on-the-visitors-device).
 
-> **Public metadata is framed as a security tool.** The served `<title>`, Open
-> Graph and description tags present the site as a *"cloud-based web-security
-> sandboxing tool and browser diagnostic hub"* rather than a games portal, so
-> automated content filters classifying it by its metadata do not trip on gaming
-> or unblocker keywords. This is a uniform rebrand of the public meta tags — the
-> same for every viewer — not content served differently to scanners than to
-> people.
-
-It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, feedback, and community data. It runs as **one always-on site** carrying both the games hub and the proxy, with optional advertising on the hub pages only — never on the proxy, and never Google AdSense.
+It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **no build step**), and **Supabase** (Postgres) for the catalog, feedback, and community data. It runs as **one always-on site**, with optional advertising on pages ZoFHub wrote and never Google AdSense. Everything it fetches server-side on a visitor's behalf crosses a managed **[sing-box](proxy/SINGBOX.md)** daemon — or is refused; there is no direct fallback.
 
 ---
 
 ## ✨ Features
 
-- 🎮 **12,289 playable games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — all via their official embed URLs, every one from a distributor that licenses third-party embedding. (Another ~4,630 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
+- 🎮 **12,289 eligible games** from GameMonetize, Y8, OnlineGames.io and GameDistribution — all via their official embed URLs, every one from a distributor that licenses third-party embedding. The public roster is a fixed, curated set (`ACTIVE_GAMES_CAP`, default 100; `0` serves them all — see [CATALOG-FREEZE.md](features/CATALOG-FREEZE.md)). (Another ~4,630 rows are catalogued but deliberately not served — see [Catalog](#-the-catalog-what-is-actually-served).)
 - ⚡ **Instant catalog** — the full game list is held in memory and refreshed from Supabase every 30 min; API responses are edge-cached.
 - 🌟 **Game of the Day** — a deterministic daily pick (same for every visitor, changes at UTC midnight), genre-weighted toward what players actually play.
 - 💬 **Feedback** — a "Send feedback" dialog on every page writes to an **insert-only** `feedback` table (anon may INSERT, never SELECT) and is read only from the admin console. Nothing submitted is ever shown publicly.
 - 🙏 **Donations** — an optional "Support ZoFHub" dialog offering six **crypto-only** methods: **Solana**, **USDC**, **Bitcoin**, **Litecoin**, **Ethereum** and **Monero**. There is no card option, so a visitor without a wallet cannot donate — deliberate, not an oversight. SOL and USDC share **one address and one wallet**, listed separately so a donor holding dollars need not know USDC is an SPL token. Addresses live in the **environment, never in git**, are **checksum-verified at boot**, and a method that fails is dropped rather than served — a typo becomes a missing button, not lost donations. BTC, LTC and ETH get **full checksum** verification (ETH via a dependency-free **Keccak-256** + EIP-55 implementation, since `node:crypto` ships SHA-3, which is a different function); SOL, USDC and XMR are shape-checked only and say so. A **swap path** (pay BTC, LTC, SOL, ETH or DOGE; a non-custodial provider settles to Monero; nothing stored) exists as a server API but **no page offers it yet**. Full detail, including which party can and cannot see what: [DONATIONS.md](features/DONATIONS.md).
 - 🕶️ **No accounts, no passwords** — every visitor gets an auto-generated device-local username (e.g. `SwiftFalcon1234`). Nothing to sign up for and no email required — the only addresses ever stored are ones a visitor volunteers, for the mirror-update list or a feedback reply. See [what the site remembers](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
-- 🤖 **Built-in AI** — **text, plus opt-in `/image` pictures**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message and, on request, one `<img>` for `https://image.pollinations.ai/<description>`, with a 10-second wait after every message, a 45-second wait after every picture, no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
+- 🤖 **Built-in AI** — **text, plus opt-in `/image` pictures**, browser-direct and keyless: one `GET https://text.pollinations.ai/<prompt>` per message and, on request, one `<img>` for `https://image.pollinations.ai/<description>`, with an 18-second wait after every message, a 50-second wait after every picture, no API key, no model picker and no server hop. Plus a "Vibe Finder" that recommends games from your mood using a curated map and a deterministic ranker (**no AI call at all**), and a local answer cache for instant repeats.
 - 🔎 **Per-game SEO** — every game page carries a **unique, factual description** and full metadata (canonical URL, Open Graph, `schema.org` JSON-LD), generated deterministically from verified catalog metadata — no AI filler, no fabrication, no per-request cost. See [GAME-SEO.md](features/GAME-SEO.md).
-- 🌐 **Proxy browser (optional)** — four bundled same-origin engines — [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) and [Scramjet](https://github.com/MercuryWorkshop/scramjet) (service workers), [GUST](https://github.com/nautilus-os/GUST) and [HORIZON](https://github.com/RiptideMC/HORIZON) (single-file libcurl.js + Wisp apps, HORIZON a remodelled GUST) — for browsing on locked-down networks, plus optional external engines you host yourself ([Kasm](proxy/KASM.md), [InvisiProxy](proxy/INVISIPROXY.md)). `npm run verify-proxy` renders real pages through all four and fails if any stop working.
-- 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, structurally excluded from every proxy surface, never Google AdSense, and an [ad-block gate](features/ADVERTISING.md#the-ad-block-gate) that locks only the premium proxy engines. See [💰 Advertising](#-advertising).
+- 🧩 **Modular advertising** — six supported networks, **one role each**: Ad-Maven the between-games interstitial (**1 per visitor per 20 min**, a constant), ExoClick the header and sidebar banners, HilltopAds the in-page push, Clickadu a skippable video pre-roll before a game loads, Mondiad native widgets below the "for you" rows, PopAds a desktop-only game-page popunder. Region-localised tags, allowed only on pages ZoFHub wrote (deny-by-default), never Google AdSense. See [💰 Advertising](#-advertising).
 - 🛡️ **RBAC admin** — the interactive admin is the `owner`; the static machine token runs as `operator` (or `viewer`) and **cannot** revoke sessions or purge running config. Every denial is audited. See [🛡️ Admin console](#️-admin-console).
-- 🔌 **sing-box egress, on by default** — every TCP stream the proxy opens for a visitor is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon makes the connection **fail rather than leave directly** — there is no direct fallback — and the supervisor restarts it. GPL-3.0, run as a separate program, not vendored.
-- 💚 **Crash-safe by design** — `/healthz` returns **503 above 85% memory** so an orchestrator recycles the container before the OOM killer hits mid-request; the Wisp tunnel has a global cap **and** a per-client cap so one runaway visitor cannot starve the pool.
-- 🔒 **Stated egress policy** — `/wisp/` is the one endpoint that dials an address a stranger chose, so its rules are written down rather than inherited from a library default: a **port allowlist** (80/443/8080/8443 — not 25, 22 or 3306), **no UDP**, private/loopback addresses refused, and a per-tunnel stream cap. Proven against a live tunnel, including a control case. See [docs/proxy/INVISIPROXY.md](proxy/INVISIPROXY.md#2-what-is-integrated).
-- 🕶️ **Mirror survival (MASQR)** — *off by default.* A mirror domain usually dies because a shared link reaches a filter vendor whose crawler fetches it, sees a proxy, and burns the domain. Switched on, an unauthenticated visitor sees only the games hub while the proxy surfaces answer 404; a signed key in a link unlocks them. Never gates `/healthz`, the legal pages or the games. Not access control — see [docs/proxy/MASQR.md](proxy/MASQR.md).
+- 🔌 **sing-box egress, on by default** — every server-side fetch of a URL ZoFHub did not write (embeds, thumbnails, assets, link checks) is dialled through a managed [sing-box](proxy/SINGBOX.md) daemon, so the origin sees its address and not this server's. ZoFHub builds a pinned release into the image, renders the config, `sing-box check`s it, spawns it, restarts it with backoff and stops it on shutdown — a decoupled child process that never blocks the event loop. A missing or dead daemon makes the connection **fail rather than leave directly** — there is no direct fallback — and the supervisor restarts it. GPL-3.0, run as a separate program, not vendored.
+- 💚 **Crash-safe by design** — `/healthz` returns **503 above 85% memory** so an orchestrator recycles the container before the OOM killer hits mid-request.
 - 💤 **Free-tier friendly** — a secured `/healthz` keep-alive endpoint keeps Render + Supabase awake without a paid plan.
-- 🛠️ **Self-maintaining** — scheduled jobs check dead links, grow the catalog with render-verified games, sync Y8, prune community posts and admin logs, and heartbeat the DB. See [`lib/cron-jobs.mjs`](../lib/cron-jobs.mjs).
+- 🛠️ **Frozen and maintained** — nothing adds games automatically; eight scheduled jobs check dead links, prune community posts, admin logs, scores and AI feedback, and heartbeat the DB. See [`lib/cron-jobs.mjs`](../lib/cron-jobs.mjs).
 
 ---
 
@@ -56,9 +44,8 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Frontend | Vanilla HTML / CSS / JavaScript (no framework, no bundler) |
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations for text, and an `<img>` for opt-in `/image` pictures |
-| Proxy | Ultraviolet · Scramjet · GUST · HORIZON · Wisp · libcurl.js *(see [CREDITS.md](CREDITS.md))* |
-| Egress | Explicit policy in [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs) — port allowlist, no UDP, private IPs blocked |
-| Tests | `node:test` (built in — zero test dependencies), 1379 tests |
+| Egress | [sing-box](proxy/SINGBOX.md) carries every server-side fetch of a third-party URL; [`lib/egress-policy.mjs`](../lib/egress-policy.mjs) refuses instead of falling back to a direct connection *(see [CREDITS.md](CREDITS.md))* |
+| Tests | `node:test` (built in — zero test dependencies), 1813 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -76,7 +63,7 @@ path the server takes, and reproducible offline:
 | Visible to the public key (`games_public`) | 16,783 | the RLS policy is exactly `is_working = true` |
 | **Actually served to visitors** | **12,289** | after provider exclusions + curation overrides |
 
-Those counts drift as the hourly link-check and the grow job run. Reproduce every
+Those counts drift as the hourly link-check runs. The public roster is a further, smaller set: `ACTIVE_GAMES_CAP` (default 100) is a hard ceiling on what the site lists. Reproduce every
 number in this section with **`npm run audit-served`** — it applies
 `data/catalog-overrides.json` to the export and prints exactly this breakdown. For
 the live database instead: `npm run db:verify`, and `curl -s
@@ -189,7 +176,7 @@ rather than open by accident. It refuses when:
 
 **The Vibe Finder makes no AI call at all.** `/api/vibe` sits outside `/api/ai/*`, and its optional AI refinement (`vibeKeywordsFromAI()`) was once the one path that escaped the audit: a mood search that missed the curated map sent the visitor's **typed text** to Pollinations **from this server's IP** — measured at 3 s of dead wait on an ordinary query like "relaxing puzzle". It was first gated, and is now **deleted**. The Vibe Finder uses only the curated mood map, the intent parser and the deterministic ranker in [`lib/vibe-engine.mjs`](../lib/vibe-engine.mjs). Nothing degrades — both call sites already wrapped the AI in a `catch` that fell back to exactly what now runs unconditionally — and every mood search is instant.
 
-There is **no escape hatch**. The old `AI_SERVER_FALLBACK=1` switch was read *before* `NODE_ENV`, so it could re-open these routes on a live deployment; nothing reads it now. The rule lives in [`lib/ai-guard.mjs`](../lib/ai-guard.mjs) and is applied twice: by each route, and by a middleware that runs ahead of CORS, the body parser and the rate limiter — so a refused request is answered `403 {"error":"client_side_only"}` for every method and every spelling of the path, before its body is read. A tunnel that connects from loopback on an internet visitor's behalf is refused too, whichever forwarding header names the visitor. [`test/production-guards.test.mjs`](../test/production-guards.test.mjs) proves it against a real `NODE_ENV=production` boot.
+There is **no escape hatch**. The old `AI_SERVER_FALLBACK=1` switch was read *before* `NODE_ENV`, so it could re-open these routes on a live deployment; nothing reads it now. The rule lives in [`lib/ai-guard.mjs`](../lib/ai-guard.mjs) and is applied twice: by each route, and by a middleware that runs ahead of CORS, the body parser and the rate limiter — so a refused request is answered `403 {"error":"client_side_only"}` for every method and every spelling of the path, before its body is read. [`test/production-guards.test.mjs`](../test/production-guards.test.mjs) proves it against a real `NODE_ENV=production` boot.
 
 The client half matches: `IS_LOCAL` in `pollinations.js` gates the text fallback and is **exported** so `ai.js` gates its image fallback on the identical condition — two copies of that rule would eventually drift, and the one that drifted would quietly start routing AI through the server. [`test/ai-guard.test.mjs`](../test/ai-guard.test.mjs) pins the rule, [`test/server.test.mjs`](../test/server.test.mjs) asserts an internet visitor is refused on all three routes in every method and spelling, and [`test/production-guards.test.mjs`](../test/production-guards.test.mjs) repeats it under a real production boot — loopback included.
 
@@ -229,8 +216,6 @@ Two further routes (`/api/ai/audio`, `/api/ai/video`) are closed in production e
 
 No third-party analytics, no tracking cookies, no source maps, no accounts. Prompts and AI responses are never logged or stored server-side. The one visitor count that exists — the admin console's "visitors today" — is an **in-memory** set of keyed IP hashes for the current UTC day, dropped at midnight and on every restart, and never written anywhere. Everything the site keeps, and for how long, is in one table: [VISITOR-FEATURES.md §8](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you).
 
-**Known and accepted:** the web proxy (Ultraviolet / Scramjet / GUST / HORIZON / Wisp) relays whatever a user browses to, including AI sites. That is the proxy's purpose, and it is user-initiated rather than something the site's own AI features do.
-
 ---
 
 ## 🚀 Quick start
@@ -246,7 +231,7 @@ cp .env.example .env      # then fill in your values (see Configuration)
 npm start                 # → http://localhost:8080
 ```
 
-`.npmrc` sets `ignore-scripts=true`, so no dependency executes code while installing. That is a supply-chain control *and* a build requirement: one dependency ships a `preinstall` whose only job is to abort any install that is not pnpm. The one native addon in the tree (`bufferutil`, used by the Wisp tunnel) loads from prebuilt binaries, so node-gyp never runs.
+`.npmrc` sets `ignore-scripts=true`, so no dependency executes code while installing. That is a supply-chain control: no package in the tree declares an install script today, and `test/supply-chain.test.mjs` fails if one appears before it has been read and approved. (It also keeps the deploy build free of any compiler requirement.)
 
 The Python tools under `tools/` are optional and separate — see [NEW-LAPTOP-SETUP.md](guides/NEW-LAPTOP-SETUP.md) and `tools/requirements.txt`. Nothing the server does depends on them. The one thing to know: the **auditors** (`npm run db:verify`, `npm run audit:repo`) are among them, so checking a database or the repository does need Python 3.
 
@@ -293,8 +278,7 @@ All configuration is via environment variables — copy [`.env.example`](../.env
 > carrying *no* credential is an ordinary anonymous 401 and is never counted,
 > so a passer-by cannot lock you out of your own site.
 
-> **This is the essentials, not the full list.** The proxy egress policy
-> (`WISP_*`), the mirror gate (`MASQR_*`), sing-box, companion engines and
+> **This is the essentials, not the full list.** sing-box and
 > donations are covered in [COMMANDS.md → Environment variables](guides/COMMANDS.md#️-environment-variables-env);
 > `.env.example` is the complete, commented list.
 
@@ -328,8 +312,8 @@ ZoFHub supports **six** networks and no others, and each owns exactly **one** ro
 | **PopAds** | popunder, desktop game pages only | `POPADS_POPUNDER_TAG` |
 
 Google AdSense and Ad Manager are refused at three separate layers and must never
-be enabled — Google bans proxy/anonymiser domains at the **account** level, so one
-stray tag could take down an unrelated AdSense account.
+be enabled — a stray Google tag could put an unrelated Google account at risk, and none
+of the six networks needs one.
 
 > ### ⚠ No network has approved this site
 > All six require publisher review of your **specific domain**, and nothing in
@@ -337,9 +321,8 @@ stray tag could take down an unrelated AdSense account.
 > network as `needs-approval`, and a test fails the build if an entry ever claims
 > otherwise. Approval for one format does not imply approval for another.
 >
-> **ZoFHub hosts a web proxy, and its audience includes minors.** Raise the proxy
-> explicitly with each network, and set every dashboard to mainstream (non-adult)
-> categories. Full matrix: **[docs/features/ADVERTISING.md](features/ADVERTISING.md)**.
+> **ZoFHub's audience includes minors.** Set every network's dashboard to
+> mainstream (non-adult) categories. Full matrix: **[docs/features/ADVERTISING.md](features/ADVERTISING.md)**.
 
 ### Enabling a network
 
@@ -362,20 +345,20 @@ npm run check-ads      # will they actually load? roles → CSP → per-page ser
 **Unset everything and the site runs ad-free** — no empty boxes, no reserved
 space, no requests. That is the default and it is fully supported.
 
-### Ads never touch the proxy
+### Where ads may appear
 
-`/browser`, `/horizon`, the engine and transport paths, Wisp, the service worker
-and the companion engines **cannot** carry advertising — the authoritative list is
-`PROXY_SURFACES` in [`lib/ad-providers.mjs`](../lib/ad-providers.mjs), which the
-[MASQR gate](proxy/MASQR.md) also reads, so one list answers "is this proxy
-infrastructure?" for both features. What renders there is somebody else's website, fetched on the
-visitor's behalf — monetising it would mean injecting script into third-party
-content in transit.
+Only on pages ZoFHub wrote: the catalog, a game page, the AI page, the community
+page and the legal pages. The authoritative list is `NATIVE_SURFACES` in
+[`lib/ad-providers.mjs`](../lib/ad-providers.mjs), and it is **deny-by-default**:
+a path that matches none of its entries — a removed page, a new route nobody has
+classified yet — gets no ads, because a route nobody classified is a route nobody
+reasoned about. (This site once hosted a web-proxy browser, whose pages were other
+people's websites and could never carry our advertising; the browser is gone, the
+allow-list stays.)
 
-Enforced in three places: `isAdSurface()` in the registry, an empty ad payload
-from `/api/site-config`, and a path check in `layout.js` that runs *before* it
-asks the server for anything. An **unclassified route gets no ads**, because a
-route nobody classified is a route nobody reasoned about.
+Enforced in two places: `isAdSurface()` in the registry, and an empty ad payload
+from `/api/site-config` for any surface it refuses — `layout.js` only ever mounts
+what that payload contains.
 
 ### Placement
 
@@ -384,24 +367,18 @@ footer 728×90, and seven in-content positions. Every slot reserves its exact si
 up front so a late creative cannot shift the page, and an unset slot collapses to
 nothing.
 
-Never placed over game controls, navigation, the AI composer, or proxy content.
+Never placed over game controls, navigation or the AI composer.
 The Ad-Maven interstitial is throttled via `localStorage` to **1 per visitor per
 20 minutes** and **fails closed** — if storage is unavailable it shows nothing
 rather than firing unthrottled. Ad code also cannot reach the sing-box execution
 layer: sing-box is a separate process on its own port, so there is no surface
 there to inject into.
 
-> **Honest expectations.** Proxy traffic pays low rates — often cents per 1,000
-> views — so real income needs real, steady traffic first. Keep it clean: no fake
-> loading timers, no "complete an offer to unlock" gates, no forced surveys. Clean
-> placement is what keeps accounts alive.
->
-> **One deliberate, narrow exception: rewarded proxy access ("Boost"),
-> off by default (`REWARDS_ENABLED`).** A visitor who completes a reward
-> campaign gets a temporarily *higher* per-tunnel stream cap — never a gate on
-> the games hub, the catalog, or any built-in engine, which stay at full,
-> unblocked access for everyone regardless. See `db/rewards.sql` and
-> `lib/reward-*.mjs`.
+> **Honest expectations.** A free games site pays low display rates — often cents
+> per 1,000 views — so real income needs real, steady traffic first. Keep it
+> clean: no fake loading timers, no "complete an offer to unlock" gates, no forced
+> surveys, nothing locked behind an ad or an ad-blocker check. Clean placement is
+> what keeps accounts alive.
 
 ---
 
@@ -411,8 +388,7 @@ there to inject into.
 analytics, the feedback inbox, community moderation, the Security Centre) and
 management — a game CMS with a Draft → Review → Published lifecycle, providers,
 categories and tags, staff accounts with roles, typed settings and feature flags,
-the proxy's approved destinations and limits, and a searchable, tamper-evident
-audit trail. The full model is in **[admin/CONTROL-PLANE.md](admin/CONTROL-PLANE.md)**;
+an egress view of the sing-box path, and a searchable, tamper-evident audit trail. The full model is in **[admin/CONTROL-PLANE.md](admin/CONTROL-PLANE.md)**;
 it needs the control-plane migration applied before its management sections work.
 
 ```bash
@@ -438,17 +414,15 @@ Three kinds of principal reach `/api/admin`, with different power:
 |---|---|---|
 | The owner's password session (cookie, CSRF, idle timeout) | `owner` | — |
 | A **staff account** (created in the console) | `super_admin`, `admin`, `content_manager`, `moderator`, `analyst` or `support` | anything outside its role; act on itself or on anyone at or above its rank |
-| `ADMIN_SECRET` bearer token | `operator` (or `viewer`, or a staff role below admin) | revoke sessions, purge running config, **mint MASQR mirror keys**, re-authenticate for destructive actions |
+| `ADMIN_SECRET` bearer token | `operator` (or `viewer`, or a staff role below admin) | revoke sessions, purge running config, re-authenticate for destructive actions |
 
 Permissions are grouped by blast radius — the original seven (`telemetry.read`,
 `catalog.read`, `catalog.write`, `moderation.write`, `security.read`,
 `security.write`, `config.write`) plus the control plane's `games.*`, `users.*`,
-`proxy.*`, `settings.manage`, `ads.manage`, `taxonomy.manage`,
+`settings.manage`, `ads.manage`, `taxonomy.manage`,
 `providers.manage` and `audit.export`; the role matrix is in
 [admin/CONTROL-PLANE.md §2](admin/CONTROL-PLANE.md#2-who-can-do-what). A leaked monitoring token therefore cannot log every admin out,
-clear the cache, or mint a key that unlocks the proxy on a gated mirror — none of
-which a monitor ever needs to do. (`POST /api/admin/masqr/key` requires
-`security.write`, which only `owner` holds.) `owner` holds a wildcard so a new
+clear the cache — neither of which a monitor ever needs to do. `owner` holds a wildcard so a new
 permission fails **closed** for every lesser role. Every denial is written to the
 audit log with the role and principal that was refused. See
 [`lib/admin-rbac.mjs`](../lib/admin-rbac.mjs).
@@ -478,11 +452,10 @@ audit log with the role and principal that was refused. See
   Every detail is redacted before it is written. Client IPs are stored only as a
   keyed HMAC, never as addresses.
 - **Step-up** — permanent deletion, role changes, creating staff accounts,
-  resetting passwords, approving proxy destinations, raising proxy limits,
-  widening providers and maintenance mode all need the password re-entered in the
+  resetting passwords, widening providers and maintenance mode all need the password re-entered in the
   last five minutes on that session.
 
-### Two things worth knowing
+### Worth knowing
 
 The console's HTML lives in **`admin-ui/`, outside `public/`**. The first version
 put it in `public/admin/`, where `express.static` served
@@ -512,20 +485,6 @@ the whole instance down.
   background timer** (`CATALOG_REFRESH_MS`), so a traffic spike serves from RAM
   and never fans out into the database pool. A failed refresh keeps the last good
   copy.
-- **Wisp tunnel hygiene.** Every upgraded socket gets TCP keepalive, a 10-minute
-  idle reclaim, and a global concurrency cap (512 tunnels); the set is torn down
-  on `SIGTERM` so a graceful stop does not wait for the platform's `SIGKILL`.
-- **Per-client fairness cap.** One IP may hold at most `WISP_MAX_PER_IP` tunnels
-  (default 32) out of the global pool, so a runaway tab or a leak on one
-  visitor's end cannot starve everyone else. Refusals are reported separately
-  from global-cap refusals in `/api/admin/proxy`, because "raise capacity" and
-  "one client is misbehaving" are different problems.
-- **Per-tunnel stream cap.** The two caps above count *tunnels*, but one Wisp
-  tunnel multiplexes many *streams* — so without a third limit a single permitted
-  tunnel could open connections without bound. `WISP_MAX_STREAMS` (default 256,
-  set by [`lib/wisp-policy.mjs`](../lib/wisp-policy.mjs)) closes that gap; the same
-  module sets the port allowlist and private-address refusal described in
-  [docs/proxy/INVISIPROXY.md](proxy/INVISIPROXY.md).
 
 The managed **sing-box** backend follows the same discipline: it runs as a
 decoupled child process (never on the event loop), is validated with
@@ -536,8 +495,8 @@ stops retrying instead of looping forever, and says so.
 
 Because it sits in the traffic path, its failure mode is the load-bearing part,
 and that failure mode is to **refuse**: a dead or absent daemon makes each
-proxied stream and each server-side fetch fail (counted as `refused` in
-`singboxEgress`, `/api/admin/proxy`) rather than fall back to a direct connection
+server-side fetch fail (counted as `refused` in
+`singboxEgress`, `/api/admin/egress`) rather than fall back to a direct connection
 that would expose the server's own address. In production no setting can change
 that, and a process-level guard refuses any other outbound connection that is not
 loopback or a named infrastructure host. Full detail in
@@ -553,7 +512,7 @@ The live catalog and community features live in Supabase. Fastest path once your
 npm run restore-games     # loads every game source into Supabase in one command
 ```
 
-Prefer the SQL editor? Paste **[`db/SCHEMA-ONLY.sql`](../db/SCHEMA-ONLY.sql)** — it is all 17 migrations concatenated in dependency order, generated from the same `ORDER` array in [`tools/sync-supabase-migrations.mjs`](../tools/sync-supabase-migrations.mjs) that produces `supabase/migrations/`, so it cannot drift from what the deploy applies. Assembling the schema by hand from individual `db/*.sql` files is the one thing not to do: the order is load-bearing and not alphabetical, and omitting a file is silent. Two things about that order matter: **the teardown and privilege files run at the end** — `db/feedback.sql` creates the private `feedback` table, `db/schema-hardening.sql` applies the audit corrections and must stay the last file that creates objects, and `db/grants.sql` runs last of all, granting privileges over whatever exists at the end (skip it and every table exists but answers `42501 permission denied`) — and **migration history is replayed forwards, never rewritten.** That second point is why `db/scores-restore.sql` exists as its own file: `db/feedback.sql` once retired the leaderboard by dropping `scores`, and commenting that drop out does nothing to a live database, because Supabase will not re-run a migration it has already recorded. Editing an applied migration changes the repository's account of the database without changing the database. Only a new forward migration can bring the table back — so the leaderboard is live, restored by migration 12, not by an edit to migration 11. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
+Prefer the SQL editor? Paste **[`db/SCHEMA-ONLY.sql`](../db/SCHEMA-ONLY.sql)** — it is all 21 migrations concatenated in dependency order, generated from the same `ORDER` array in [`tools/sync-supabase-migrations.mjs`](../tools/sync-supabase-migrations.mjs) that produces `supabase/migrations/`, so it cannot drift from what the deploy applies. Assembling the schema by hand from individual `db/*.sql` files is the one thing not to do: the order is load-bearing and not alphabetical, and omitting a file is silent. Two things about that order matter: **the teardown and privilege files run at the end** — `db/feedback.sql` creates the private `feedback` table, `db/schema-hardening.sql` applies the audit corrections and must stay the last file that creates objects, and `db/grants.sql` runs last of all, granting privileges over whatever exists at the end (skip it and every table exists but answers `42501 permission denied`) — and **migration history is replayed forwards, never rewritten.** That second point is why `db/scores-restore.sql` exists as its own file: `db/feedback.sql` once retired the leaderboard by dropping `scores`, and commenting that drop out does nothing to a live database, because Supabase will not re-run a migration it has already recorded. Editing an applied migration changes the repository's account of the database without changing the database. Only a new forward migration can bring the table back — so the leaderboard is live, restored by migration 12, not by an edit to migration 11. Then load the `load-*.sql` game loaders. Big loaders are split into numbered `-partNN.sql` files that each stay under Supabase's editor save limit; run the parts in numeric order (every one is an idempotent upsert, so re-running is safe).
 
 > **`db/ALL-IN-ONE.sql`** bundles everything into a single file, but at ~6.5 MB it's far too big for Supabase's web editor — it's for direct `psql` restores only: `psql "$SUPABASE_DB_URL" -f db/ALL-IN-ONE.sql`. For everyone else, `npm run restore-games` is the one-command path.
 
@@ -599,7 +558,7 @@ Two copies of the same DDL drift silently, and the failure mode is bad — Supab
 
 ## ☁️ Deployment
 
-ZoFHub is a **persistent server** (it runs cron jobs, holds the catalog in memory, and serves the `/wisp` WebSocket) — so it needs a real host, **not** serverless. [`render.yaml`](../render.yaml) defines the single web service, ready to deploy. There is one deployment shape: the games hub and the proxy always run together.
+ZoFHub is a **persistent server** (it runs cron jobs, holds the catalog in memory and supervises a sing-box daemon) — so it needs a real host, **not** serverless. [`render.yaml`](../render.yaml) defines the single web service, ready to deploy. There is one deployment shape.
 
 - **Render auto-deploys** on every push to `main` (works with private repositories via Render's GitHub authorization).
 - **Free tier:** the included `/healthz` endpoint + an external uptime monitor (e.g. cron-job.org) pinging it every ~10 min keeps the service (and Supabase) from sleeping.
@@ -614,7 +573,7 @@ docker run -p 8080:8080 --env-file .env zofhub
 ```
 
 The image is multi-stage, and stage 1 builds **sing-box** — pinned to
-`v1.14.1`, on by default, because it carries the proxy's egress. To build a
+`v1.14.1`, on by default, because it carries the server's egress. To build a
 binary-free image instead:
 
 ```bash
@@ -622,8 +581,8 @@ docker build --build-arg SINGBOX_VERSION=none -t zofhub .
 ```
 
 That image still runs: the supervisor reports the binary missing once, stops
-retrying, and every proxied stream takes the direct fallback while
-`/api/admin/proxy` says so.
+retrying, and every outbound fetch of a third-party URL is refused (there is no
+direct fallback) while `/api/admin/egress` says so.
 
 `go install` fetches the exact tag and verifies it against Go's checksum
 database — no sing-box source is vendored into this repository (its GPL-3.0
@@ -641,7 +600,7 @@ Bump the Go base image and the sing-box tag together — v1.14.1 requires Go
 ```text
 ZoFHub/
 ├── server.js              # the app: pages, API, game + AI routes (entry point)
-├── render.yaml            # Render blueprint — one web service, hub + proxy together
+├── render.yaml            # Render blueprint — one web service
 ├── Dockerfile             # container image (Node 22-alpine, port 8080; sing-box stage, on by default)
 ├── LICENSE                # ZoFHub's own terms — the only non-code file left at the root
 ├── .github/workflows/     # ci.yml (5 jobs) + gameflare-verify.yml (manual only)
@@ -650,26 +609,21 @@ ZoFHub/
 │   ├── guides/            #   how it works, commands, debugging, go-live, new machine
 │   ├── database/          #   catalog setup, migration order, one game, the Supabase mirror
 │   ├── features/          #   AI, ads, game SEO, embeds, Y8, GameFlare, leaderboard, donations, visitors, Suroi
-│   ├── proxy/             #   egress policy, MASQR, sing-box, Kasm
+│   ├── proxy/             #   sing-box egress
 │   ├── reports/           #   generated reports (do not edit by hand)
-│   └── CREDITS.md         #   third-party licences + the AGPL §13 source offer
+│   └── CREDITS.md         #   third-party licences
 │
 ├── lib/                   # server modules — supabase, cron-jobs, cache, ad-providers,
 │                          #   ai-*, recommender, vibe-*, scores, donate/swap,
-│                          #   wisp-policy (proxy egress), masqr (mirror gate),
-│                          #   singbox-* (optional tunnel), kasm-host, gameflare-*
-├── proxy-engine/          # every AGPL proxy engine behind one mount function
-│   ├── mount.mjs          #   routing, static mounts, tunnel wiring
-│   └── assets/            #   horizon/ (libcurl.js + Wisp) · uv/ (Ultraviolet)
+│                          #   egress-* and singbox-* (the egress path), gameflare-*
 ├── public/                # what the visitor downloads
 │   ├── *.html             #   pages (home, game, category, ai, community, leaderboard,
-│   │                      #   donate, browser, gameflare…)
+│   │                      #   donate, gameflare…)
 │   ├── css/  js/          #   styles + vanilla frontend modules
 │   │   └── js/pollinations.js  # CLIENT-SIDE AI — the browser talks to Pollinations directly
 │   └── assets/  thumbs/   #   images + self-hosted game thumbnails
 ├── admin-ui/              # the admin console — deliberately OUTSIDE public/ (see Admin console)
 ├── legal/                 # privacy / terms / DMCA / cookies / credits pages, as served
-├── licenses/              # full AGPL-3.0 and LGPL-3.0 texts served by /licenses
 │
 ├── db/                    # Supabase SQL — AUTHORED HERE (schema, migrations, loaders)
 │   ├── SCHEMA-ONLY.sql    #   GENERATED — every migration in order (npm run build-schema-only)
@@ -684,12 +638,9 @@ ZoFHub/
 │   ├── audit.py           #   entry point for the repository auditor
 │   └── zofaudit/          #   the checks it runs (stdlib-only Python)
 ├── scripts/               # one-off data scripts
-├── test/                  # node:test suites (1379 tests, no framework)
+├── test/                  # node:test suites (1813 tests, no framework)
 ├── deploy/singbox/        # sing-box config templates + compose file
-├── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
-└── DayDream/ NautilusOS/ scramjet/
-                           # companion / reference upstream trees — their own licences,
-                           #   their own docs, not deployed (see docs/CREDITS.md)
+└── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
 ```
 
 Git-ignored and machine-local: `.env`, `logs/`, `verification-evidence/` (GameFlare screenshots).
@@ -699,7 +650,7 @@ Git-ignored and machine-local: `.env`, `logs/`, `verification-evidence/` (GameFl
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 1379 tests across 317 suites, node:test — no framework, no install step
+npm test        # 1813 tests across 367 suites, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 
@@ -739,7 +690,7 @@ Static analysis of the things this project has nothing else watching for. No bui
 
 | Check | What it decides |
 |---|---|
-| `sql` | replays all 17 migrations, then holds every `.from()` / `.rpc()` / `.select()` in the runtime against the result — missing tables, missing columns, RPCs with no function, `DROP FUNCTION` that matches nothing, `SECURITY DEFINER` without a `revoke`, functions that do not pin `search_path`, tables without RLS, redundant indexes |
+| `sql` | replays all 21 migrations, then holds every `.from()` / `.rpc()` / `.select()` in the runtime against the result — missing tables, missing columns, RPCs with no function, `DROP FUNCTION` that matches nothing, `SECURITY DEFINER` without a `revoke`, functions that do not pin `search_path`, tables without RLS, redundant indexes |
 | `json` | every JSON file parses; `catalog-overrides.json` rules that contradict each other |
 | `env` | read in code vs `.env.example` vs `render.yaml`, separating required variables from tunables that carry a default |
 | `api` | routes the server registers vs paths the browser requests — in **both** directions |
@@ -774,7 +725,6 @@ by purpose. This README is the reference manual; the map below is the index.
 | know what the site stores about a visitor | [features/VISITOR-FEATURES.md §8](features/VISITOR-FEATURES.md#8-what-the-site-remembers-about-you) |
 | know what is third-party, and under which licence | [CREDITS.md](CREDITS.md) |
 | run the admin console: roles, the game lifecycle, staff, settings, audit | [admin/CONTROL-PLANE.md](admin/CONTROL-PLANE.md) |
-| control where the proxy may connect | [proxy/GOVERNANCE.md](proxy/GOVERNANCE.md) |
 | import GameDistribution's catalog | [features/GAMEDISTRIBUTION.md](features/GAMEDISTRIBUTION.md) |
 
 ### The folder
@@ -782,12 +732,12 @@ by purpose. This README is the reference manual; the map below is the index.
 ```text
 docs/
 ├── README.md        this file — the reference manual and the map
-├── CREDITS.md       third-party licences, the §5 declarations, the AGPL §13 source offer
+├── CREDITS.md       third-party licences and attributions
 ├── admin/           the admin control plane: roles, lifecycle, staff, settings, audit
 ├── guides/          how to understand, run, fix, deploy and move it
 ├── database/        loading the catalog, the migration order, the Supabase mirror
 ├── features/        one document per feature of the site
-├── proxy/           one document per part of the proxy stack
+├── proxy/           the sing-box egress document
 └── reports/         generated output — never edited by hand
 ```
 
@@ -812,7 +762,7 @@ docs/
 | Document | What it covers |
 |---|---|
 | [GAMES-SETUP.md](database/GAMES-SETUP.md) | Loading the catalog, long form — and why there are three different game counts |
-| [RUN-IN-ORDER.md](database/RUN-IN-ORDER.md) | The SQL run order, all 17 migrations, and what "pending" means |
+| [RUN-IN-ORDER.md](database/RUN-IN-ORDER.md) | The SQL run order, all 21 migrations, and what "pending" means |
 | [COMPLETE-SETUP-GUIDE.md](database/COMPLETE-SETUP-GUIDE.md) | The short version |
 | [ADDING-A-GAME.md](database/ADDING-A-GAME.md) | One game at a time, by SQL or by `catalog-overrides.json` |
 | [SUPABASE-MIGRATIONS.md](database/SUPABASE-MIGRATIONS.md) | The generated `supabase/` mirror and the GitHub integration contract |
@@ -821,8 +771,8 @@ docs/
 
 | Document | Feature | Default |
 |---|---|---|
-| [AI-ARCHITECTURE.md](features/AI-ARCHITECTURE.md) | AI providers, the feedback pipeline, evaluation, the AI/proxy boundary | Pollinations on (browser-direct); Hugging Face off |
-| [ADVERTISING.md](features/ADVERTISING.md) | The six networks and their roles, placement, regional tags, the ad-block gate, the proxy boundary, compliance | **all off** |
+| [AI-ARCHITECTURE.md](features/AI-ARCHITECTURE.md) | AI providers, the feedback pipeline, evaluation, the browser-direct boundary | Pollinations on (browser-direct); Hugging Face off |
+| [ADVERTISING.md](features/ADVERTISING.md) | The six networks and their roles, placement, regional tags, the deny-by-default boundary, compliance | **all off** |
 | [IFRAME-OPTIMIZATION-GUIDE.md](features/IFRAME-OPTIMIZATION-GUIDE.md) | How game embeds load, and the bug each timeout prevents | on |
 | [Y8-SCRAPER.md](features/Y8-SCRAPER.md) | The standalone Y8 embed-directory scraper | manual |
 | [GAMEFLARE.md](features/GAMEFLARE.md) | The separate GameFlare catalog, its player and its browser verifier | **0 games public, by design** |
@@ -836,48 +786,16 @@ docs/
 
 | Document | Part of the stack | Default |
 |---|---|---|
-| [GOVERNANCE.md](proxy/GOVERNANCE.md) | Approved destinations, access modes, limits, engine switches, live sessions — where the proxy may connect | **fails closed**: nothing reachable until approved |
-| [INVISIPROXY.md](proxy/INVISIPROXY.md) | The egress policy (`lib/wisp-policy.mjs`), the engine validator, and why InvisiProxy is not vendored | policy **always on**, restrictive |
-| [MASQR.md](proxy/MASQR.md) | Mirror-survival gate — hides the proxy from crawlers | **off** |
-| [SINGBOX.md](proxy/SINGBOX.md) | Optional outbound tunnel (REALITY/VLESS): adapter and managed supervisor | **off** |
-| [KASM.md](proxy/KASM.md) | Kasm Workspaces and the external companion-desktop model | **off** |
+| [SINGBOX.md](proxy/SINGBOX.md) | The egress path: the managed sing-box daemon, the fail-closed policy, the egress guard, and the optional REALITY profile | **on**; direct egress refused in production |
 
 #### reports/ and licensing
 
 | Document | What it is |
 |---|---|
 | [reports/thumbnail-scrape-report.md](reports/thumbnail-scrape-report.md) | Generated by `npm run scrape-thumbs` — one run, not current state |
-| [CREDITS.md](CREDITS.md) | Attribution, the §5 modification declarations, and the AGPL §13 source offer |
+| [CREDITS.md](CREDITS.md) | Attribution and the third-party licences |
 | [`LICENSE`](../LICENSE) | ZoFHub's own terms (source-available, non-commercial) — kept at the repository root |
 
-### The pattern the integrations share
-
-The proxy documents follow one architectural decision, worth stating once:
-
-> **Third-party projects are integrated, not absorbed.** Where a project's
-> functionality already exists here, or its licence is incompatible with this
-> repository's own, it runs as an **external companion** or is **reimplemented as
-> ZoFHub code with full provenance** — rather than vendored in.
-
-Each such decision has a machine-readable record, so an upgrade review can diff
-it: the upstream project, repository, licence, copyright holder, review date,
-what was taken, what was rejected, and why.
-
-| Provenance record | Upstream | Licence |
-|---|---|---|
-| [`data/invisiproxy-upstream.json`](../data/invisiproxy-upstream.json) | InvisiProxy/InvisiProxyLTS | AGPL-3.0 |
-| [`data/masqr-upstream.json`](../data/masqr-upstream.json) | titaniumnetwork-dev/MasqrProject | AntiSkip (MIT text + a condition) — **not MIT** |
-
-### Documents this project does not own
-
-These directories are **upstream or companion trees** with their own READMEs.
-Those files are left exactly as their authors wrote them, because they are
-provenance — editing them would misrepresent what the upstream project says about
-itself:
-
-```
-DayDream/    NautilusOS/    scramjet/
-```
 
 If one of them says something wrong *about ZoFHub*, the correction belongs in
 this folder, not in their files.
@@ -895,9 +813,9 @@ this folder, not in their files.
    more useful six months later than a description of what was used.
 3. **Never restate a list the code owns.** Point at the source array instead —
    two copies drift, and the drift is silent.
-4. **Do not claim a security property that is not enforced.** MASQR is the worked
-   example: it is described as discovery resistance, explicitly *not* as access
-   control, everywhere it appears.
+4. **Do not claim a security property that is not enforced.** Describe what a
+   control actually does (discovery resistance is not access control), everywhere
+   it appears.
 5. **Correct old documents loudly.** Where a claim changed, the document says so
    and what the old claim was, rather than quietly reading as if it had always
    been right.
@@ -909,13 +827,13 @@ this folder, not in their files.
 
 ## 💬 Community
 
-Join the **[ZoFHub Official Discord](https://discord.gg/SeMuMRG9gG)** — announcements, game requests, and support. It's also the contact channel for licensing questions (see [`LICENSE`](../LICENSE)) and third-party source requests (see [CREDITS.md](CREDITS.md)).
+Join the **[ZoFHub Official Discord](https://discord.gg/SeMuMRG9gG)** — announcements, game requests, and support. It's also the contact channel for licensing questions (see [`LICENSE`](../LICENSE)) and attribution questions (see [CREDITS.md](CREDITS.md)).
 
 ---
 
 ## 📜 License & credits
 
-ZoFHub's own code is under the terms in [`LICENSE`](../LICENSE) — a **source-available, personal & non-commercial** license (not open source). The bundled proxy engines (Ultraviolet, Scramjet, GUST, HORIZON, Wisp, Epoxy transport, libcurl transport) are **AGPL-3.0**, and the **libcurl.js** used by GUST and bundled inside HORIZON is **LGPL-3.0-or-later** — they keep their **own** upstream licenses, which always take precedence for those components. Because they are served over a network, the **AGPL-3.0 §13 source offer** applies; see **[CREDITS.md](CREDITS.md)** for the full attribution and that offer. Standalone copyleft companion browsers are **not** included in this repository.
+ZoFHub's own code is under the terms in [`LICENSE`](../LICENSE) — a **source-available, personal & non-commercial** license (not open source). Third-party components keep their **own** upstream licenses, which always take precedence for those components: the **sing-box** egress backend is GPL-3.0 and runs as a separate, unmodified program. See **[CREDITS.md](CREDITS.md)** for the full attribution.
 
 Games are served through their publishers' **official embed URLs**; ZoFHub hosts no pirated game assets.
 

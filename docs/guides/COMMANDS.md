@@ -2,10 +2,10 @@
 
 Every npm script and terminal command for the whole site, what each one does, and
 how the pieces fit together. ZoFHub is a **Node.js + Express** app (vanilla
-HTML/CSS/JS, **no build step**, Supabase for data). It is **always a proxy site**, with
+HTML/CSS/JS, **no build step**, Supabase for data), with
 advertising from six supported networks, one role each (Ad-Maven / ExoClick /
-HilltopAds / Clickadu / Mondiad / PopAds) on the hub and game pages only — never
-on the proxy, never Google AdSense, and no separate "hub" mode.
+HilltopAds / Clickadu / Mondiad / PopAds) on pages ZoFHub wrote only, and never
+Google AdSense.
 
 > **Windows note:** most scripts run `node --use-system-ca …`. The `--use-system-ca`
 > flag makes Node trust the Windows certificate store (needed on some school/office
@@ -21,10 +21,7 @@ on the proxy, never Google AdSense, and no separate "hub" mode.
 | `npm run dev` | Start with `--watch` (auto-restarts when you edit a file). Auto-fetches missing thumbnails on boot. |
 | `npm run restart` | Free port 8080, then start (use if a previous server is stuck on the port). Auto-fetches missing thumbnails on boot. |
 | `npm run kill-port` | Just free port 8080 (kills whatever is using it). |
-| `npm run proxies` | Launch the optional standalone companion proxy browsers (NautilusOS · DayDream) on their own ports. Prints why it skipped any that aren't ready. Nebula was removed from the working tree — restore it with `git checkout 07a2a6f7 -- Nebula` if you want it back. |
-| `npm run verify-proxy` | Load real pages through all four built-in engines — **Ultraviolet** and **Scramjet** via the page's own address bar, **GUST** and **HORIZON** via their own in-app address bar — in a real browser, and assert the document that rendered. Not an HTTP-200 check: a service worker does not intercept requests from a client it does not control, so fetching a proxy URL from Node tests the server's fallback, not the proxy. Takes `--engine uv` / `--target https://…`. Needs devDependencies (Playwright). |
 | `npm run verify-ai` | Open `/ai` in a real browser, send a real prompt, and assert what the page actually does on the network: ONE `GET https://text.pollinations.ai/<encoded prompt>`, the response **readable** cross-origin, **no** `/api/ai/` request reaching the server, no key round-trip, no model download, and the answer rendered in the message list. Makes a real free-tier request, so a 429 is an honest failure — read the printed request log. Needs devDependencies (Playwright). |
-| `npm run dev:all` | Launch the main server **and** the companion proxies together; one Ctrl+C stops all. |
 
 > **About the auto-thumbnails:** EVERY start command fetches missing Y8 thumbnails
 > from the web on boot — it's built into the server start itself, so `npm start`,
@@ -58,7 +55,7 @@ on the proxy, never Google AdSense, and no separate "hub" mode.
 | `npm run db:verify` | **Ask the running database whether the deploy landed.** Compares the live schema against the migrations, and probes that every relation is actually *readable* — a table can deploy perfectly and still answer `42501 permission denied` to the app. Exit 0 means the deployed schema is this repository's. |
 | `npm run db:verify:strict` | Same, but fails on warnings too. |
 | `npm run gd:import` | Dry run of the GameDistribution import against the live feed; `-- --apply` writes, `-- --only <ids>` restricts, `-- --report <file>` keeps the report. See [GAMEDISTRIBUTION.md](../features/GAMEDISTRIBUTION.md). |
-| `npm run build-schema-only` | Regenerate `db/SCHEMA-ONLY.sql` — all 17 migrations in one paste-able file. |
+| `npm run build-schema-only` | Regenerate `db/SCHEMA-ONLY.sql` — all 21 migrations in one paste-able file. |
 | `npm run build-all-in-one` | Regenerate `db/ALL-IN-ONE.sql` — schema **plus** the whole catalog (~6.5 MB, `psql` only). |
 | `npm run check-schema-only` | Verify `db/SCHEMA-ONLY.sql` is current without writing. CI runs this. |
 | `npm run check-all-in-one` | Same for `db/ALL-IN-ONE.sql`. |
@@ -158,7 +155,7 @@ believing any pass.
 | `npm run admin-hash` | Generate the scrypt `ADMIN_PASSWORD_HASH` for `/admin`. Never store the plaintext password. |
 | `npm run css-tokens` | Check the CSS design tokens are consistent. |
 | `npm run og-sync` | Refresh Open Graph / social preview metadata. |
-| `npm test` | The full suite — **1379 tests across 317 suites**, no network, no credentials required. |
+| `npm test` | The full suite — **1813 tests across 367 suites**, no network, no credentials required. |
 
 ---
 
@@ -287,54 +284,17 @@ Copy `.env.example` → `.env` and fill in:
 | `SITE_URL` | Canonical origin, used for absolute links and the sitemap. |
 | `HEALTH_MEM_MAX_PCT` | Memory percentage above which `/healthz` returns 503 so the orchestrator recycles the container (default 85). |
 
-### Proxy egress (`lib/wisp-policy.mjs`)
-
-Every one of these **widens** a restrictive default, and every widening prints a
-`[egress] WARNING:` line at boot. Full detail: [docs/proxy/INVISIPROXY.md](../proxy/INVISIPROXY.md).
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `WISP_ALLOWED_PORTS` | `80,443,8080,8443` | Port allowlist. Accepts ranges: `80,443,8000-8100`. |
-| `WISP_BLOCKED_HOSTS` | — | Anchored glob patterns refused outright. |
-| `WISP_ALLOW_PRIVATE_IPS` | off | **Leave off.** On, the proxy can reach your internal network and cloud metadata endpoints. |
-| `WISP_ALLOW_LOOPBACK_IPS` | off | **Leave off.** On, the proxy can reach services bound to localhost on the host. |
-| `WISP_ALLOW_UDP` | off | UDP cannot cross sing-box, so this is honoured only where a developer has permitted direct egress; **ignored in production**. |
-| `WISP_MAX_STREAMS` | 256 | Streams **one tunnel** may multiplex. Without it the per-IP tunnel cap is bypassable by opening many streams inside one tunnel. |
-| `WISP_MAX_PER_IP` | 32 | Concurrent **tunnels** per client IP, out of a global 512, so one visitor cannot starve the pool. |
-
-### Mirror gate (MASQR) — off by default
-
-Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md).
-
-| Variable | Purpose |
-|---|---|
-| `MASQR_ENABLED` | `1` turns the gate on. Unset, nothing about the site changes. |
-| `MASQR_SECRET` | 32+ random characters. **Required** — enabled without it, the gate refuses to engage and says so loudly rather than locking everyone out. |
-| `MASQR_KEY_TTL_DAYS` | Key lifetime, default 30. |
-| `MASQR_DENY` | `404` (default) or `redirect`. |
-| `MASQR_REDIRECT_TO` | Where `redirect` mode sends people. |
-
 ### Outbound tunnel (sing-box) — enforced
 
 Full detail: [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md). Every connection the
-server makes for a visitor crosses sing-box or is refused; there is no direct
+server makes for a visitor (embeds, thumbnails, assets, link checks) crosses
+sing-box or is refused; there is no direct
 fallback. `npm run singbox:install` downloads the pinned, SHA-256-verified binary
 into `.singbox/` (the Render build runs it for you). The main switches are
 `SINGBOX_MANAGED` and `SINGBOX_SOCKS`, plus `EGRESS_DIRECT_ALLOW` for
 infrastructure hosts. The development-only opt-outs (`SINGBOX_ALLOW_DIRECT`,
 `SINGBOX_REQUIRE=0`, `SINGBOX_EGRESS=0`) are **ignored in production**. The rest
 of the `SINGBOX_*` set configures the managed supervisor and the REALITY inbound.
-
-### Companion engines — off by default
-
-`PROXY_KASM_URL`, `PROXY_INVISI_URL`, `PROXY_NEBULA_URL`,
-`PROXY_DAYDREAM_URL`, `PROXY_NAUTILUS_URL` — each
-points at an engine **you host yourself**. See [docs/proxy/KASM.md](../proxy/KASM.md).
-
-> **Userinfo is stripped from all of these.** A URL like
-> `https://user:pass@host/` would otherwise publish the password through the
-> unauthenticated `/api/proxies` endpoint. The credentials are removed and a
-> warning is logged at boot.
 
 ### Donations — off by default
 
@@ -353,31 +313,33 @@ fails is dropped rather than served.
 
 ## 🧠 How everything works
 
-- **Server (`server.js`)** — one Express app serving the pages, the game/AI/web
-  proxies, and all `/api/*` endpoints. Holds the full game catalog in memory and
+- **Server (`server.js`)** — one Express app serving the pages, the game-embed
+  wrapper (`/embed/<slug>`), and all `/api/*` endpoints. Holds the full game catalog in memory and
   refreshes it from Supabase every ~30 min.
 - **Catalog** — games are *catalogued* from several embed sources (GameMonetize,
   GameDistribution, Y8, Famobi, HTMLGames, OnlineGames.io), but only four are
   *served*: GameMonetize, Y8, OnlineGames.io and GameDistribution — the
   distributors that license third-party embedding. `npm run audit-served` shows
   the split. Supabase is the source of truth; a bundled JSON is the offline fallback.
-- **Always-on proxy** — Ultraviolet, Scramjet, GUST and HORIZON (libcurl.js + Wisp) let
-  visitors open the web on filtered networks. The `/wisp` WebSocket tunnel carries
-  the traffic. This is why ZoFHub needs a **persistent host** (not serverless).
+- **Persistent host** — ZoFHub runs cron jobs, holds the catalog in memory and
+  supervises a sing-box daemon, so it needs a **persistent host** (not serverless).
 - **Ads** — six supported networks, one role each, each enabled independently
   via `<NETWORK>_ENABLED` + its role variable (`lib/ad-providers.mjs` is the
   registry). Fixed boxes reserve their exact size so a late creative cannot shift
   the page, an unset placement collapses to nothing, and the game always loads
-  whatever the pre-roll does. **Structurally excluded from every
-  proxy surface.** Google ad code can never load — it is refused at three layers.
+  whatever the pre-roll does. **Allowed only on pages ZoFHub wrote
+  (deny-by-default).** Google ad code can never load — it is refused at three layers.
   See [`docs/features/ADVERTISING.md`](../features/ADVERTISING.md).
-- **Cron jobs (`lib/cron-jobs.mjs`)** — 10 scheduled jobs (link-check hourly, catalog
-  grow every 36h, Y8 sync weekly, orphan-stats weekly, and daily health,
-  recommendation cleanup, admin-log retention, score prune, AI-feedback prune and
-  Supabase keep-alive). The full schedule is in
-  [HOW-IT-WORKS.md §11](HOW-IT-WORKS.md#11-the-night-shift--ten-scheduled-jobs-libcron-jobsmjs). They only run **while the server process is alive**, so on a free host that
-  sleeps, run the jobs manually (`npm run grow`, `npm run y8-sync`) or use a dedicated
-  cron service.
+- **Cron jobs (`lib/cron-jobs.mjs`)** — 8 scheduled maintenance jobs (link-check
+  hourly, orphan-stats weekly, and daily health, recommendation cleanup, admin-log
+  retention, score prune, AI-feedback prune and Supabase keep-alive). Nothing adds
+  games automatically — the grow, Y8 and GameDistribution jobs are retired; the
+  operator tools (`npm run grow -- --confirm`, `npm run y8-sync`) refuse to write
+  without an explicit confirmation. The full schedule is in
+  [HOW-IT-WORKS.md §11](HOW-IT-WORKS.md#11-the-night-shift--eight-scheduled-jobs-libcron-jobsmjs).
+  They only run **while the server process is alive**, so on a free host that
+  sleeps, use a dedicated cron service. Set `CRON_DISABLED=1` for any local run
+  that has real credentials.
 - **AI Vibe Finder** — the `/api/vibe` endpoint maps a mood to game genres with the
   curated mood index and ranks the catalog deterministically (`lib/vibe-engine.mjs`).
   **It calls no AI at all, anywhere**: the optional Pollinations refinement has been
@@ -399,7 +361,6 @@ npm start                    :: → http://localhost:8080
 :: Before every push — the three checks that catch most problems
 npm test
 npm run check
-npm run verify-proxy         :: real browser through every proxy engine
 npm run verify-ai            :: real browser, real prompt, real network check
 
 :: Everyday development (auto-grabs missing Y8 thumbnails first)

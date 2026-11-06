@@ -1,10 +1,9 @@
 // public/js/panic.js's input-aware guard (isEditableTarget): the global
 // keydown hotkey handler must never fire while the visitor is typing — added
-// so a reward-claim form, a chat box, or any other field cannot be
+// so a chat box, a form, or any other field cannot be
 // interrupted by a plain-letter custom hotkey.
 //
-// panic.js has top-level document.addEventListener(...) calls (unlike
-// support-gate.js, which has none — see test/support-gate.test.mjs), so a
+// panic.js has top-level document.addEventListener(...) calls, so a
 // bare import under plain `node --test` throws with no DOM. A minimal stub,
 // set BEFORE the dynamic import, is enough: readyState stays 'loading' so
 // wireHeaderButton() is deferred (registered via the no-op addEventListener

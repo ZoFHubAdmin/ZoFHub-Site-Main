@@ -7,146 +7,39 @@ import { getPlayerName } from './identity.js';
 // Cookie-consent notice (shows once, site-wide).
 import './consent.js?v=20260729';
 // The page's ONE /api/site-config request, shared with every other module that
-// needs it (game-page.js, browser.js). See site-config.js.
+// needs it (game-page.js). See site-config.js.
 import { siteConfig } from './site-config.js';
-// Ad-block detection and the premium-engine gate. Same specifier as browser.js,
-// so the lock state is shared by one module instance.
-import { armAdWatch, evaluateSupport } from './support-gate.js';
-// Is this page inside TikTok's / Instagram's / … own web view? Pure detector.
-import { detectInAppBrowser, externalBrowserLink, INAPP_MESSAGE } from './inapp.js';
 // NB: the ad loaders (proxy-ads.js + ad-slots.js) are imported LATER (bottom of
-// this file) — after /api/site-config resolves. No AdSense.
+// this file) — after /api/site-config resolves. No AdSense. (proxy-ads.js is the
+// HilltopAds loader for the hub pages; the name predates the proxy browser's removal.)
 
 // ── Self-heal stale service workers ────────────────────────────────────────
-// A legacy / root-scoped service worker left over from an earlier build can
-// silently hijack requests (e.g. /api/games → "failed to load catalog") and
-// keep serving old assets no matter how many times you refresh. On the main
-// site we unregister ONLY a worker that controls the site ROOT and clear its
-// caches; the proxy workers (/uv/service/, /scram/service/) are left intact.
-(function killStaleServiceWorker() {
+// Two kinds are removed, and nothing else:
+//   1. A legacy ROOT-scoped worker left over from an earlier build. It can silently
+//      hijack requests (e.g. /api/games → "failed to load catalog") and keep serving
+//      old assets no matter how many times you refresh; its caches are cleared too.
+//   2. The workers the retired proxy browser installed, under /uv/service/ and
+//      /scram/service/. That feature is gone and their script URLs now 404, so a
+//      browser that still holds one would keep running its old code, with nothing
+//      left to talk to, for as long as it keeps the registration.
+(function killStaleServiceWorkers() {
   try {
     if (!('serviceWorker' in navigator)) return;
-    if (/^\/(uv|scram|epoxy|baremux|libcurl)\//.test(location.pathname)
-      || location.pathname === '/horizon' || location.pathname === '/gust' || location.pathname === '/proxy') return; // proxy areas: leave alone
-    navigator.serviceWorker.getRegistrations().then(regs => {
+    navigator.serviceWorker.getRegistrations().then((regs) => {
       for (const r of regs) {
-        if (r.scope === location.origin + '/') {        // only a ROOT-scoped worker
+        let path = '';
+        try { path = new URL(r.scope).pathname; } catch { continue; }
+        if (r.scope === location.origin + '/') {                      // a ROOT-scoped worker
           r.unregister();
           if (window.caches?.keys) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
           console.warn('[zofhub] removed a stale root service worker + caches — reload to finish cleanup.');
+        } else if (path.startsWith('/uv/') || path.startsWith('/scram/')) {   // the retired proxy browser's
+          r.unregister();
         }
       }
     }).catch(() => {});
   } catch { /* never let cleanup break the page */ }
 })();
-
-// ════════════════════════════════════════════════════════════════════════
-// In-app browser banner.
-//
-// TikTok, Instagram, Facebook and friends open links in their own web view,
-// where the proxy engines cannot work: on iOS that view has no Service
-// Workers, so Ultraviolet never starts and HORIZON renders blank.
-// The only fix is the visitor's — open the page in Safari or Chrome — so the
-// page says so, at the top, on every page.
-//
-// HOW IT STAYS OUT OF THE WAY
-//   • A shadow root under a custom element: the site's CSS cannot restyle it,
-//     its CSS cannot leak into a game frame, and generic element-hiding rules
-//     (which match class names like "banner" or "alert") have nothing to match.
-//   • It RESERVES its height instead of covering anything: its measured height
-//     is published as --inapp-bar-h, which main.css adds to the body's top
-//     padding and the sticky header's offset, and which the fixed-height app
-//     shells (/browser, /ai) subtract — the same contract --legal-bar-h uses.
-//     A ResizeObserver keeps the number true when the text wraps.
-//   • It can be minimised to a single line (remembered for the session), never
-//     removed: the visitor is still in the wrong browser.
-//   • It is invisible in fullscreen, because a fullscreen element is drawn in
-//     the top layer above everything else — a game in fullscreen is untouched.
-// ════════════════════════════════════════════════════════════════════════
-const INAPP_MIN_KEY = 'zofhub.inapp.min';
-function mountInAppBanner() {
-  let hit = null;
-  try { hit = detectInAppBrowser(navigator.userAgent || '', navigator.maxTouchPoints || 0); } catch { return; }
-  if (!hit || !document.body || document.querySelector('zofhub-inapp')) return;
-
-  const root = document.documentElement;
-  const host = document.createElement('zofhub-inapp');
-  host.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147482000;display:block';
-  // A note, not an alert: it is on every page, and role=alert would make a
-  // screen reader interrupt with it on every single navigation.
-  host.setAttribute('role', 'note');
-  host.setAttribute('aria-label', 'Open this page in your browser');
-  const shadow = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = `
-:host{all:initial}
-*{box-sizing:border-box}
-.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
-  font:600 13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#241a00;
-  background:linear-gradient(90deg,#ffd426,#ffb800);box-shadow:0 2px 12px rgba(10,4,32,.45)}
-.msg{flex:1 1 260px;margin:0}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-button,a{appearance:none;border:0;border-radius:999px;padding:7px 12px;cursor:pointer;
-  font-family:inherit;font-size:12.5px;font-weight:800;line-height:1;text-decoration:none;
-  color:#fff;background:#241a00;white-space:nowrap}
-.ghost{background:rgba(36,26,0,.14);color:#241a00}
-button:focus-visible,a:focus-visible{outline:3px solid #241a00;outline-offset:2px}
-.bar.min{padding:6px 14px}
-.bar.min .msg{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar.min .actions > :not(.toggle){display:none}
-`;
-  const bar = document.createElement('div');
-  bar.className = 'bar';
-  const msg = document.createElement('p');
-  msg.className = 'msg';
-  const actions = document.createElement('div');
-  actions.className = 'actions';
-
-  const escape = externalBrowserLink(location.href, hit.os);
-  if (escape) {
-    const a = document.createElement('a');
-    a.href = escape.url;
-    a.textContent = escape.label;
-    a.rel = 'noopener';
-    actions.appendChild(a);
-  }
-  // When the app hides its menu, the link on the clipboard is the way out.
-  const copy = document.createElement('button');
-  copy.type = 'button';
-  copy.className = 'ghost';
-  copy.textContent = 'Copy link';
-  copy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(location.href); copy.textContent = 'Copied ✓'; }
-    catch { copy.textContent = 'Copy failed'; }
-  });
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'ghost toggle';
-  actions.append(copy, toggle);
-
-  const setMin = (min) => {
-    bar.classList.toggle('min', min);
-    msg.textContent = min ? '⚠️ Open this page in Safari/Chrome for full speed.' : INAPP_MESSAGE;
-    toggle.textContent = min ? 'Show' : 'Hide';
-    toggle.setAttribute('aria-expanded', String(!min));
-    try { sessionStorage.setItem(INAPP_MIN_KEY, min ? '1' : '0'); } catch { /* per-page only */ }
-  };
-  toggle.addEventListener('click', () => setMin(!bar.classList.contains('min')));
-
-  bar.append(msg, actions);
-  shadow.append(style, bar);
-  let startMin = false;
-  try { startMin = sessionStorage.getItem(INAPP_MIN_KEY) === '1'; } catch { /* default: full banner */ }
-  setMin(startMin);
-  document.body.prepend(host);
-
-  const publish = () => root.style.setProperty('--inapp-bar-h', `${Math.ceil(host.getBoundingClientRect().height)}px`);
-  root.classList.add('zh-inapp');
-  publish();
-  if ('ResizeObserver' in window) new ResizeObserver(publish).observe(host);
-  else window.addEventListener('resize', publish);
-}
-mountInAppBanner();
 
 function focusSearchShortcut(e) {
   if (e.key !== '/') return;
@@ -249,11 +142,11 @@ function mountFooter() {
   // delete the disclosure that makes them accurate.
   const ownNote = footer.querySelector('.footer-legal')?.textContent.trim() || '';
 
-  // There is ONE footer, and every page gets it — /ai and /browser included.
-  // They used to opt into a cut-down one-row variant (`.site-footer-mini`) on
-  // the theory that a six-column block would push their composer or proxy frame
-  // below the fold. It would not: both shells are sized to `100vh - header`, so
-  // they fill the first screen by themselves and the footer sits below, reached
+  // There is ONE footer, and every page gets it — /ai included.
+  // /ai used to opt into a cut-down one-row variant (`.site-footer-mini`) on
+  // the theory that a six-column block would push its composer below the fold.
+  // It would not: the shell is sized to `100vh - header`, so it fills the first
+  // screen by itself and the footer sits below, reached
   // by scrolling, exactly as it is everywhere else. What the variant really did
   // was give two pages a different-looking footer and quietly withhold from them
   // anything the real one gained. See the note in public/css/main.css.
@@ -269,7 +162,7 @@ function mountFooter() {
           <img src="/assets/logo-72.png" alt="ZoFHub" width="36" height="36" loading="lazy" decoding="async" />
           <span>ZoFHub</span>
         </a>
-        <p class="footer-tagline">Instant browser games, a free AI assistant, and a smart proxy browser — all in one hub. No downloads, no sign-up.</p>
+        <p class="footer-tagline">Instant browser games and a free AI assistant — all in one hub. No downloads, no sign-up.</p>
       </div>
       <nav class="footer-col" aria-label="Play">
         <h3>Play</h3>
@@ -283,7 +176,6 @@ function mountFooter() {
         <h3>Explore</h3>
         <a href="/ai">AI Assistant</a>
         <a href="/community">Community</a>
-        ${proxyBrowserVisible() ? '<a href="/browser">Proxy Browser</a>' : ''}
         <a href="/api/health" target="_blank" rel="noopener">Status</a>
         <!-- Opens the feedback dialog (feedback.js). A real href so it still reads
              as a link to assistive tech and survives the module failing to load. -->
@@ -338,10 +230,9 @@ mountFooter();
 function mountMirrorSignup() {
   const footer = document.querySelector('.site-footer');
   if (!footer || footer.querySelector('.mirror-signup')) return;
-  // This used to bail out on /ai and /browser, which reserved an exact 38px for
-  // a compact footer bar that a two-line form could not fit into. That variant is
-  // gone and both pages now carry the full footer, so the signup appears on every
-  // page — which is the consistent behaviour, and one less rule to remember.
+  // This used to bail out on /ai, which reserved an exact 38px for a compact
+  // footer bar that a two-line form could not fit into. That variant is gone and
+  // the page now carries the full footer, so the signup appears on every page — which is the consistent behaviour, and one less rule to remember.
   const anchor = footer.querySelector('.footer-bottom') || footer.lastElementChild;
   if (!anchor) return;
 
@@ -427,7 +318,7 @@ function mountHeaderLeaderboard() {
   a.textContent = 'Leaderboard';
   if (location.pathname.replace(/\/+$/, '') === '/leaderboard') a.className = 'active';
   // After "Games" when that exists, otherwise first — it is a play destination,
-  // not a utility, so it belongs with the play links rather than beside Browser.
+  // not a utility, so it belongs with the play links.
   const games = nav.querySelector('a[href="/"]');
   if (games) games.insertAdjacentElement('afterend', a);
   else nav.prepend(a);
@@ -492,60 +383,16 @@ mountHeaderUser();
 // ════════════════════════════════════════════════════════════════════════
 // Mobile navigation — a hamburger menu for ≤880px, where the desktop .top-nav
 // is hidden. WITHOUT this, every phone and portrait tablet loses ALL site
-// navigation (no way to reach AI / Community / Leaderboard / Browser). Built
+// navigation (no way to reach AI / Community / Leaderboard). Built
 // from a canonical link list so every page gets the same complete menu (some
 // pages' desktop nav markup is missing links).
 // ════════════════════════════════════════════════════════════════════════
-// Is the proxy browser reachable for THIS visitor?
-//
-// When the operator turns on the proxy discovery gate (MASQR_ENABLED — see
-// lib/masqr.mjs), /browser answers 404 for anyone without a key. A header that
-// still advertises "Proxy Browser" would then look like a broken site rather
-// than a quiet one, so the server leaves a one-character, non-secret hint
-// cookie and the chrome reads it:
-//
-//   absent  → the gate is off entirely. Show the link. This is the default and
-//             every deployment that never touches MASQR.
-//   '1'     → gate on, this visitor has a valid key. Show it.
-//   '0'     → gate on, no key. Hide it.
-//
-// Deliberately fails toward SHOWING the link: a storage-blocked or cookie-less
-// browser should get the site it has always had, not a silently reduced one.
-function proxyBrowserVisible() {
-  try {
-    const m = /(?:^|;\s*)zh_px=([01])/.exec(document.cookie || '');
-    return !m || m[1] === '1';
-  } catch { return true; }
-}
-
 const NAV_LINKS = [
   { label: 'Games',         href: '/' },
   { label: 'AI Assistant',  href: '/ai' },
   { label: 'Community',     href: '/community' },
-  { label: 'Proxy Browser', href: '/browser', requiresProxyAccess: true },
-].filter(l => !l.requiresProxyAccess || proxyBrowserVisible());
+];
 
-/**
- * Remove proxy links this visitor cannot follow.
- *
- * NAV_LINKS above only builds the MOBILE nav; the desktop header is static
- * markup in every .html file, and the footer is a template string. Editing
- * twenty pages to add a conditional would be churn, and would still miss any
- * page added later — so the links are pruned from the live DOM instead, which
- * covers header, footer and anything else that points at a gated surface.
- *
- * Runs only when the gate is ON and this visitor has no key. With the gate off
- * — the default, and every deployment that never touches MASQR — the hint
- * cookie is absent, proxyBrowserVisible() is true, and this does nothing at all.
- */
-function pruneGatedLinks() {
-  if (proxyBrowserVisible()) return;
-  for (const a of document.querySelectorAll('a[href^="/browser"], a[href^="/horizon"], a[href^="/gust"], a[href^="/proxy"]')) {
-    // Drop the whole list item where there is one, so the nav does not keep a
-    // stray separator or an empty bullet where the link used to be.
-    (a.closest('li') || a).remove();
-  }
-}
 function mountMobileNav() {
   const header = document.querySelector('.header-inner');
   if (!header || document.querySelector('.nav-toggle')) return;
@@ -595,9 +442,6 @@ function mountMobileNav() {
   window.addEventListener('resize', () => { if (window.innerWidth > 880) setOpen(false); });
 }
 mountMobileNav();
-// After the footer and the mobile nav exist, so it prunes both along with the
-// static desktop header.
-pruneGatedLinks();
 
 // ── Site configuration from the admin console ──────────────────────────────
 // /api/site-config carries the PUBLIC settings only (lib/settings-registry.mjs):
@@ -618,7 +462,6 @@ siteConfig
       document.body.prepend(bar);
     }
     const off = Object.entries(cfg.features || {}).filter(([, on]) => on === false).map(([k]) => FEATURE_LINKS[k]).filter(Boolean);
-    if (cfg.proxy && cfg.proxy.accessMode === 'disabled') off.push('/browser');
     for (const href of off) {
       for (const el of document.querySelectorAll(`a[href="${href}"], a[href^="${href}?"]`)) (el.closest('li') || el).remove();
     }
@@ -696,35 +539,15 @@ function mountAIStub() {
 mountAIStub();
 
 // ════════════════════════════════════════════════════════════════════════
-// Advertising (loaded after config). ZoFHub is ALWAYS a proxy site and never
-// loads Google AdSense. Six networks, one role each (lib/ad-providers.mjs):
+// Advertising (loaded after config). ZoFHub never loads Google AdSense. Six networks, one role each (lib/ad-providers.mjs):
 // the server resolves which are live for THIS page and THIS visitor's region,
 // and this loads only what it was handed — so the site stays clean until a
 // network is configured.
 // ════════════════════════════════════════════════════════════════════════
-// ── The proxy/ad boundary, client side ────────────────────────────────────
-// Mirrors isAdSurface() in lib/ad-providers.mjs. Deliberately duplicated rather
-// than fetched, because the whole point is to decide BEFORE asking the server
-// for anything ad-related — a page that never requests an ad config cannot
-// accidentally render one.
-//
-// browser.html imports this module for the site chrome (header, nav, theme), so
-// without this check configuring any network would have started serving ads on
-// the proxy page. That is what this exists to prevent.
-const PROXY_SURFACE_RE = /^\/(browser|horizon|gust|proxy|uv|scram|epoxy|baremux|libcurl|wisp|bare|service)(\/|$)/i;
-const ADS_ALLOWED_HERE = !PROXY_SURFACE_RE.test(location.pathname);
-
-// Start watching for blocked ad scripts BEFORE any can be injected: load and
-// error events are not replayed for a listener that arrives late.
-if (ADS_ALLOWED_HERE) armAdWatch();
-
-let adConfig = null;
 siteConfig
   .then((cfg) => {
     if (!cfg) return;
-    adConfig = cfg;
-    window.ZOFHUB_PROXY = cfg.proxy !== false;
-    if (!ADS_ALLOWED_HERE || cfg.adsAllowed === false) return;   // proxy surface: nothing further
+    if (cfg.adsAllowed === false) return;
     // HilltopAds' in-page push loader — the one role that is only a script.
     if (Array.isArray(cfg.adScripts) && cfg.adScripts.length) {
       window.ZOFHUB_PROXY_ADS = cfg.adScripts;
@@ -742,23 +565,13 @@ siteConfig
     if (cfg.popunder && cfg.popunder.tag) window.ZOFHUB_POPUNDER = cfg.popunder;
   })
   .finally(() => {
-    // Second gate. A cached window.ZOFHUB_* from an earlier navigation must
-    // not be able to start the ad stack on a proxy surface.
-    if (ADS_ALLOWED_HERE) {
-      // (a) page-level loader scripts, only if configured. Loads NO Google code.
-      if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260928');
-      // (b) every placement with a container in our layout. Each self-checks
-      //     its own payload and does nothing when unset, so the module is
-      //     fetched only when at least one is present.
-      if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG || window.ZOFHUB_INTERSTITIAL
-          || window.ZOFHUB_NATIVE || window.ZOFHUB_POPUNDER) {
-        import('./ad-slots.js?v=20260928').then((m) => m.mountAdSlots()).catch(() => {});
-      }
+    // (a) page-level loader scripts, only if configured. Loads NO Google code.
+    if (window.ZOFHUB_PROXY_ADS) import('./proxy-ads.js?v=20260928');
+    // (b) every placement with a container in our layout. Each self-checks
+    //     its own payload and does nothing when unset, so the module is
+    //     fetched only when at least one is present.
+    if (window.ZOFHUB_HEADER_TAG || window.ZOFHUB_SIDEBAR_TAG || window.ZOFHUB_INTERSTITIAL
+        || window.ZOFHUB_NATIVE || window.ZOFHUB_POPUNDER) {
+      import('./ad-slots.js?v=20260928').then((m) => m.mountAdSlots()).catch(() => {});
     }
-    // (c) the ad-block check. On a hub or game page it judges the ads that
-    //     just loaded; on /browser it re-checks, without contacting any ad
-    //     network, whether a previous verdict still holds — that is where the
-    //     premium engines it may lock live.
-    evaluateSupport(adConfig, { adSurface: ADS_ALLOWED_HERE && adConfig?.adsAllowed === true })
-      .catch(() => { /* a failed check never locks anything */ });
   });

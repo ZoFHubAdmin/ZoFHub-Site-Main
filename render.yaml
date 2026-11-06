@@ -1,15 +1,13 @@
 # ZoFHub — Render deploy blueprint (https://render.com).
 # ─────────────────────────────────────────────────────────────────────────────
 # WHY NOT VERCEL: ZoFHub is a PERSISTENT Express server — it runs node-cron jobs
-# 24/7, holds the catalog + live-presence in memory, and serves the /wisp
-# WebSocket tunnel for the proxy. Vercel's serverless functions can't do any of
-# those. Use a persistent host: Render (this file), Railway, Fly.io, or a VPS.
+# 24/7, holds the catalog + live-presence in memory, and routes its server-side
+# fetches through a sing-box daemon it supervises. Vercel's serverless functions
+# can't do any of those. Use a persistent host: Render (this file), Railway,
+# Fly.io, or a VPS.
 #
-# ZoFHub is ALWAYS a proxy site — the web proxy (Ultraviolet / HORIZON / Wisp)
-# is always on. There is NO separate hub / Google-AdSense mode: Google bans
-# proxy / anonymizer domains at the account level, so monetization is solely via
-# six proxy-friendly ad networks, one role each (lib/ad-providers.mjs). This is
-# ONE service, deployed once.
+# Monetization is solely via six ad networks, one role each (lib/ad-providers.mjs);
+# there is no Google AdSense. This is ONE service, deployed once.
 #
 # NOTE: the FREE plan SLEEPS when idle, which stops the cron jobs + live presence.
 # Use the cheapest always-on paid plan ("starter") for real use. Render injects
@@ -96,14 +94,6 @@ services:
       # rather than an omission — leave it blank.
       - key: GAMEFLARE_VERIFY_TOKEN
         sync: false
-      # Rewarded proxy access ("Boost") mock provider. UNSET IN PRODUCTION ON
-      # PURPOSE — lib/reward-mock-provider.mjs's mockAllowed() refuses it
-      # unconditionally whenever NODE_ENV=production, checked first, the same
-      # rule lib/ai-guard.mjs uses for the server-side AI fallback. Declared
-      # here anyway, so a value never comes from the committed .env even if
-      # that check were ever bypassed — defense in depth, not the only gate.
-      - key: REWARD_MOCK_SECRET
-        sync: false
       # ── the administrator console (username + password login) ───────────────
       # Declared here for the reason spelled out above: anything NOT listed is
       # silently sourced from the committed .env, and a login credential read
@@ -164,8 +154,8 @@ services:
       # configuration renders nothing. All unset = the site runs ad-free.
       #
       # ⚠ No network has approved this site. Every one reviews your specific
-      #   domain, and ZoFHub hosts a web proxy — raise that with each of them
-      #   before enabling. See docs/features/ADVERTISING.md.
+      #   domain — check each network's terms before enabling. See
+      #   docs/features/ADVERTISING.md.
       #
       # The role variables themselves (ADMAVEN_INTERSTITIAL_TAG / _URL,
       # EXOCLICK_HEADER_TAG / _SIDEBAR_TAG, HILLTOPADS_PUSH_SCRIPT,
@@ -214,17 +204,13 @@ services:
       # CDN in front of Render). See .env.example. Optional.
       - key: TRUST_PROXY
         sync: false
-      # Per-client Wisp tunnel cap: one IP cannot hold more than this many
-      # tunnels, so a single runaway client cannot starve the pool. Default 32.
-      - key: WISP_MAX_PER_IP
-        sync: false
       # Role the static ADMIN_SECRET bearer token runs as: operator (default)
       # or viewer. Never owner — see lib/admin-rbac.mjs.
       - key: ADMIN_SERVICE_ROLE
         sync: false
       # sing-box (docs/proxy/SINGBOX.md) carries EVERY connection this server makes
-      # on a visitor's behalf — the Wisp tunnel's streams and every server-side fetch
-      # of a URL we did not write (embeds, thumbnails, assets, link checks). There is
+      # on a visitor's behalf — every server-side fetch of a URL we did not write
+      # (embeds, thumbnails, assets, link checks). There is
       # NO direct fallback: a connection the daemon cannot carry is refused, and in
       # production nothing can switch that off (SINGBOX_ALLOW_DIRECT, SINGBOX_REQUIRE=0
       # and SINGBOX_EGRESS=0 are IGNORED when NODE_ENV=production, so none is declared
@@ -314,57 +300,4 @@ services:
       # Set to 1 on EVERY replica except one if you ever scale past a single
       # instance — otherwise every cron write runs once per replica.
       - key: CRON_DISABLED
-        sync: false
-      # Kasm Workspaces (docs/proxy/KASM.md) — the address of a remote-desktop
-      # container YOU run on a Docker host. This service cannot host it: there
-      # is no Docker daemon inside a Render web service, and a session costs
-      # gigabytes of RAM. Unset = the engine simply is not offered.
-      #
-      # Declared here for the reason at the top of this block: an undeclared
-      # name resolves out of the committed .env instead. It is also the one
-      # engine URL that people are tempted to write a password into, and
-      # /api/proxies publishes it unauthenticated — server.js strips any
-      # credential and logs that it did, but the value still belongs in the
-      # dashboard rather than in git.
-      - key: PROXY_KASM_URL
-        sync: false
-      - key: KASM_LABEL
-        sync: false
-      # InvisiProxy LTS (docs/proxy/INVISIPROXY.md) — an AGPL-3.0 proxy application
-      # you deploy separately. ZoFHub ships none of its code; this is only the
-      # address of your instance. Unset = the engine is not offered.
-      - key: PROXY_INVISI_URL
-        sync: false
-      # MASQR proxy discovery gate (docs/proxy/MASQR.md). OFF unless MASQR_ENABLED=1.
-      # MASQR_SECRET signs the access keys and is a real credential — declared
-      # here because anything NOT listed silently resolves out of the committed
-      # .env, which is exactly how a signing key ends up sourced from git.
-      - key: MASQR_ENABLED
-        sync: false
-      - key: MASQR_SECRET
-        sync: false
-      - key: MASQR_KEY_TTL_DAYS
-        sync: false
-      - key: MASQR_DENY
-        sync: false
-      - key: MASQR_REDIRECT_TO
-        sync: false
-      # ── Wisp egress policy ────────────────────────────────────────────────
-      # The rules governing the one endpoint that dials addresses strangers
-      # choose. Declared here because anything NOT listed silently resolves out
-      # of the committed .env — and a security boundary sourced from git is
-      # exactly the outcome the note at the top of this block warns about.
-      # All optional; lib/wisp-policy.mjs defaults are the safe values
-      # (ports 80,443,8080,8443 · no UDP · private IPs blocked · 256 streams).
-      - key: WISP_ALLOWED_PORTS
-        sync: false
-      - key: WISP_ALLOW_UDP
-        sync: false
-      - key: WISP_ALLOW_PRIVATE_IPS
-        sync: false
-      - key: WISP_ALLOW_LOOPBACK_IPS
-        sync: false
-      - key: WISP_MAX_STREAMS
-        sync: false
-      - key: WISP_BLOCKED_HOSTS
         sync: false

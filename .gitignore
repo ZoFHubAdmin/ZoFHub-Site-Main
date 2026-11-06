@@ -13,21 +13,6 @@
 #  state on purpose, and say so, rather than looking like they work.
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Nebula — the one companion proxy NOT kept in the working tree.
-# It was 520 MB across 33,360 files (an Astro app whose pnpm node_modules is a
-# symlink store that restores as broken stubs on a fresh Windows clone anyway),
-# and it never shipped: companions only appear when PROXY_*_URL is set, which
-# render.yaml never does, so the live site has always been GUST + Ultraviolet +
-# Scramjet. Carrying half a gigabyte at HEAD to support a local-only engine
-# wasn't worth it.
-#
-# Nothing is lost — every file is still in git history:
-#     git checkout 07a2a6f7 -- Nebula
-# Or fetch it fresh:  git clone https://github.com/NebulaServices/Nebula
-# then `cd Nebula && pnpm install && pnpm run build`. tools/proxies.mjs detects
-# the folder and starts it automatically if it's present and built.
-Nebula/
-
 # ── Regenerated caches ─────────────────────────────────────────────────────
 # Server-side thumbnail proxy cache (rebuilt on demand).
 .cache/

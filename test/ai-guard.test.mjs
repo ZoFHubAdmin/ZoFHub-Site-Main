@@ -113,11 +113,11 @@ describe('every spelling of the three routes is covered', () => {
     assert.equal(normalizeRoutePath('/API//Ai/Text/'), '/api/ai/text');
   });
 
-  test('server.js refuses them before CORS, the body parser and the rate limiter', () => {
+  test('server.js refuses them before CORS, the body parser and the static file server', () => {
     const server = readFileSync(join(ROOT, 'server.js'), 'utf8');
     const guard = server.indexOf('if (!isAiFallbackPath(req.path)) return next();');
     assert.ok(guard > 0, 'the early guard is missing');
-    for (const later of ['app.use(cors(', 'const JSON_PARSER = express.json(', 'app.use(masqrMiddleware(']) {
+    for (const later of ['app.use(cors(', 'const JSON_PARSER = express.json(', 'app.use(express.static(']) {
       const at = server.indexOf(later);
       assert.ok(at > guard, `${later} runs before the AI guard`);
     }

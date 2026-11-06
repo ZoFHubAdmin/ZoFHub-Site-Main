@@ -14,7 +14,7 @@ import { askPrompt, describeFailure } from './pollinations.js?v=20261016';
 // The wait between questions is shared with the /ai page — one clock, because the
 // provider counts per IP and both of these are text clients on the same IP. The
 // specifier must match pollichat.js's exactly so there is one module instance.
-import { cooldowns, formatWait, TEXT_COOLDOWN_MS } from './ai-cooldown.js?v=20261102';
+import { cooldowns, formatWait, TEXT_COOLDOWN_MS } from './ai-cooldown.js?v=20261104';
 
 // Called by layout.js's placeholder orb on FIRST interaction — this module and
 // pollinations.js are ~25KB together and most visitors never open the helper,
@@ -94,7 +94,7 @@ export function mountAIHelper(openNow = false) {
     } catch {}
   }
 
-  // ── Throttle: after EVERY answer (or failure) the buttons stay locked for 10s,
+  // ── Throttle: after EVERY answer (or failure) the buttons stay locked for 18s,
   // so nobody can rapid-fire requests at the shared (keyless) AI endpoint. The
   // wait starts when the answer ends and survives a reload — see ai-cooldown.js.
   // While it runs, the footnote under the box says how long is left. ──────────
@@ -262,7 +262,7 @@ export function mountAIHelper(openNow = false) {
     } finally {
       if (inFlight === controller) inFlight = null;
       busy = false;
-      // The answer is in, or the attempt failed or was cancelled: the 10s wait
+      // The answer is in, or the attempt failed or was cancelled: the 18s wait
       // for the next question starts now.
       cooldowns.start('text', TEXT_COOLDOWN_MS);
       syncWait();

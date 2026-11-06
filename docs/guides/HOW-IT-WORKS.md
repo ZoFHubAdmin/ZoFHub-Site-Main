@@ -6,8 +6,8 @@ It is the **map**; every section points at the detailed document for that piece.
 The one-sentence version:
 
 > **One program (`server.js`) hands web pages to visitors, a database (Supabase)
-> remembers the games, and a bundled web proxy lets a visitor browse the rest of
-> the internet through the same server.**
+> remembers the games, and a free AI assistant runs in the visitor's own
+> browser.**
 
 Everything below is detail on those three things.
 
@@ -35,8 +35,9 @@ surprising:
 
 - **The AI never touches this server.** The visitor's own browser calls
   Pollinations directly, on their own IP. See §7.
-- **The proxy is a separate machine inside the same program.** It has its own
-  service workers, its own network tunnel and its own egress policy. See §8.
+- **Whatever the server fetches for a visitor leaves through a tunnel.** Game
+  embeds, thumbnails and asset requests cross a sing-box daemon or are refused —
+  there is no direct fallback. See §8.
 
 ---
 
@@ -47,8 +48,7 @@ One long-running **Express** program. It:
 - serves every page and file under `public/`;
 - answers the API (`/api/games`, `/api/scores`, `/api/ai/*`, `/api/vibe`, …);
 - builds each `/play/<slug>` and `/category/<slug>` page on the fly;
-- mounts the proxy engines and the Wisp tunnel;
-- runs ten scheduled background jobs (§11);
+- runs eight scheduled maintenance jobs (§11);
 - **must stay running 24/7**, which is why it deploys to Render and *not* to a
   serverless host like Vercel.
 
@@ -72,7 +72,7 @@ privileges `db/grants.sql` hands it and nothing more.
 | **`recommendations`** | community "you should add this" submissions |
 | **`game_stats`** | per-game play counters, so they survive restarts |
 | **`game_fingerprints`**, **`game_duplicates`** | provider fingerprints the discovery engine uses to spot the same game under two slugs |
-| **`rejected_submissions`** | what the grow job tested and refused, so it does not retest forever |
+| **`rejected_submissions`** | what the (now operator-run) grow tool tested and refused, so it does not retest forever |
 | **`feedback`** | contact-form messages. Write-only to the public; only the server reads them |
 | **`subscriber_emails`** | the mirror-update list. Two columns — no IP, no timestamp |
 | **`ai_feedback`** | thumbs up/down on AI answers, redacted before insert, consent recorded per row |
@@ -128,7 +128,6 @@ explains why thousands of catalogued games are deliberately never served.
 | `community.html` | community submissions |
 | `leaderboard.html` | scores |
 | `donate.html` | donation addresses |
-| `browser.html`, `horizon` | the proxy browser |
 | `404.html` | not found |
 
 `css/` holds styles, `js/` holds behaviour, and **`js/layout.js` runs on every
@@ -172,8 +171,8 @@ left that could carry one.
 - **Text, plus one opt-in picture command.** `/image <description>` on the `/ai`
   page makes the browser load `https://image.pollinations.ai/<description>` in an
   `<img>`; the picture never passes through this server either. There is no
-  audio or video generation anywhere on the site, at any layer. A 10-second wait
-  follows every message and a 45-second wait every picture, and both survive a
+  audio or video generation anywhere on the site, at any layer. An 18-second wait
+  follows every message and a 50-second wait every picture, and both survive a
   reload.
 - **No server-side AI routes.** `/api/ai/text`, `/api/ai/echo`, `/api/ai/audio`,
   `/api/ai/video`, `/api/ai/image`, `/api/ai/key`, `/api/ai/providers` and
@@ -197,71 +196,52 @@ policy. The privacy policy says exactly that.
 What that buys: no AI compute or bandwidth on your host, no shared rate limit,
 and prompts that are not observable server-side because they never arrive.
 
-Feedback on AI answers is separate, consented, redacted, and **never mixed with
-proxy traffic**. That boundary is structural, not a promise — see
+Feedback on AI answers is separate, consented and redacted — see
 [docs/features/AI-ARCHITECTURE.md](../features/AI-ARCHITECTURE.md).
 
 ---
 
-## 8. The proxy browser
+## 8. Where the server's outbound traffic goes (sing-box)
 
-`browser.html` plus `/horizon`, `/uv/` and `/wisp/` let a visitor browse
-other sites through your server. This is the "unblocked at school" feature, and
-it is the reason several other decisions on this page exist.
-
-**Three engines, all open-source and credited** in [CREDITS.md](../CREDITS.md):
-
-| Engine | How it works |
-|---|---|
-| **Ultraviolet** | service worker, the long-standing one |
-| **HORIZON** | single-file browser, runs libcurl.js in the page |
-
-**How a request actually leaves the building:**
+Some requests are made by the **server** on a visitor's behalf rather than by the
+visitor's browser: the `/embed/<slug>` wrapper that re-serves a game, thumbnails,
+game assets and the hourly link check. Every one of them goes out through
+**sing-box**, a separate program the server starts and supervises, or it is
+*refused*:
 
 ```
-page → service worker → bare-mux → epoxy-transport → same-origin /wisp/
-     → Wisp server → sing-box SOCKS5 → the internet
+request → lib/safe-fetch.mjs (SSRF checks) → lib/egress.mjs → sing-box SOCKS5 → the internet
 ```
 
 Three things guard that path:
 
-- **`lib/wisp-policy.mjs`** — an explicit egress policy: which ports may be
-  reached, which hostnames are refused, whether private/loopback addresses are
-  allowed, and how many streams one client may open. It **fails safe** (a missing
-  setting gives the restrictive default) and warns at boot on every widening.
-  See [docs/proxy/INVISIPROXY.md](../proxy/INVISIPROXY.md).
-- **sing-box** — the outbound tunnel. Every connection the server makes for a
-  visitor (proxy streams and server-side fetches alike) crosses it or is
-  *refused*, so traffic leaves from somewhere other than your web host and never
-  directly from it. `lib/egress-guard.mjs` refuses anything else that tries to
-  connect out. See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
-- **Companion engines** — Kasm Workspaces and others can be pointed at as
-  *external* deployments rather than bundled ([docs/proxy/KASM.md](../proxy/KASM.md)).
-  **HORIZON** is a bundled same-origin engine instead, mounted at `/horizon` and
-  governed by this server's tunnel.
+- **No direct fallback.** If the daemon cannot carry a connection, the request
+  fails and is counted; it is never dialled from the web host instead, because a
+  fallback would fire exactly when the daemon is down — when the server's own
+  address would be exposed. In production no setting can change that
+  (`lib/egress-policy.mjs`).
+- **`lib/egress-guard.mjs`** — a process-level backstop that refuses any *other*
+  outbound connection that is not loopback or a named infrastructure host (the
+  database, the cache, the mail provider), so a code path nobody has written yet
+  cannot quietly bypass the tunnel.
+- **`lib/safe-fetch.mjs`** — the one chokepoint for fetching a URL we did not
+  write: private and loopback addresses, redirects to them and DNS rebinding are
+  all refused before the daemon is asked.
 
-**Verify it actually works** with `npm run verify-proxy`, which drives a real
-browser through every engine and checks that pages render. An HTTP 200 from the
-proxy route proves nothing — the page can still be blank.
+The admin console's **Egress** view shows all of it live (`/api/admin/egress`).
+See [docs/proxy/SINGBOX.md](../proxy/SINGBOX.md).
 
 ---
 
-## 9. The MASQR gate (off by default)
+## 9. Retired: the proxy browser
 
-A mirror domain usually dies the same way: someone shares the link, a filter
-vendor's crawler fetches it, sees a web proxy, and files the domain under
-*proxy/anonymizer*.
-
-When `MASQR_ENABLED=1`, an unauthenticated visitor gets the **real games hub**
-and a `404` on the proxy paths. A signed key in a link unlocks them.
-
-- **Off by default** — unset, nothing about the site changes.
-- **Not access control.** A key holder can pass it on, and the games hub stays
-  open to everyone regardless. It buys discovery resistance, nothing more.
-- **Health checks are never gated** — gating `/healthz` would restart-loop the
-  container.
-
-Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md)
+Earlier versions also shipped a web-proxy browser (Ultraviolet, Scramjet, GUST,
+HORIZON, a Wisp tunnel, a "Boost" reward flow and a mirror-hiding gate). It has
+been **removed completely**: the page, the engines, the tunnel, the settings, the
+admin screens and the dependencies are gone, and `/browser` is an ordinary 404.
+What stays is the egress path above and the database tables it once used (left
+untouched on purpose — dropping them is a migration the operator chooses to run).
+The old code is in git history if it is ever needed.
 
 ---
 
@@ -273,17 +253,13 @@ Full detail: [docs/proxy/MASQR.md](../proxy/MASQR.md)
   "for you" rows), PopAds (desktop game-page popunder). Each is enabled
   independently with `<NETWORK>_ENABLED=1` plus its role variable. Enabled
   without configuration renders nothing; unset means genuinely nothing — no
-  boxes, no reserved space, no requests. A visitor whose ad-blocker stays on for
-  three pages finds only the premium proxy engines (the standalone companion
-  browsers) locked; games and the built-in engines never are.
-- **Google AdSense is never used**, and is refused at three layers. Google bans
-  proxy domains at the *account* level, so one stray tag could take down an
-  unrelated account.
-- **Ads never run on the proxy.** `/browser`, `/horizon` and every proxy asset route
-  are excluded structurally — in the registry, in the API and in the client. What
-  renders there is somebody else's website, and monetising it would mean
-  injecting script into third-party content in transit.
-- **No network has approved this site.** All five review your specific domain.
+  boxes, no reserved space, no requests. Nothing is ever locked behind an ad or an
+  ad-blocker check.
+- **Google AdSense is never used**, and is refused at three layers, so a stray
+  tag cannot put an unrelated Google account at risk.
+- **Ads only run on pages ZoFHub wrote.** The allow-list is deny-by-default
+  (`lib/ad-providers.mjs`): a route nobody classified carries no ad.
+- **No network has approved this site.** All six review your specific domain.
 
 In-game ads inside the games belong to the game makers (GameMonetize,
 GameDistribution) and pay separately.
@@ -292,24 +268,29 @@ Full detail: [docs/features/ADVERTISING.md](../features/ADVERTISING.md)
 
 ---
 
-## 11. The night shift — ten scheduled jobs (`lib/cron-jobs.mjs`)
+## 11. The night shift — eight scheduled jobs (`lib/cron-jobs.mjs`)
 
 Everything that keeps the catalog healthy without you touching it. All times UTC.
+**Nothing here adds a game:** the catalog is frozen (see
+[CATALOG-FREEZE.md](../features/CATALOG-FREEZE.md)); the old `grow`, `y8-sync` and
+`gd-import` jobs are unregistered and their writers refuse to run without an
+explicit operator confirmation.
 
 | Job | When | What it does |
 |---|---|---|
 | `link-check` | hourly, `:00` | hides games whose link is truly dead (404/410) |
-| `grow` | hourly `:30`, 36h gate inside | adds render-verified games over time |
 | `health` | daily 00:05 | logs working/dead counts |
 | `rec-cleanup` | daily 00:15 | removes stale unseen recommendations, trims to the cap |
 | `retention` | daily 03:40 | trims admin logs. The SQL function floors its own arguments, so this can shrink the audit trail but never erase it |
 | `orphan-stats` | Mondays 03:50 | clears play counters for games that no longer exist |
 | `score-prune` | daily 03:55 | trims scores per the retention rules |
-| `y8-sync` | Sundays 04:00 | re-scrapes Y8's embed directory and upserts |
 | `ai-feedback-prune` | daily 04:05 | enforces the 180-day promise in `db/15_ai_feedback.sql` |
 | `keepalive` | daily 06:00 | writes the heartbeat row |
 
-A first link-check also fires 30 seconds after boot.
+A first link-check also fires 30 seconds after boot **when Supabase is configured**
+— and it writes `is_working=false` to the `games` table. A local run with real
+credentials must therefore set `CRON_DISABLED=1` (every test and tool that boots
+the server does, and `test/cron-isolation.test.mjs` enforces it).
 
 These use **`node-cron`, not `setInterval`** — a real scheduler with real cron
 expressions. Run more than one replica and they all share one database, so set
@@ -345,8 +326,8 @@ write, and an append-only audit trail in Postgres.
 Two facts worth knowing up front:
 
 - **`security.write` is owner-only.** A static machine token (`ADMIN_SECRET`) can
-  authenticate but **can never be `owner`**, so a leaked token cannot mint proxy
-  keys or change security settings.
+  authenticate but **can never be `owner`**, so a leaked token cannot change
+  security settings.
 - The audit log is append-only by grant, not by convention.
 
 ---
@@ -378,11 +359,11 @@ Full detail: [DONATIONS.md](../features/DONATIONS.md)
 
 ---
 
-## 15. Deployment — one shape, always a proxy site
+## 15. Deployment — one shape
 
-ZoFHub deploys **once**, as a single always-on proxy site. There is no
-"hub-only / AdSense" mode: the proxy is always running, so Google cannot be used
-and monetisation is entirely via the proxy-friendly networks in §10.
+ZoFHub deploys **once**, as a single always-on site. There is no separate "hub-only"
+mode, and Google AdSense is not used: monetisation is entirely via the six networks
+in §10.
 
 See `render.yaml` and [GO-LIVE.md](GO-LIVE.md).
 
@@ -394,8 +375,7 @@ See `render.yaml` and [GO-LIVE.md](GO-LIVE.md).
 |---|---|
 | `server.js` | the program |
 | `public/` | everything the visitor downloads |
-| `proxy-engine/` | the proxy engines (Ultraviolet, Scramjet, GUST, HORIZON) behind one mount function |
-| `lib/` | server helper modules (Supabase, cron, proxy policy, ads, AI, scores, donations) |
+| `lib/` | server helper modules (Supabase, cron, egress, ads, AI, scores, donations) |
 | `admin-ui/` | the admin console — deliberately outside `public/` |
 | `db/` | authored SQL — the source of truth for the schema |
 | `supabase/migrations/` | the **generated** mirror the Supabase GitHub integration reads |

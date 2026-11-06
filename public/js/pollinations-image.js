@@ -18,12 +18,13 @@
 // failures expose `Retry-After`, which is what makes diagnoseImageFailure() able
 // to read WHY a picture did not arrive (see below).
 //
-// THE FREE-TIER LIMIT IS REAL, AND IT IS THE REASON FOR THE 45 s COOLDOWN.
+// THE FREE-TIER LIMIT IS REAL, AND IT IS THE REASON FOR THE PICTURE COOLDOWN.
 //   HTTP 402  {"error":{"code":"FREE_LIMIT","message":"Free limit reached:
 //             1 image every 45 seconds per IP. Retry after 41s, ..."}}
 //   Retry-After: 41        Cache-Control: no-store
-// The window starts when a request arrives, so ai-cooldown.js starts its 45 s
-// wait when the request is SENT. It is per IP, not per visitor: on a shared
+// The window starts when a request arrives, so ai-cooldown.js starts its own wait
+// (50 s: deliberately a little longer than the provider's 45 s) when the request
+// is SENT. It is per IP, not per visitor: on a shared
 // school network another student's picture can use this one's allowance, which
 // is why a failed load is diagnosed rather than reported as a bare "error".
 //
@@ -40,7 +41,6 @@
 // ---------------------------------------------------------------------------
 
 import { fitToUrlBudget } from './pollinations.js?v=20261016';
-import { IMAGE_COOLDOWN_MS } from './ai-cooldown.js?v=20261102';
 
 /** The fixed destination. A prompt is appended to this and nothing else is. */
 export const IMAGE_ENDPOINT = 'https://image.pollinations.ai/';
@@ -59,7 +59,14 @@ const MAX_IMAGE_URL_CHARS = 2000;
 
 export const IMAGE_USAGE = 'Describe the picture after /image — for example: /image a red fox in a snowy forest';
 
-const windowSeconds = () => Math.round(IMAGE_COOLDOWN_MS / 1000);
+// Pollinations' own free-tier rule: one picture per IP every 45 seconds. That is a fact about
+// THEIR service, so it is stated here on its own and is NOT derived from our wait
+// (IMAGE_COOLDOWN_MS in ai-cooldown.js, 50 s). Deriving it made the error text say the
+// provider's window was whatever our own policy happened to be. It is the fallback when a
+// 402 carries no Retry-After; the visitor's wait only ever lengthens, so a fallback shorter
+// than our own wait costs nothing.
+export const PROVIDER_IMAGE_WINDOW_SECONDS = 45;
+const windowSeconds = () => PROVIDER_IMAGE_WINDOW_SECONDS;
 
 function coded(code, message, extra) {
   const e = new Error(message || code);

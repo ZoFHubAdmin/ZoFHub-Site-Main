@@ -1,7 +1,7 @@
 {
   "name": "zofhub",
   "version": "2.0.0",
-  "description": "ZoFHub — modern arcade-style portal: embedded HTML5 games, free AI, smart proxy browser.",
+  "description": "ZoFHub — modern arcade-style portal: embedded HTML5 games and a free AI assistant.",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,8 +9,6 @@
     "dev": "node --use-system-ca --watch server.js",
     "restart": "node tools/kill-port.mjs 8080 && node --use-system-ca server.js",
     "kill-port": "node tools/kill-port.mjs 8080",
-    "proxies": "node tools/proxies.mjs",
-    "dev:all": "node tools/dev-all.mjs",
     "build-mvp": "node --use-system-ca tools/build-mvp.mjs",
     "check": "node tools/check-js.mjs",
     "verify-thumbs": "node tools/verify-thumbnails.mjs",
@@ -71,7 +69,6 @@
     "audit-served": "node tools/audit-served.mjs",
     "eval-ai": "node --use-system-ca tools/eval-ai.mjs",
     "curate-ai": "node tools/run-python.mjs tools/curate-ai-dataset.py",
-    "verify-proxy": "node --use-system-ca tools/verify-proxy.mjs",
     "singbox:install": "node tools/install-singbox.mjs",
     "verify-ai": "node tools/verify-ai.mjs",
     "gd:import": "node --use-system-ca tools/gamedistribution-import.mjs"
@@ -80,20 +77,13 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@mercuryworkshop/bare-mux": "^2.1.7",
-    "@mercuryworkshop/epoxy-transport": "^2.1.20",
-    "@mercuryworkshop/libcurl-transport": "^2.0.5",
-    "@mercuryworkshop/scramjet": "^1.1.0",
-    "@mercuryworkshop/wisp-js": "^0.5.0",
     "@supabase/supabase-js": "^2.108.1",
-    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
     "ai": "^7.0.126",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^4.22.3",
     "helmet": "^7.1.0",
     "ioredis": "^5.11.1",
-    "libcurl.js": "0.7.4",
     "node-cron": "^4.2.1",
     "stream-chain": "^4.2.5"
   },
@@ -101,8 +91,7 @@
     "@electric-sql/pglite": "^0.5.8",
     "jsqr": "^1.4.0",
     "playwright": "^1.62.1",
-    "stream-json": "^3.7.0",
-    "ws": "^8.21.0"
+    "stream-json": "^3.7.0"
   },
   "license": "SEE LICENSE IN LICENSE",
   "private": true,

@@ -1,16 +1,19 @@
 # GameDistribution import: the whole catalog, screened for licensing
 
-> **Weekly, automatic, and behind the review queue.** Clean games can publish
-> themselves; any game that names a third-party trademark waits for a person.
+> **Operator-run, and behind the review queue.** The weekly schedule was retired
+> when the catalog was frozen ([CATALOG-FREEZE.md](CATALOG-FREEZE.md)); an import
+> now happens only when an operator starts it, and publishing beyond the baseline
+> needs the catalog unlock. Clean games can publish themselves within that limit;
+> any game that names a third-party trademark waits for a person.
 > Nothing runs until the control-plane migration is applied
 > ([CONTROL-PLANE.md §1](../admin/CONTROL-PLANE.md#1-before-it-works-apply-the-migration)).
 
 | | |
 |---|---|
 | Importer | [`lib/gamedistribution-import.mjs`](../../lib/gamedistribution-import.mjs) |
-| Trademark list | [`lib/trademark.mjs`](../../lib/trademark.mjs) — shared with the grow job and the Y8 ingest |
+| Trademark list | [`lib/trademark.mjs`](../../lib/trademark.mjs) — shared with the grow tool and the Y8 ingest |
 | Command line | `npm run gd:import` ([`tools/gamedistribution-import.mjs`](../../tools/gamedistribution-import.mjs)) |
-| Schedule | weekly, Sundays 05:00 UTC (`gd-import` in `lib/cron-jobs.mjs`) — gated by `catalog.gd_auto_import` |
+| Schedule | **none.** The weekly `gd-import` cron job was unregistered; run it from the console or `npm run gd:import` |
 | Console | Content → **GameDistribution import…** (needs `games.import`); Review for held games |
 | Tests | [`test/gamedistribution-import.test.mjs`](../../test/gamedistribution-import.test.mjs), on real feed records |
 

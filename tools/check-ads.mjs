@@ -17,7 +17,8 @@
 //                  which regional overrides; which variables are set but unread
 //   2. CSP       — is each script origin allowlisted in the policy the server sends?
 //   3. serving   — does /api/site-config really hand each placement to the pages
-//                  it belongs on (hub page, game page) and nothing to /browser?
+//                  it belongs on (hub page, game page) and nothing to a path nobody
+//                  classified (the removed /browser, say)?
 //   4. reachable — does each ad host answer at all (DNS/TLS/HTTP)?
 //
 // Exit code is non-zero if anything would stop an ad from rendering, so it can
@@ -168,7 +169,7 @@ const surfaceCfg = async (surface) => (await fetch(`${BASE}/api/site-config?surf
 try {
   const hub = await surfaceCfg('/');
   const game = await surfaceCfg('/play/check-ads');
-  const proxy = await surfaceCfg('/browser');
+  const unclassified = await surfaceCfg('/browser');   // gone for good: must be handed nothing
   const g = cfg.global;
   const expect = [
     ['header banner', Boolean(g.header), Boolean(hub.slots?.header)],
@@ -184,11 +185,10 @@ try {
     else if (want) console.log(ok(`${what}: served`));
   }
   if (hub.preroll || hub.popunder) fail('a hub page was handed the pre-roll or popunder — those belong to game pages only');
-  const proxyLeak = proxy.adsAllowed || proxy.adScripts?.length || proxy.slots?.header || proxy.interstitial
-    || proxy.native || proxy.preroll || proxy.popunder;
-  if (proxyLeak) fail('/browser was handed advertising — the proxy boundary is broken');
-  else console.log(ok('/browser receives no advertising'));
-  console.log(ok(`ad-block premium gate: ${hub.supportGate ? 'ON' : 'off'}`));
+  const leak = unclassified.adsAllowed || unclassified.adScripts?.length || unclassified.slots?.header || unclassified.interstitial
+    || unclassified.native || unclassified.preroll || unclassified.popunder;
+  if (leak) fail('an unclassified path (/browser) was handed advertising — the deny-by-default boundary is broken');
+  else console.log(ok('an unclassified path receives no advertising'));
 } catch {
   caution('could not read /api/site-config (server not running?)');
 }

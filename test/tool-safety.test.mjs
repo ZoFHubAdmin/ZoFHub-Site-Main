@@ -77,7 +77,7 @@ describe('isMain() decides correctly, and fails safe when unsure', () => {
     // point, so import.meta.url here legitimately IS main. The meaningful case
     // is a different module — which is exactly the situation a tool is in when
     // something imports it.
-    assert.equal(isMain(new URL('../lib/wisp-policy.mjs', import.meta.url).href), false);
+    assert.equal(isMain(new URL('../lib/egress-policy.mjs', import.meta.url).href), false);
     assert.equal(isMain(new URL('../tools/_is-main.mjs', import.meta.url).href), false);
   });
 

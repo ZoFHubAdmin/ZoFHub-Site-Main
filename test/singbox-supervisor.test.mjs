@@ -210,7 +210,7 @@ describe('the rendered config is treated as a credential', () => {
   });
 
   test('the status payload is bounded', () => {
-    // It is returned on every poll of /api/admin/proxy, which the Proxy view
+    // It is returned on every poll of /api/admin/egress, which the Egress view
     // refreshes every 5 seconds.
     const st = singboxProcessStatus({ SINGBOX_MANAGED: '1' });
     assert.ok(Array.isArray(st.recentLogs));
@@ -282,8 +282,8 @@ describe('the build and the wiring', () => {
     assert.match(body, /startSingbox\(\)\s*\n?\s*\.then/, 'boot does not start it asynchronously');
   });
 
-  test('/api/admin/proxy separates "never started" from "crash-looping"', () => {
-    const at = server.indexOf("app.get('/api/admin/proxy'");
+  test('/api/admin/egress separates "never started" from "crash-looping"', () => {
+    const at = server.indexOf("app.get('/api/admin/egress'");
     const body = server.slice(at, at + 1800);
     assert.match(body, /singboxProcess: singboxProcessStatus\(\)/,
       'process state is not reported alongside the API telemetry');

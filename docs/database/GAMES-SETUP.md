@@ -81,7 +81,7 @@ SUPABASE_SECRET_KEY=sb_secret_…        # Settings → API Keys → secret
 
 **File: `db/SCHEMA-ONLY.sql`** → Supabase SQL Editor → Run.
 
-That is **all 17 migrations concatenated in dependency order**, ~1,900 lines,
+That is **all 21 migrations concatenated in dependency order**, ~3,300 lines,
 which the web editor handles fine. It is idempotent — re-running is safe.
 
 > ### Do not assemble the schema from the individual `db/*.sql` files
@@ -215,8 +215,10 @@ npm run restart
 
 ## 10. Keeping it healthy on its own
 
-You do not have to maintain the catalog by hand. Ten scheduled jobs do it —
-hourly link-checking, weekly Y8 re-sync, gated growth, retention sweeps. See
+You do not have to babysit the catalog. Eight scheduled maintenance jobs —
+hourly link-checking, retention sweeps and a heartbeat — keep it healthy, but
+**nothing adds games on a timer**: the catalog is frozen and additions are a
+deliberate act (see [CATALOG-FREEZE.md](../features/CATALOG-FREEZE.md)). See
 [HOW-IT-WORKS.md §11](../guides/HOW-IT-WORKS.md).
 
 Useful audits to run by hand:

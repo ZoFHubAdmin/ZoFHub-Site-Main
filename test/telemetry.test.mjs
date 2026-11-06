@@ -131,7 +131,7 @@ describe('route class', () => {
     assert.equal(routeClass('/play/basketball-random'), 'play');
     assert.equal(routeClass('/category/sports'), 'category');
     assert.equal(routeClass('/ai'), 'ai');
-    assert.equal(routeClass('/browser'), 'browser');
+    assert.equal(routeClass('/browser'), 'other', 'the browser page is gone, so its path is just another path');
     assert.equal(routeClass('/community'), 'other');
   });
 

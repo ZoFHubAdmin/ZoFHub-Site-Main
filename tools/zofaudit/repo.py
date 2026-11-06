@@ -1,8 +1,7 @@
 """Repository discovery: what counts as this project's own source, and what does not.
 
 The single most important decision in a static auditor is where it stops
-looking. ZoFHub vendors five third-party applications into the tree (the GUST
-proxy, Scramjet, Interstellar, NautilusOS, DayDream and the Suroi self-host kit)
+looking. ZoFHub vendors a third-party self-host kit into the tree (Suroi)
 and carries ~14 MB of generated SQL loaders. Auditing those produces hundreds of
 findings about code nobody here wrote and nobody here can change, which buries
 the handful of findings that are actionable.
@@ -41,10 +40,6 @@ EXCLUDED_DIRS = {
     '.ruff_cache':   'linter cache',
     'logs':          'runtime output',
     'licenses':      'upstream licence texts, copied verbatim',
-    'scramjet':      'vendored proxy engine (Mercury Workshop)',
-    'Interstellar':  'vendored proxy app',
-    'NautilusOS':    'vendored proxy app',
-    'DayDream':      'vendored proxy app',
     'suroi':         'vendored GPL self-host kit',
     # Where a fetched third-party bundle would be unpacked: somebody else's
     # web OS, which runs as its own service on its own origin. Without this,
@@ -57,9 +52,7 @@ EXCLUDED_DIRS = {
 }
 
 # Specific subtrees, matched as repo-relative prefixes.
-EXCLUDED_PREFIXES = (
-    ('proxy-engine/assets/gust/', 'vendored GUST proxy app — serves itself'),
-)
+EXCLUDED_PREFIXES: tuple[tuple[str, str], ...] = ()   # none today; (prefix, reason) pairs
 
 SOURCE_EXTS = {'.js', '.mjs', '.cjs', '.html', '.css', '.json', '.sql', '.py', '.md', '.yaml', '.yml'}
 

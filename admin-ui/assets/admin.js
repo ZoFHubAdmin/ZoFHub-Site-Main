@@ -274,7 +274,6 @@ const VIEWS = {
       const cp = d.controlPlane || {};
       const cc = d.content || {};
       const sec = d.security || {};
-      const pc = d.proxyControl || {};
       if (cp.schema && cp.schema !== 'ready') issues.push([cp.schema === 'memory' ? 'Control plane in memory (not saved)' : 'Control-plane migration not applied', pill(cp.schema, cp.schema === 'memory' ? 'info' : 'warn')]);
       if (cc.pending_review) issues.push([`${fmt(cc.pending_review)} game${cc.pending_review > 1 ? 's' : ''} awaiting review`, pill('review', 'warn')]);
       if (sec.failedLogins24h > 5) issues.push([`${fmt(sec.failedLogins24h)} failed sign-ins in 24h`, pill('security', 'bad')]);
@@ -286,7 +285,6 @@ const VIEWS = {
         ['Staff active', d.staff ? `${fmt(d.staff.active)}${d.staff.suspended ? ' · ' + pill(fmt(d.staff.suspended) + ' suspended', 'warn') : ''}` : '—'],
         ['Failed sign-ins (24h)', fmt(sec.failedLogins24h)],
         ['Denied actions (24h)', fmt(sec.deniedActions24h)],
-        ['Proxy access', `${esc(pc.accessMode || '—')} · ${fmt(pc.approvedTargets)} destination${pc.approvedTargets === 1 ? '' : 's'}`],
         ['Build', esc([d.build?.version, d.build?.commit].filter(Boolean).join(' · ') || '—')],
       ]), { hint: cp.reason || undefined, state: cp.schema && cp.schema !== 'ready' && cp.schema !== 'memory' ? 'warn' : '' });
 
@@ -485,8 +483,7 @@ const VIEWS = {
                          : '<p class="empty">No ad networks available.</p>')
           + (ignored.length
             ? `<p class="note warn"><b>Set but not used:</b> ${ignored.map((n) => `<code>${esc(n)}</code>`).join(' ')}
-               — a retired network, a legacy slot variable, or a field outside that network's role.</p>` : '')
-          + `<p class="hint">Ad-block premium gate: ${ads?.adblockGate ? 'on' : 'off'}.</p>`,
+               — a retired network, a legacy slot variable, or a field outside that network's role.</p>` : ''),
           { hint: ads?.surfaces?.adsAllowedOn ? `Allowed on: ${ads.surfaces.adsAllowedOn}` : undefined,
             state: ignored.length ? 'warn' : undefined })}
         <p class="note warn"><b>Revenue is not tracked, and cannot be.</b> A donor's wallet
@@ -496,99 +493,83 @@ const VIEWS = {
     },
   },
 
-  // ── Proxy ──────────────────────────────────────────────────────────────
-  // Telemetry for the proxy layer this server actually runs — the Wisp tunnel
-  // and the engines mounted by proxy-engine/mount.mjs. Everything shown is
-  // measured in-process by /api/admin/proxy, so there is no external daemon to
-  // scrape and nothing that can be out of sync with what the server is doing.
-  proxy: {
-    title: 'Proxy',
-    sub: 'Tunnels, engines and live traffic',
+  // ── Egress ───────────────────────────────────────────────────────────────
+  // Where this server's outbound traffic goes. Every connection made on a visitor's behalf (game
+  // embeds, thumbnails, assets, link checks) crosses the sing-box daemon or is REFUSED — there is no
+  // direct fallback (lib/egress-policy.mjs). Everything shown is measured in-process by
+  // /api/admin/egress, so nothing here can disagree with what the server is doing.
+  egress: {
+    title: 'Egress',
+    sub: 'Outbound traffic and the sing-box daemon',
     async render() {
-      const p = await api('/api/admin/proxy');
-      const t = p.tunnels || {};
-      const eng = p.engines || {};
+      const p = await api('/api/admin/egress');
       const proc = p.process || {};
       const sb = p.singbox || { reachable: false, configured: false, reason: 'not-configured' };
       const sbp = p.singboxProcess || { managed: false };
       const eg = p.singboxEgress || { enabled: false, total: 0, singboxSharePct: null };
+      const guard = p.egressGuard || { installed: false, blocked: 0, warned: 0, byHost: {}, directAllowlist: [] };
+      const pol = eg.policy || {};
 
-      // The question the other two sing-box cards cannot answer: is it actually
-      // carrying our traffic? A daemon can be up, reachable and supervised while
-      // every stream quietly dials direct, so the share gets its own verdict.
-      //   null  → nothing proxied yet; no verdict to give.
-      //   100   → every stream tunnelled.
-      //   1-99  → some fell back; the daemon is flapping or was restarted.
-      //   0     → nothing is tunnelled. Degraded, and the site is still up.
+      // The question the daemon cards cannot answer: is it actually carrying our traffic? A daemon can
+      // be up, reachable and supervised while fetches are being refused, so refusals get their own tile.
+      //   null  → nothing fetched yet; no verdict to give.
+      //   100   → every fetch went through sing-box (the only value enforcement allows).
+      //   lower → a developer opted out of enforcement outside production.
       const share = eg.singboxSharePct;
-      const egState = !eg.enabled ? '' : share === null ? '' : share >= 100 ? 'ok' : share > 0 ? 'warn' : 'bad';
-
-      // Saturation is the number an operator acts on: how close the tunnel pool
-      // is to refusing new connections. `rejected > 0` means it already has.
-      const satState = t.saturationPct >= 90 ? 'bad' : t.saturationPct >= 70 ? 'warn' : 'ok';
+      const egState = !eg.enabled ? 'bad' : share === null ? '' : share >= 100 ? 'ok' : 'warn';
+      const refusedState = eg.fetchRefused ? 'bad' : 'ok';
+      const guardState = guard.blocked ? 'bad' : guard.installed ? 'ok' : 'warn';
 
       const strip = `<div class="grid g-stats">
-        ${stat('Live tunnels', fmt(t.live), `of ${fmt(t.capacity)} capacity`, { state: satState })}
-        ${stat('Saturation', `${t.saturationPct ?? 0}`, `peak ${fmt(t.peak)} concurrent`,
-          { unit: '%', state: satState })}
-        ${stat('Refused', fmt(t.rejected), t.rejected ? 'at capacity — raise the cap' : 'none turned away',
-          { state: t.rejected ? 'bad' : 'ok' })}
-        ${stat('Traffic', bytes((t.bytesIn || 0) + (t.bytesOut || 0)),
-          `${bytes(t.bytesIn)} in / ${bytes(t.bytesOut)} out`)}
         ${stat('Via sing-box',
           !eg.enabled ? 'off' : share === null ? '—' : String(share),
-          !eg.enabled ? 'egress not tunnelled'
-            : share === null ? 'no streams yet'
-            : `${fmt(eg.viaSingbox)} tunnelled / ${fmt(eg.viaDirect)} direct`,
+          !eg.enabled ? 'egress is not routed' : share === null ? 'no fetches yet'
+            : `${fmt(eg.fetchViaSingbox)} through the daemon`,
           { unit: eg.enabled && share !== null ? '%' : '', state: egState })}
+        ${stat('Refused', fmt(eg.fetchRefused), eg.fetchRefused ? 'the daemon could not carry them' : 'none turned away',
+          { state: refusedState })}
+        ${stat('Direct dials blocked', fmt(guard.blocked), guard.blocked ? 'something tried to bypass sing-box' : 'nothing bypassed it',
+          { state: guardState })}
+        ${stat('Direct fetches', fmt(eg.fetchDirect), eg.fetchDirect ? 'a development opt-out is active' : 'never in production',
+          { state: eg.fetchDirect ? 'warn' : 'ok' })}
       </div>`;
 
-      // Engines are the reason a given proxy route works or 404s. A `false`
-      // here is otherwise only visible in the boot log.
-      const engineRows = Object.entries(eng).map(([name, on]) => [
-        esc(name), onOff(on, 'mounted', 'unavailable'),
-      ]);
+      const blockedRows = Object.entries(guard.byHost || {}).map(([host, n]) => [`<code>${esc(host)}</code>`, fmt(n)]);
 
       return `
         ${strip}
         <div class="grid g-2">
-          ${card('Tunnel lifecycle', kv([
-            ['Opened (lifetime)', fmt(t.opened)],
-            ['Closed (lifetime)', fmt(t.closed)],
-            ['Currently open', fmt(t.live)],
-            ['Peak concurrent', fmt(t.peak)],
-            ['Idle reclaim', `${Math.round((t.idleTimeoutMs || 0) / 60000)} min`],
-            ['Keepalive probe', `${Math.round((t.keepAliveMs || 0) / 1000)} s`],
-          ]), { hint: 'A tunnel is reclaimed after the idle window, or when TCP keepalive finds the peer gone.' })}
-          ${card('Proxy engines', engineRows.length
-            ? table([{ t: 'Engine' }, { t: 'State' }], engineRows)
-            : '<p class="empty">No engines reported.</p>',
-            { hint: 'Mounted at boot from proxy-engine/mount.mjs.' })}
-        </div>
-        ${card('Proxy egress', eg.enabled
-          ? kv([
-            ['Path', share === null
-              ? pill('idle', '')
-              : share >= 100 ? pill('through sing-box', 'ok')
-              : share > 0 ? pill('partly falling back', 'warn')
-              : pill('direct (not tunnelled)', 'bad')],
-            ['Streams via sing-box', fmt(eg.viaSingbox)],
-            ['Streams direct', fmt(eg.viaDirect)],
+          ${card('Egress policy', kv([
+            ['Mode', pol.mode ? pill(String(pol.mode), pol.directAllowed ? 'warn' : 'ok') : '—'],
+            ['Environment', pol.production ? pill('production', 'ok') : pill('development', '')],
+            ['Direct dials', pol.directAllowed ? pill('permitted (development only)', 'warn') : pill('refused', 'ok')],
             ['SOCKS inbound', `<code>${esc(`${eg.socks?.host || '?'}:${eg.socks?.port || '?'}`)}</code>`],
-            ['Strict mode', eg.required
-              ? pill('on — a stream fails rather than leaking', 'ok')
-              : pill('off — falls back to direct', '')],
-            eg.refused ? ['Refused (strict)', fmt(eg.refused)] : null,
-            eg.lastError ? ['Last fallback cause', `<span class="stat-s">${esc(eg.lastError)}</span>`] : null,
-            eg.lastFallbackAt ? ['Last fallback', ago(eg.lastFallbackAt)] : null,
-          ])
-          : '<p class="empty">Tunnelled egress is off — the proxy dials out of this server directly.</p>',
-          {
+            ['Ignored overrides', (pol.ignoredOverrides || []).length
+              ? (pol.ignoredOverrides || []).map((n) => `<code>${esc(n)}</code>`).join(' ')
+              : 'none'],
+            eg.lastError ? ['Last error', `<span class="stat-s">${esc(eg.lastError)}</span>`] : null,
+            eg.lastRefusedAt ? ['Last refusal', ago(eg.lastRefusedAt)] : null,
+          ]), {
             state: egState,
-            hint: eg.enabled
-              ? 'Every proxied TCP stream is dialled through the daemon’s loopback SOCKS inbound. A failed dial falls back to a direct connection and is counted here.'
-              : 'Unset SINGBOX_EGRESS (or set it to 1) to route proxied streams through sing-box.',
+            hint: pol.production
+              ? 'In production the opt-outs (SINGBOX_ALLOW_DIRECT, SINGBOX_REQUIRE=0, SINGBOX_EGRESS=0) are ignored.'
+              : 'Development: a direct dial is permitted when the daemon cannot carry a connection.',
           })}
+          ${card('Egress guard', guard.installed
+            ? kv([
+              ['State', pill(String(guard.mode || 'enforce'), guard.mode === 'enforce' ? 'ok' : 'warn')],
+              ['Blocked', fmt(guard.blocked)],
+              ['Warned (allowed)', fmt(guard.warned)],
+              guard.lastBlocked ? ['Last blocked', `<code>${esc(guard.lastBlocked.host || '?')}</code> · ${esc(guard.lastBlocked.origin || '')}`] : null,
+            ])
+            : '<p class="empty">The guard is not installed — outbound connections are not being checked.</p>',
+            {
+              state: guardState,
+              hint: 'Refuses any connection that is neither loopback nor a named infrastructure host. A non-zero count is code trying to bypass sing-box; the origin says which file.',
+            })}
+        </div>
+        ${blockedRows.length ? card('Refused destinations', table([{ t: 'Host' }, { t: 'Count' }], blockedRows),
+          { hint: 'Hostnames and counts only — never a URL, a path or a credential.' }) : ''}
         ${card('sing-box (external)', sb.reachable
           ? kv([
             ['State', pill('connected', 'ok')],
@@ -624,7 +605,7 @@ const VIEWS = {
             state: !sbp.managed ? '' : sbp.running ? 'ok' : sbp.gaveUp ? 'warn' : 'bad',
             hint: sbp.managed
               ? (sbp.gaveUp
-                ? `Stopped trying: ${sbp.gaveUp}. Egress falls back to direct until the binary is in the image.`
+                ? `Stopped trying: ${sbp.gaveUp}. Outbound fetches are refused until the binary is in the image.`
                 : 'ZoFHub renders the config, runs sing-box check, spawns and restarts it.')
               : 'Managed mode is on by default; remove SINGBOX_MANAGED=0 to restore it.',
           })}
@@ -635,21 +616,14 @@ const VIEWS = {
           ['Active handles', fmt(proc.handles)],
         ]), { hint: 'Auto-refreshes every 5 seconds while this view is open.' })}`;
     },
-    // The one view that keeps refreshing: tunnel counts are live state, and a
-    // static snapshot of "live tunnels" is close to useless. The interval is
-    // cleared by the view switcher (see stopViewTimers) so it cannot leak or
-    // keep polling a section nobody is looking at.
+    // The one view that keeps refreshing: the counters are live state, and a static snapshot of
+    // "refused" is close to useless. The interval is cleared by the view switcher (see
+    // stopViewTimers) so it cannot leak or keep polling a section nobody is looking at.
     wire() {
-      startViewTimer(async () => {
-        try {
-          const p = await api('/api/admin/proxy');
-          const t = p.tunnels || {};
-          const nav = document.querySelector('#n-tunnels');
-          if (nav) nav.textContent = t.live ? String(t.live) : '';
-          // Only repaint if this view is still the one on screen — the timer is
-          // cleared on switch, but a request already in flight can still land.
-          if (current === 'proxy') renderCurrent({ quiet: true });
-        } catch { /* a failed poll is not worth a banner */ }
+      startViewTimer(() => {
+        // Only repaint if this view is still the one on screen — the timer is cleared on switch,
+        // but a tick already scheduled can still land.
+        if (current === 'egress') renderCurrent({ quiet: true });
       }, 5000);
     },
   },
@@ -797,7 +771,7 @@ let current = 'overview';
 // console displaying the section you clicked BEFORE the one you are on.
 let renderSeq = 0;
 
-// A view may register a polling timer (Proxy does, for live tunnel counts).
+// A view may register a polling timer (Egress does, for live counters).
 // Tracked centrally so switching away ALWAYS clears it — a per-view interval
 // that outlives its view is a leak that keeps hitting the API for a section
 // nobody is looking at.
