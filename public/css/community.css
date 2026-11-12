@@ -71,6 +71,13 @@
 .modal-backdrop[hidden] { display: none; }
 .modal-card {
   position: relative; width: 100%; max-width: 460px;
+  /* Tall forms (the Recommend modal) must never run off the bottom of a short
+     viewport with the submit button unreachable. Cap the card to the padded
+     viewport area and let it scroll INSIDE instead. dvh tracks the mobile URL
+     bar; the vh line is the fallback for browsers without dvh. */
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
   background: var(--surface-2); border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
   padding: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
 }

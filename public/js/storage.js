@@ -61,7 +61,7 @@ export const store = {
     remove: (url) => write('bookmarks', store.bookmarks.get().filter(b => b.url !== url))
   },
   panic: {
-    get: () => read('panic', { url: 'https://classroom.google.com/h', mode: 'cloak', disguise: true, key: 'ctrl+Backquote' }),
+    get: () => read('panic', { url: 'https://www.google.com', mode: 'cloak', disguise: true, key: 'ctrl+Backquote' }),
     set: (patch) => { const cur = { ...store.panic.get(), ...patch }; write('panic', cur); return cur; }
   },
   wipe: () => { for (const k of Object.keys(localStorage)) if (k.startsWith(NS)) localStorage.removeItem(k); }

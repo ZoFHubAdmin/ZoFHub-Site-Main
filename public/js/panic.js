@@ -17,8 +17,10 @@
 import { store } from './storage.js';
 import { $, el, toast, trapFocus } from './utils.js';
 
-// Preset cloak/escape destinations.
+// Preset cloak/escape destinations. Google is first, so it is the default
+// selection and the out-of-the-box destination.
 const PRESETS = [
+  { value: 'https://www.google.com',               label: 'Google',          title: 'Google',   icon: 'https://www.google.com/favicon.ico' },
   { value: 'https://classroom.google.com/h', label: 'Google Classroom', title: 'Classes', icon: 'https://www.gstatic.com/classroom/favicon.png' },
   { value: 'https://docs.google.com/document/u/0/', label: 'Google Docs',     title: 'Docs',     icon: 'https://ssl.gstatic.com/docs/documents/images/kix-favicon-2023q4.ico' },
   { value: 'https://drive.google.com',             label: 'Google Drive',    title: 'Drive',    icon: 'https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png' },
@@ -29,6 +31,19 @@ const PRESETS = [
 ];
 
 let panelEl, overlayEl, recording = false;
+
+// Turn whatever the user typed into a real, absolute URL. A bare "google.com"
+// is otherwise treated as a path on THIS origin — which is exactly the 404 the
+// panic destination kept landing on. Anything unusable falls back to Google so
+// the escape never dead-ends.
+const SAFE_FALLBACK = 'https://www.google.com';
+function normalizeUrl(input, fallback = SAFE_FALLBACK) {
+  let s = (input || '').trim();
+  if (!s) return fallback;
+  // Already has a scheme (https:, about:, etc.)? Leave it alone.
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = 'https://' + s;
+  try { return new URL(s).href; } catch { return fallback; }
+}
 
 // ── Hotkey helpers ─────────────────────────────────────────────────────────
 const MOD_CODES = ['ControlLeft','ControlRight','MetaLeft','MetaRight','AltLeft','AltRight','ShiftLeft','ShiftRight'];
@@ -157,8 +172,8 @@ function buildPanel() {
 
     <label>When triggered</label>
     <select id="panicMode">
-      <option value="cloak">Cloak — reopen inside an about:blank tab (best)</option>
-      <option value="redirect">Redirect — leave for the safe page</option>
+      <option value="cloak">Safe tab — open the safe page in a new tab &amp; hide ZoFHub here (best)</option>
+      <option value="redirect">Redirect — leave this tab for the safe page</option>
       <option value="screen">Cover screen — hide ZoFHub behind a blank document</option>
     </select>
 
@@ -200,13 +215,19 @@ function buildPanel() {
   mode.addEventListener('change', () => updateNowHint(mode.value));
 
   function readForm() {
-    const url = preset.value === '__custom' ? (custom.value || '').trim() : preset.value;
+    let url;
+    if (preset.value === '__custom') {
+      const raw = (custom.value || '').trim();
+      url = raw ? normalizeUrl(raw) : '';   // leave empty so Save can still warn
+    } else {
+      url = preset.value;
+    }
     return { url, mode: mode.value, disguise: dis.checked, key: store.panic.get().key };
   }
   function updateNowHint(m) {
     const hint = $('#panicNowHint', panelEl);
     if (hint) hint.textContent = m === 'cloak'
-      ? 'Reopens ZoFHub in a blank tab (needs pop-ups allowed) and sends this tab away.'
+      ? 'Opens the safe page in a new tab (needs pop-ups allowed) and hides ZoFHub here. Press Esc to come back.'
       : m === 'screen' ? 'Instantly covers ZoFHub with a blank document and mutes any game. Your URL stays the same; press Esc or Return to come back.'
       : 'Replaces this tab with the safe page.';
   }
@@ -339,18 +360,22 @@ const concealed = [];
 
 export function panic() {
   const cfg = store.panic.get();
-  // No configured destination is not a reason to do NOTHING and pop settings in
-  // front of someone who just hit the panic button. Cover the screen first;
-  // settings can be adjusted later, in their own time.
   const mode = cfg.mode === 'overlay' ? 'screen' : (cfg.mode || 'cloak');
 
-  if (mode === 'cloak' && cfg.url) { openAboutBlank(); return; }
-  if (mode === 'redirect' && cfg.url) {
-    try { location.replace(cfg.url); } catch { location.href = cfg.url; }
+  if (mode === 'cloak')    { openSafeTabAndHide(); return; }
+  if (mode === 'redirect') {
+    const dest = normalizeUrl(cfg.url);
+    try { location.replace(dest); } catch { location.href = dest; }
     return;
   }
+  // 'screen', and the fallback whenever nothing else applies.
+  coverScreen();
+}
 
-  // 'screen' — and the fallback whenever no destination is configured.
+// Cover ZoFHub in THIS tab with a locally-rendered blank document. No iframe and
+// no network, so it paints instantly and can't be blocked by frame headers.
+function coverScreen() {
+  const cfg = store.panic.get();
   if (isPanicked()) return;
   hidePanel();
   if (realTitle === null) realTitle = document.title;
@@ -402,37 +427,24 @@ export function unpanic() {
   document.getElementById('panicBtn')?.focus();
 }
 
-// about:blank cloak — re-host the whole site inside a fresh about:blank tab (the
-// visible URL becomes "about:blank", no readable address / history entry points
-// at ZoFHub), then send THIS tab somewhere harmless. Falls back to a plain
-// redirect if pop-ups are blocked so the escape still works.
-export function openAboutBlank() {
-  const cfg = store.panic.get();
-  const matched = PRESETS.find(p => p.value === cfg.url);
-  const useDisguise = cfg.disguise !== false && matched;
-  const title = useDisguise ? matched.title : (document.title || 'New Tab');
-  const icon  = useDisguise ? matched.icon : '';
-  const here  = location.href;
-  const safe  = matched ? matched.value : (cfg.url || 'https://www.google.com');
-
-  const win = window.open('about:blank', '_blank');
-  if (!win || !win.document) {
-    toast('Pop-ups blocked — escaping instead. Allow pop-ups for the cloak.', 'warn');
-    try { location.replace(safe); } catch { location.href = safe; }
+// Open the safe page in a NEW tab, then hide ZoFHub in this one. ZoFHub serves
+// its own pages with frame-ancestors 'none' / X-Frame-Options: DENY (a
+// deliberate clickjacking defence), so the old trick of hosting ZoFHub inside
+// an about:blank <iframe> could only ever render a blocked, blank frame — which
+// is exactly why it "wasn't working". A real top-level tab always loads the
+// EXACT safe page the user chose, and the local cover screen hides ZoFHub here
+// without needing to frame anything.
+export function openSafeTabAndHide() {
+  const safe = normalizeUrl(store.panic.get().url);
+  let win = null;
+  try { win = window.open(safe, '_blank'); } catch { win = null; }
+  if (win) {
+    try { win.focus(); } catch { /* ignore */ }
+    coverScreen();
     return;
   }
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const d = win.document;
-  d.open();
-  d.write(
-    '<!doctype html><html><head><meta charset="utf-8">' +
-    '<title>' + esc(title) + '</title>' +
-    (icon ? '<link rel="icon" href="' + esc(icon) + '">' : '') +
-    '<style>html,body{margin:0;height:100%;background:#0b0f1a;overflow:hidden}' +
-    'iframe{border:0;position:fixed;inset:0;width:100%;height:100%;display:block}</style></head>' +
-    '<body><iframe src="' + esc(here) + '" allow="autoplay; fullscreen; clipboard-read; clipboard-write; gamepad; encrypted-media"></iframe></body></html>'
-  );
-  d.close();
+  // Pop-ups blocked: bail THIS tab to the safe page so the escape still works.
+  toast('Pop-ups blocked — leaving for the safe page. Allow pop-ups to keep ZoFHub open behind it.', 'warn');
   try { location.replace(safe); } catch { location.href = safe; }
 }
 
