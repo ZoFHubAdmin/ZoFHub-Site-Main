@@ -2664,7 +2664,7 @@ app.get('/api/scores', async (req, res) => {
   if (!(await scoresAvailable())) {
     return res.json({
       ok: true, available: false, slug: slug || null, scores: [],
-      note: 'The leaderboard table is not installed. Run db/community.sql in the Supabase SQL editor.',
+      note: 'The leaderboard table is not installed. Run db/scores-restore.sql in the Supabase SQL editor (idempotent; restores the table even if an old migration dropped it).',
     });
   }
   const supa = getSupabaseAdmin();
