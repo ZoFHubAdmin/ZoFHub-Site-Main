@@ -33,6 +33,21 @@ before(async () => {
 });
 after(() => { if (child && !child.killed) child.kill('SIGKILL'); });
 
+describe('HTTPS is mandatory', () => {
+  test('HSTS is sent with a long max-age, subdomains and preload', async () => {
+    const hsts = (await fetch(BASE + '/')).headers.get('strict-transport-security') || '';
+    const maxAge = Number((hsts.match(/max-age=(\d+)/) || [])[1]);
+    assert.ok(maxAge >= 31536000, `HSTS max-age is missing or too short: "${hsts}"`);
+    assert.match(hsts, /includeSubDomains/i, 'HSTS does not cover subdomains');
+    assert.match(hsts, /preload/i, 'HSTS is not preload-eligible');
+  });
+
+  test('the CSP upgrades insecure requests, so no page can load plaintext content', async () => {
+    const csp = (await fetch(BASE + '/')).headers.get('content-security-policy') || '';
+    assert.match(csp, /upgrade-insecure-requests/, 'CSP is missing upgrade-insecure-requests');
+  });
+});
+
 describe('CORS policy — open reads, same-origin writes', () => {
   test('cross-origin GET is allowed (the catalog is public data)', async () => {
     const r = await fetch(BASE + '/api/games?limit=2', {

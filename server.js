@@ -1447,11 +1447,23 @@ const CSP_DIRECTIVES = {
   frameSrc: ["'self'", 'https:', 'data:', 'blob:'],
   mediaSrc:    ["'self'", 'https:', 'data:', 'blob:'],
   workerSrc:   ["'self'", 'blob:'],
-  manifestSrc: ["'self'"]
+  manifestSrc: ["'self'"],
+  // Mandatory HTTPS: rewrite any http:// subresource to https:// before it is
+  // fetched, so a page can never load mixed/plaintext content. Browsers block
+  // mixed active content anyway; this upgrades it so the resource still loads,
+  // over TLS. An empty array emits the valueless `upgrade-insecure-requests`.
+  upgradeInsecureRequests: []
 };
 
 app.use(helmet({
   contentSecurityPolicy: { useDefaults: true, directives: CSP_DIRECTIVES },
+  // Mandatory HTTPS. Two years, subdomains included, and `preload` so the origin
+  // is eligible for the browsers' built-in HSTS preload list. The header alone
+  // already makes every returning browser refuse plaintext for this origin and
+  // its subdomains; submit the domain at https://hstspreload.org to also close
+  // the very first visit. (Drop `preload`/`includeSubDomains` if any subdomain
+  // must stay HTTP — it commits all of them to HTTPS.)
+  strictTransportSecurity: { maxAge: 63072000, includeSubDomains: true, preload: true },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -1460,6 +1472,25 @@ app.use(helmet({
   // treat that as bot traffic and refuse to start.  Send the origin only.
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
+
+// ── Mandatory HTTPS — defence in depth ────────────────────────────────────
+// HSTS (above) tells browsers to refuse plaintext; this bounces a plaintext
+// request that still arrives. Render terminates TLS at its edge and already
+// redirects http→https there, so on Render this effectively never fires — it
+// guarantees the same behaviour on any other host. Keyed on the proxy's own
+// X-Forwarded-Proto so it triggers only on a genuinely plaintext client hop:
+// never on the internal, header-less liveness probes (which would read a 3xx as
+// an unhealthy service), and never in dev/test.
+const HTTPS_PROBE_EXEMPT = /^\/(healthz|readyz|livez|ping|api\/health)$/;
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') return next();
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  if (proto !== 'http') return next();                 // already https, or no proxy hop to judge
+  if (HTTPS_PROBE_EXEMPT.test(req.path)) return next();
+  const host = req.headers.host;
+  if (!host) return next();                            // nothing to redirect to
+  return res.redirect(308, `https://${host}${req.originalUrl}`);
+});
 
 // ── Server-side AI fallback routes: refused before anything else runs ──────
 // /api/ai/text, /api/ai/image and /api/ai/echo answer 403 in production, and

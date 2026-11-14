@@ -4,7 +4,7 @@
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Database-Supabase-3ecf8e?logo=supabase&logoColor=white)
 ![No build step](https://img.shields.io/badge/build-none-blue)
-![Tests](https://img.shields.io/badge/tests-1813%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1819%20passing-brightgreen)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
 [![Discord](https://img.shields.io/badge/Discord-ZoFHub%20Official-5865F2?logo=discord&logoColor=white)](https://discord.gg/SeMuMRG9gG)
 
@@ -45,7 +45,7 @@ It's built with **Node.js + Express**, vanilla **HTML/CSS/JS** (no framework, **
 | Database | Supabase (Postgres) — accessed via PostgREST, RLS deny-by-default |
 | AI | **Browser-direct**, never proxied by this server — one keyless `GET` to Pollinations for text, and an `<img>` for opt-in `/image` pictures |
 | Egress | [sing-box](proxy/SINGBOX.md) carries every server-side fetch of a third-party URL; [`lib/egress-policy.mjs`](../lib/egress-policy.mjs) refuses instead of falling back to a direct connection *(see [CREDITS.md](CREDITS.md))* |
-| Tests | `node:test` (built in — zero test dependencies), 1813 tests |
+| Tests | `node:test` (built in — zero test dependencies), 1819 tests |
 | CI | GitHub Actions — boot check, tests, migration mirror, live migration apply |
 | Hosting | Render (persistent web service) — `render.yaml` included |
 
@@ -638,7 +638,7 @@ ZoFHub/
 │   ├── audit.py           #   entry point for the repository auditor
 │   └── zofaudit/          #   the checks it runs (stdlib-only Python)
 ├── scripts/               # one-off data scripts
-├── test/                  # node:test suites (1813 tests, no framework)
+├── test/                  # node:test suites (1819 tests, no framework)
 ├── deploy/singbox/        # sing-box config templates + compose file
 └── suroi/                 # self-hosting kit for Suroi (GPL-3.0) — see docs/features/SUROI.md
 ```
@@ -650,7 +650,7 @@ Git-ignored and machine-local: `.env`, `logs/`, `verification-evidence/` (GameFl
 ## 🧪 Tests & CI
 
 ```bash
-npm test        # 1813 tests across 367 suites, node:test — no framework, no install step
+npm test        # 1819 tests across 369 suites, node:test — no framework, no install step
 npm run check   # syntax-check every front-end module (public/js + admin-ui)
 ```
 

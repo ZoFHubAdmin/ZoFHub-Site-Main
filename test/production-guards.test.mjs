@@ -115,6 +115,30 @@ describe('NODE_ENV=production: the AI fallback routes are closed to everyone', (
   });
 });
 
+describe('NODE_ENV=production: plaintext HTTP is redirected to HTTPS', () => {
+  test('a proxied http request (X-Forwarded-Proto: http) gets a 308 to the https URL', async () => {
+    const r = await req('/', { headers: { host: 'zofhub.test', 'x-forwarded-proto': 'http' } });
+    assert.equal(r.status, 308);
+    assert.equal(r.headers.location, 'https://zofhub.test/');
+  });
+
+  test('the path and query survive the redirect', async () => {
+    const r = await req('/community?tab=new', { headers: { host: 'zofhub.test', 'x-forwarded-proto': 'http' } });
+    assert.equal(r.status, 308);
+    assert.equal(r.headers.location, 'https://zofhub.test/community?tab=new');
+  });
+
+  test('an https request is served, never redirected', async () => {
+    const r = await req('/', { headers: { host: 'zofhub.test', 'x-forwarded-proto': 'https' } });
+    assert.notEqual(r.status, 308);
+  });
+
+  test('a liveness probe over plaintext is exempt — a 3xx there would read as unhealthy', async () => {
+    const r = await req('/healthz', { headers: { host: 'zofhub.test', 'x-forwarded-proto': 'http' } });
+    assert.notEqual(r.status, 308);
+  });
+});
+
 describe('the six-network payload, as a production page receives it', () => {
   const cfgFor = async (surface, headers = {}) => (await req(`/api/site-config?surface=${encodeURIComponent(surface)}`, { headers })).json;
 
