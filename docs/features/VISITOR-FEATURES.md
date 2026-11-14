@@ -149,18 +149,25 @@ read in the admin console.
 
 ## 7. The panic key
 
-A top-right **Panic** button and a customisable hotkey (default **Ctrl + `**)
-that instantly leaves the site ([`public/js/panic.js`](../../public/js/panic.js)).
-Three modes:
+A top-right **Panic** button (clicking it fires immediately — no menu to read in
+the moment it exists for) and a customisable hotkey (default **Ctrl + `**) that
+instantly hides the site ([`public/js/panic.js`](../../public/js/panic.js)). A
+small gear beside the button opens the settings. Three modes:
 
 | Mode | What happens |
 |---|---|
-| **cloak** | re-hosts the site inside a fresh `about:blank` tab and sends *this* tab to a safe page. Falls back to *redirect* if pop-ups are blocked |
-| **redirect** | `location.replace()` to the chosen page |
-| **overlay** | drops an iframe of the safe page on top of ZoFHub; the URL does not change |
+| **cloak** (default) | opens the safe page in a **new tab** and covers ZoFHub in this one with a locally-rendered blank document. Falls back to *redirect* if pop-ups are blocked |
+| **redirect** | `location.replace()` to the chosen page — this tab leaves for the safe page |
+| **screen** | covers ZoFHub with a local blank document; the URL does not change, and **Esc** brings it back |
 
-Settings — mode, destination, hotkey — are saved in `localStorage`. The same
-cloak system (`/js/panic.js`) runs site-wide on every page.
+The default safe destination is **google.com**, and a typed custom URL is
+normalised (a bare `example.com` becomes `https://example.com`) so the escape
+never lands on a 404. The cover is a **locally-rendered** document, never an
+`<iframe>` of another site: ZoFHub serves its own pages with
+`frame-ancestors 'none'`, and most "safe" sites refuse to be framed too, so a
+local cover is the only one that always paints. Settings — mode, destination,
+disguise, hotkey — are saved in `localStorage`, and the panic system runs
+site-wide on every page.
 
 ---
 

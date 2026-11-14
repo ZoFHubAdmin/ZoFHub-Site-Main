@@ -1,4 +1,4 @@
-# 🎮 ZoFHub — Gaming · AI · Browser Hub
+# 🎮 ZoFHub — Gaming · AI Hub
 
 ![Node](https://img.shields.io/badge/Node-%E2%89%A522-3c873a?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
@@ -223,8 +223,8 @@ No third-party analytics, no tracking cookies, no source maps, no accounts. Prom
 **Prerequisites:** Node.js **22+** and Git — that is the whole list. No compiler, no Python, no build step. Supabase is optional for local dev; without it the app serves a bundled fallback catalog.
 
 ```bash
-git clone https://github.com/ZSM1010/ZoFHub-Gaming-AI-Browser-Hub.git
-cd ZoFHub-Gaming-AI-Browser-Hub
+git clone https://github.com/ZSM1010/ZoFHub.git
+cd ZoFHub
 npm ci                    # exactly what package-lock.json pins — same as CI and Render
 
 cp .env.example .env      # then fill in your values (see Configuration)

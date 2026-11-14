@@ -4,7 +4,7 @@
   there is only one place to maintain the deep detail.
 -->
 
-# 🎮 ZoFHub — Gaming · AI · Browser Hub
+# 🎮 ZoFHub — Gaming · AI Hub
 
 ![Node](https://img.shields.io/badge/Node-%E2%89%A522-3c873a?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Server-Express-000000?logo=express&logoColor=white)
