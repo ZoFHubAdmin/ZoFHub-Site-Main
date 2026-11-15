@@ -3176,7 +3176,7 @@ app.post('/api/recommendations', async (req, res) => {
 // --- GET /api/recommendations ---------------------------------------------
 app.get('/api/recommendations', async (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=20, s-maxage=60, stale-while-revalidate=300');
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 50));
   const supa = getSupabase();
   if (!supa) return res.json({ recommendations: [], source: 'no-supabase' });
   try {

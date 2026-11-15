@@ -29,7 +29,7 @@ function prettySlug(s) {
 
 async function loadRecommendations() {
   try {
-    const data = await fetchJson('/api/recommendations?limit=60');
+    const data = await fetchJson('/api/recommendations?limit=500');
     const recs = data.recommendations || [];
     recList.innerHTML = '';
     // `setup` is a DEVELOPER hint (DB tables not created yet). Never surface it to
