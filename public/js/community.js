@@ -1,5 +1,5 @@
 // ZoFHub · community.js — recommendations feed + submit.
-import { $, el, fetchJson, escapeHtml, toast, trapFocus } from './utils.js';
+import { $, el, fetchJson, escapeHtml, toast, trapFocus, formatRelative } from './utils.js';
 import { getPlayerName } from './identity.js';
 // The genre list, the "Other needs an explanation" rule and the review
 // disclosure all come from ONE module that the server validates against too —
@@ -16,7 +16,6 @@ init();
 
 async function init() {
   bindRecModal();
-  bindPlayModal();
   await loadRecommendations();
 }
 
@@ -86,6 +85,10 @@ function friendlyError(err) {
   return raw || 'Could not post your recommendation.';
 }
 
+// A recommendation is a SUGGESTION, not a playable catalog tile — an admin
+// decides whether it is actually added to the site. So the card shows every
+// detail the submitter provided (so it can be evaluated), the embed link in
+// full, and how long ago it was posted — and it has no Play button.
 function recCard(r) {
   const card = el('div', { class: 'rec-card' });
   const safeTitle = escapeHtml(r.title || 'Game');
@@ -95,20 +98,49 @@ function recCard(r) {
   const genreIds = Array.isArray(r.genres) && r.genres.length ? r.genres : [r.category || 'arcade'];
   const cat = escapeHtml(genreIds.map(labelFor).join(' · '));
   const author = escapeHtml(r.author || 'Anonymous');
-  const note = r.note ? `<p class="rec-note">${escapeHtml(r.note)}</p>` : '';
+  const posted = r.created_at ? Date.parse(r.created_at) : NaN;
+  const when = Number.isFinite(posted) ? escapeHtml(formatRelative(posted)) : '';
+  const note    = r.note       ? `<p class="rec-note">${escapeHtml(r.note)}</p>` : '';
+  const other   = r.other_text ? fieldRow('Kind of game', r.other_text) : '';
+  const extra   = r.extra      ? fieldRow('Notes', r.extra) : '';
+  const embed   = linkRow('Embed link', r.embed_url);
+  const official = r.official_url ? linkRow('Official page', r.official_url) : '';
   card.innerHTML = `
     <div class="rec-card-top">
       <span class="rec-cat">${cat}</span>
-      <span class="rec-views">${(r.views || 0)} ▷</span>
+      ${when ? `<span class="rec-time">${when}</span>` : ''}
     </div>
     <h3 class="rec-title">${safeTitle}</h3>
     ${note}
+    <dl class="rec-details">
+      ${embed}
+      ${official}
+      ${other}
+      ${extra}
+    </dl>
     <div class="rec-card-foot">
       <span class="rec-author">by ${author}</span>
-      <button class="btn-primary btn-sm rec-play">Play ▶</button>
     </div>`;
-  card.querySelector('.rec-play').addEventListener('click', () => openPlay(r));
   return card;
+}
+
+// A labelled plain-text detail row.
+function fieldRow(label, value) {
+  return `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>`;
+}
+
+// A labelled link row. Only genuine http(s) URLs become a clickable link;
+// anything else (javascript:, data:, a bare host) is shown as inert text so a
+// submitted value can never turn into an executable href. The value is always
+// escaped, in both attribute and text position.
+function linkRow(label, url) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  const safe = escapeHtml(u);
+  const body = /^https?:\/\//i.test(u)
+    ? `<a class="rec-link" href="${safe}" target="_blank" rel="noopener noreferrer nofollow">${safe}</a>`
+    : `<span class="rec-link">${safe}</span>`;
+  return `<dt>${escapeHtml(label)}</dt><dd>${body}</dd>`;
 }
 
 
@@ -229,52 +261,4 @@ function bindRecModal() {
       btn.disabled = false;
     }
   });
-}
-
-// ---------------------------------------------------------------------------
-// Play modal (sandboxed iframe — embed_url is already trusted-host validated
-// server-side, and we additionally sandbox the frame here)
-// ---------------------------------------------------------------------------
-// The focus trap for this one is installed by openPlay() (which is what
-// actually shows the modal) and released by close() below.
-let releasePlayFocus = null;
-
-function bindPlayModal() {
-  const modal = $('#playModal');
-  const close = () => {
-    modal.hidden = true;
-    $('#playModalFrame').innerHTML = '';
-    releasePlayFocus?.(); releasePlayFocus = null;
-  };
-  $('#playClose')?.addEventListener('click', close);
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) close(); });
-}
-
-function openPlay(r) {
-  const modal = $('#playModal');
-  $('#playModalTitle').textContent = r.title || 'Game';
-  const frame = $('#playModalFrame');
-  frame.innerHTML = '';
-  // Load through OUR /embed proxy (same-origin), exactly like catalog games, so
-  // community picks get the per-publisher render fixes AND stay unblockable on
-  // filtered networks. Falls back to the raw URL only if the id is missing.
-  const iframe = el('iframe', {
-    src: r.id ? `/embed/rec/${encodeURIComponent(r.id)}` : r.embed_url,
-    title: r.title || 'Game',
-    allow: 'autoplay; fullscreen; gamepad; clipboard-write; encrypted-media',
-    // Matches game.html's catalog sandbox. allow-popups is DELIBERATELY omitted
-    // (it let embedded ads/games open new tabs); the proxy's EMBED_GUARD already
-    // rewrites window.open/target=_blank to stay in-frame.
-    sandbox: 'allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-presentation allow-modals',
-    referrerpolicy: 'strict-origin-when-cross-origin',
-  });
-  iframe.setAttribute('allowfullscreen', '');
-  frame.appendChild(iframe);
-  modal.hidden = false;
-  // Start focus on the close button, not the game frame — focus inside a
-  // cross-origin iframe can't be tracked or pulled back out by us.
-  releasePlayFocus = trapFocus(modal, { initial: '#playClose' });
-  // Bump the view counter (powers the cleanup of unseen recs).
-  if (r.id) fetch(`/api/recommendations/${r.id}/seen`, { method: 'POST' }).catch(() => {});
 }
